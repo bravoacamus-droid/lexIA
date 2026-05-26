@@ -1,0 +1,51 @@
+# dependencies
+node_modules
+.pnp
+.pnp.js
+
+# testing
+coverage
+
+# next.js
+.next/
+out/
+build
+dist
+
+# env — NUNCA committear secrets
+.env*.local
+.env
+!.env.example
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# editors
+.idea
+.vscode
+
+# claude
+.claude
+memory
+
+# project-specific
+data/normativa/*.pdf
+data/normativa/*.json
+data/cache
+spec.txt
+spec_tables.txt
+*.docx

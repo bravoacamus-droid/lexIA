@@ -1,0 +1,198 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+
+    --card: 210 40% 98%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 243 75% 51%;            /* indigo-700 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 226 100% 96%;
+    --accent-foreground: 243 75% 41%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 243 75% 51%;
+
+    --success: 158 64% 39%;
+    --warning: 31 92% 44%;
+    --danger: 0 84% 60%;
+    --info: 200 98% 39%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 240 13% 5%;          /* #0A0A0F */
+    --foreground: 210 40% 96%;
+
+    --card: 240 14% 8%;                /* #111118 */
+    --card-foreground: 210 40% 96%;
+
+    --popover: 240 14% 8%;
+    --popover-foreground: 210 40% 96%;
+
+    --primary: 234 89% 74%;
+    --primary-foreground: 240 13% 5%;
+
+    --secondary: 240 12% 12%;          /* #1A1A24 */
+    --secondary-foreground: 210 40% 96%;
+
+    --muted: 240 12% 12%;
+    --muted-foreground: 215 16% 65%;
+
+    --accent: 240 12% 12%;
+    --accent-foreground: 234 89% 74%;
+
+    --destructive: 0 73% 56%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 10% 18%;             /* #2A2A38 */
+    --input: 240 10% 18%;
+    --ring: 234 89% 74%;
+
+    --success: 158 70% 50%;
+    --warning: 31 92% 55%;
+    --danger: 0 73% 56%;
+    --info: 200 98% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    @apply antialiased;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1, 'cv11' 1;
+  }
+  ::selection {
+    @apply bg-brand-200 text-brand-900;
+  }
+  .dark ::selection {
+    @apply bg-brand-700 text-brand-50;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    @apply w-1.5 h-1.5;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/40;
+  }
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+  .gradient-text {
+    @apply bg-gradient-to-r from-brand-700 via-brand-500 to-brand-700 dark:from-brand-300 dark:via-brand-400 dark:to-brand-300 bg-clip-text text-transparent;
+    background-size: 200% auto;
+    animation: gradient-shift 8s ease infinite;
+  }
+  .glow-border {
+    box-shadow:
+      0 0 0 1px hsl(var(--border)),
+      0 0 0 4px hsl(var(--accent) / 0.4);
+  }
+  .mesh-gradient {
+    background-image:
+      radial-gradient(at 27% 37%, hsla(225, 98%, 61%, 0.12) 0px, transparent 50%),
+      radial-gradient(at 97% 21%, hsla(125, 98%, 61%, 0.08) 0px, transparent 50%),
+      radial-gradient(at 52% 99%, hsla(280, 98%, 61%, 0.10) 0px, transparent 50%),
+      radial-gradient(at 10% 29%, hsla(255, 96%, 61%, 0.14) 0px, transparent 50%),
+      radial-gradient(at 97% 96%, hsla(38, 60%, 74%, 0.06) 0px, transparent 50%),
+      radial-gradient(at 33% 50%, hsla(222, 67%, 73%, 0.06) 0px, transparent 50%),
+      radial-gradient(at 79% 53%, hsla(343, 68%, 79%, 0.08) 0px, transparent 50%);
+  }
+  .noise {
+    position: relative;
+  }
+  .noise::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+    opacity: 0.04;
+    pointer-events: none;
+  }
+  .citation-chip {
+    @apply inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 mx-0.5 align-text-bottom rounded-md text-[10px] font-mono font-semibold
+           bg-citation-bg text-emerald-900 dark:bg-citation-bg-dark dark:text-emerald-300
+           cursor-pointer hover:scale-110 transition-transform;
+  }
+  .prose-lexia {
+    @apply prose prose-slate dark:prose-invert max-w-none
+           prose-headings:font-semibold prose-headings:tracking-tight
+           prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg
+           prose-p:leading-relaxed prose-p:text-[15px]
+           prose-strong:text-foreground prose-strong:font-semibold
+           prose-a:text-brand-700 dark:prose-a:text-brand-400 prose-a:no-underline hover:prose-a:underline
+           prose-code:bg-secondary prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-[13px] prose-code:font-mono
+           prose-blockquote:border-brand-500 prose-blockquote:bg-accent/50 prose-blockquote:not-italic
+           prose-ul:my-3 prose-li:my-1;
+  }
+}
+
+/* TipTap editor */
+.ProseMirror {
+  @apply outline-none min-h-[400px] px-8 py-6;
+}
+.ProseMirror h1 {
+  @apply text-2xl font-semibold mt-6 mb-3;
+}
+.ProseMirror h2 {
+  @apply text-xl font-semibold mt-5 mb-2;
+}
+.ProseMirror p {
+  @apply leading-relaxed my-3 text-[15px];
+}
+.ProseMirror ul, .ProseMirror ol {
+  @apply pl-6 my-3;
+}
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+  height: 0;
+}
