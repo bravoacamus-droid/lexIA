@@ -123,32 +123,58 @@ function chunkText(text: string): string[] {
 }
 
 // ════════════════════════════════════════════════════════
-// Embeddings batch
+// Embeddings batch — con retry exponencial para rate limits
 // ════════════════════════════════════════════════════════
+async function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function embedBatch(texts: string[]): Promise<number[][]> {
   const results: number[][] = [];
-  const BATCH = 50;
+  const BATCH = 25;
+
   for (let i = 0; i < texts.length; i += BATCH) {
     const slice = texts.slice(i, i + BATCH);
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${EMBEDDING_MODEL}:batchEmbedContents?key=${GEMINI_KEY}`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requests: slice.map((text) => ({
-          model: `models/${EMBEDDING_MODEL}`,
-          content: { parts: [{ text }] },
-          taskType: 'RETRIEVAL_DOCUMENT',
-          outputDimensionality: EMBEDDING_DIM,
-        })),
-      }),
-    });
-    if (!res.ok) {
+
+    let attempts = 0;
+    const maxAttempts = 6;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requests: slice.map((text) => ({
+            model: `models/${EMBEDDING_MODEL}`,
+            content: { parts: [{ text }] },
+            taskType: 'RETRIEVAL_DOCUMENT',
+            outputDimensionality: EMBEDDING_DIM,
+          })),
+        }),
+      });
+
+      if (res.ok) {
+        const json = (await res.json()) as { embeddings: Array<{ values: number[] }> };
+        for (const e of json.embeddings) results.push(e.values);
+        break;
+      }
+
+      if (res.status === 429 && attempts < maxAttempts) {
+        attempts += 1;
+        const wait = Math.min(8_000 * 2 ** (attempts - 1), 90_000);
+        process.stdout.write(
+          `\n    rate limit, esperando ${Math.round(wait / 1000)}s (intento ${attempts}/${maxAttempts})... `,
+        );
+        await sleep(wait);
+        continue;
+      }
+
       const errText = await res.text();
       throw new Error(`Gemini batch embed ${res.status}: ${errText.slice(0, 300)}`);
     }
-    const json = (await res.json()) as { embeddings: Array<{ values: number[] }> };
-    for (const e of json.embeddings) results.push(e.values);
+
+    if (i + BATCH < texts.length) await sleep(1500);
   }
   return results;
 }
