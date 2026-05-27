@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Sparkles, Loader2 } from 'lucide-react';
+import { Search, Sparkles, Loader2, X, BookmarkCheck, Inbox, Folder } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { TypeFilter } from '@/components/app/library/type-filter';
 import { FoldersPanel } from '@/components/app/library/folders-panel';
@@ -67,7 +67,9 @@ export function LibraryView({
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [type, setType] = useState<NormativeDocType | null>(null);
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null | 'unfiled'>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<
+    string | null | 'unfiled' | 'all-saved'
+  >(null);
   const [browseDocs, setBrowseDocs] = useState<BrowseDoc[]>(initialDocuments);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [mode, setMode] = useState<'browse' | 'search' | 'folder'>('browse');
@@ -88,14 +90,17 @@ export function LibraryView({
     async function run() {
       setLoading(true);
       try {
-        // Si hay carpeta seleccionada y NO hay query, mostrar los docs guardados
-        // en esa carpeta. Si hay query, ignorar la carpeta y buscar normalmente.
+        // Si hay carpeta/saved seleccionado y NO hay query, traer documentos guardados.
+        // Si hay query, ignorar la selección y buscar normalmente.
         if (selectedFolderId && !debounced) {
-          const folderParam = selectedFolderId === 'unfiled' ? 'unfiled' : selectedFolderId;
+          // 'all-saved' → todos los saved del usuario (sin filtro de folder)
+          // 'unfiled'   → saved con folder_id null
+          // <uuid>      → saved con ese folder_id
+          const folderParam =
+            selectedFolderId === 'all-saved' ? 'all' : selectedFolderId;
           const res = await fetch(`/api/saved-documents?folder=${folderParam}`);
           const json = await res.json();
           if (cancelled) return;
-          // Mapear saved.normative_documents al formato BrowseDoc
           const docs = (json.saved || [])
             .map((s: { normative_documents: BrowseDoc | null }) => s.normative_documents)
             .filter((d: BrowseDoc | null): d is BrowseDoc => d !== null);
@@ -221,6 +226,16 @@ export function LibraryView({
 
         {/* Main — results */}
         <section className="lg:col-span-9 min-w-0">
+          {/* Badge removible cuando hay carpeta activa */}
+          {mode === 'folder' && selectedFolderId && (
+            <ActiveFolderBadge
+              folderId={selectedFolderId}
+              folders={folders}
+              docCount={browseDocs.length}
+              onClear={() => setSelectedFolderId(null)}
+            />
+          )}
+
           {mode === 'search' ? (
             <SearchResultsList
               results={results}
@@ -239,9 +254,11 @@ export function LibraryView({
               onUnsave={onUnsave}
               folderName={
                 mode === 'folder'
-                  ? selectedFolderId === 'unfiled'
-                    ? 'Sin clasificar'
-                    : folders.find((f) => f.id === selectedFolderId)?.name || null
+                  ? selectedFolderId === 'all-saved'
+                    ? 'Todos mis guardados'
+                    : selectedFolderId === 'unfiled'
+                      ? 'Sin clasificar'
+                      : folders.find((f) => f.id === selectedFolderId)?.name || null
                   : null
               }
             />
@@ -374,6 +391,52 @@ function BrowseList({ docs, loading, savedIds, onSave, onUnsave, folderName }: B
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+interface ActiveFolderBadgeProps {
+  folderId: string | 'unfiled' | 'all-saved';
+  folders: FolderItem[];
+  docCount: number;
+  onClear: () => void;
+}
+
+function ActiveFolderBadge({
+  folderId,
+  folders,
+  docCount,
+  onClear,
+}: ActiveFolderBadgeProps) {
+  let icon: React.ReactNode;
+  let name: string;
+  if (folderId === 'all-saved') {
+    icon = <BookmarkCheck className="h-3.5 w-3.5" />;
+    name = 'Todos mis guardados';
+  } else if (folderId === 'unfiled') {
+    icon = <Inbox className="h-3.5 w-3.5" />;
+    name = 'Sin clasificar';
+  } else {
+    icon = <Folder className="h-3.5 w-3.5" />;
+    name = folders.find((f) => f.id === folderId)?.name || 'Carpeta';
+  }
+
+  return (
+    <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand-200 dark:border-brand-900 bg-brand-50 dark:bg-brand-950/50 px-3 py-1.5">
+      <span className="text-brand-700 dark:text-brand-400">{icon}</span>
+      <span className="text-xs font-medium text-brand-900 dark:text-brand-200">
+        Filtrando por: <strong>{name}</strong>
+      </span>
+      <span className="text-[10px] font-mono text-brand-700 dark:text-brand-400 tabular-nums">
+        {docCount} doc{docCount === 1 ? '' : 's'}
+      </span>
+      <button
+        onClick={onClear}
+        className="ml-1 rounded-full p-0.5 hover:bg-brand-200 dark:hover:bg-brand-900 text-brand-700 dark:text-brand-400 transition-colors"
+        aria-label="Quitar filtro"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }

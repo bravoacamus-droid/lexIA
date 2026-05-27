@@ -10,6 +10,8 @@ import {
   Pencil,
   Trash2,
   Layers,
+  Sparkles,
+  BookmarkCheck,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -35,8 +37,8 @@ import type { FolderItem } from '@/components/app/library/library-view';
 interface Props {
   folders: FolderItem[];
   unfiledCount: number;
-  selectedFolderId: string | null | 'unfiled';
-  onSelectFolder: (id: string | null | 'unfiled') => void;
+  selectedFolderId: string | null | 'unfiled' | 'all-saved';
+  onSelectFolder: (id: string | null | 'unfiled' | 'all-saved') => void;
   onCreated: (f: FolderItem) => void;
   onChanged: (f: FolderItem[]) => void;
 }
@@ -135,14 +137,25 @@ export function FoldersPanel({
         <ul className="space-y-0.5">
           <li>
             <FolderRow
-              icon={<Inbox className="h-3.5 w-3.5" />}
-              name="Todos los guardados"
-              count={unfiledCount + folders.reduce((sum, f) => sum + f.count, 0)}
-              color="slate"
+              icon={<Sparkles className="h-3.5 w-3.5" />}
+              name="Recientes"
+              color="indigo"
               active={selectedFolderId === null}
               onClick={() => onSelectFolder(null)}
             />
           </li>
+          {(unfiledCount + folders.reduce((sum, f) => sum + f.count, 0)) > 0 && (
+            <li>
+              <FolderRow
+                icon={<BookmarkCheck className="h-3.5 w-3.5" />}
+                name="Todos mis guardados"
+                count={unfiledCount + folders.reduce((sum, f) => sum + f.count, 0)}
+                color="emerald"
+                active={selectedFolderId === 'all-saved'}
+                onClick={() => onSelectFolder('all-saved')}
+              />
+            </li>
+          )}
           {unfiledCount > 0 && (
             <li>
               <FolderRow
@@ -328,7 +341,7 @@ function FolderRow({
 }: {
   icon: React.ReactNode;
   name: string;
-  count: number;
+  count?: number;
   color: string;
   actions?: React.ReactNode;
   active?: boolean;
@@ -351,14 +364,16 @@ function FolderRow({
       <span className={cn('flex-1 text-sm font-medium truncate', active && 'text-brand-900 dark:text-brand-200')}>
         {name}
       </span>
-      <span
-        className={cn(
-          'text-[11px] font-mono tabular-nums',
-          active ? 'text-brand-700 dark:text-brand-300' : 'text-muted-foreground',
-        )}
-      >
-        {count}
-      </span>
+      {typeof count === 'number' && (
+        <span
+          className={cn(
+            'text-[11px] font-mono tabular-nums',
+            active ? 'text-brand-700 dark:text-brand-300' : 'text-muted-foreground',
+          )}
+        >
+          {count}
+        </span>
+      )}
       {actions && <span className="ml-1">{actions}</span>}
     </div>
   );
