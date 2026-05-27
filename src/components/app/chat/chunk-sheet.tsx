@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   Sheet,
   SheetContent,
@@ -68,18 +70,26 @@ function ChunkSheetContent({
         <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-2">
           Fragmento citado
         </div>
-        <blockquote className="border-l-4 border-brand-500 bg-brand-50/40 dark:bg-brand-950/30 px-4 py-3 rounded-r-md">
-          <p className="text-[14px] leading-relaxed text-foreground whitespace-pre-wrap">
-            {chunk.snippet}
-          </p>
-        </blockquote>
-
-        <div className="mt-6 space-y-2 text-xs text-muted-foreground">
-          <p>
-            Este es el fragmento que sustenta la afirmación que estaba citada en la respuesta de
-            LexIA. Para revisar el documento completo abre la biblioteca normativa.
-          </p>
+        <div className="relative rounded-r-md border-l-4 border-brand-500 bg-brand-50/40 dark:bg-brand-950/30 px-5 py-4">
+          <div
+            className="prose-lexia prose-sm
+              prose-headings:font-serif prose-headings:text-foreground
+              prose-h1:text-base prose-h1:mt-0 prose-h1:mb-3 prose-h1:font-semibold
+              prose-h2:text-sm prose-h2:mt-4 prose-h2:mb-2 prose-h2:uppercase prose-h2:tracking-wider prose-h2:text-brand-700 dark:prose-h2:text-brand-400
+              prose-h3:text-sm prose-h3:mt-3 prose-h3:mb-1
+              prose-p:text-[14px] prose-p:leading-relaxed prose-p:my-2
+              prose-strong:text-foreground prose-strong:font-semibold
+              prose-ul:my-2 prose-li:my-0.5 prose-li:text-[14px]
+              prose-ol:my-2"
+          >
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{chunk.snippet}</ReactMarkdown>
+          </div>
         </div>
+
+        <p className="mt-6 text-xs text-muted-foreground leading-relaxed">
+          Este es el fragmento que sustenta la afirmación que estaba citada en la respuesta de
+          LexIA. Para revisar el documento completo, abre el visor de la biblioteca normativa.
+        </p>
       </div>
 
       <div className="border-t border-border px-6 py-4 flex items-center justify-between gap-3">
