@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -12,13 +13,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
+  X,
 } from 'lucide-react';
 import { Logo, LogoMark } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useUiStore } from '@/lib/stores/ui';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { AppUser } from '@/components/app/app-shell';
 
 const PRIMARY_NAV = [
@@ -31,30 +33,98 @@ const PRIMARY_NAV = [
 
 interface Props {
   user: AppUser;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
-export function AppSidebar({ user }: Props) {
+export function AppSidebar({ user, mobileOpen, onMobileClose }: Props) {
   const pathname = usePathname();
-  const collapsed = useUiStore((s) => s.sidebarCollapsed);
+  const storedCollapsed = useUiStore((s) => s.sidebarCollapsed);
   const toggle = useUiStore((s) => s.toggleSidebar);
+  const [mounted, setMounted] = useState(false);
 
-  function isActive(href: string) {
-    if (href === '/app') return pathname === '/app';
-    return pathname?.startsWith(href);
-  }
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
+  // Antes de hidratar, asumimos no-colapsado para coincidir con el server-render.
+  const collapsed = mounted ? storedCollapsed : false;
+
+  // Cerrar drawer al navegar
+  useEffect(() => {
+    if (mobileOpen && onMobileClose) onMobileClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  return (
+    <>
+      {/* Desktop sidebar — siempre visible md+ */}
+      <DesktopSidebar
+        collapsed={collapsed}
+        onToggle={toggle}
+        pathname={pathname}
+      />
+
+      {/* Mobile drawer */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-background/70 backdrop-blur-sm md:hidden"
+              onClick={onMobileClose}
+            />
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+              className="fixed inset-y-0 left-0 z-50 w-[280px] flex flex-col border-r border-border bg-card shadow-2xl md:hidden"
+            >
+              <div className="flex h-14 items-center justify-between border-b border-border px-4">
+                <Logo href="/app" size="md" />
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={onMobileClose}
+                  aria-label="Cerrar"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <SidebarBody collapsed={false} pathname={pathname} />
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+function DesktopSidebar({
+  collapsed,
+  onToggle,
+  pathname,
+}: {
+  collapsed: boolean;
+  onToggle: () => void;
+  pathname: string | null;
+}) {
   return (
     <aside
       className={cn(
-        'fixed inset-y-0 left-0 z-30 flex flex-col border-r border-border bg-secondary/30 backdrop-blur-sm transition-[width] duration-200',
+        'hidden md:flex fixed inset-y-0 left-0 z-30 flex-col border-r border-border bg-secondary/30 backdrop-blur-sm transition-[width] duration-200',
         collapsed ? 'w-16' : 'w-[264px]',
       )}
     >
-      {/* Header */}
-      <div className={cn(
-        'flex h-14 items-center border-b border-border',
-        collapsed ? 'justify-center px-2' : 'justify-between px-4',
-      )}>
+      <div
+        className={cn(
+          'flex h-14 items-center border-b border-border',
+          collapsed ? 'justify-center px-2' : 'justify-between px-4',
+        )}
+      >
         {collapsed ? (
           <Link href="/app" className="flex items-center justify-center">
             <LogoMark size="lg" />
@@ -65,15 +135,34 @@ export function AppSidebar({ user }: Props) {
         <Button
           variant="ghost"
           size="icon-sm"
-          onClick={toggle}
+          onClick={onToggle}
           className={cn(collapsed && 'hidden')}
           aria-label="Colapsar sidebar"
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
       </div>
+      <SidebarBody collapsed={collapsed} pathname={pathname} onToggle={onToggle} />
+    </aside>
+  );
+}
 
-      {/* Primary CTA */}
+function SidebarBody({
+  collapsed,
+  pathname,
+  onToggle,
+}: {
+  collapsed: boolean;
+  pathname: string | null;
+  onToggle?: () => void;
+}) {
+  function isActive(href: string) {
+    if (href === '/app') return pathname === '/app';
+    return pathname?.startsWith(href);
+  }
+
+  return (
+    <>
       <div className={cn('p-3', collapsed && 'px-2')}>
         {collapsed ? (
           <Tooltip>
@@ -96,12 +185,13 @@ export function AppSidebar({ user }: Props) {
         )}
       </div>
 
-      {/* Nav */}
-      <nav className={cn('flex-1 overflow-y-auto scrollbar-thin px-2 py-2')}>
-        <div className={cn(
-          'mb-2 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground',
-          collapsed && 'hidden',
-        )}>
+      <nav className="flex-1 overflow-y-auto scrollbar-thin px-2 py-2">
+        <div
+          className={cn(
+            'mb-2 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground',
+            collapsed && 'hidden',
+          )}
+        >
           Navegación
         </div>
         <ul className="space-y-0.5">
@@ -119,13 +209,15 @@ export function AppSidebar({ user }: Props) {
                     : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
                 )}
               >
-                <Icon className={cn('h-4 w-4 shrink-0', active && 'text-brand-700 dark:text-brand-400')} />
+                <Icon
+                  className={cn(
+                    'h-4 w-4 shrink-0',
+                    active && 'text-brand-700 dark:text-brand-400',
+                  )}
+                />
                 {!collapsed && <span className="truncate">{item.label}</span>}
                 {!collapsed && active && (
-                  <motion.span
-                    layoutId="nav-active"
-                    className="ml-auto h-1.5 w-1.5 rounded-full bg-brand-600 dark:bg-brand-400"
-                  />
+                  <span className="ml-auto h-1.5 w-1.5 rounded-full bg-brand-600 dark:bg-brand-400" />
                 )}
               </Link>
             );
@@ -145,7 +237,6 @@ export function AppSidebar({ user }: Props) {
         </ul>
       </nav>
 
-      {/* Footer */}
       <div className={cn('border-t border-border p-3 space-y-1', collapsed && 'px-2')}>
         {collapsed ? (
           <Tooltip>
@@ -166,13 +257,13 @@ export function AppSidebar({ user }: Props) {
             </Link>
           </Button>
         )}
-        {collapsed && (
+        {collapsed && onToggle && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={toggle}
+                onClick={onToggle}
                 className="w-full"
                 aria-label="Expandir sidebar"
               >
@@ -183,6 +274,6 @@ export function AppSidebar({ user }: Props) {
           </Tooltip>
         )}
       </div>
-    </aside>
+    </>
   );
 }

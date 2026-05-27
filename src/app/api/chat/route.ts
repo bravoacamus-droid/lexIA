@@ -34,6 +34,19 @@ const MAX_CHUNKS = 8;
 const MAX_HISTORY = 8;
 
 export async function POST(req: Request) {
+  // Verificación temprana de env vars críticas — devolvemos error claro si faltan
+  if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    console.error('[chat] GOOGLE_GENERATIVE_AI_API_KEY no configurado en runtime');
+    return NextResponse.json(
+      {
+        error: 'missing_env',
+        message:
+          'Falta GOOGLE_GENERATIVE_AI_API_KEY en las variables de entorno del despliegue.',
+      },
+      { status: 500 },
+    );
+  }
+
   const supabase = createClient();
   const {
     data: { user },

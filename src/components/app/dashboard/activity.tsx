@@ -6,7 +6,7 @@ import { MessageSquare, FileSearch, FilePen, Inbox } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { formatRelative } from '@/lib/utils';
+import { RelativeTime } from '@/components/ui/relative-time';
 
 type ActivityItem =
   | { type: 'chat'; id: string; title: string; timestamp: string }
@@ -57,7 +57,7 @@ function ActivityRow({ item }: { item: ActivityItem }) {
         </span>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">{item.title}</p>
-          <p className="text-[11px] text-muted-foreground">{formatRelative(item.timestamp)}</p>
+          <RelativeTime date={item.timestamp} className="text-[11px] text-muted-foreground" />
         </div>
         <Badge variant="secondary" className="text-[10px]">Chat</Badge>
       </Link>
@@ -75,7 +75,7 @@ function ActivityRow({ item }: { item: ActivityItem }) {
         </span>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">{item.title}</p>
-          <p className="text-[11px] text-muted-foreground">{formatRelative(item.timestamp)}</p>
+          <RelativeTime date={item.timestamp} className="text-[11px] text-muted-foreground" />
         </div>
         <Badge variant={item.status === 'done' ? 'success' : 'warning'} className="text-[10px]">
           {item.status === 'done' ? 'Lista' : item.status === 'processing' ? 'Procesando' : item.status}
@@ -94,7 +94,7 @@ function ActivityRow({ item }: { item: ActivityItem }) {
       </span>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{item.title}</p>
-        <p className="text-[11px] text-muted-foreground">{formatRelative(item.timestamp)}</p>
+        <RelativeTime date={item.timestamp} className="text-[11px] text-muted-foreground" />
       </div>
       <Badge variant="secondary" className="text-[10px]">Documento</Badge>
     </Link>

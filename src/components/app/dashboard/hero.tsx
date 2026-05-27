@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -17,10 +18,18 @@ function greetingFor(date: Date): string {
 }
 
 export function DashboardHero({ fullName }: Props) {
-  const now = new Date();
-  const greeting = greetingFor(now);
   const firstName = fullName.trim().split(/\s+/)[0];
-  const todayLabel = format(now, "EEEE, d 'de' MMMM", { locale: es });
+  const [client, setClient] = useState<{ greeting: string; today: string } | null>(null);
+
+  // Calculamos fecha/hora únicamente en cliente para evitar mismatch SSR/CSR
+  // (la hora del server en Vercel es UTC; en cliente es local del usuario).
+  useEffect(() => {
+    const now = new Date();
+    setClient({
+      greeting: greetingFor(now),
+      today: format(now, "EEEE, d 'de' MMMM", { locale: es }),
+    });
+  }, []);
 
   return (
     <motion.section
@@ -30,11 +39,17 @@ export function DashboardHero({ fullName }: Props) {
       className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3"
     >
       <div>
-        <p className="text-xs uppercase tracking-[0.2em] font-semibold text-muted-foreground mb-2">
-          {todayLabel}
+        <p
+          className="text-xs uppercase tracking-[0.2em] font-semibold text-muted-foreground mb-2 min-h-[1em]"
+          suppressHydrationWarning
+        >
+          {client?.today || ''}
         </p>
-        <h1 className="font-serif text-4xl sm:text-5xl tracking-tight text-balance">
-          {greeting},{' '}
+        <h1
+          className="font-serif text-4xl sm:text-5xl tracking-tight text-balance"
+          suppressHydrationWarning
+        >
+          {client?.greeting || 'Hola'},{' '}
           <span className="italic gradient-text">{firstName}</span>
         </h1>
         <p className="mt-2 text-muted-foreground text-sm">

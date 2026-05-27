@@ -10,7 +10,8 @@ import { ChunkSheet } from '@/components/app/chat/chunk-sheet';
 import { Suggested } from '@/components/app/chat/suggested';
 import type { ChatMessage, ChatSource } from '@/lib/supabase/types';
 import { useConversations } from '@/lib/stores/conversations';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Props {
   conversationId: string;
@@ -90,8 +91,24 @@ export function ChatPanel({
       // Refresh suggestions after each turn
       fetchSuggestions();
     },
-    onError: (err) => {
+    onError: async (err) => {
       console.error('Chat error', err);
+      let friendly = 'LexIA tuvo un problema generando la respuesta.';
+      // Intentamos extraer detalle del último fetch para mostrarlo al usuario
+      try {
+        const m = String((err as Error).message || '');
+        if (m.includes('missing_env') || m.includes('GOOGLE_GENERATIVE_AI_API_KEY')) {
+          friendly =
+            'Falta configurar GOOGLE_GENERATIVE_AI_API_KEY en las variables de Vercel.';
+        } else if (m.includes('unauthorized')) {
+          friendly = 'Tu sesión expiró. Recarga la página.';
+        } else if (m) {
+          friendly = `LexIA falló: ${m.slice(0, 200)}`;
+        }
+      } catch {
+        /* keep default */
+      }
+      toast.error('Error en el chat', { description: friendly, duration: 8000 });
     },
   });
 

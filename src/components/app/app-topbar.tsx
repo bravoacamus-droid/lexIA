@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { Search, LogOut, Settings, Sun, Moon } from 'lucide-react';
+import { Search, LogOut, Settings, Sun, Moon, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -30,9 +30,10 @@ const TITLES: Record<string, string> = {
 interface Props {
   user: AppUser;
   onOpenPalette: () => void;
+  onOpenMobileSidebar?: () => void;
 }
 
-export function AppTopbar({ user, onOpenPalette }: Props) {
+export function AppTopbar({ user, onOpenPalette, onOpenMobileSidebar }: Props) {
   const pathname = usePathname();
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -44,8 +45,19 @@ export function AppTopbar({ user, onOpenPalette }: Props) {
   const isDark = resolvedTheme === 'dark';
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-4 border-b border-border bg-background/80 backdrop-blur-md px-4 sm:px-6">
-      <div className="flex items-center gap-3 min-w-0">
+    <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-2 sm:gap-4 border-b border-border bg-background/80 backdrop-blur-md px-3 sm:px-6">
+      <div className="flex items-center gap-2 min-w-0">
+        {onOpenMobileSidebar && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={onOpenMobileSidebar}
+            className="md:hidden"
+            aria-label="Abrir menú"
+          >
+            <Menu className="h-4 w-4" />
+          </Button>
+        )}
         <h1 className="text-sm font-semibold truncate">{title}</h1>
       </div>
 
