@@ -35,13 +35,22 @@ import type { FolderItem } from '@/components/app/library/library-view';
 interface Props {
   folders: FolderItem[];
   unfiledCount: number;
+  selectedFolderId: string | null | 'unfiled';
+  onSelectFolder: (id: string | null | 'unfiled') => void;
   onCreated: (f: FolderItem) => void;
   onChanged: (f: FolderItem[]) => void;
 }
 
 const FOLDER_COLORS = ['indigo', 'emerald', 'sky', 'amber', 'fuchsia', 'rose'];
 
-export function FoldersPanel({ folders, unfiledCount, onCreated, onChanged }: Props) {
+export function FoldersPanel({
+  folders,
+  unfiledCount,
+  selectedFolderId,
+  onSelectFolder,
+  onCreated,
+  onChanged,
+}: Props) {
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState('indigo');
@@ -127,11 +136,25 @@ export function FoldersPanel({ folders, unfiledCount, onCreated, onChanged }: Pr
           <li>
             <FolderRow
               icon={<Inbox className="h-3.5 w-3.5" />}
-              name="Sin clasificar"
-              count={unfiledCount}
+              name="Todos los guardados"
+              count={unfiledCount + folders.reduce((sum, f) => sum + f.count, 0)}
               color="slate"
+              active={selectedFolderId === null}
+              onClick={() => onSelectFolder(null)}
             />
           </li>
+          {unfiledCount > 0 && (
+            <li>
+              <FolderRow
+                icon={<Inbox className="h-3.5 w-3.5" />}
+                name="Sin clasificar"
+                count={unfiledCount}
+                color="slate"
+                active={selectedFolderId === 'unfiled'}
+                onClick={() => onSelectFolder('unfiled')}
+              />
+            </li>
+          )}
           <AnimatePresence initial={false}>
             {folders.map((f) => (
               <motion.li
@@ -146,6 +169,8 @@ export function FoldersPanel({ folders, unfiledCount, onCreated, onChanged }: Pr
                   name={f.name}
                   count={f.count}
                   color={f.color}
+                  active={selectedFolderId === f.id}
+                  onClick={() => onSelectFolder(f.id)}
                   actions={
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -298,20 +323,40 @@ function FolderRow({
   count,
   color,
   actions,
+  active,
+  onClick,
 }: {
   icon: React.ReactNode;
   name: string;
   count: number;
   color: string;
   actions?: React.ReactNode;
+  active?: boolean;
+  onClick?: () => void;
 }) {
   return (
-    <div className="group flex items-center rounded-md px-2 py-1.5 hover:bg-secondary transition-colors">
+    <div
+      onClick={onClick}
+      className={cn(
+        'group flex items-center rounded-md px-2 py-1.5 transition-colors',
+        onClick && 'cursor-pointer',
+        active
+          ? 'bg-brand-100 text-brand-900 dark:bg-brand-950 dark:text-brand-200'
+          : 'hover:bg-secondary',
+      )}
+    >
       <span className={cn('mr-2 flex h-5 w-5 items-center justify-center rounded', colorBg(color))}>
         {icon}
       </span>
-      <span className="flex-1 text-sm font-medium truncate">{name}</span>
-      <span className="text-[11px] font-mono text-muted-foreground tabular-nums">
+      <span className={cn('flex-1 text-sm font-medium truncate', active && 'text-brand-900 dark:text-brand-200')}>
+        {name}
+      </span>
+      <span
+        className={cn(
+          'text-[11px] font-mono tabular-nums',
+          active ? 'text-brand-700 dark:text-brand-300' : 'text-muted-foreground',
+        )}
+      >
         {count}
       </span>
       {actions && <span className="ml-1">{actions}</span>}

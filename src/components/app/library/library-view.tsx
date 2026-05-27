@@ -67,9 +67,10 @@ export function LibraryView({
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [type, setType] = useState<NormativeDocType | null>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null | 'unfiled'>(null);
   const [browseDocs, setBrowseDocs] = useState<BrowseDoc[]>(initialDocuments);
   const [results, setResults] = useState<SearchResult[]>([]);
-  const [mode, setMode] = useState<'browse' | 'search'>('browse');
+  const [mode, setMode] = useState<'browse' | 'search' | 'folder'>('browse');
   const [loading, setLoading] = useState(false);
 
   // Save modal state
@@ -81,12 +82,28 @@ export function LibraryView({
     return () => clearTimeout(t);
   }, [query]);
 
-  // Fetch on debounced or type change
+  // Fetch on debounced/type/folder change
   useEffect(() => {
     let cancelled = false;
     async function run() {
       setLoading(true);
       try {
+        // Si hay carpeta seleccionada y NO hay query, mostrar los docs guardados
+        // en esa carpeta. Si hay query, ignorar la carpeta y buscar normalmente.
+        if (selectedFolderId && !debounced) {
+          const folderParam = selectedFolderId === 'unfiled' ? 'unfiled' : selectedFolderId;
+          const res = await fetch(`/api/saved-documents?folder=${folderParam}`);
+          const json = await res.json();
+          if (cancelled) return;
+          // Mapear saved.normative_documents al formato BrowseDoc
+          const docs = (json.saved || [])
+            .map((s: { normative_documents: BrowseDoc | null }) => s.normative_documents)
+            .filter((d: BrowseDoc | null): d is BrowseDoc => d !== null);
+          setBrowseDocs(docs);
+          setMode('folder');
+          return;
+        }
+
         const res = await fetch('/api/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -115,7 +132,7 @@ export function LibraryView({
     return () => {
       cancelled = true;
     };
-  }, [debounced, type]);
+  }, [debounced, type, selectedFolderId]);
 
   async function onSave(documentId: string) {
     setSavingDocId(documentId);
@@ -192,6 +209,11 @@ export function LibraryView({
           <FoldersPanel
             folders={folders}
             unfiledCount={unfiledCount}
+            selectedFolderId={selectedFolderId}
+            onSelectFolder={(id) => {
+              setSelectedFolderId(id);
+              setQuery(''); // limpia el buscador al cambiar de carpeta
+            }}
             onCreated={onFolderCreated}
             onChanged={(f) => setFolders(f)}
           />
@@ -215,6 +237,13 @@ export function LibraryView({
               savedIds={savedIds}
               onSave={onSave}
               onUnsave={onUnsave}
+              folderName={
+                mode === 'folder'
+                  ? selectedFolderId === 'unfiled'
+                    ? 'Sin clasificar'
+                    : folders.find((f) => f.id === selectedFolderId)?.name || null
+                  : null
+              }
             />
           )}
         </section>
@@ -310,21 +339,29 @@ interface BrowseProps {
   savedIds: Set<string>;
   onSave: (id: string) => void;
   onUnsave: (id: string) => void;
+  folderName?: string | null;
 }
 
-function BrowseList({ docs, loading, savedIds, onSave, onUnsave }: BrowseProps) {
+function BrowseList({ docs, loading, savedIds, onSave, onUnsave, folderName }: BrowseProps) {
   if (loading && docs.length === 0) return <LoadingSkeleton />;
   if (docs.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-border p-10 text-center">
-        <p className="text-sm">No hay documentos para mostrar.</p>
+        <p className="text-sm font-medium">
+          {folderName ? `La carpeta "${folderName}" está vacía` : 'No hay documentos para mostrar.'}
+        </p>
+        {folderName && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Busca documentos y guárdalos con la ⭐ para verlos aquí.
+          </p>
+        )}
       </div>
     );
   }
   return (
     <div>
       <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-3">
-        Recientes
+        {folderName ? `${folderName} · ${docs.length} documento${docs.length === 1 ? '' : 's'}` : 'Recientes'}
       </p>
       <div className="space-y-3">
         {docs.map((d) => (

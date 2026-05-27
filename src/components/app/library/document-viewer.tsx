@@ -234,18 +234,14 @@ export function DocumentViewer({
       </div>
 
       <div className="container max-w-6xl py-8 grid grid-cols-12 gap-8">
-        {/* TOC sidebar (left) */}
-        <aside className="hidden lg:block col-span-3">
-          <Card className="p-4 sticky top-32">
-            <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-              <ListTree className="h-3.5 w-3.5" />
-              Contenido
-            </h2>
-            {toc.length === 0 ? (
-              <p className="text-[11px] text-muted-foreground">
-                No hay tabla de contenido disponible.
-              </p>
-            ) : (
+        {/* TOC sidebar (left) — solo aparece si hay items */}
+        {toc.length > 0 && (
+          <aside className="hidden lg:block col-span-3">
+            <Card className="p-4 sticky top-32">
+              <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                <ListTree className="h-3.5 w-3.5" />
+                Contenido
+              </h2>
               <ul className="space-y-0.5 max-h-[60vh] overflow-y-auto scrollbar-thin">
                 {toc.map((item) => (
                   <li key={item.id}>
@@ -263,12 +259,12 @@ export function DocumentViewer({
                   </li>
                 ))}
               </ul>
-            )}
-          </Card>
-        </aside>
+            </Card>
+          </aside>
+        )}
 
-        {/* Main content */}
-        <main className="col-span-12 lg:col-span-6 min-w-0">
+        {/* Main content — expande cuando no hay TOC */}
+        <main className={cn('col-span-12 min-w-0', toc.length > 0 ? 'lg:col-span-6' : 'lg:col-span-9')}>
           <motion.header
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
@@ -429,14 +425,50 @@ interface TocItem {
 
 function extractToc(markdown: string): TocItem[] {
   const items: TocItem[] = [];
-  const re = /^(#{1,3})\s+(.+)$/gm;
+  const seen = new Set<string>();
+
+  // 1. Headings markdown estándar (# H1, ## H2, ### H3)
+  const reMd = /^(#{1,3})\s+(.+)$/gm;
   let m: RegExpExecArray | null;
-  while ((m = re.exec(markdown))) {
+  while ((m = reMd.exec(markdown))) {
     const level = m[1].length;
     const text = m[2].trim();
-    items.push({ id: slugify(text), level, text });
+    const id = slugify(text);
+    if (!seen.has(id)) {
+      seen.add(id);
+      items.push({ id, level, text });
+    }
   }
-  return items;
+
+  // 2. Si no hay headings markdown, detectar patrones del texto plano:
+  //    - Romanos: "I. ANTECEDENTES", "II. ANÁLISIS"
+  //    - Numerados: "1. ANTECEDENTES", "2. ANÁLISIS"
+  //    - Mayúsculas: "CUESTIONAMIENTO N° 1", "PETITORIO"
+  if (items.length === 0) {
+    const patterns: Array<{ re: RegExp; level: number }> = [
+      // Romano + título mayúsculas en su propia línea
+      { re: /^\s*(I{1,4}|IV|V|VI{1,3}|IX|X)\.\s+([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s,:\-]{3,80})$/gm, level: 1 },
+      // Numérico simple + título mayúsculas
+      { re: /^\s*(\d{1,2})\.\s+([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s,:\-]{3,80})$/gm, level: 2 },
+      // Cuestionamiento, Petitorio, Antecedentes, Conclusiones, Análisis (palabras clave comunes)
+      { re: /^\s*(CUESTIONAMIENTO N\.?°?\s*\d+|ANTECEDENTES|ANÁLISIS|CONCLUSIONES?|PETITORIO|FUNDAMENTOS|RESUELVE|SUMILLA|MATERIA|HECHOS|FUNDAMENTACIÓN)\s*:?\s*$/gm, level: 1 },
+    ];
+
+    for (const { re, level } of patterns) {
+      let mm: RegExpExecArray | null;
+      while ((mm = re.exec(markdown))) {
+        const text = (mm[2] ? `${mm[1]}. ${mm[2]}` : mm[1] || mm[0]).trim();
+        const id = slugify(text);
+        if (id.length < 3) continue;
+        if (seen.has(id)) continue;
+        seen.add(id);
+        items.push({ id, level, text });
+      }
+    }
+  }
+
+  // Limit a 30 items para no saturar
+  return items.slice(0, 30);
 }
 
 function slugify(text: string): string {
