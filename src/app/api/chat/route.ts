@@ -141,6 +141,9 @@ export async function POST(req: Request) {
     system: systemPrompt,
     messages: trimmedHistory,
     temperature: 0.3,
+    onError({ error }) {
+      console.error('[chat] streamText runtime error:', error);
+    },
     onFinish: async ({ text }) => {
       // Persistir respuesta del asistente
       await supabase.from('chat_messages').insert({
@@ -180,9 +183,20 @@ export async function POST(req: Request) {
   });
 
   // Devolver el stream con headers que el cliente del Vercel AI SDK entiende.
-  // Además adjuntamos sources como header JSON para que el cliente los pueda hidratar
-  // sin esperar otra llamada.
-  const response = result.toDataStreamResponse();
+  // Exponemos el mensaje de error real (en lugar del genérico "An error occurred")
+  // para diagnóstico rápido en producción.
+  const response = result.toDataStreamResponse({
+    getErrorMessage(error) {
+      const msg =
+        error instanceof Error
+          ? `${error.name}: ${error.message}`
+          : typeof error === 'string'
+            ? error
+            : 'unknown_error';
+      console.error('[chat] error returned to client:', msg);
+      return msg.slice(0, 500);
+    },
+  });
   response.headers.set('x-lexia-sources', encodeURIComponent(JSON.stringify(sources)));
   return response;
 }
