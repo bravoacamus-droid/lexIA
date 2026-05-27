@@ -43,8 +43,8 @@ Thumbs.db
 memory
 
 # project-specific
-data/normativa/*.pdf
-data/normativa/*.json
+data/normativa/**/*.pdf
+data/normativa/**/*.json
 data/cache
 spec.txt
 spec_tables.txt

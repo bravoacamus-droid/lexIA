@@ -242,7 +242,21 @@ async function processPdf(type: DocType, pdfPath: string): Promise<{ ok: boolean
 
   // Chunkear + embed + insert
   const chunks = chunkText(text);
-  const embeddings = await embedBatch(chunks);
+
+  let embeddings: number[][];
+  try {
+    embeddings = await embedBatch(chunks);
+  } catch (err) {
+    // Si el embed falla (rate limit persistente, etc), rollback del doc para
+    // que el próximo run lo intente de nuevo
+    await supabase.from('normative_documents').delete().eq('id', inserted.id);
+    const msg = (err as Error).message;
+    if (msg.includes('429') || msg.includes('quota')) {
+      return { ok: false, reason: 'rate_limit_persistente (rollback aplicado)' };
+    }
+    return { ok: false, reason: `embed falló: ${msg.slice(0, 120)}` };
+  }
+
   const rows = chunks.map((content, i) => ({
     document_id: inserted.id,
     chunk_index: i,
@@ -283,10 +297,27 @@ async function main() {
     if (pdfs.length === 0) continue;
 
     console.log(`\n=== ${type} (${pdfs.length} PDFs) ===`);
+    let consecutiveRateLimits = 0;
     for (const pdf of pdfs) {
       const pdfPath = join(typeDir, pdf);
       process.stdout.write(`  ${pdf.padEnd(50)} `);
       const result = await processPdf(type, pdfPath);
+
+      // Si llevamos 3 rate limits seguidos, abortar para no quemar cuota
+      if (result.ok === false && result.reason?.includes('rate_limit_persistente')) {
+        consecutiveRateLimits += 1;
+        console.log(`FAIL: ${result.reason}`);
+        failed += 1;
+        if (consecutiveRateLimits >= 3) {
+          console.log(`\n  Cuota diaria agotada. Continúa en 24h ejecutando: npm run ingest`);
+          console.log('  (es idempotente; saltará los ya procesados)');
+          return finishReport(totalDocs, totalChunks, skipped, failed);
+        }
+        continue;
+      } else {
+        consecutiveRateLimits = 0;
+      }
+
       if (result.ok) {
         if (result.reason === 'ya existe') {
           console.log('SKIP (ya existe)');
@@ -303,6 +334,15 @@ async function main() {
     }
   }
 
+  await finishReport(totalDocs, totalChunks, skipped, failed);
+}
+
+async function finishReport(
+  totalDocs: number,
+  totalChunks: number,
+  skipped: number,
+  failed: number,
+) {
   console.log('\n────────────────────────────────────');
   console.log(`Resumen: ${totalDocs} docs nuevos · ${totalChunks} chunks · ${skipped} skip · ${failed} fail`);
 

@@ -26,22 +26,26 @@ const DATA_DIR = join(process.cwd(), 'data', 'normativa');
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
 const BASE = 'https://www.gob.pe';
 
-const SOURCES: Record<string, { path: string; label: string }> = {
+const SOURCES: Record<string, { path: string; label: string; section: 'normas' | 'informes' }> = {
   resolucion_tce: {
     path: '/institucion/oece/colecciones/716-resoluciones-del-tribunal-de-contrataciones-del-estado',
     label: 'Resoluciones del Tribunal',
+    section: 'normas',
   },
   pronunciamiento: {
-    path: '/institucion/oece/colecciones/2033-pronunciamientos-del-oece',
+    path: '/institucion/oece/informes-publicaciones/tipos/64-pronunciamiento',
     label: 'Pronunciamientos',
+    section: 'informes',
   },
   opinion: {
-    path: '/institucion/oece/normas-legales/tipos/40-opinion',
+    path: '/institucion/oece/informes-publicaciones/tipos/65-opinion',
     label: 'Opiniones',
+    section: 'informes',
   },
   directiva: {
-    path: '/institucion/oece/normas-legales/tipos/29-directiva',
-    label: 'Directivas',
+    path: '/institucion/oece/colecciones/66212-directivas-vigentes-ley-n-32069',
+    label: 'Directivas vigentes',
+    section: 'normas',
   },
 };
 
@@ -84,13 +88,16 @@ interface DocLink {
   slug: string;
 }
 
-function extractDocLinks(html: string): DocLink[] {
-  // Las colecciones tienen links del estilo
-  // /institucion/oece/normas-legales/12345-2919-2025-tce-s1
-  // /institucion/oece/colecciones/.../12345-2919-2025-tce-s1
+function extractDocLinks(html: string, section: 'normas' | 'informes'): DocLink[] {
+  // section=normas:    /institucion/oece/normas-legales/{id}-{slug}
+  // section=informes:  /institucion/oece/informes-publicaciones/{id}-{slug}
+  const basePath = section === 'normas' ? 'normas-legales' : 'informes-publicaciones';
+  const re = new RegExp(
+    `href="(/institucion/oece/${basePath}/\\d+-[^"]+)"`,
+    'g',
+  );
   const seen = new Set<string>();
   const out: DocLink[] = [];
-  const re = /href="(\/institucion\/oece\/normas-legales\/\d+-[^"]+)"/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(html))) {
     const url = m[1];
@@ -170,7 +177,7 @@ async function main() {
   // 1. Listar
   const listingUrl = BASE + source.path;
   const listingHtml = await fetchHtml(listingUrl);
-  const links = extractDocLinks(listingHtml).slice(0, max);
+  const links = extractDocLinks(listingHtml, source.section).slice(0, max);
   console.log(`Encontrados ${links.length} documentos en el listado.\n`);
 
   let downloaded = 0;
