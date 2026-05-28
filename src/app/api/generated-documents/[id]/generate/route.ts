@@ -44,6 +44,9 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
     prompt: userPrompt,
     temperature: 0.3,
     onFinish: async ({ text }) => {
+      // Persistimos también desde el server como red de seguridad.
+      // El cliente igualmente persiste al terminar el stream (PATCH explícito)
+      // porque onFinish corre después de cerrar la conexión y puede perderse.
       await supabase
         .from('generated_documents')
         .update({ generated_content: text } as never)
@@ -51,7 +54,9 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
     },
   });
 
-  return result.toDataStreamResponse();
+  // Stream de TEXTO PLANO (no el data-stream protocol con prefijos 0:/d:/e:)
+  // — más robusto a chunks partidos, sin parsing JSON en el cliente.
+  return result.toTextStreamResponse();
 }
 
 function buildAmpliacionUserPrompt(

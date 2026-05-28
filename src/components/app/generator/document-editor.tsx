@@ -51,6 +51,7 @@ export function DocumentEditor({
   const [streaming, setStreaming] = useState(false);
   const [status, setStatus] = useState<'draft' | 'final'>(initialStatus);
   const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [hasContent, setHasContent] = useState(initialContent.length > 0);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const triggeredRef = useRef(false);
   const lastSavedRef = useRef(initialContent);
@@ -88,6 +89,7 @@ export function DocumentEditor({
           });
           if (res.ok) {
             lastSavedRef.current = md;
+            setHasContent(md.length > 0);
             setSaveState('saved');
             setTimeout(() => setSaveState('idle'), 1800);
           } else {
@@ -104,8 +106,10 @@ export function DocumentEditor({
   const generate = useCallback(async () => {
     if (streaming || !editor) return;
     setStreaming(true);
+    setHasContent(false);
     editor.setEditable(false);
     editor.commands.clearContent();
+    let accumulated = '';
     try {
       const res = await fetch(`/api/generated-documents/${id}/generate`, {
         method: 'POST',
@@ -115,43 +119,37 @@ export function DocumentEditor({
       }
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let buffer = '';
-      let accumulated = '';
+      // El server emite text/plain: cada chunk es markdown crudo, sin prefijos.
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-        for (const line of lines) {
-          if (!line.startsWith('0:')) continue; // data SDK text chunks come prefixed
-          try {
-            const json = JSON.parse(line.slice(2));
-            if (typeof json === 'string') {
-              accumulated += json;
-              editor.commands.setContent(markdownToHtml(accumulated));
-            }
-          } catch {
-            /* skip */
-          }
+        const chunk = decoder.decode(value, { stream: true });
+        if (chunk) {
+          accumulated += chunk;
+          editor.commands.setContent(markdownToHtml(accumulated));
         }
       }
-      // process any leftover
-      if (buffer.startsWith('0:')) {
-        try {
-          const json = JSON.parse(buffer.slice(2));
-          if (typeof json === 'string') {
-            accumulated += json;
-            editor.commands.setContent(markdownToHtml(accumulated));
-          }
-        } catch {
-          /* skip */
-        }
+      const tail = decoder.decode();
+      if (tail) {
+        accumulated += tail;
+        editor.commands.setContent(markdownToHtml(accumulated));
       }
+      if (!accumulated.trim()) {
+        throw new Error('El modelo no devolvió contenido');
+      }
+      // Persistimos explícitamente desde el cliente — no confiamos en onFinish
+      // del server, que corre después de cerrar la conexión y puede perderse.
       lastSavedRef.current = accumulated;
+      setHasContent(true);
+      await fetch(`/api/generated-documents/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ generated_content: accumulated }),
+      });
       toast.success('Documento generado');
     } catch (err) {
-      toast.error('Falló la generación. Intenta de nuevo.');
+      const msg = (err as Error).message;
+      toast.error(`Falló la generación: ${msg}`);
     } finally {
       setStreaming(false);
       editor.setEditable(true);
@@ -212,16 +210,19 @@ export function DocumentEditor({
                 'Marcar final'
               )}
             </Button>
-            <Button
-              size="sm"
-              asChild
-              disabled={!lastSavedRef.current}
-            >
-              <a href={`/api/generated-documents/${id}/export`} download>
+            {hasContent ? (
+              <Button size="sm" asChild>
+                <a href={`/api/generated-documents/${id}/export`} download>
+                  <Download className="h-4 w-4" />
+                  <span className="hidden sm:inline">Exportar DOCX</span>
+                </a>
+              </Button>
+            ) : (
+              <Button size="sm" disabled>
                 <Download className="h-4 w-4" />
                 <span className="hidden sm:inline">Exportar DOCX</span>
-              </a>
-            </Button>
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -243,7 +244,7 @@ export function DocumentEditor({
           transition={{ duration: 0.3 }}
           className="rounded-2xl border border-border bg-card shadow-soft overflow-hidden"
         >
-          {streaming && !lastSavedRef.current && (
+          {streaming && !hasContent && (
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
                 <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-100 dark:bg-brand-950 text-brand-700 dark:text-brand-400 mb-3">
@@ -256,7 +257,7 @@ export function DocumentEditor({
               </div>
             </div>
           )}
-          <div className={cn(streaming && !lastSavedRef.current && 'hidden')}>
+          <div className={cn(streaming && !hasContent && 'hidden')}>
             <EditorContent editor={editor} />
           </div>
         </motion.div>

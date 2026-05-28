@@ -10,9 +10,23 @@
  *   - Postor: S/ 726M facturado en carreteras con carpeta asfáltica en caliente
  *   - NO admite experiencia vial urbana
  *
+ * Ambas ofertas incluyen los 11 profesionales exigidos por las Bases reales:
+ *   1. Residente de Obra (8 años)
+ *   2. Jefe de Tramo (6 años)
+ *   3. Ing. Metrados y Valorizaciones (6 años)
+ *   4. Ing. de Producción (6 años)
+ *   5. Ing. Suelos y Pavimentos (6 años)
+ *   6. Jefe SSOMA (6 años)
+ *   7. Especialista SST (6 años)
+ *   8. Especialista Obras de Arte y Drenaje (6 años)
+ *   9. Especialista Control de Calidad (6 años)
+ *  10. Especialista Trazo/Explanaciones/Topografía (6 años)
+ *  11. Especialista Administrador de Contratos (6 años)
+ *
  * Casos:
- *   Postor A: CONSORCIO VIAL DEL SUR (subsanable: omite DJ + CV sin firma)
- *   Postor B: ICCGSA-CASA SAC (no cumple: Residente con 6 años vs 8 exigidos)
+ *   Postor A: CONSORCIO VIAL DEL SUR — ADMITIDA (todos cumplen, sin observaciones)
+ *   Postor B: CONSORCIO PERUANO SUR — NO ADMITIDA (único defecto: Residente con
+ *             4 años 5 meses vs 8 exigidos → NO subsanable, art. 49 Ley 32069)
  */
 import PDFDocument from 'pdfkit';
 import { mkdirSync, createWriteStream } from 'node:fs';
@@ -221,6 +235,30 @@ const OFERTA_A: Section[] = [
       'Ing. PEDRO ANDRÉS GUTIÉRREZ SALAS, CIP 81245.',
       'Experiencia profesional general: 10 años. Específica en SST de obras viales: 8 años.',
       'CUMPLE.',
+      '',
+      'ESPECIALISTA EN OBRAS DE ARTE Y DRENAJE (6 años mín)',
+      'Ing. FERNANDO JAVIER CABRERA MENDOZA, CIP 56732 — colegiado y habilitado.',
+      'Experiencia profesional general: 12 años. Específica como Especialista en Obras de Arte y Drenaje en proyectos viales con carpeta asfáltica en caliente: 9 años acumulados.',
+      'Contratos: Carretera Cusco-Quillabamba (G&M, 2018-2021, 36m), Carretera Lima-Canta (SACYR, 2015-2018, 36m), Carretera Interoceánica Sur Tramo IV (Odebrecht, 2014-2017, 36m).',
+      'CV firmado y documentado en folios 075-088. CUMPLE con margen.',
+      '',
+      'ESPECIALISTA EN CONTROL DE CALIDAD (6 años mín)',
+      'Ing. ANA LUCÍA BENAVIDES MORALES, CIP 64287 — colegiada y habilitada.',
+      'Experiencia profesional general: 10 años. Específica como Especialista en Control de Calidad de obras viales con carpeta asfáltica: 8 años.',
+      'Contratos: Carretera Cusco-Quillabamba (G&M, 2018-2021, 36m), Vía de Evitamiento Caylloma (SACYR, 2021-2024, 36m), Carretera Costanera Tramo Sur (Provias, 2017-2020, 24m).',
+      'CV firmado en folios 089-102. CUMPLE.',
+      '',
+      'ESPECIALISTA EN TRAZO, EXPLANACIONES Y TOPOGRAFÍA (6 años mín)',
+      'Ing. RICARDO ANTONIO CHÁVEZ MONTES, CIP 71458 — colegiado y habilitado.',
+      'Experiencia profesional general: 11 años. Específica como Especialista en Trazo, Explanaciones y Topografía en carreteras: 8 años acumulados.',
+      'Contratos: Carretera Lima-Canta (SACYR, 2015-2018, 36m), Carretera Interoceánica Sur (Odebrecht, 2014-2017, 36m), Carretera Quincemil-Marcapata (G&M, 2020-2022, 24m).',
+      'CV firmado en folios 103-116. CUMPLE.',
+      '',
+      'ESPECIALISTA ADMINISTRADOR DE CONTRATOS (6 años mín)',
+      'Ing. MARÍA DEL CARMEN VEGA SANTILLÁN, CIP 58923 — colegiada y habilitada.',
+      'Experiencia profesional general: 14 años. Específica como Administradora de Contratos en obras públicas viales: 10 años acumulados.',
+      'Contratos: Carretera Cusco-Quillabamba (G&M, 2018-2021, 36m), Vía Evitamiento Caylloma (SACYR, 2021-2024, 36m), Carretera Lima-Canta (SACYR, 2015-2018, 30m).',
+      'CV firmado en folios 117-128. CUMPLE.',
     ],
   },
 
@@ -397,6 +435,30 @@ const OFERTA_B: Section[] = [
       'Ing. JOSÉ MARÍA RUIZ DELGADO, CIP 81234.',
       'Experiencia profesional general: 9 años. Específica en SST de obras viales: 7 años.',
       'CUMPLE.',
+      '',
+      'ESPECIALISTA EN OBRAS DE ARTE Y DRENAJE (6 años mín)',
+      'Ing. LUIS FERNANDO ALARCÓN MENDOZA, CIP 76432 — colegiado y habilitado.',
+      'Experiencia profesional general: 11 años. Específica como Especialista en Obras de Arte y Drenaje en proyectos viales con asfalto: 8 años acumulados.',
+      'Contratos: Carretera Imperial-Pampas (COSAPI, 2017-2020, 36m), Carretera Lambayeque-Olmos (MAQUI, 2018-2021, 30m), Carretera Costanera Norte (COSAPI, 2020-2023, 30m).',
+      'CV firmado y documentado en folios 063-075. CUMPLE.',
+      '',
+      'ESPECIALISTA EN CONTROL DE CALIDAD (6 años mín)',
+      'Ing. SONIA PATRICIA MENDOZA RAMOS, CIP 67189 — colegiada y habilitada.',
+      'Experiencia profesional general: 9 años. Específica como Especialista en Control de Calidad de obras viales con carpeta asfáltica: 7 años acumulados.',
+      'Contratos: Carretera Imperial-Pampas (COSAPI, 2017-2020, 36m), Carretera Otuzco-Quiruvilca (COSAPI, 2019-2022, 30m), Carretera Lambayeque-Olmos (MAQUI, 2018-2020, 18m).',
+      'CV firmado en folios 076-088. CUMPLE.',
+      '',
+      'ESPECIALISTA EN TRAZO, EXPLANACIONES Y TOPOGRAFÍA (6 años mín)',
+      'Ing. ÁNGEL EDUARDO HUARANGA PAREDES, CIP 84572 — colegiado y habilitado.',
+      'Experiencia profesional general: 10 años. Específica como Especialista en Trazo, Explanaciones y Topografía en carreteras: 7 años.',
+      'Contratos: Carretera Imperial-Pampas (COSAPI, 2017-2020, 30m), Carretera Otuzco-Quiruvilca (COSAPI, 2019-2022, 30m), Carretera Costanera Norte (COSAPI, 2020-2023, 24m).',
+      'CV firmado en folios 089-101. CUMPLE.',
+      '',
+      'ESPECIALISTA ADMINISTRADOR DE CONTRATOS (6 años mín)',
+      'Ing. ROSA MARÍA TORRES FUENTES, CIP 59238 — colegiada y habilitada.',
+      'Experiencia profesional general: 13 años. Específica como Administradora de Contratos en obras públicas viales: 9 años.',
+      'Contratos: Carretera Imperial-Pampas (COSAPI, 2017-2020, 36m), Carretera Costanera Norte (COSAPI, 2020-2023, 36m), Carretera Lambayeque-Olmos (MAQUI, 2018-2020, 24m).',
+      'CV firmado en folios 102-115. CUMPLE.',
     ],
   },
 
@@ -446,7 +508,7 @@ async function main() {
     'POSTOR: CONSORCIO VIAL DEL SUR (G&M Ingeniería + SACYR-LIMA)\nLicitación Pública N° 0003-2024-MTC/20 — PROVIAS NACIONAL\nMejoramiento Carretera Boca del Río - Tacna',
     OFERTA_A,
   );
-  console.log('  Oferta_A_Consorcio_Vial_del_Sur.pdf  (SUBSANABLE)');
+  console.log('  Oferta_A_Consorcio_Vial_del_Sur.pdf  (ADMITIDA — 11/11 cumple)');
 
   await buildPdf(
     'Oferta_B_Consorcio_Peruano_Sur.pdf',
