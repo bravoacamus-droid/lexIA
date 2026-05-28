@@ -83,25 +83,45 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
   try {
     // 1. Download Bases + Offers from Storage (admin client to bypass RLS on Storage policies)
     const basesBlob = await downloadFromStorage(admin, ev.bases_file_path);
-    const basesText = (await extractPdfText(basesBlob)).text.slice(0, 60000);
+    const fullBasesText = (await extractPdfText(basesBlob)).text;
 
-    if (basesText.length < 200) {
+    if (fullBasesText.length < 200) {
       throw new Error('El PDF de Bases parece estar vacío o no contiene texto extraíble.');
     }
 
-    // 2. Extract requirements from Bases
-    const reqRes = await generateText({
-      model: chatModel,
-      system: REQUIREMENTS_EXTRACTION_PROMPT,
-      prompt: `Texto de las Bases Integradas:\n\n${basesText}`,
-      temperature: 0.1,
-      maxTokens: 4000,
-    });
+    // Smart trimming: si las Bases son grandes (>40K chars), extraer SOLO los
+    // capítulos relevantes para no saturar al LLM.
+    const basesText = trimBasesToRequirements(fullBasesText);
+    console.log(`[evaluator] Bases: ${fullBasesText.length} → ${basesText.length} chars (trim)`);
 
-    const { requirements } = parseJsonLoose<{ requirements: Requirement[] }>(reqRes.text);
-    if (!requirements || requirements.length === 0) {
-      throw new Error('No se pudo extraer requisitos de las Bases.');
+    // 2. Extract requirements from Bases
+    let reqRes;
+    try {
+      reqRes = await generateText({
+        model: chatModel,
+        system: REQUIREMENTS_EXTRACTION_PROMPT,
+        prompt: `Texto de las Bases Integradas:\n\n${basesText}`,
+        temperature: 0.1,
+        maxTokens: 4000,
+      });
+    } catch (err) {
+      console.error('[evaluator] Falló extracción de requisitos:', err);
+      throw new Error(`Error al analizar las Bases con Gemini: ${(err as Error).message.slice(0, 150)}`);
     }
+
+    let requirements: Requirement[];
+    try {
+      const parsed = parseJsonLoose<{ requirements: Requirement[] }>(reqRes.text);
+      requirements = parsed.requirements;
+    } catch (err) {
+      console.error('[evaluator] Falló parseo de requisitos:', reqRes.text.slice(0, 500));
+      throw new Error('El LLM no devolvió requisitos en formato esperado. Intenta de nuevo.');
+    }
+
+    if (!requirements || requirements.length === 0) {
+      throw new Error('No se pudieron extraer requisitos de las Bases.');
+    }
+    console.log(`[evaluator] Requisitos extraídos: ${requirements.length}`);
 
     // 3. Evaluate each offer in parallel (max 5)
     const offers = ev.offer_files || [];
@@ -109,7 +129,26 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
       offers.map(async (o) => {
         try {
           const blob = await downloadFromStorage(admin, o.path);
-          const text = (await extractPdfText(blob)).text.slice(0, 60000);
+          const fullOfferText = (await extractPdfText(blob)).text;
+
+          // Estrategia adaptativa según tamaño de la oferta:
+          // - <=80K chars (~50 pág): enviar completa
+          // - 80K-200K: extraer secciones clave con heurística
+          // - >200K: chunking + truncar al inicio de cada chunk (mejor que perder todo)
+          let text: string;
+          if (fullOfferText.length <= 80_000) {
+            text = fullOfferText;
+          } else if (fullOfferText.length <= 200_000) {
+            text = extractOfferKeySections(fullOfferText);
+          } else {
+            // Oferta enorme: tomar las primeras 80K chars (datos del postor +
+            // primeros requisitos) y las últimas 30K (oferta económica + cierre)
+            text =
+              fullOfferText.slice(0, 80_000) +
+              '\n\n[... contenido intermedio omitido por longitud ...]\n\n' +
+              fullOfferText.slice(-30_000);
+          }
+          console.log(`[evaluator] Oferta ${o.name}: ${fullOfferText.length} → ${text.length} chars`);
 
           const reqJson = JSON.stringify(
             requirements.map((r) => ({
@@ -215,4 +254,109 @@ async function downloadFromStorage(admin: ReturnType<typeof createAdminClient>, 
   const { data, error } = await admin.storage.from('uploads').download(path);
   if (error || !data) throw new Error(`No se pudo descargar ${path}: ${error?.message}`);
   return await data.arrayBuffer();
+}
+
+/**
+ * Para ofertas grandes (80K-200K chars), extraer secciones clave en lugar
+ * de mandar todo al LLM. Buscamos heurísticamente:
+ *   - Datos del postor / portada
+ *   - Capacidad legal / habilitación
+ *   - Experiencia del postor
+ *   - Personal clave
+ *   - Equipamiento / disponibilidad técnica
+ *   - Oferta económica
+ *   - Declaraciones juradas relevantes
+ *
+ * Las páginas con planos, fotografías, certificados escaneados ya no aportan
+ * info textual valiosa para el LLM, así que las descartamos implícitamente
+ * al focalizarnos en estas secciones.
+ */
+function extractOfferKeySections(text: string): string {
+  const sectionPatterns = [
+    { label: 'POSTOR', re: /(?:DATOS\s+DEL\s+POSTOR|RAZ[OÓ]N\s+SOCIAL|RUC\s+N|REPRESENTANTE\s+LEGAL|CONSORCIO)[\s\S]{50,5000}?(?=\n[A-Z][A-Z\s]{6,}|$)/gi },
+    { label: 'LEGAL', re: /(?:CAPACIDAD\s+LEGAL|HABILITACI[OÓ]N|IMPEDIDO|INHABILITACI[OÓ]N|VIGENCIA\s+DE\s+PODER|RNP)[\s\S]{50,4000}?(?=\n[A-Z][A-Z\s]{6,}|$)/gi },
+    { label: 'EXPERIENCIA', re: /(?:EXPERIENCIA\s+DEL\s+POSTOR|EXPERIENCIA\s+EN\s+LA\s+ESPECIALIDAD|CONTRATOS?\s+EJECUTADOS?|OBRAS?\s+SIMILARES?)[\s\S]{50,8000}?(?=\n[A-Z][A-Z\s]{6,}|$)/gi },
+    { label: 'PERSONAL', re: /(?:PERSONAL\s+CLAVE|JEFE\s+DE\s+OBRA|RESIDENTE\s+DE\s+OBRA|ESPECIALISTA\s+EN|INGENIERO\s+DE\s+(?:PRODUCCI[OÓ]N|METRADOS|SUELOS|PAVIMENTOS|TR[AÁ]NSITO))[\s\S]{50,10000}?(?=\n[A-Z][A-Z\s]{6,}|$)/gi },
+    { label: 'EQUIPAMIENTO', re: /(?:EQUIPAMIENTO|DISPONIBILIDAD\s+(?:DE\s+EQUIPO|T[EÉ]CNICA)|MAQUINARIA|VEH[IÍ]CULOS?)[\s\S]{50,5000}?(?=\n[A-Z][A-Z\s]{6,}|$)/gi },
+    { label: 'ECONOMICA', re: /(?:OFERTA\s+ECON[OÓ]MICA|MONTO\s+(?:TOTAL\s+)?DE\s+LA\s+OFERTA|PRECIO\s+(?:OFERTADO|TOTAL)|VALOR\s+OFERTADO)[\s\S]{50,2000}?(?=\n[A-Z][A-Z\s]{6,}|$)/gi },
+    { label: 'DOCUMENTOS', re: /(?:DOCUMENTOS\s+(?:DE\s+PRESENTACI[OÓ]N|PRESENTADOS)|RELACI[OÓ]N\s+DE\s+ANEXOS|ANEXO\s+N[°º]\s*\d)[\s\S]{50,3000}?(?=\n[A-Z][A-Z\s]{6,}|$)/gi },
+  ];
+
+  const extracted: string[] = [];
+  const seen = new Set<string>();
+
+  for (const { label, re } of sectionPatterns) {
+    const matches = [...text.matchAll(re)];
+    for (const m of matches.slice(0, 3)) {
+      const snippet = m[0].trim().slice(0, 5000);
+      const key = snippet.slice(0, 100);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      extracted.push(`### [${label}]\n${snippet}`);
+      if (extracted.join('').length > 75_000) break;
+    }
+    if (extracted.join('').length > 75_000) break;
+  }
+
+  // Si la heurística no encontró nada decente, fallback a primeros 80K
+  const combined = extracted.join('\n\n---\n\n');
+  if (combined.length < 5_000) return text.slice(0, 80_000);
+
+  return combined;
+}
+
+/**
+ * Bases reales del SEACE pueden tener 90+ páginas (300K+ caracteres).
+ * Para no saturar al LLM y agotar cuota/timeout, extraemos sólo los capítulos
+ * con requisitos: típicamente CAPÍTULO III (REQUERIMIENTO) y CAPÍTULO IV
+ * (REQUISITOS DE CALIFICACIÓN). Si encontramos esos, devolvemos solo eso.
+ * Si no, truncamos al inicio del documento (donde suele estar lo relevante).
+ */
+function trimBasesToRequirements(text: string): string {
+  const MAX_CHARS = 40_000; // ~10K tokens, suficiente para extraer requisitos
+
+  if (text.length <= MAX_CHARS) return text;
+
+  // Intentar localizar el bloque relevante:
+  //   CAPÍTULO III (Requerimiento) y/o CAPÍTULO IV (Requisitos de Calificación)
+  //   hasta CAPÍTULO V o ANEXO X
+  const startPatterns = [
+    /CAP[IÍ]TULO\s+III\b[\s\S]{10,200}REQUERIMIENTO/i,
+    /CAP[IÍ]TULO\s+III\b/i,
+    /REQUISITOS\s+DE\s+CALIFICACI[OÓ]N/i,
+    /CAP[IÍ]TULO\s+IV\b/i,
+  ];
+  const endPatterns = [
+    /CAP[IÍ]TULO\s+V\b/i,
+    /CAP[IÍ]TULO\s+VI\b/i,
+    /PROFORMA\s+DEL?\s+CONTRATO/i,
+    /ANEXO\s+N\.?\s*°?\s*1/i,
+  ];
+
+  let start = -1;
+  for (const p of startPatterns) {
+    const m = text.search(p);
+    if (m >= 0) {
+      start = m;
+      break;
+    }
+  }
+
+  if (start < 0) {
+    // No encontramos sección clave; truncar al inicio
+    return text.slice(0, MAX_CHARS);
+  }
+
+  let end = text.length;
+  for (const p of endPatterns) {
+    const m = text.slice(start + 200).search(p);
+    if (m >= 0) {
+      end = start + 200 + m;
+      break;
+    }
+  }
+
+  const slice = text.slice(start, end);
+  if (slice.length > MAX_CHARS) return slice.slice(0, MAX_CHARS);
+  return slice;
 }

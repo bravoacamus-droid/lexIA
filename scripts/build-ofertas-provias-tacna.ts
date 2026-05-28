@@ -40,9 +40,19 @@ function buildPdf(filename: string, title: string, subtitle: string, sections: S
     doc.moveDown(2);
     doc.fillColor('#000');
 
+    let isFirst = true;
     for (const sec of sections) {
+      // Solo agregamos página nueva si NO es la primera sección Y queda poco
+      // espacio en la página actual. Esto evita páginas en blanco.
+      if (!isFirst && sec.heading.match(/^SECCI[OÓ]N|^ANEXO/)) {
+        const remaining = doc.page.height - doc.y - 70;
+        if (remaining < 200) {
+          doc.addPage();
+        }
+      }
+      isFirst = false;
+
       if (sec.heading.match(/^SECCI[OÓ]N|^ANEXO/)) {
-        doc.addPage();
         doc.font('Helvetica-Bold').fontSize(12).fillColor('#1a1a1a').text(sec.heading);
       } else {
         doc.font('Helvetica-Bold').fontSize(11).fillColor('#1a1a1a').text(sec.heading);
@@ -58,7 +68,7 @@ function buildPdf(filename: string, title: string, subtitle: string, sections: S
         }
         doc.moveDown(0.3);
       }
-      doc.moveDown(0.5);
+      doc.moveDown(0.6);
     }
 
     const range = doc.bufferedPageRange();
@@ -101,21 +111,22 @@ const OFERTA_A: Section[] = [
   },
 
   {
-    heading: 'SECCIÓN I — DOCUMENTOS DE PRESENTACIÓN OBLIGATORIA',
+    heading: 'SECCIÓN I — DOCUMENTOS DE PRESENTACIÓN',
     body: [
-      'Se relacionan los documentos exigidos conforme al Capítulo II de las Bases Integradas LP N° 0003-2024-MTC/20:',
+      'Se relacionan los documentos presentados por el CONSORCIO VIAL DEL SUR para participar en el procedimiento de selección LP N° 0003-2024-MTC/20:',
       '',
       'Anexo 1: Declaración Jurada de datos del postor — folio 003',
       'Anexo 2: Declaración Jurada de cumplimiento de Bases — folio 005',
-      'Anexo 3: Declaración Jurada de plazo de ejecución (720 días) — folio 006',
-      'Anexo 4: Declaración Jurada de no estar impedido (art. 11 Ley 32069) — folio 007',
-      'Anexo 5: Declaración Jurada de no tener inhabilitación administrativa — NO ADJUNTADA por error administrativo (ver Nota Final)',
-      'Anexo 6: Oferta Económica firmada — folio 008',
-      'Anexo 7: Promesa formal de consorcio — folio 010',
-      'Anexo 8: Declaración Jurada de disponibilidad de equipamiento — folio 015',
-      'Vigencia de poderes de ambos representantes legales — folios 016 y 017',
-      'Constancia vigente del RNP (ambos integrantes) — folios 019 y 020',
-      'Carta Fianza de Seriedad de Oferta (1% × VR = S/ 6,761,986.94) emitida por BBVA Perú — folio 023',
+      'Anexo 3: Declaración Jurada de plazo de ejecución de la prestación (720 días) — folio 006',
+      'Anexo 4: Declaración Jurada de no estar impedido para contratar con el Estado (art. 11 Ley 32069) — folio 007',
+      'Anexo 6: Oferta Económica firmada por el representante común — folio 008',
+      'Anexo 7: Promesa formal de consorcio celebrada el 28 de marzo de 2025 — folio 010',
+      'Anexo 8: Declaración Jurada de disponibilidad de equipamiento estratégico — folio 015',
+      'Vigencia de poderes del representante de G&M Ingeniería S.A.C., SUNARP del 15/04/2025 — folio 016',
+      'Vigencia de poderes del representante de Constructora SACYR-LIMA S.A.C., SUNARP del 15/04/2025 — folio 017',
+      'Constancia vigente del Registro Nacional de Proveedores de G&M Ingeniería S.A.C. — folio 019',
+      'Constancia vigente del Registro Nacional de Proveedores de Constructora SACYR-LIMA S.A.C. — folio 020',
+      'Carta Fianza de Seriedad de Oferta (1% × VR = S/ 6,761,986.94) emitida por BBVA Perú con vigencia de 90 días calendario — folio 023',
     ],
   },
 
@@ -123,14 +134,14 @@ const OFERTA_A: Section[] = [
     heading: 'SECCIÓN II — CAPACIDAD LEGAL',
     body: [
       'A.1 REPRESENTACIÓN',
-      'Promesa formal de consorcio celebrada el 28 de marzo de 2025, con designación del Ing. Roberto Bazán Gutiérrez como representante común. Porcentajes: G&M Ingeniería 60%, Constructora SACYR-LIMA 40%. Adjunto en folio 010.',
-      'Vigencia de poderes expedidos por SUNARP el 15 de abril de 2025 (antigüedad 15 días calendario, ≤30 exigidos).',
+      'Promesa formal de consorcio celebrada el 28 de marzo de 2025, con designación del Ing. Roberto Bazán Gutiérrez como representante común. Porcentajes: G&M Ingeniería S.A.C. 60%, Constructora SACYR-LIMA S.A.C. 40%. Adjunto en folio 010.',
+      'Vigencia de poder del representante legal de G&M Ingeniería S.A.C. expedido por SUNARP — Oficina Lima el 15 de abril de 2025, partida electrónica N° 12567890 (antigüedad 15 días calendario).',
+      'Vigencia de poder del representante legal de Constructora SACYR-LIMA S.A.C. expedido por SUNARP — Oficina Lima el 15 de abril de 2025, partida electrónica N° 12567891.',
       '',
       'A.2 HABILITACIÓN PARA CONTRATAR',
-      'Declaración Jurada de no impedimento (Anexo 4) adjuntada en folio 007.',
-      'Declaración Jurada de no tener inhabilitación administrativa (Anexo 5): NO SE ADJUNTÓ por omisión administrativa interna. CONSORCIO VIAL DEL SUR confirma que NINGUNO de sus integrantes tiene sanción vigente del Tribunal de Contrataciones, verificable en consulta pública del Registro Nacional de Sancionados.',
-      'Constancia RNP G&M Ingeniería N° 067834-2015 — vigente, especialidad Ejecutor de Obras de Carreteras.',
-      'Constancia RNP Constructora SACYR-LIMA N° 089456-2017 — vigente, especialidad Ejecutor de Obras de Carreteras.',
+      'Declaración Jurada de no encontrarse impedido para contratar con el Estado conforme al artículo 11 de la Ley N° 32069, firmada por el representante común — adjunta en folio 007 (Anexo 4).',
+      'Constancia del Registro Nacional de Proveedores de G&M Ingeniería S.A.C. — inscripción N° 067834-2015, vigente al 30/04/2025, categoría: Ejecutor de Obras, especialidad: Obras de Carreteras y Puentes.',
+      'Constancia del Registro Nacional de Proveedores de Constructora SACYR-LIMA S.A.C. — inscripción N° 089456-2017, vigente al 30/04/2025, categoría: Ejecutor de Obras, especialidad: Obras de Carreteras y Puentes.',
     ],
   },
 
@@ -196,11 +207,10 @@ const OFERTA_A: Section[] = [
       'CUMPLE.',
       '',
       'ING. SUELOS Y PAVIMENTOS (6 años mín)',
-      'Ing. RAÚL ENRIQUE QUISPE TARAZONA, CIP 92456.',
-      'Experiencia profesional general: 8 años. Específica en pavimentos asfálticos: 6 años exacto.',
-      'CUMPLE.',
-      '',
-      'NOTA: El CV del Ing. Raúl Quispe (Suelos y Pavimentos) fue adjuntado sin la firma manuscrita del profesional por error administrativo en la compilación final. La experiencia documentada sí cumple con los 6 años mínimos exigidos.',
+      'Ing. RAÚL ENRIQUE QUISPE TARAZONA, CIP 92456 — colegiado y habilitado.',
+      'Experiencia profesional general: 8 años desde la colegiatura (mayo 2017).',
+      'Experiencia específica en pavimentos asfálticos en caliente: 6 años acumulados en los proyectos: Carretera Cusco-Quillabamba (G&M, 2018-2020, 24 meses como Especialista) y Carretera Interoceánica Sur (Odebrecht, 2017-2020, 48 meses como Asistente Especialista).',
+      'CV documentado adjunto en folios 062-074.',
       '',
       'ESPECIALISTA AMBIENTAL (JEFE SSOMA, 6 años mín)',
       'Lic. CLAUDIA MERCEDES RODRÍGUEZ DELGADO, CIP-AM 4587.',
@@ -253,18 +263,6 @@ const OFERTA_A: Section[] = [
     ],
   },
 
-  {
-    heading: 'SECCIÓN VII — NOTA FINAL / OBSERVACIONES DEL POSTOR',
-    body: [
-      'El CONSORCIO VIAL DEL SUR reconoce que en la presente oferta se han producido dos defectos formales derivados de la urgencia administrativa en la compilación final de la propuesta. Se solicita la oportunidad de subsanación conforme al artículo 64 del Reglamento de la Ley N° 32069 (DS N° 009-2025-EF):',
-      '',
-      '1. OMISIÓN DE LA DECLARACIÓN JURADA DE NO TENER INHABILITACIÓN (Anexo 5). El postor SÍ cumple efectivamente con NO tener sanción vigente del Tribunal de Contrataciones, lo cual es verificable en la consulta pública del Registro Nacional de Sancionados del OECE. Se trata de un defecto formal subsanable conforme a la jurisprudencia consolidada del Tribunal (Resolución N° 03402-2024-TCE-S3) y a la Opinión N° 023-2024/DTN del OSCE.',
-      '',
-      '2. CV DEL ING. SUELOS Y PAVIMENTOS SIN FIRMA. El CV del Ing. Raúl Quispe Tarazona fue adjuntado sin firma manuscrita. La experiencia documentada mediante certificados de obra sí cumple con los 6 años mínimos exigidos. La omisión es un defecto FORMAL del documento, no sustancial, conforme al criterio interpretativo de la Opinión N° 023-2024/DTN del OSCE que distingue entre subsanación de aspectos formales del CV vs incumplimiento sustancial del requisito de experiencia.',
-      '',
-      'Mi representada solicita al comité de selección el plazo correspondiente para subsanar los referidos defectos formales.',
-    ],
-  },
 ];
 
 // ════════════════════════════════════════════════════════════════════
