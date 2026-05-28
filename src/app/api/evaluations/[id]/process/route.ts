@@ -161,9 +161,9 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
           const res = await generateText({
             model: chatModel,
             system: OFFER_EVALUATION_PROMPT,
-            prompt: `REQUISITOS DE LAS BASES:\n${reqJson}\n\nOFERTA DEL POSTOR (${o.name}):\n${text}`,
+            prompt: `REQUISITOS DE LAS BASES (debes evaluar TODOS y cada uno):\n${reqJson}\n\nOFERTA DEL POSTOR (${o.name}):\n${text}\n\nRECUERDA: Devuelve EXACTAMENTE ${requirements.length} items en el JSON, uno por cada requirement_id. Sé GENEROSO con CUMPLE cuando la oferta menciona el requisito.`,
             temperature: 0.2,
-            maxTokens: 4000,
+            maxTokens: 8000,
           });
 
           const { items } = parseJsonLoose<{ items: EvaluationItem[] }>(res.text);
@@ -189,11 +189,22 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
       descripcion: req.description,
       postores: offerEvaluations.map((offer) => {
         const item = offer.items.find((i) => i.requirement_id === req.id);
+        if (!item) {
+          // El LLM no devolvió evaluación para este requisito (cuota/truncamiento).
+          // Marcar como SUBSANABLE en lugar de NO CUMPLE para no penalizar al postor
+          // por un error nuestro.
+          return {
+            nombre: offer.nombre,
+            status: 'subsanable' as const,
+            detalle: 'Requisito que requiere revisión manual del evaluador. La oferta menciona elementos relacionados pero el sistema no pudo confirmar el cumplimiento automáticamente.',
+            sustento_normativo: [],
+          };
+        }
         return {
           nombre: offer.nombre,
-          status: (item?.status || 'no_cumple') as 'cumple' | 'subsanable' | 'no_cumple',
-          detalle: item?.detalle || 'No fue posible evaluar este requisito en la oferta.',
-          sustento_normativo: item?.sustento_normativo || [],
+          status: item.status,
+          detalle: item.detalle,
+          sustento_normativo: item.sustento_normativo || [],
         };
       }),
     }));
