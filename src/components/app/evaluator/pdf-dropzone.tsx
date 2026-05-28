@@ -7,6 +7,7 @@ import { Upload, FileText, X, Check, Loader2 } from 'lucide-react';
 import { cn, formatBytes } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { createClient } from '@/lib/supabase/client';
 
 interface UploadedFile {
   name: string;
@@ -45,38 +46,47 @@ export function PdfDropzone({
         return;
       }
       setUploading(true);
-      setProgress(0);
+      setProgress(5);
       try {
-        const fd = new FormData();
-        fd.append('file', file);
-        fd.append('folder', folder);
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('no_session');
 
-        // XHR para tener progreso real de upload
-        const result = await new Promise<UploadedFile>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.open('POST', '/api/upload');
-          xhr.upload.onprogress = (e) => {
-            if (e.lengthComputable) {
-              setProgress(Math.round((e.loaded / e.total) * 100));
-            }
-          };
-          xhr.onload = () => {
-            try {
-              const json = JSON.parse(xhr.responseText);
-              if (xhr.status >= 200 && xhr.status < 300) resolve(json);
-              else reject(new Error(json.error || `HTTP ${xhr.status}`));
-            } catch (err) {
-              reject(err);
-            }
-          };
-          xhr.onerror = () => reject(new Error('upload_failed'));
-          xhr.send(fd);
-        });
+        // Sube DIRECTO al Storage de Supabase (evita límite 4.5MB de Vercel
+        // y es más rápido — un solo salto del cliente al CDN).
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const path = `${user.id}/${folder}/${Date.now()}-${safeName}`;
 
-        onChange(result);
+        // Progreso "fake" — Supabase Storage no expone onUploadProgress
+        // pero al menos damos feedback visual. Avanzamos a 70% antes de empezar.
+        const progressTimer = setInterval(() => {
+          setProgress((p) => (p < 85 ? p + 5 : p));
+        }, 250);
+
+        const { error } = await supabase.storage
+          .from('uploads')
+          .upload(path, file, {
+            contentType: file.type || 'application/pdf',
+            upsert: false,
+          });
+
+        clearInterval(progressTimer);
+
+        if (error) {
+          console.error('Supabase upload error:', error);
+          throw new Error(error.message);
+        }
+
+        setProgress(100);
+        onChange({ name: file.name, path, size: file.size });
         toast.success('Archivo subido');
       } catch (err) {
-        toast.error('No se pudo subir el archivo');
+        const msg = (err as Error).message;
+        if (msg === 'no_session') {
+          toast.error('Tu sesión expiró. Recarga la página.');
+        } else {
+          toast.error(`No se pudo subir: ${msg.slice(0, 80)}`);
+        }
       } finally {
         setUploading(false);
         setProgress(0);
