@@ -196,11 +196,15 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
 
           const { items } = parseJsonLoose<{ items: EvaluationItem[] }>(res.text);
           // Display name: limpiar extensión y prefijos
+          // Patrón esperado del archivo: "Oferta_A_Consorcio_Vial_del_Sur.pdf"
+          // Quitar: extensión .pdf, prefijo "Oferta_", letra de orden (A_, B_, 1_, 2_)
           const displayName = o.name
             .replace(/\.pdf$/i, '')
             .replace(/^Oferta[_\s-]+/i, '')
+            .replace(/^[A-Z0-9]{1,2}[_\s-]+/i, '') // letra/número de orden tipo "A_", "B_", "1_"
             .replace(/_/g, ' ')
-            .slice(0, 80);
+            .trim()
+            .slice(0, 80) || o.name.replace(/\.pdf$/i, '');
           return { nombre: displayName, items };
         } catch (err) {
           console.error(`Error en oferta ${o.name}:`, err);
@@ -255,7 +259,7 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
       system: EVALUATION_SUMMARY_PROMPT,
       prompt: summaryPrompt,
       temperature: 0.3,
-      maxTokens: 600,
+      maxTokens: 1500,
     });
 
     const result = {
@@ -379,12 +383,11 @@ function trimBasesToRequirements(text: string): string {
 }
 
 function extractBasesKeySections(text: string, aggressive: boolean): string {
-  // Límite por sección según modo
-  // Total normal: ~62K chars (~15K tokens). Total agresivo: ~36K (~9K tokens).
-  // Mantenido bajo para evitar saturación y problemas de parseo del LLM.
+  // Límites por sección. PRIORIDAD ALTA al numeral 3.2 (Requisitos de
+  // Calificación) que es donde están los requisitos REALES del postor.
   const limits = aggressive
-    ? { capI: 4_000, capII: 3_000, capIII: 10_000, capIV: 15_000, anexos: 4_000 }
-    : { capI: 6_000, capII: 4_000, capIII: 18_000, capIV: 28_000, anexos: 6_000 };
+    ? { capI: 3_000, requisitos: 25_000, anexos: 4_000 }
+    : { capI: 5_000, requisitos: 45_000, anexos: 6_000 };
 
   const sections: string[] = [];
 
@@ -405,47 +408,59 @@ function extractBasesKeySections(text: string, aggressive: boolean): string {
     return `### [${label}]\n${block.trim()}`;
   }
 
-  // 1. Capítulo I (Generalidades) — objeto, valor, plazo
+  // 1. Capítulo I (Generalidades) — objeto, valor, plazo (CONTEXTO mínimo)
   const capI = extractBlock(
-    /CAP[IÍ]TULO\s+I\b/i,
+    /CAP[IÍ]TULO\s+I\b[\s\S]{10,200}GENERALIDADES/i,
     /CAP[IÍ]TULO\s+II\b/i,
     limits.capI,
     'CAPÍTULO I — GENERALIDADES',
   );
   if (capI) sections.push(capI);
 
-  // 2. Capítulo II (Etapas + Subsanación)
-  const capII = extractBlock(
-    /CAP[IÍ]TULO\s+II\b/i,
-    /CAP[IÍ]TULO\s+III\b/i,
-    limits.capII,
-    'CAPÍTULO II — ETAPAS DEL PROCEDIMIENTO',
-  );
-  if (capII) sections.push(capII);
+  // 2. REQUISITOS DE CALIFICACIÓN — la sección MÁS IMPORTANTE.
+  // En Bases Estándar OECE está bajo "3.2 REQUISITOS DE CALIFICACIÓN" del Cap III.
+  // Estructura típica: A. CAPACIDAD LEGAL, B. CAPACIDAD TÉCNICA Y PROFESIONAL
+  // (B.1 Equipamiento, B.2 Infraestructura, B.3 Calificaciones del Personal Clave,
+  // B.4 Experiencia del Postor), C. CAPACIDAD ECONÓMICA Y FINANCIERA.
+  const reqStartPatterns = [
+    /3\.2\.?\s+(?:REQUISITOS|REQUISITOS\s+DE\s+CALIFICACI[OÓ]N)/i,
+    /REQUISITOS\s+DE\s+CALIFICACI[OÓ]N\s*\n?\s*A\.\s+CAPACIDAD\s+LEGAL/i,
+    /A\.\s+CAPACIDAD\s+LEGAL[\s\S]{10,500}A\.1/i,
+  ];
+  let reqStart = -1;
+  for (const p of reqStartPatterns) {
+    const m = text.search(p);
+    if (m >= 0) {
+      reqStart = m;
+      break;
+    }
+  }
+  if (reqStart >= 0) {
+    // Hasta CAPÍTULO IV, FACTORES DE EVALUACIÓN, o PROFORMA
+    const afterReq = text.slice(reqStart + 100);
+    const endMatch = afterReq.search(
+      /CAP[IÍ]TULO\s+IV|FACTORES\s+DE\s+EVALUACI[OÓ]N|PROFORMA\s+DEL?\s+CONTRATO/i,
+    );
+    const endIdx = endMatch >= 0 ? reqStart + 100 + endMatch : reqStart + limits.requisitos;
+    let block = text.slice(reqStart, endIdx);
+    if (block.length > limits.requisitos) block = block.slice(0, limits.requisitos);
+    sections.push(`### [SECCIÓN 3.2 — REQUISITOS DE CALIFICACIÓN — CRÍTICA PARA EVALUAR]\n${block.trim()}`);
+  } else {
+    // Fallback: si no encontramos 3.2, usar el Cap III completo
+    const capIII = extractBlock(
+      /CAP[IÍ]TULO\s+III\b/i,
+      /CAP[IÍ]TULO\s+IV\b/i,
+      limits.requisitos,
+      'CAPÍTULO III — REQUERIMIENTO Y REQUISITOS',
+    );
+    if (capIII) sections.push(capIII);
+  }
 
-  // 3. Capítulo III (Requerimiento Técnico Mínimo / TDR)
-  const capIII = extractBlock(
-    /CAP[IÍ]TULO\s+III\b/i,
-    /CAP[IÍ]TULO\s+IV\b/i,
-    limits.capIII,
-    'CAPÍTULO III — REQUERIMIENTO TÉCNICO MÍNIMO',
-  );
-  if (capIII) sections.push(capIII);
-
-  // 4. Capítulo IV (Factores de Evaluación + Requisitos de Calificación) — EL MÁS IMPORTANTE
-  const capIV = extractBlock(
-    /CAP[IÍ]TULO\s+IV\b/i,
-    /CAP[IÍ]TULO\s+V\b|PROFORMA\s+DEL?\s+CONTRATO/i,
-    limits.capIV,
-    'CAPÍTULO IV — FACTORES DE EVALUACIÓN Y REQUISITOS DE CALIFICACIÓN',
-  );
-  if (capIV) sections.push(capIV);
-
-  // 5. Anexos con declaraciones juradas (sólo nombres + estructura, no contenido completo)
+  // 3. Anexos con declaraciones juradas (sólo nombres + estructura)
   const anexosMatch = text.match(/ANEXO\s+N\.?\s*°?\s*\d[\s\S]{50,300}/gi);
   if (anexosMatch && anexosMatch.length > 0) {
-    const anexosBlock = anexosMatch.slice(0, 15).join('\n\n').slice(0, limits.anexos);
-    sections.push(`### [ANEXOS — DECLARACIONES JURADAS EXIGIDAS]\n${anexosBlock}`);
+    const anexosBlock = anexosMatch.slice(0, 12).join('\n\n').slice(0, limits.anexos);
+    sections.push(`### [ANEXOS — DECLARACIONES JURADAS EXIGIDAS EN LA OFERTA]\n${anexosBlock}`);
   }
 
   // Si no encontramos ninguna sección clave, fallback al inicio del documento
