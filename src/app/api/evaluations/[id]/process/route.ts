@@ -33,16 +33,44 @@ type OfferEvaluation = {
 };
 
 function parseJsonLoose<T>(text: string): T {
-  const clean = text
-    .replace(/```json/g, '')
-    .replace(/```/g, '')
+  // 1. Quitar fences markdown comunes
+  let clean = text
+    .replace(/```json\s*/gi, '')
+    .replace(/```\s*/g, '')
+    .replace(/^[\s\S]*?(?=\{)/, '') // todo antes del primer {
     .trim();
+
+  // 2. Si el JSON está completo, parsearlo directo
+  try {
+    return JSON.parse(clean) as T;
+  } catch {
+    /* sigue intentando */
+  }
+
+  // 3. Extraer el bloque más grande entre primer { y último }
   const firstBrace = clean.indexOf('{');
   const lastBrace = clean.lastIndexOf('}');
   if (firstBrace === -1 || lastBrace === -1) {
-    throw new Error('No JSON object found');
+    throw new Error(`No JSON object found. Sample: ${text.slice(0, 200)}`);
   }
-  return JSON.parse(clean.slice(firstBrace, lastBrace + 1)) as T;
+  const candidate = clean.slice(firstBrace, lastBrace + 1);
+
+  try {
+    return JSON.parse(candidate) as T;
+  } catch (err) {
+    // 4. Último intento: arreglar errores comunes (trailing commas, comillas inteligentes)
+    const fixed = candidate
+      .replace(/,(\s*[}\]])/g, '$1') // trailing commas
+      .replace(/[“”]/g, '"') // comillas tipográficas
+      .replace(/[‘’]/g, "'");
+    try {
+      return JSON.parse(fixed) as T;
+    } catch (err2) {
+      throw new Error(
+        `Parse JSON falló: ${(err as Error).message}. Sample (primeros 300 chars del candidato): ${candidate.slice(0, 300)}`,
+      );
+    }
+  }
 }
 
 export async function POST(_req: Request, ctx: { params: { id: string } }) {
@@ -249,13 +277,26 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
 
     return NextResponse.json({ ok: true, result });
   } catch (err) {
-    console.error('Evaluation pipeline error:', err);
+    const errorMessage = (err as Error).message;
+    const errorStack = (err as Error).stack?.slice(0, 1000);
+    console.error('[evaluator] Pipeline error:', errorMessage);
+    console.error('[evaluator] Stack:', errorStack);
+
+    // Persistir el error en la BD para que el cliente pueda mostrarlo
     await supabase
       .from('evaluations')
-      .update({ status: 'failed' } as never)
+      .update({
+        status: 'failed',
+        result: {
+          error: errorMessage,
+          error_stack: errorStack,
+          failed_at: new Date().toISOString(),
+        } as never,
+      } as never)
       .eq('id', ev.id);
+
     return NextResponse.json(
-      { error: 'processing_failed', message: (err as Error).message },
+      { error: 'processing_failed', message: errorMessage },
       { status: 500 },
     );
   }
@@ -339,9 +380,11 @@ function trimBasesToRequirements(text: string): string {
 
 function extractBasesKeySections(text: string, aggressive: boolean): string {
   // Límite por sección según modo
+  // Total normal: ~62K chars (~15K tokens). Total agresivo: ~36K (~9K tokens).
+  // Mantenido bajo para evitar saturación y problemas de parseo del LLM.
   const limits = aggressive
-    ? { capI: 6_000, capII: 4_000, capIII: 18_000, capIV: 30_000, anexos: 10_000 }
-    : { capI: 10_000, capII: 6_000, capIII: 30_000, capIV: 50_000, anexos: 15_000 };
+    ? { capI: 4_000, capII: 3_000, capIII: 10_000, capIV: 15_000, anexos: 4_000 }
+    : { capI: 6_000, capII: 4_000, capIII: 18_000, capIV: 28_000, anexos: 6_000 };
 
   const sections: string[] = [];
 
