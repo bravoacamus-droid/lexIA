@@ -317,57 +317,98 @@ function extractOfferKeySections(text: string): string {
 }
 
 /**
- * Bases reales del SEACE pueden tener 90+ páginas (300K+ caracteres).
- * Para no saturar al LLM y agotar cuota/timeout, extraemos sólo los capítulos
- * con requisitos: típicamente CAPÍTULO III (REQUERIMIENTO) y CAPÍTULO IV
- * (REQUISITOS DE CALIFICACIÓN). Si encontramos esos, devolvemos solo eso.
- * Si no, truncamos al inicio del documento (donde suele estar lo relevante).
+ * Estrategia ADAPTATIVA para Bases (similar a la de ofertas).
+ * Las Bases reales del SEACE pueden tener 90+ páginas (300K+ caracteres).
+ *
+ *   <= 60K chars (~40 pág): enviar COMPLETAS al LLM
+ *   60K - 200K (40-130 pág): extracción FOCALIZADA por capítulos clave
+ *   > 200K (130+ pág): extracción focalizada AGRESIVA con límites menores
+ *
+ * Capítulos que importan para extraer requisitos:
+ *   - Cap I (Generalidades): objeto, valor referencial, plazo, sistema
+ *   - Cap II (Etapas): forma de presentación, subsanación
+ *   - Cap III (Requerimiento Técnico Mínimo): TDR, EETT
+ *   - Cap IV (Factores de Evaluación + Requisitos de Calificación)  ← más importante
+ *   - Anexos con declaraciones juradas exigidas
  */
 function trimBasesToRequirements(text: string): string {
-  const MAX_CHARS = 40_000; // ~10K tokens, suficiente para extraer requisitos
+  if (text.length <= 60_000) return text;
+  if (text.length <= 200_000) return extractBasesKeySections(text, false);
+  return extractBasesKeySections(text, true);
+}
 
-  if (text.length <= MAX_CHARS) return text;
+function extractBasesKeySections(text: string, aggressive: boolean): string {
+  // Límite por sección según modo
+  const limits = aggressive
+    ? { capI: 6_000, capII: 4_000, capIII: 18_000, capIV: 30_000, anexos: 10_000 }
+    : { capI: 10_000, capII: 6_000, capIII: 30_000, capIV: 50_000, anexos: 15_000 };
 
-  // Intentar localizar el bloque relevante:
-  //   CAPÍTULO III (Requerimiento) y/o CAPÍTULO IV (Requisitos de Calificación)
-  //   hasta CAPÍTULO V o ANEXO X
-  const startPatterns = [
-    /CAP[IÍ]TULO\s+III\b[\s\S]{10,200}REQUERIMIENTO/i,
+  const sections: string[] = [];
+
+  // Helper para extraer un bloque entre dos patrones
+  function extractBlock(
+    startRe: RegExp,
+    endRe: RegExp,
+    maxLen: number,
+    label: string,
+  ): string | null {
+    const startMatch = text.search(startRe);
+    if (startMatch < 0) return null;
+    const afterStart = text.slice(startMatch + 50);
+    const endRelative = afterStart.search(endRe);
+    const endAbs = endRelative >= 0 ? startMatch + 50 + endRelative : Math.min(text.length, startMatch + maxLen + 200);
+    let block = text.slice(startMatch, endAbs);
+    if (block.length > maxLen) block = block.slice(0, maxLen);
+    return `### [${label}]\n${block.trim()}`;
+  }
+
+  // 1. Capítulo I (Generalidades) — objeto, valor, plazo
+  const capI = extractBlock(
+    /CAP[IÍ]TULO\s+I\b/i,
+    /CAP[IÍ]TULO\s+II\b/i,
+    limits.capI,
+    'CAPÍTULO I — GENERALIDADES',
+  );
+  if (capI) sections.push(capI);
+
+  // 2. Capítulo II (Etapas + Subsanación)
+  const capII = extractBlock(
+    /CAP[IÍ]TULO\s+II\b/i,
     /CAP[IÍ]TULO\s+III\b/i,
-    /REQUISITOS\s+DE\s+CALIFICACI[OÓ]N/i,
+    limits.capII,
+    'CAPÍTULO II — ETAPAS DEL PROCEDIMIENTO',
+  );
+  if (capII) sections.push(capII);
+
+  // 3. Capítulo III (Requerimiento Técnico Mínimo / TDR)
+  const capIII = extractBlock(
+    /CAP[IÍ]TULO\s+III\b/i,
     /CAP[IÍ]TULO\s+IV\b/i,
-  ];
-  const endPatterns = [
-    /CAP[IÍ]TULO\s+V\b/i,
-    /CAP[IÍ]TULO\s+VI\b/i,
-    /PROFORMA\s+DEL?\s+CONTRATO/i,
-    /ANEXO\s+N\.?\s*°?\s*1/i,
-  ];
+    limits.capIII,
+    'CAPÍTULO III — REQUERIMIENTO TÉCNICO MÍNIMO',
+  );
+  if (capIII) sections.push(capIII);
 
-  let start = -1;
-  for (const p of startPatterns) {
-    const m = text.search(p);
-    if (m >= 0) {
-      start = m;
-      break;
-    }
+  // 4. Capítulo IV (Factores de Evaluación + Requisitos de Calificación) — EL MÁS IMPORTANTE
+  const capIV = extractBlock(
+    /CAP[IÍ]TULO\s+IV\b/i,
+    /CAP[IÍ]TULO\s+V\b|PROFORMA\s+DEL?\s+CONTRATO/i,
+    limits.capIV,
+    'CAPÍTULO IV — FACTORES DE EVALUACIÓN Y REQUISITOS DE CALIFICACIÓN',
+  );
+  if (capIV) sections.push(capIV);
+
+  // 5. Anexos con declaraciones juradas (sólo nombres + estructura, no contenido completo)
+  const anexosMatch = text.match(/ANEXO\s+N\.?\s*°?\s*\d[\s\S]{50,300}/gi);
+  if (anexosMatch && anexosMatch.length > 0) {
+    const anexosBlock = anexosMatch.slice(0, 15).join('\n\n').slice(0, limits.anexos);
+    sections.push(`### [ANEXOS — DECLARACIONES JURADAS EXIGIDAS]\n${anexosBlock}`);
   }
 
-  if (start < 0) {
-    // No encontramos sección clave; truncar al inicio
-    return text.slice(0, MAX_CHARS);
+  // Si no encontramos ninguna sección clave, fallback al inicio del documento
+  if (sections.length === 0) {
+    return text.slice(0, 60_000);
   }
 
-  let end = text.length;
-  for (const p of endPatterns) {
-    const m = text.slice(start + 200).search(p);
-    if (m >= 0) {
-      end = start + 200 + m;
-      break;
-    }
-  }
-
-  const slice = text.slice(start, end);
-  if (slice.length > MAX_CHARS) return slice.slice(0, MAX_CHARS);
-  return slice;
+  return sections.join('\n\n────────────────────────\n\n');
 }
