@@ -109,43 +109,42 @@ export function DocumentEditor({
     setHasContent(false);
     editor.setEditable(false);
     editor.commands.clearContent();
-    let accumulated = '';
     try {
       const res = await fetch(`/api/generated-documents/${id}/generate`, {
         method: 'POST',
       });
-      if (!res.ok || !res.body) {
-        throw new Error('No se pudo iniciar la generación');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail = (data as { detail?: string; error?: string })?.detail
+          || (data as { error?: string })?.error
+          || `HTTP ${res.status}`;
+        throw new Error(detail);
       }
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      // El server emite text/plain: cada chunk es markdown crudo, sin prefijos.
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        if (chunk) {
-          accumulated += chunk;
-          editor.commands.setContent(markdownToHtml(accumulated));
-        }
-      }
-      const tail = decoder.decode();
-      if (tail) {
-        accumulated += tail;
-        editor.commands.setContent(markdownToHtml(accumulated));
-      }
-      if (!accumulated.trim()) {
+      const content = (data as { content?: string })?.content || '';
+      if (!content.trim()) {
         throw new Error('El modelo no devolvió contenido');
       }
-      // Persistimos explícitamente desde el cliente — no confiamos en onFinish
-      // del server, que corre después de cerrar la conexión y puede perderse.
-      lastSavedRef.current = accumulated;
-      setHasContent(true);
-      await fetch(`/api/generated-documents/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ generated_content: accumulated }),
+
+      // El server ya guardó en BD. Simulamos efecto typing en el cliente
+      // para preservar la sensación visual de "LexIA escribiendo".
+      // ~25 chars por tick a 16ms = ~1500 chars/s (un doc de 4K tarda ~3s).
+      lastSavedRef.current = content;
+      await new Promise<void>((resolve) => {
+        let i = 0;
+        const CHUNK = 25;
+        const tick = () => {
+          i = Math.min(i + CHUNK, content.length);
+          editor.commands.setContent(markdownToHtml(content.slice(0, i)));
+          if (i >= content.length) {
+            resolve();
+            return;
+          }
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
       });
+
+      setHasContent(true);
       toast.success('Documento generado');
     } catch (err) {
       const msg = (err as Error).message;

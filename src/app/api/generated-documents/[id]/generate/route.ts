@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { streamText } from 'ai';
+import { generateText } from 'ai';
 import { createClient } from '@/lib/supabase/server';
 import { chatModel } from '@/lib/ai/gemini';
 import { AMPLIACION_PLAZO_SYSTEM_PROMPT } from '@/lib/ai/generator-prompts';
@@ -7,6 +7,10 @@ import { AMPLIACION_PLAZO_SYSTEM_PROMPT } from '@/lib/ai/generator-prompts';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
+// Devuelve { content } con el documento completo. NO usa streaming —
+// el SDK de Vercel + Gemini + edge networking nos dio demasiados problemas
+// (chunks partidos, onFinish race, conexión cerrada antes del PATCH).
+// El cliente simula efecto typing al recibirlo.
 export async function POST(_req: Request, ctx: { params: { id: string } }) {
   const supabase = createClient();
   const {
@@ -38,25 +42,36 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
 
   const userPrompt = buildAmpliacionUserPrompt(row.input_data, row.title);
 
-  const result = streamText({
-    model: chatModel,
-    system: AMPLIACION_PLAZO_SYSTEM_PROMPT,
-    prompt: userPrompt,
-    temperature: 0.3,
-    onFinish: async ({ text }) => {
-      // Persistimos también desde el server como red de seguridad.
-      // El cliente igualmente persiste al terminar el stream (PATCH explícito)
-      // porque onFinish corre después de cerrar la conexión y puede perderse.
-      await supabase
-        .from('generated_documents')
-        .update({ generated_content: text } as never)
-        .eq('id', row.id);
-    },
-  });
+  try {
+    const { text } = await generateText({
+      model: chatModel,
+      system: AMPLIACION_PLAZO_SYSTEM_PROMPT,
+      prompt: userPrompt,
+      temperature: 0.3,
+    });
 
-  // Stream de TEXTO PLANO (no el data-stream protocol con prefijos 0:/d:/e:)
-  // — más robusto a chunks partidos, sin parsing JSON en el cliente.
-  return result.toTextStreamResponse();
+    if (!text || text.trim().length < 50) {
+      console.error('[generate] LLM devolvió texto vacío o insuficiente:', text);
+      return NextResponse.json(
+        { error: 'empty_response', detail: 'El modelo no devolvió contenido' },
+        { status: 502 },
+      );
+    }
+
+    await supabase
+      .from('generated_documents')
+      .update({ generated_content: text } as never)
+      .eq('id', row.id);
+
+    return NextResponse.json({ content: text });
+  } catch (e) {
+    const msg = (e as Error)?.message || 'unknown';
+    console.error('[generate] Falló generación:', msg);
+    return NextResponse.json(
+      { error: 'generation_failed', detail: msg },
+      { status: 500 },
+    );
+  }
 }
 
 function buildAmpliacionUserPrompt(
