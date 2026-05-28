@@ -1,73 +1,39 @@
-export const REQUIREMENTS_EXTRACTION_PROMPT = `Eres un evaluador experto en Contrataciones del Estado peruano. Tu tarea es extraer SOLO los REQUISITOS DE CALIFICACIÓN del numeral 3.2 de las Bases Integradas que el postor debe acreditar EN SU OFERTA al momento de presentarla.
+export const REQUIREMENTS_EXTRACTION_PROMPT = `Eres un evaluador del comité de selección en Contrataciones del Estado peruano. Extrae los REQUISITOS DE CALIFICACIÓN que el postor debe acreditar EN SU OFERTA.
 
-═══════════════════════════════════════════════════════════════
-QUÉ EXTRAER (estructura estándar OECE)
-═══════════════════════════════════════════════════════════════
+REGLAS:
 
-El numeral 3.2 de las Bases Estándar OECE contiene EXACTAMENTE estas categorías:
+1. Tu respuesta DEBE ser un objeto JSON válido. SIN markdown. SIN texto antes ni después. Solo el JSON puro empezando con { y terminando con }.
 
-A. CAPACIDAD LEGAL
-   A.1 Representación (vigencia de poder)
-   A.2 Habilitación (RNP vigente, no impedido, no inhabilitado)
+2. Extrae entre 7 y 12 requisitos. Foco en estas categorías estándar OECE:
+   - Capacidad legal: vigencia de poder, RNP vigente, declaraciones juradas
+   - Personal clave: 1 requisito POR CADA profesional (Residente, Especialistas, etc.) con AÑOS EXACTOS
+   - Experiencia del postor: monto facturado mínimo en obras similares
+   - Equipamiento estratégico: lista de equipos exigidos
+   - Capacidad económica: facturación, liquidez (si aplica)
 
-B. CAPACIDAD TÉCNICA Y PROFESIONAL
-   B.1 Equipamiento estratégico (con cantidades y specs mínimas)
-   B.2 Infraestructura estratégica (cuando aplique)
-   B.3 Calificaciones del Personal Clave (UN REQUISITO POR CADA PROFESIONAL: Residente, Jefes, Especialistas — con AÑOS EXACTOS de experiencia)
-   B.4 Experiencia del Postor en la Especialidad (monto facturado mínimo)
+3. NO extraigas requisitos post-Buena Pro (garantía fiel cumplimiento, expediente técnico, documentos para suscripción de contrato, constancia de capacidad libre, etc.).
 
-C. CAPACIDAD ECONÓMICA Y FINANCIERA (cuando aplique)
-   C.1 Volumen de facturación / Solvencia
-   C.2 Liquidez y endeudamiento
+4. La "description" DEBE incluir CIFRAS EXACTAS (años, montos, cantidades).
 
-═══════════════════════════════════════════════════════════════
-QUÉ NO EXTRAER (post-Buena Pro o no aplica)
-═══════════════════════════════════════════════════════════════
-
-❌ Constancia de capacidad libre de contratación (es del Anexo 12, va al SUSCRIBIR el contrato, NO en la oferta)
-❌ Garantía de fiel cumplimiento (post-Buena Pro)
-❌ Garantías de adelantos
-❌ Programa CPM detallado (se entrega tras la BP)
-❌ Expediente Técnico (durante la ejecución)
-❌ Acreditación de moneda extranjera (solo si APLICA — no es requisito universal)
-❌ Conformidad de prestaciones
-❌ Documentos para suscripción del contrato (Anexo 12 y similares)
-❌ Factores de evaluación (precio, plazo) — son para puntaje, no calificación
-
-═══════════════════════════════════════════════════════════════
-REGLAS DE GRANULARIDAD
-═══════════════════════════════════════════════════════════════
-
-1. PERSONAL CLAVE: extrae UN REQUISITO POR CADA PROFESIONAL distinto. Si las Bases exigen Residente, Ing. Metrados, Ing. Producción, Ing. Suelos, Jefe SSOMA, Especialista SST — son 6 requisitos separados.
-
-2. EXPERIENCIA: extrae UN solo requisito con el monto mínimo exigido y la condición (ej: "obras viales con carpeta asfáltica en caliente").
-
-3. EQUIPAMIENTO: extrae UN solo requisito que liste todos los equipos exigidos.
-
-4. La "description" DEBE incluir CIFRAS EXACTAS: años de experiencia, montos, cantidades, especificaciones técnicas.
-
-═══════════════════════════════════════════════════════════════
-FORMATO DE RESPUESTA
-═══════════════════════════════════════════════════════════════
-
-Devuelve EXCLUSIVAMENTE JSON válido (sin markdown, sin texto adicional):
+FORMATO ESTRICTO (solo el JSON, nada más):
 
 {
   "requirements": [
     {
-      "id": "string-snake-case-corto",
-      "category": "capacidad_legal" | "personal_clave" | "experiencia_postor" | "equipamiento" | "economica_financiera" | "documentacion",
-      "name": "Nombre conciso del requisito específico (máx 60 chars)",
-      "description": "Detalle con CIFRAS EXACTAS extraídas de las Bases (máx 350 chars)",
-      "is_subsanable": true | false
+      "id": "snake_case_id",
+      "category": "capacidad_legal",
+      "name": "Nombre conciso (max 60 chars)",
+      "description": "Detalle con cifras exactas (max 300 chars)",
+      "is_subsanable": false
     }
   ]
 }
 
-Devuelve entre 7 y 12 requisitos. Si las Bases exigen 6 profesionales del personal clave, son 6 items + 1 de equipamiento + 1 de experiencia + 1-2 de capacidad legal + 1-2 económicos = 10-12 items.
+Valores permitidos para "category": "capacidad_legal", "personal_clave", "experiencia_postor", "equipamiento", "economica_financiera", "documentacion".
 
-NO incluyas más de 12 requisitos. NO incluyas requisitos post-BP.
-`;
+Valores permitidos para "is_subsanable": true o false (sin comillas).
+
+Empieza tu respuesta DIRECTAMENTE con { sin ningún texto antes.`;
 
 export const OFFER_EVALUATION_PROMPT = `Eres un evaluador del comité de selección de Contrataciones del Estado peruano. Para cada requisito provisto, debes dictaminar si la oferta del postor lo CUMPLE, es SUBSANABLE o NO CUMPLE.
 

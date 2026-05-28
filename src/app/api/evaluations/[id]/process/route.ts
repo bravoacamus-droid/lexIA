@@ -128,10 +128,11 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
       reqRes = await generateText({
         model: chatModel,
         system: REQUIREMENTS_EXTRACTION_PROMPT,
-        prompt: `Texto de las Bases Integradas:\n\n${basesText}`,
+        prompt: `Analiza el siguiente texto de las Bases Integradas y devuelve ÚNICAMENTE el JSON con los requisitos. NO incluyas comentarios, explicaciones, ni texto fuera del JSON. La respuesta DEBE comenzar con { y terminar con }.\n\n${basesText}`,
         temperature: 0.1,
-        maxTokens: 4000,
+        maxTokens: 6000,
       });
+      console.log(`[evaluator] LLM respondió ${reqRes.text.length} chars`);
     } catch (err) {
       console.error('[evaluator] Falló extracción de requisitos:', err);
       throw new Error(`Error al analizar las Bases con Gemini: ${(err as Error).message.slice(0, 150)}`);
@@ -142,8 +143,13 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
       const parsed = parseJsonLoose<{ requirements: Requirement[] }>(reqRes.text);
       requirements = parsed.requirements;
     } catch (err) {
-      console.error('[evaluator] Falló parseo de requisitos:', reqRes.text.slice(0, 500));
-      throw new Error('El LLM no devolvió requisitos en formato esperado. Intenta de nuevo.');
+      console.error('[evaluator] Falló parseo de requisitos. Respuesta LLM:', reqRes.text);
+      // Incluir la respuesta cruda en el mensaje de error para diagnóstico
+      throw new Error(
+        `El LLM no devolvió requisitos en formato JSON esperado.\n\n` +
+        `Error de parseo: ${(err as Error).message}\n\n` +
+        `RESPUESTA CRUDA DEL LLM (primeros 1500 chars):\n${reqRes.text.slice(0, 1500)}`,
+      );
     }
 
     if (!requirements || requirements.length === 0) {
