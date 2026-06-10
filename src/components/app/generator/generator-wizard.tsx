@@ -23,7 +23,17 @@ import { AmpliacionPlazoForm } from '@/components/app/generator/ampliacion-plazo
 import type { ProfileRole } from '@/lib/auth/session';
 
 type Role = 'contratista' | 'area_usuaria';
-type DocType = 'ampliacion_plazo' | 'cambio_personal' | 'descargo_penalidad' | 'cambio_bienes';
+type DocType =
+  | 'ampliacion_plazo'
+  | 'cambio_personal'
+  | 'descargo_penalidad'
+  | 'cambio_bienes'
+  | 'consultas_observaciones'
+  | 'apelaciones'
+  | 'bases_estandar'
+  | 'pliego_absolucion'
+  | 'tdr_eett'
+  | 'estrategia_contratacion';
 
 interface FormSubmitData {
   title: string;
@@ -58,13 +68,29 @@ const DOC_TYPES: Record<Role, Array<{
   title: string;
   desc: string;
   soon?: boolean;
+  /** Si está presente, al seleccionar se navega directo a esa ruta en lugar de mostrar el paso 3. */
+  href?: string;
 }>> = {
   contratista: [
+    {
+      id: 'consultas_observaciones' as DocType,
+      icon: FileText,
+      title: 'Consultas y observaciones a las Bases',
+      desc: 'Detecta vicios en los Cap. 3 y 4 de las Bases y arma el escrito con sustento.',
+      href: '/generador/consultas-observaciones',
+    },
+    {
+      id: 'apelaciones' as DocType,
+      icon: ClipboardX,
+      title: 'Recurso de apelación',
+      desc: 'Escrito de apelación ante la Entidad o el Tribunal del OECE.',
+      href: '/generador/apelaciones',
+    },
     {
       id: 'ampliacion_plazo',
       icon: FileText,
       title: 'Solicitud de ampliación de plazo',
-      desc: 'Solicitud formal de ampliación con sustento normativo (Art. 197 del Reglamento).',
+      desc: 'Solicitud formal de ampliación con sustento normativo (Art. 198 del Reglamento).',
     },
     {
       id: 'cambio_personal',
@@ -90,24 +116,31 @@ const DOC_TYPES: Record<Role, Array<{
   ],
   area_usuaria: [
     {
-      id: 'ampliacion_plazo' as DocType,
+      id: 'bases_estandar' as DocType,
+      icon: Building2,
+      title: 'Bases Estándar OECE',
+      desc: 'Parte de la plantilla oficial 2025 y rellena Cap. 3 y 4 con tus datos.',
+      href: '/generador/bases-estandar',
+    },
+    {
+      id: 'pliego_absolucion' as DocType,
+      icon: FileText,
+      title: 'Pliego de Absolución',
+      desc: 'Responde las consultas y observaciones recibidas; produce Bases Integradas.',
+      href: '/generador/pliego-absolucion',
+    },
+    {
+      id: 'tdr_eett' as DocType,
       icon: FileText,
       title: 'Términos de Referencia / EETT',
       desc: 'Redacta TDR y especificaciones técnicas sin direccionar marca.',
       soon: true,
     },
     {
-      id: 'cambio_personal' as DocType,
+      id: 'estrategia_contratacion' as DocType,
       icon: Building2,
       title: 'Estrategia de Contratación',
-      desc: 'Formato oficial OSCE con sustento técnico de 3-4 párrafos por campo.',
-      soon: true,
-    },
-    {
-      id: 'descargo_penalidad' as DocType,
-      icon: FileText,
-      title: 'Pliego de Absolución',
-      desc: 'Genera respuestas fundamentadas a las consultas y observaciones recibidas.',
+      desc: 'Formato oficial OECE con sustento técnico por campo.',
       soon: true,
     },
   ],
@@ -252,7 +285,16 @@ export function GeneratorWizard({ userRole = null }: GeneratorWizardProps) {
                     desc={d.desc}
                     active={docType === d.id}
                     soon={d.soon}
-                    onClick={() => !d.soon && setDocType(d.id)}
+                    onClick={() => {
+                      if (d.soon) return;
+                      // Items con `href` viven en su propia página dedicada
+                      // (los generadores nuevos de Etapa 6); navegamos directo.
+                      if (d.href) {
+                        router.push(d.href);
+                        return;
+                      }
+                      setDocType(d.id);
+                    }}
                   />
                 ))}
               </div>
