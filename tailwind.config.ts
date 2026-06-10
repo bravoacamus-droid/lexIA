@@ -48,19 +48,21 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        // Brand
+        // Brand — LexIA v2 (paleta corporativa azul)
+        // Anclas: 500 = #0583F2 (primary), 950 = #021D40 (dark).
+        // Tonos intermedios calculados por luminosidad/saturación.
         brand: {
-          50: '#EEF2FF',
-          100: '#E0E7FF',
-          200: '#C7D2FE',
-          300: '#A5B4FC',
-          400: '#818CF8',
-          500: '#6366F1',
-          600: '#4F46E5',
-          700: '#4338CA',
-          800: '#3730A3',
-          900: '#312E81',
-          950: '#1E1B4B',
+          50: '#EAF4FE',
+          100: '#C5E2FC',
+          200: '#9CCEFB',
+          300: '#6FB7F8',
+          400: '#3FA2F6',
+          500: '#0583F2',
+          600: '#0470D1',
+          700: '#035DAE',
+          800: '#02488A',
+          900: '#02335F',
+          950: '#021D40',
         },
         // Semantic
         success: 'hsl(var(--success))',
@@ -74,7 +76,7 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-jakarta)', 'system-ui', 'sans-serif'],
         serif: ['var(--font-instrument-serif)', 'Georgia', 'serif'],
         mono: ['var(--font-jetbrains-mono)', 'monospace'],
       },
@@ -89,9 +91,9 @@ const config: Config = {
         sm: 'calc(var(--radius) - 4px)',
       },
       boxShadow: {
-        'soft': '0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06)',
-        'glow': '0 0 0 1px rgba(67, 56, 202, 0.1), 0 4px 16px rgba(67, 56, 202, 0.12)',
-        'glow-strong': '0 0 0 1px rgba(67, 56, 202, 0.2), 0 8px 32px rgba(67, 56, 202, 0.24)',
+        'soft': '0 1px 2px rgba(2, 29, 64, 0.05), 0 1px 3px rgba(2, 29, 64, 0.08)',
+        'glow': '0 0 0 1px rgba(5, 131, 242, 0.12), 0 4px 16px rgba(5, 131, 242, 0.14)',
+        'glow-strong': '0 0 0 1px rgba(5, 131, 242, 0.22), 0 8px 32px rgba(5, 131, 242, 0.26)',
       },
       keyframes: {
         'accordion-down': {

@@ -1,14 +1,19 @@
 import type { Metadata } from 'next';
-import { Inter, Instrument_Serif, JetBrains_Mono } from 'next/font/google';
+import { Plus_Jakarta_Sans, Instrument_Serif, JetBrains_Mono } from 'next/font/google';
 import { Providers } from '@/components/providers';
 import './globals.css';
 
-const inter = Inter({
+// Plus Jakarta Sans — tipografía principal del producto v2.
+// Cálida, geométrica, excelente legibilidad en pantallas. Reemplaza a Inter.
+const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  variable: '--font-inter',
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-jakarta',
   display: 'swap',
 });
 
+// Instrument Serif se conserva para títulos editoriales decorativos
+// (hero del landing, headings de marca en marketing).
 const instrumentSerif = Instrument_Serif({
   subsets: ['latin'],
   weight: '400',
@@ -62,7 +67,7 @@ export default function RootLayout({
     <html
       lang="es"
       suppressHydrationWarning
-      className={`${inter.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}
+      className={`${jakarta.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}
     >
       <body className="min-h-screen bg-background font-sans">
         <Providers>{children}</Providers>

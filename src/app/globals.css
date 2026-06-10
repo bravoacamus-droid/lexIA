@@ -3,76 +3,81 @@
 @tailwind utilities;
 
 @layer base {
+  /*
+   * LexIA v2 — Paleta corporativa
+   * Brand: #0583F2 (azul primario) · #021D40 (azul profundo) · #FFFFFF
+   * HSL: primary = 209 96% 49% · dark = 218 95% 13%
+   */
   :root {
     --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    --foreground: 218 95% 13%;          /* #021D40 — texto principal con identidad */
 
-    --card: 210 40% 98%;
-    --card-foreground: 222 47% 11%;
+    --card: 209 100% 98.5%;             /* #F5FAFF apenas teñido de azul */
+    --card-foreground: 218 95% 13%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 218 95% 13%;
 
-    --primary: 243 75% 51%;            /* indigo-700 */
+    --primary: 209 96% 49%;             /* #0583F2 — brand */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 209 60% 96%;           /* azul muy pálido para fondos sutiles */
+    --secondary-foreground: 218 95% 13%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 210 30% 96%;
+    --muted-foreground: 215 20% 42%;
 
-    --accent: 226 100% 96%;
-    --accent-foreground: 243 75% 41%;
+    --accent: 209 100% 95%;             /* tinte azul para hovers */
+    --accent-foreground: 209 96% 38%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 243 75% 51%;
+    --border: 209 28% 90%;
+    --input: 209 28% 90%;
+    --ring: 209 96% 49%;
 
     --success: 158 64% 39%;
     --warning: 31 92% 44%;
     --danger: 0 84% 60%;
-    --info: 200 98% 39%;
+    --info: 209 96% 49%;                /* info usa el primario para coherencia */
 
     --radius: 0.75rem;
   }
 
   .dark {
-    --background: 240 13% 5%;          /* #0A0A0F */
-    --foreground: 210 40% 96%;
+    --background: 218 95% 6%;           /* casi negro azulado, más profundo que el brand-dark */
+    --foreground: 209 60% 96%;
 
-    --card: 240 14% 8%;                /* #111118 */
-    --card-foreground: 210 40% 96%;
+    --card: 218 80% 9%;
+    --card-foreground: 209 60% 96%;
 
-    --popover: 240 14% 8%;
-    --popover-foreground: 210 40% 96%;
+    --popover: 218 80% 9%;
+    --popover-foreground: 209 60% 96%;
 
-    --primary: 234 89% 74%;
-    --primary-foreground: 240 13% 5%;
+    --primary: 209 92% 60%;             /* primario aclarado para legibilidad en dark */
+    --primary-foreground: 218 95% 8%;
 
-    --secondary: 240 12% 12%;          /* #1A1A24 */
-    --secondary-foreground: 210 40% 96%;
+    --secondary: 218 60% 14%;
+    --secondary-foreground: 209 60% 96%;
 
-    --muted: 240 12% 12%;
-    --muted-foreground: 215 16% 65%;
+    --muted: 218 50% 14%;
+    --muted-foreground: 209 25% 65%;
 
-    --accent: 240 12% 12%;
-    --accent-foreground: 234 89% 74%;
+    --accent: 218 60% 16%;
+    --accent-foreground: 209 92% 70%;
 
     --destructive: 0 73% 56%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 10% 18%;             /* #2A2A38 */
-    --input: 240 10% 18%;
-    --ring: 234 89% 74%;
+    --border: 218 45% 20%;
+    --input: 218 45% 20%;
+    --ring: 209 92% 60%;
 
     --success: 158 70% 50%;
     --warning: 31 92% 55%;
     --danger: 0 73% 56%;
-    --info: 200 98% 50%;
+    --info: 209 92% 60%;
   }
 }
 
