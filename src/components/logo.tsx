@@ -1,12 +1,26 @@
-import { cn } from '@/lib/utils';
+import Image from 'next/image';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
+/**
+ * Adaptador legacy del logo — preserva la API pública (size + showWordmark + href)
+ * que ya consumen ~10 archivos del codebase, pero renderiza los PNG corporativos
+ * en public/brand/. Para componentes nuevos preferir `@/components/brand`.
+ */
 interface LogoProps {
   href?: string | null;
   className?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  /** true → logo compuesto (con tagline) · false → logo mark (sin tagline) */
   showWordmark?: boolean;
 }
+
+const HEIGHTS: Record<NonNullable<LogoProps['size']>, number> = {
+  sm: 22,
+  md: 32,
+  lg: 48,
+  xl: 64,
+};
 
 export function Logo({
   href = '/',
@@ -14,57 +28,47 @@ export function Logo({
   size = 'md',
   showWordmark = true,
 }: LogoProps) {
-  const sizes = {
-    sm: 'text-base',
-    md: 'text-xl',
-    lg: 'text-2xl',
-    xl: 'text-3xl',
-  };
+  const h = HEIGHTS[size];
+  const src = showWordmark ? '/brand/logo-full.png' : '/brand/logo-mark.png';
+  const ratio = showWordmark ? 2 : 3.137;
+  const w = Math.round(h * ratio);
 
-  const content = (
-    <span
-      className={cn(
-        'inline-flex items-baseline gap-0.5 font-serif italic tracking-tight',
-        sizes[size],
-        className,
-      )}
-    >
-      <LogoMark size={size} />
-      {showWordmark && (
-        <span className="text-foreground">
-          ex<span className="not-italic font-sans font-semibold">IA</span>
-        </span>
-      )}
-    </span>
+  const img = (
+    <Image
+      src={src}
+      alt="LexIA Contrataciones"
+      width={w}
+      height={h}
+      className={cn('h-auto select-none', className)}
+      priority={size === 'xl'}
+    />
   );
 
   if (href) {
     return (
-      <Link href={href} className="group inline-flex items-center">
-        {content}
+      <Link href={href} className="inline-flex items-center">
+        {img}
       </Link>
     );
   }
-  return content;
+  return img;
 }
 
-export function LogoMark({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' | 'xl' }) {
-  const dotSize = {
-    sm: 'h-1 w-1',
-    md: 'h-1.5 w-1.5',
-    lg: 'h-2 w-2',
-    xl: 'h-2.5 w-2.5',
-  };
+export function LogoMark({
+  size = 'md',
+  className,
+}: {
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  className?: string;
+}) {
+  const h = HEIGHTS[size];
   return (
-    <span className="inline-flex items-baseline">
-      <span className="text-foreground">L</span>
-      <span
-        className={cn(
-          'inline-block rounded-full bg-brand-600 dark:bg-brand-400 -ml-0.5 mb-0.5',
-          dotSize[size],
-        )}
-        aria-hidden
-      />
-    </span>
+    <Image
+      src="/brand/logo-mark.png"
+      alt="LexIA"
+      width={Math.round(h * 3.137)}
+      height={h}
+      className={cn('h-auto select-none', className)}
+    />
   );
 }

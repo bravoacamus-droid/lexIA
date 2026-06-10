@@ -1,12 +1,12 @@
 import { Suspense } from 'react';
-import { LoginForm } from '@/components/auth/login-form';
-import { Logo } from '@/components/logo';
+import { LoginCard } from '@/components/auth/login-card';
+import { LogoMark } from '@/components/brand';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
 export const metadata = {
   title: 'Iniciar sesión',
-  description: 'Ingresa a LexIA con tu enlace mágico',
+  description: 'Ingresa a LexIA con tu cuenta de Google o Facebook',
 };
 
 export default function LoginPage() {
@@ -16,7 +16,9 @@ export default function LoginPage() {
       <div className="absolute inset-0 -z-10 bg-grid-light dark:bg-grid-dark opacity-30 [mask-image:radial-gradient(ellipse_at_center,black_0%,transparent_70%)]" />
 
       <header className="container py-6 flex items-center justify-between">
-        <Logo />
+        <Link href="/" className="inline-flex items-center">
+          <LogoMark height={32} />
+        </Link>
         <Link
           href="/"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -28,7 +30,7 @@ export default function LoginPage() {
 
       <main className="flex-1 flex items-center justify-center px-4 py-10">
         <Suspense fallback={null}>
-          <LoginForm />
+          <LoginCard />
         </Suspense>
       </main>
 
