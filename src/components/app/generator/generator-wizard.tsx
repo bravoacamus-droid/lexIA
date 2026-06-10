@@ -25,15 +25,17 @@ import type { ProfileRole } from '@/lib/auth/session';
 type Role = 'contratista' | 'area_usuaria';
 type DocType =
   | 'ampliacion_plazo'
-  | 'cambio_personal'
-  | 'descargo_penalidad'
+  | 'cambio_personal_clave'
+  | 'descargo_penalidades'
   | 'cambio_bienes'
   | 'consultas_observaciones'
   | 'apelaciones'
   | 'bases_estandar'
   | 'pliego_absolucion'
   | 'tdr_eett'
-  | 'estrategia_contratacion';
+  | 'estrategia_contratacion'
+  | 'resolucion_contrato'
+  | 'solicitud_sancion';
 
 interface FormSubmitData {
   title: string;
@@ -93,25 +95,25 @@ const DOC_TYPES: Record<Role, Array<{
       desc: 'Solicitud formal de ampliación con sustento normativo (Art. 198 del Reglamento).',
     },
     {
-      id: 'cambio_personal',
+      id: 'cambio_personal_clave' as DocType,
       icon: UserCog,
       title: 'Cambio de personal clave',
       desc: 'Sustento técnico-legal para sustituir personal acreditado.',
-      soon: true,
+      href: '/generador/cambio-personal-clave',
     },
     {
-      id: 'descargo_penalidad',
+      id: 'descargo_penalidades' as DocType,
       icon: ClipboardX,
       title: 'Descargo por penalidades',
-      desc: 'Argumentación contra la aplicación de penalidades por mora.',
-      soon: true,
+      desc: 'Argumentación contra la aplicación de penalidades por mora con causales eximentes.',
+      href: '/generador/descargo-penalidades',
     },
     {
-      id: 'cambio_bienes',
+      id: 'cambio_bienes' as DocType,
       icon: Package,
       title: 'Cambio de bienes ofertados',
-      desc: 'Justificación para sustituir bienes por equivalencia técnica.',
-      soon: true,
+      desc: 'Justificación de equivalencia técnica parámetro por parámetro.',
+      href: '/generador/cambio-bienes',
     },
   ],
   area_usuaria: [
@@ -142,6 +144,20 @@ const DOC_TYPES: Record<Role, Array<{
       title: 'Estrategia de Contratación',
       desc: 'Formato oficial OECE 2025 con sustento técnico de 3-4 párrafos por campo.',
       href: '/generador/estrategia-contratacion',
+    },
+    {
+      id: 'resolucion_contrato' as DocType,
+      icon: ClipboardX,
+      title: 'Resolución de contrato',
+      desc: 'Carta notarial de apercibimiento o de resolución por incumplimiento del contratista.',
+      href: '/generador/resolucion-contrato',
+    },
+    {
+      id: 'solicitud_sancion' as DocType,
+      icon: FileText,
+      title: 'Solicitud de sanción al Tribunal OECE',
+      desc: 'Escrito que inicia el procedimiento sancionador contra un proveedor.',
+      href: '/generador/solicitud-sancion',
     },
   ],
 };

@@ -6,7 +6,12 @@ export type GeneratorSlug =
   | 'bases_estandar'
   | 'apelaciones'
   | 'tdr_eett'
-  | 'estrategia_contratacion';
+  | 'estrategia_contratacion'
+  | 'cambio_personal_clave'
+  | 'resolucion_contrato'
+  | 'cambio_bienes'
+  | 'descargo_penalidades'
+  | 'solicitud_sancion';
 
 export type GeneratorAudience = 'entity' | 'provider' | 'consultant';
 
