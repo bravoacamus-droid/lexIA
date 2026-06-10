@@ -134,14 +134,14 @@ const DOC_TYPES: Record<Role, Array<{
       icon: FileText,
       title: 'Términos de Referencia / EETT',
       desc: 'Redacta TDR y especificaciones técnicas sin direccionar marca.',
-      soon: true,
+      href: '/generador/tdr-eett',
     },
     {
       id: 'estrategia_contratacion' as DocType,
       icon: Building2,
       title: 'Estrategia de Contratación',
-      desc: 'Formato oficial OECE con sustento técnico por campo.',
-      soon: true,
+      desc: 'Formato oficial OECE 2025 con sustento técnico de 3-4 párrafos por campo.',
+      href: '/generador/estrategia-contratacion',
     },
   ],
 };

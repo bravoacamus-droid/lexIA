@@ -13,13 +13,19 @@ import {
 import {
   loadTemplates,
   composeFewShot,
-  type GeneratorSlug,
   type ProcurementObject,
 } from '@/lib/generators/template-loader';
 import type { ProfileRole } from '@/lib/auth/session';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
+
+/** Slugs que despacha este endpoint (los 4 de Selección). */
+type SelectionSlug =
+  | 'consultas_observaciones'
+  | 'pliego_absolucion'
+  | 'bases_estandar'
+  | 'apelaciones';
 
 const SCHEMA = z.object({
   slug: z.enum([
@@ -45,14 +51,14 @@ const SCHEMA = z.object({
   base_text: z.string().optional(),
 });
 
-const SYSTEM_BY_SLUG: Record<GeneratorSlug, string> = {
+const SYSTEM_BY_SLUG: Record<SelectionSlug, string> = {
   consultas_observaciones: CONSULTAS_OBSERVACIONES_SYSTEM,
   pliego_absolucion: PLIEGO_ABSOLUCION_SYSTEM,
   bases_estandar: BASES_ESTANDAR_SYSTEM,
   apelaciones: APELACIONES_SYSTEM,
 };
 
-const ROLE_BY_SLUG: Record<GeneratorSlug, ProfileRole[]> = {
+const ROLE_BY_SLUG: Record<SelectionSlug, ProfileRole[]> = {
   consultas_observaciones: ['provider', 'consultant'],
   pliego_absolucion: ['entity', 'consultant'],
   bases_estandar: ['entity', 'consultant'],
@@ -92,8 +98,8 @@ async function buildRagContext(query: string): Promise<string> {
   }
 }
 
-function buildQueryForRag(slug: GeneratorSlug, title: string): string {
-  const baseQueries: Record<GeneratorSlug, string> = {
+function buildQueryForRag(slug: SelectionSlug, title: string): string {
+  const baseQueries: Record<SelectionSlug, string> = {
     consultas_observaciones:
       'direccionamiento a marca, principios de libre concurrencia y trato justo, requisitos de calificación proporcionales, factores de evaluación objetivos, Ley 32069',
     pliego_absolucion:

@@ -4,7 +4,9 @@ export type GeneratorSlug =
   | 'consultas_observaciones'
   | 'pliego_absolucion'
   | 'bases_estandar'
-  | 'apelaciones';
+  | 'apelaciones'
+  | 'tdr_eett'
+  | 'estrategia_contratacion';
 
 export type GeneratorAudience = 'entity' | 'provider' | 'consultant';
 

@@ -25,7 +25,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn, formatBytes } from '@/lib/utils';
-import type { GeneratorSlug, ProcurementObject } from '@/lib/generators/template-loader';
+import type { ProcurementObject } from '@/lib/generators/template-loader';
+
+/** Cualquier slug válido del catálogo de generadores. */
+export type AnyGeneratorSlug =
+  | 'consultas_observaciones'
+  | 'pliego_absolucion'
+  | 'bases_estandar'
+  | 'apelaciones'
+  | 'tdr_eett'
+  | 'estrategia_contratacion';
 
 export interface SelectionFormField {
   name: string;
@@ -38,7 +47,9 @@ export interface SelectionFormField {
 }
 
 interface Props {
-  slug: GeneratorSlug;
+  slug: AnyGeneratorSlug;
+  /** Endpoint del backend que recibe la generación. Default: /api/generators/selection. */
+  endpoint?: string;
   pageTitle: string;
   pageDescription: string;
   pageInfoBullets?: string[];
@@ -62,6 +73,7 @@ const OBJECT_OPTIONS: Array<{ value: ProcurementObject; label: string }> = [
 
 export function SelectionGeneratorForm({
   slug,
+  endpoint = '/api/generators/selection',
   pageTitle,
   pageDescription,
   pageInfoBullets,
@@ -143,7 +155,7 @@ export function SelectionGeneratorForm({
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/generators/selection', {
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
