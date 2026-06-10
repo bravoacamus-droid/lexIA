@@ -1,4 +1,22 @@
 import type { ChatSource } from '@/lib/supabase/types';
+import type { ProfileRole } from '@/lib/auth/session';
+
+/**
+ * Bloque de contexto sobre el perfil del usuario. Se inyecta al system prompt
+ * para que la IA ajuste el tono, el destinatario y los énfasis de la respuesta.
+ *
+ * - entity → habla en lenguaje de funcionario; foco en defender la legalidad
+ *   del acto administrativo, evitar nulidades, sustento normativo robusto.
+ * - provider → habla en lenguaje de postor; foco en derechos, plazos, cómo
+ *   subsanar, cómo formular consultas/observaciones útiles.
+ * - consultant → habla en lenguaje de asesor; foco en argumentación técnica,
+ *   citas de jurisprudencia y matices interpretativos.
+ */
+const ROLE_CONTEXT: Record<ProfileRole, string> = {
+  entity: `PERFIL DEL USUARIO: trabaja en una entidad pública (área usuaria, logística, asesor legal o autoridad). Sus consultas suelen apuntar a: cómo cumplir la norma para evitar observaciones del órgano de control; cómo defender la legalidad del procedimiento; cómo evaluar correctamente; cómo modificar contratos sin contravenir el marco legal. Privilegia respuestas que el funcionario pueda usar como sustento textual en informes o resoluciones.`,
+  provider: `PERFIL DEL USUARIO: es un proveedor del Estado (bienes, servicios, obras o consultoría). Sus consultas suelen apuntar a: plazos para subsanar; cómo formular consultas y observaciones válidas; cómo cuestionar requisitos arbitrarios o direccionamiento a marca; cómo apelar; cómo sustentar adicionales o ampliaciones de plazo. Privilegia respuestas que el postor pueda usar para preparar escritos formales.`,
+  consultant: `PERFIL DEL USUARIO: es consultor o capacitador en contrataciones públicas. Asesora a entidades y proveedores. Sus consultas suelen apuntar a: matices interpretativos; jurisprudencia comparada; criterios del Tribunal vs OECE; escenarios límite. Privilegia respuestas con análisis estructurado, citas precisas y diferenciación de criterios.`,
+};
 
 export const SYSTEM_PROMPT_BASE = `Eres LexIA, un asistente especializado EXCLUSIVAMENTE en Contrataciones del Estado peruano.
 Tu base de conocimiento incluye la Ley N° 32069 (Ley General de Contrataciones Públicas), su Reglamento, Directivas del OSCE, Opiniones del OSCE, Pronunciamientos del OSCE y Resoluciones del Tribunal de Contrataciones del Estado.
@@ -28,9 +46,14 @@ REGLAS ABSOLUTAS:
 8. Sé conciso pero completo. Evita relleno. Prioriza claridad y precisión jurídica sobre extensión.
 `;
 
-export function buildChatSystemPrompt(chunks: ChatSource[]): string {
+export function buildChatSystemPrompt(
+  chunks: ChatSource[],
+  role: ProfileRole | null = null,
+): string {
+  const rolePrefix = role ? `\n${ROLE_CONTEXT[role]}\n` : '';
+
   if (chunks.length === 0) {
-    return `${SYSTEM_PROMPT_BASE}
+    return `${SYSTEM_PROMPT_BASE}${rolePrefix}
 
 CONTEXTO NORMATIVO RECUPERADO:
 (No se encontraron fragmentos relevantes en la base normativa para esta consulta.)
@@ -45,7 +68,7 @@ Indica al usuario que no encuentras sustento normativo específico para esta con
     })
     .join('\n\n---\n\n');
 
-  return `${SYSTEM_PROMPT_BASE}
+  return `${SYSTEM_PROMPT_BASE}${rolePrefix}
 
 CONTEXTO NORMATIVO RECUPERADO:
 A continuación encontrarás los fragmentos más relevantes de la base normativa para esta consulta. Cita cada uno por su número entre corchetes.

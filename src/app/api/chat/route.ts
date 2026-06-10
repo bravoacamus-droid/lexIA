@@ -6,6 +6,7 @@ import { embedOne } from '@/lib/ai/embeddings';
 import { chatModel, fastModel } from '@/lib/ai/gemini';
 import { buildChatSystemPrompt, TITLE_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 import type { ChatSource, NormativeDocType } from '@/lib/supabase/types';
+import type { ProfileRole } from '@/lib/auth/session';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -64,12 +65,23 @@ export async function POST(req: Request) {
 
   const { conversationId, messages } = parsed.data;
 
-  // Verificar ownership de la conversación
-  const { data: convo } = await supabase
-    .from('chat_conversations')
-    .select('id, user_id, title')
-    .eq('id', conversationId)
-    .maybeSingle();
+  // Verificar ownership de la conversación + cargar rol del usuario
+  // (en paralelo para no agregar latencia)
+  const [convoRes, profileRes] = await Promise.all([
+    supabase
+      .from('chat_conversations')
+      .select('id, user_id, title')
+      .eq('id', conversationId)
+      .maybeSingle(),
+    supabase
+      .from('profiles')
+      .select('profile_role')
+      .eq('id', user.id)
+      .maybeSingle(),
+  ]);
+
+  const convo = convoRes.data;
+  const userRole = (profileRes.data?.profile_role as ProfileRole | null) || null;
 
   if (!convo || (convo as { user_id: string }).user_id !== user.id) {
     return NextResponse.json({ error: 'not_found' }, { status: 404 });
@@ -131,8 +143,8 @@ export async function POST(req: Request) {
     } as never);
   }
 
-  // 4. Build prompt
-  const systemPrompt = buildChatSystemPrompt(sources);
+  // 4. Build prompt — el perfil del usuario ajusta el tono y los énfasis
+  const systemPrompt = buildChatSystemPrompt(sources, userRole);
   const trimmedHistory = messages.slice(-MAX_HISTORY);
 
   // 5. Stream

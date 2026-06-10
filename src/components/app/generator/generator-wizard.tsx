@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { AmpliacionPlazoForm } from '@/components/app/generator/ampliacion-plazo-form';
+import type { ProfileRole } from '@/lib/auth/session';
 
 type Role = 'contratista' | 'area_usuaria';
 type DocType = 'ampliacion_plazo' | 'cambio_personal' | 'descargo_penalidad' | 'cambio_bienes';
@@ -87,15 +88,67 @@ const DOC_TYPES: Record<Role, Array<{
       soon: true,
     },
   ],
-  area_usuaria: [],
+  area_usuaria: [
+    {
+      id: 'ampliacion_plazo' as DocType,
+      icon: FileText,
+      title: 'Términos de Referencia / EETT',
+      desc: 'Redacta TDR y especificaciones técnicas sin direccionar marca.',
+      soon: true,
+    },
+    {
+      id: 'cambio_personal' as DocType,
+      icon: Building2,
+      title: 'Estrategia de Contratación',
+      desc: 'Formato oficial OSCE con sustento técnico de 3-4 párrafos por campo.',
+      soon: true,
+    },
+    {
+      id: 'descargo_penalidad' as DocType,
+      icon: FileText,
+      title: 'Pliego de Absolución',
+      desc: 'Genera respuestas fundamentadas a las consultas y observaciones recibidas.',
+      soon: true,
+    },
+  ],
 };
 
-export function GeneratorWizard() {
+/**
+ * Mapea el rol global del usuario (perfil v2) al "rol" que usa el wizard
+ * (que predata la v2 y solo distingue contratista vs área usuaria).
+ *  - provider → contratista (genera escritos hacia la entidad)
+ *  - entity   → area_usuaria (genera documentos internos)
+ *  - consultant → null (puede elegir manualmente cuál rol simular)
+ */
+function mapUserRoleToWizardRole(userRole: ProfileRole | null): Role | null {
+  if (userRole === 'provider') return 'contratista';
+  if (userRole === 'entity') return 'area_usuaria';
+  return null;
+}
+
+interface GeneratorWizardProps {
+  userRole?: ProfileRole | null;
+}
+
+export function GeneratorWizard({ userRole = null }: GeneratorWizardProps) {
   const router = useRouter();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [role, setRole] = useState<Role | null>(null);
+  const preselected = mapUserRoleToWizardRole(userRole);
+  // Si el perfil del usuario implica un rol claro, saltamos el paso 1 y
+  // partimos directamente del catálogo de documentos.
+  const [step, setStep] = useState<1 | 2 | 3>(preselected ? 2 : 1);
+  const [role, setRole] = useState<Role | null>(preselected);
   const [docType, setDocType] = useState<DocType | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Si el rol del usuario cambia (caso poco común, p.ej. desde ajustes),
+  // sincronizamos sin reiniciar la selección manual del consultor.
+  useEffect(() => {
+    if (preselected && role !== preselected) {
+      setRole(preselected);
+      setStep(2);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preselected]);
 
   async function onFormSubmit(data: FormSubmitData) {
     if (!docType) return;
@@ -205,10 +258,14 @@ export function GeneratorWizard() {
               </div>
 
               <div className="mt-7 flex items-center justify-between">
-                <Button variant="ghost" onClick={() => setStep(1)}>
-                  <ArrowLeft className="h-4 w-4" />
-                  Atrás
-                </Button>
+                {preselected ? (
+                  <span />
+                ) : (
+                  <Button variant="ghost" onClick={() => setStep(1)}>
+                    <ArrowLeft className="h-4 w-4" />
+                    Atrás
+                  </Button>
+                )}
                 <Button onClick={() => setStep(3)} disabled={!docType} size="lg">
                   Continuar
                   <ArrowRight className="h-4 w-4" />

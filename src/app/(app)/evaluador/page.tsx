@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FileSearch, Plus, FileCheck2, Clock, AlertCircle } from 'lucide-react';
 import { formatRelative } from '@/lib/utils';
+import { RoleGateBlocked, isRoleAllowed } from '@/components/app/role-gate';
+import type { ProfileRole } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Evaluador IA' };
@@ -15,6 +17,24 @@ export default async function EvaluatorListPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('profile_role')
+    .eq('id', user.id)
+    .maybeSingle();
+  const userRole = (profile?.profile_role as ProfileRole | null) || null;
+
+  if (!isRoleAllowed(userRole, ['entity'])) {
+    return (
+      <RoleGateBlocked
+        allow={['entity']}
+        userRole={userRole}
+        moduleName="El Evaluador de ofertas"
+        reason="Evaluar ofertas es una facultad del comité de selección de la entidad pública. Los proveedores no pueden evaluar ofertas; sí pueden generar consultas, observaciones y apelaciones desde el módulo Generador."
+      />
+    );
+  }
 
   const { data: evaluations } = await supabase
     .from('evaluations')
