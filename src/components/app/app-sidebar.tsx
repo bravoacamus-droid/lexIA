@@ -1,14 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard,
-  MessageSquare,
-  Library,
-  FileSearch,
-  FilePen,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -22,14 +17,7 @@ import { useUiStore } from '@/lib/stores/ui';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { AppUser } from '@/components/app/app-shell';
-
-const PRIMARY_NAV = [
-  { label: 'Inicio', href: '/app', icon: LayoutDashboard },
-  { label: 'Chat LexIA', href: '/chat', icon: MessageSquare, accent: true },
-  { label: 'Biblioteca', href: '/biblioteca', icon: Library },
-  { label: 'Evaluador', href: '/evaluador', icon: FileSearch },
-  { label: 'Generador', href: '/generador', icon: FilePen },
-];
+import { getMenuFor, type MenuSection } from '@/lib/navigation/menu-by-role';
 
 interface Props {
   user: AppUser;
@@ -50,6 +38,8 @@ export function AppSidebar({ user, mobileOpen, onMobileClose }: Props) {
   // Antes de hidratar, asumimos no-colapsado para coincidir con el server-render.
   const collapsed = mounted ? storedCollapsed : false;
 
+  const sections = useMemo(() => getMenuFor(user.profile_role), [user.profile_role]);
+
   // Cerrar drawer al navegar
   useEffect(() => {
     if (mobileOpen && onMobileClose) onMobileClose();
@@ -63,6 +53,7 @@ export function AppSidebar({ user, mobileOpen, onMobileClose }: Props) {
         collapsed={collapsed}
         onToggle={toggle}
         pathname={pathname}
+        sections={sections}
       />
 
       {/* Mobile drawer */}
@@ -94,7 +85,7 @@ export function AppSidebar({ user, mobileOpen, onMobileClose }: Props) {
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              <SidebarBody collapsed={false} pathname={pathname} />
+              <SidebarBody collapsed={false} pathname={pathname} sections={sections} />
             </motion.aside>
           </>
         )}
@@ -107,10 +98,12 @@ function DesktopSidebar({
   collapsed,
   onToggle,
   pathname,
+  sections,
 }: {
   collapsed: boolean;
   onToggle: () => void;
   pathname: string | null;
+  sections: MenuSection[];
 }) {
   return (
     <aside
@@ -142,7 +135,7 @@ function DesktopSidebar({
           <ChevronLeft className="h-4 w-4" />
         </Button>
       </div>
-      <SidebarBody collapsed={collapsed} pathname={pathname} onToggle={onToggle} />
+      <SidebarBody collapsed={collapsed} pathname={pathname} sections={sections} onToggle={onToggle} />
     </aside>
   );
 }
@@ -150,10 +143,12 @@ function DesktopSidebar({
 function SidebarBody({
   collapsed,
   pathname,
+  sections,
   onToggle,
 }: {
   collapsed: boolean;
   pathname: string | null;
+  sections: MenuSection[];
   onToggle?: () => void;
 }) {
   function isActive(href: string) {
@@ -185,56 +180,72 @@ function SidebarBody({
         )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto scrollbar-thin px-2 py-2">
-        <div
-          className={cn(
-            'mb-2 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground',
-            collapsed && 'hidden',
-          )}
-        >
-          Navegación
-        </div>
-        <ul className="space-y-0.5">
-          {PRIMARY_NAV.map((item) => {
-            const active = isActive(item.href);
-            const Icon = item.icon;
-            const content = (
-              <Link
-                href={item.href}
-                className={cn(
-                  'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                  collapsed && 'justify-center px-0',
-                  active
-                    ? 'bg-brand-100 text-brand-900 dark:bg-brand-950 dark:text-brand-200'
-                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
-                )}
-              >
-                <Icon
-                  className={cn(
-                    'h-4 w-4 shrink-0',
-                    active && 'text-brand-700 dark:text-brand-400',
-                  )}
-                />
-                {!collapsed && <span className="truncate">{item.label}</span>}
-                {!collapsed && active && (
-                  <span className="ml-auto h-1.5 w-1.5 rounded-full bg-brand-600 dark:bg-brand-400" />
-                )}
-              </Link>
-            );
-            return (
-              <li key={item.href}>
-                {collapsed ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>{content}</TooltipTrigger>
-                    <TooltipContent side="right">{item.label}</TooltipContent>
-                  </Tooltip>
-                ) : (
-                  content
-                )}
-              </li>
-            );
-          })}
-        </ul>
+      <nav className="flex-1 overflow-y-auto scrollbar-thin px-2 py-2 space-y-4">
+        {sections.map((section) => (
+          <div key={section.label}>
+            <div
+              className={cn(
+                'mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground',
+                collapsed && 'hidden',
+              )}
+            >
+              {section.label}
+            </div>
+            <ul className="space-y-0.5">
+              {section.items.map((item) => {
+                const active = isActive(item.href);
+                const Icon = item.icon;
+                const disabled = item.comingSoon === true;
+                const content = (
+                  <Link
+                    href={disabled ? '#' : item.href}
+                    aria-disabled={disabled}
+                    onClick={(e) => {
+                      if (disabled) e.preventDefault();
+                    }}
+                    className={cn(
+                      'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                      collapsed && 'justify-center px-0',
+                      disabled
+                        ? 'text-muted-foreground/60 cursor-not-allowed'
+                        : active
+                          ? 'bg-brand-100 text-brand-900 dark:bg-brand-950 dark:text-brand-200'
+                          : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+                    )}
+                  >
+                    <Icon
+                      className={cn(
+                        'h-4 w-4 shrink-0',
+                        active && !disabled && 'text-brand-700 dark:text-brand-400',
+                      )}
+                    />
+                    {!collapsed && <span className="truncate">{item.label}</span>}
+                    {!collapsed && active && !disabled && (
+                      <span className="ml-auto h-1.5 w-1.5 rounded-full bg-brand-600 dark:bg-brand-400" />
+                    )}
+                    {!collapsed && disabled && (
+                      <span className="ml-auto rounded-full bg-secondary px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        Pronto
+                      </span>
+                    )}
+                  </Link>
+                );
+                return (
+                  <li key={`${section.label}-${item.href}`}>
+                    {collapsed ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>{content}</TooltipTrigger>
+                        <TooltipContent side="right">{item.label}</TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      content
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
       </nav>
 
       <div className={cn('border-t border-border p-3 space-y-1', collapsed && 'px-2')}>

@@ -4,6 +4,8 @@ import { DashboardStats } from '@/components/app/dashboard/stats';
 import { DashboardQuickActions } from '@/components/app/dashboard/quick-actions';
 import { DashboardActivity } from '@/components/app/dashboard/activity';
 import { DashboardSuggested } from '@/components/app/dashboard/suggested';
+import { TrialBanner } from '@/components/app/dashboard/trial-banner';
+import type { ProfileRole, SubscriptionRow } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Inicio' };
@@ -16,9 +18,10 @@ export default async function DashboardPage() {
 
   if (!user) return null;
 
-  // Cargar todos los stats en paralelo
+  // Cargar todos los stats + perfil + subscription en paralelo
   const [
     profileRes,
+    subscriptionRes,
     chatCountRes,
     savedCountRes,
     foldersCountRes,
@@ -27,7 +30,16 @@ export default async function DashboardPage() {
     recentEvalsRes,
     recentDocsRes,
   ] = await Promise.all([
-    supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
+    supabase
+      .from('profiles')
+      .select('full_name, profile_role')
+      .eq('id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('subscriptions')
+      .select('id, user_id, tier, status, trial_ends_at, current_period_end')
+      .eq('user_id', user.id)
+      .maybeSingle(),
     supabase
       .from('chat_messages')
       .select('id', { count: 'exact', head: true })
@@ -64,6 +76,8 @@ export default async function DashboardPage() {
   ]);
 
   const fullName = profileRes.data?.full_name || user.email?.split('@')[0] || 'invitado';
+  const role = (profileRes.data?.profile_role as ProfileRole | null) || null;
+  const subscription = (subscriptionRes.data as SubscriptionRow | null) || null;
 
   // Mezclar actividades y ordenar por fecha
   const activity = [
@@ -95,6 +109,8 @@ export default async function DashboardPage() {
     <div className="container max-w-7xl py-8 sm:py-10 space-y-10">
       <DashboardHero fullName={fullName} />
 
+      <TrialBanner subscription={subscription} />
+
       <DashboardStats
         chatMessages={chatCountRes.count || 0}
         savedDocs={savedCountRes.count || 0}
@@ -102,7 +118,7 @@ export default async function DashboardPage() {
         normativeTotal={normativeCountRes.count || 0}
       />
 
-      <DashboardQuickActions />
+      <DashboardQuickActions role={role} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">

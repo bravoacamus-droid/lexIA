@@ -11,6 +11,8 @@ export interface AppUser {
   email: string;
   full_name: string | null;
   avatar_url: string | null;
+  profile_role: 'entity' | 'provider' | 'consultant' | null;
+  organization_name: string | null;
 }
 
 interface Props {

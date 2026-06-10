@@ -31,6 +31,8 @@ export default async function AppLayout({
         email: user.email || '',
         full_name: profile?.full_name || null,
         avatar_url: profile?.avatar_url || null,
+        profile_role: (profile?.profile_role as 'entity' | 'provider' | 'consultant' | null) || null,
+        organization_name: profile?.organization_name || null,
       }}
     >
       {children}
