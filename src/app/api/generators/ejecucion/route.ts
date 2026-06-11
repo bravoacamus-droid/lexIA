@@ -13,6 +13,7 @@ import {
 } from '@/lib/ai/ejecucion-generator-prompts';
 import { loadTemplates, composeFewShot } from '@/lib/generators/template-loader';
 import type { ProfileRole } from '@/lib/auth/session';
+import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -138,6 +139,11 @@ export async function POST(req: Request) {
     );
   }
 
+  const guard = await ensureCanUse(user.id, 'generator_call');
+  if (!guard.ok) {
+    return NextResponse.json(guard.body, { status: guard.status });
+  }
+
   // Few-shot — solo los slugs con modelo oficial cargado
   const templates = await loadTemplates({ slug, limit: 2 });
   const fewShot = composeFewShot(templates, 3500);
@@ -193,6 +199,7 @@ ${base_text ? `TEXTO BASE PROVISTO (oficio de penalidad / contrato / acto a impu
       );
     }
 
+    await recordUsage(user.id, 'generator_call');
     return NextResponse.json({
       content: text,
       document_id: (doc as { id: string }).id,

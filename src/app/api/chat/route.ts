@@ -7,6 +7,7 @@ import { chatModel, fastModel } from '@/lib/ai/gemini';
 import { buildChatSystemPrompt, TITLE_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 import type { ChatSource, NormativeDocType } from '@/lib/supabase/types';
 import type { ProfileRole } from '@/lib/auth/session';
+import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -87,6 +88,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'not_found' }, { status: 404 });
   }
 
+  // Gate de cuota de mensajes
+  const guard = await ensureCanUse(user.id, 'chat_message');
+  if (!guard.ok) {
+    return NextResponse.json(guard.body, { status: guard.status });
+  }
+
   const lastUser = [...messages].reverse().find((m) => m.role === 'user');
   if (!lastUser) {
     return NextResponse.json({ error: 'no_user_message' }, { status: 400 });
@@ -141,6 +148,8 @@ export async function POST(req: Request) {
       role: 'user',
       content: lastUser.content,
     } as never);
+    // Solo contamos un mensaje cuando es genuinamente nuevo (no replay)
+    await recordUsage(user.id, 'chat_message');
   }
 
   // 4. Build prompt — el perfil del usuario ajusta el tono y los énfasis

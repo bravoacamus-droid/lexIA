@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -53,6 +54,12 @@ export async function POST(req: Request) {
     );
   }
 
+  // Feature gate: 1 evaluación consume 1 unidad de la cuota mensual.
+  const guard = await ensureCanUse(user.id, 'evaluation_run');
+  if (!guard.ok) {
+    return NextResponse.json(guard.body, { status: guard.status });
+  }
+
   const { data, error } = await supabase
     .from('evaluations')
     .insert({
@@ -66,5 +73,6 @@ export async function POST(req: Request) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  await recordUsage(user.id, 'evaluation_run');
   return NextResponse.json({ evaluation: data });
 }

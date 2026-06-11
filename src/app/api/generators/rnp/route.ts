@@ -10,6 +10,7 @@ import {
 } from '@/lib/ai/rnp-generator-prompts';
 import { loadTemplates, composeFewShot } from '@/lib/generators/template-loader';
 import type { ProfileRole } from '@/lib/auth/session';
+import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -109,6 +110,11 @@ export async function POST(req: Request) {
     );
   }
 
+  const guard = await ensureCanUse(user.id, 'generator_call');
+  if (!guard.ok) {
+    return NextResponse.json(guard.body, { status: guard.status });
+  }
+
   // Plantillas oficiales como few-shot (las fichas técnicas / Anexo 06)
   const templates = await loadTemplates({ slug, limit: 2 });
   const fewShot = composeFewShot(templates, 4000);
@@ -163,6 +169,7 @@ ${base_text ? `TEXTO BASE PROVISTO:\n${base_text.slice(0, 12000)}\n\n` : ''}Gene
       );
     }
 
+    await recordUsage(user.id, 'generator_call');
     return NextResponse.json({
       content: text,
       document_id: (doc as { id: string }).id,

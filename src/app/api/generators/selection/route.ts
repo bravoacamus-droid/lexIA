@@ -16,6 +16,7 @@ import {
   type ProcurementObject,
 } from '@/lib/generators/template-loader';
 import type { ProfileRole } from '@/lib/auth/session';
+import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -151,6 +152,12 @@ export async function POST(req: Request) {
     );
   }
 
+  // Feature gate por plan
+  const guard = await ensureCanUse(user.id, 'generator_call');
+  if (!guard.ok) {
+    return NextResponse.json(guard.body, { status: guard.status });
+  }
+
   // Cargar plantillas oficiales como few-shot
   const templates = await loadTemplates({
     slug,
@@ -217,6 +224,7 @@ ${base_text ? `TEXTO BASE PROVISTO POR EL USUARIO (Bases / consultas recibidas /
       );
     }
 
+    await recordUsage(user.id, 'generator_call');
     return NextResponse.json({ content: text, document_id: (doc as { id: string }).id });
   } catch (e) {
     const msg = (e as Error).message || 'unknown';

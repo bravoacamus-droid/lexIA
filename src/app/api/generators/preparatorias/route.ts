@@ -14,6 +14,7 @@ import {
   type ProcurementObject,
 } from '@/lib/generators/template-loader';
 import type { ProfileRole } from '@/lib/auth/session';
+import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -124,6 +125,11 @@ export async function POST(req: Request) {
     );
   }
 
+  const guard = await ensureCanUse(user.id, 'generator_call');
+  if (!guard.ok) {
+    return NextResponse.json(guard.body, { status: guard.status });
+  }
+
   // Few-shot de plantillas oficiales
   const templates = await loadTemplates({
     slug,
@@ -186,6 +192,7 @@ ${base_text ? `TEXTO BASE PROVISTO (insumos previos del área usuaria / cotizaci
       );
     }
 
+    await recordUsage(user.id, 'generator_call');
     return NextResponse.json({
       content: text,
       document_id: (doc as { id: string }).id,
