@@ -11,9 +11,9 @@ export const metadata = {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex flex-col bg-background relative overflow-hidden">
-      <div className="absolute inset-0 -z-10 mesh-gradient opacity-50" />
-      <div className="absolute inset-0 -z-10 bg-grid-light dark:bg-grid-dark opacity-30 [mask-image:radial-gradient(ellipse_at_center,black_0%,transparent_70%)]" />
+    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 relative overflow-hidden">
+      <div className="absolute inset-0 -z-10 opacity-60 [background:radial-gradient(circle_at_20%_20%,rgba(5,131,242,0.10),transparent_55%),radial-gradient(circle_at_80%_80%,rgba(2,29,64,0.06),transparent_50%)]" />
+      <div className="absolute inset-0 -z-10 [background-image:linear-gradient(to_right,rgba(2,29,64,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(2,29,64,0.05)_1px,transparent_1px)] [background-size:32px_32px] [mask-image:radial-gradient(ellipse_at_center,black_0%,transparent_70%)] opacity-50" />
 
       <header className="container py-6 flex items-center justify-between">
         <Link href="/" className="inline-flex items-center">
@@ -21,7 +21,7 @@ export default function LoginPage() {
         </Link>
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           Volver al inicio
@@ -35,11 +35,11 @@ export default function LoginPage() {
       </main>
 
       <footer className="container py-6">
-        <p className="text-center text-xs text-muted-foreground">
+        <p className="text-center text-xs text-slate-500">
           ¿Aún no tienes acceso? Escríbenos a{' '}
           <Link
             href="mailto:hola@promptive.pe"
-            className="text-foreground hover:text-brand-600 transition-colors"
+            className="text-slate-900 hover:text-brand-600 transition-colors font-medium"
           >
             hola@promptive.pe
           </Link>
