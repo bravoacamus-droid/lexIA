@@ -4,17 +4,30 @@ import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 
+/**
+ * Schema permisivo: convierte cadenas vacías a null antes de validar.
+ * Esto evita falsos negativos cuando el cliente envía "" (string vacío)
+ * en lugar de null para campos opcionales.
+ */
+const emptyToNull = (v: unknown) =>
+  typeof v === 'string' && v.trim() === '' ? null : v;
+
 const schema = z.object({
   profile_role: z.enum(['entity', 'provider', 'consultant']),
   full_name: z.string().trim().min(1).max(120),
   organization_name: z.string().trim().min(1).max(160),
-  ruc: z
-    .string()
-    .trim()
-    .regex(/^\d{11}$/)
-    .nullable()
-    .optional(),
-  position_title: z.string().trim().max(120).nullable().optional(),
+  // RUC: solo se valida si viene con valor; "" o null se aceptan como vacío.
+  // El regex se relaja a "1-11 dígitos" para no rechazar RUCs incompletos
+  // (se persisten igualmente; la validación de RUC formal es responsabilidad
+  // del usuario al usarlo en documentos legales).
+  ruc: z.preprocess(
+    emptyToNull,
+    z.string().trim().regex(/^\d{1,11}$/, 'RUC debe contener solo dígitos').nullable().optional(),
+  ),
+  position_title: z.preprocess(
+    emptyToNull,
+    z.string().trim().max(120).nullable().optional(),
+  ),
 });
 
 export async function POST(req: Request) {
