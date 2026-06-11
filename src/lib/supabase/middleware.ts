@@ -8,6 +8,7 @@ const PROTECTED_PREFIXES = [
   '/evaluador',
   '/generador',
   '/rnp',
+  '/admin',
   '/ajustes',
   '/cuenta',
   '/onboarding',
