@@ -13,6 +13,7 @@ const NAV_LINKS = [
   { label: 'Producto', href: '#producto' },
   { label: 'Funciones', href: '#funciones' },
   { label: 'Casos de uso', href: '#casos' },
+  { label: 'Precios', href: '/pricing' },
   { label: 'FAQ', href: '#faq' },
 ];
 
@@ -60,7 +61,7 @@ export function MarketingNavbar() {
             <Link href="/login">Iniciar sesión</Link>
           </Button>
           <Button asChild size="sm" variant="default" className="hidden sm:inline-flex">
-            <Link href="/login">Solicitar acceso</Link>
+            <Link href="/login">Empezar gratis</Link>
           </Button>
           <Button
             variant="ghost"
@@ -93,7 +94,7 @@ export function MarketingNavbar() {
                 <Link href="/login">Iniciar sesión</Link>
               </Button>
               <Button asChild size="sm" className="flex-1">
-                <Link href="/login">Solicitar acceso</Link>
+                <Link href="/login">Empezar gratis</Link>
               </Button>
             </div>
           </div>

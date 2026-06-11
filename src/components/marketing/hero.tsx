@@ -21,35 +21,35 @@ export function Hero() {
           className="mx-auto max-w-4xl text-center"
         >
           <Link
-            href="#producto"
+            href="/pricing"
             className="inline-flex items-center gap-2 rounded-full border border-border bg-background/60 backdrop-blur-sm px-4 py-1.5 text-xs font-medium text-muted-foreground hover:border-brand-400 hover:text-foreground transition-colors mb-8"
           >
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
             </span>
-            Disponible en demo privada · Junio 2026
+            30 días de prueba sin tarjeta — ver planes
           </Link>
 
           <h1 className="font-serif text-5xl sm:text-6xl lg:text-7xl tracking-tight text-balance">
-            <span className="block text-foreground">Inteligencia artificial</span>
+            <span className="block text-foreground">La IA al servicio de las</span>
             <span className="block">
-              <span className="italic gradient-text">especializada</span>{' '}
-              <span className="text-foreground">en</span>
+              <span className="italic gradient-text">Contrataciones</span>
             </span>
-            <span className="block text-foreground">Contrataciones del Estado</span>
+            <span className="block text-foreground">del Estado peruano</span>
           </h1>
 
           <p className="mt-7 mx-auto max-w-2xl text-base sm:text-lg text-muted-foreground leading-relaxed text-balance">
-            LexIA responde con sustento normativo real. Consulta la Ley N° 32069, su Reglamento,
-            Opiniones del OSCE y Resoluciones del Tribunal en lenguaje natural — con citaciones
-            verificables en cada respuesta.
+            Entidades, proveedores y consultores resuelven en minutos lo que antes
+            tomaba días. Chat con citas verificables, generadores de Bases, Consultas,
+            Pliegos, Apelaciones y un Evaluador IA de ofertas — todo fundado en la Ley
+            N° 32069 vigente.
           </p>
 
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button asChild size="lg" variant="glow" className="w-full sm:w-auto">
               <Link href="/login">
-                Solicitar acceso
+                Empezar gratis 30 días
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
@@ -62,7 +62,7 @@ export function Hero() {
           </div>
 
           <p className="mt-6 text-xs text-muted-foreground">
-            Acceso por invitación · Sin tarjeta de crédito
+            Sin tarjeta de crédito · Cancelas cuando quieras
           </p>
         </motion.div>
 

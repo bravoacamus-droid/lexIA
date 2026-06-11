@@ -5,6 +5,7 @@ import { DashboardQuickActions } from '@/components/app/dashboard/quick-actions'
 import { DashboardActivity } from '@/components/app/dashboard/activity';
 import { DashboardSuggested } from '@/components/app/dashboard/suggested';
 import { TrialBanner } from '@/components/app/dashboard/trial-banner';
+import { SurveyModalLauncher } from '@/components/app/onboarding/survey-modal';
 import type { ProfileRole, SubscriptionRow } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
@@ -126,6 +127,8 @@ export default async function DashboardPage() {
         </div>
         <DashboardSuggested />
       </div>
+
+      {role && <SurveyModalLauncher role={role} />}
     </div>
   );
 }
