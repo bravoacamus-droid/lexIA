@@ -15,7 +15,7 @@ export function LoginCard() {
     >
       <Card className="p-8 shadow-2xl shadow-brand-900/10 border-slate-200 bg-white">
         <div className="flex flex-col items-center text-center mb-7">
-          <Logo height={64} priority className="mb-5" />
+          <Logo height={88} priority className="mb-5" />
           <h1 className="font-semibold text-3xl tracking-tight text-slate-900">
             Bienvenido a LexIA
           </h1>

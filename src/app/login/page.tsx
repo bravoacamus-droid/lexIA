@@ -17,7 +17,7 @@ export default function LoginPage() {
 
       <header className="container py-6 flex items-center justify-between">
         <Link href="/" className="inline-flex items-center">
-          <LogoMark height={32} />
+          <LogoMark height={48} />
         </Link>
         <Link
           href="/"
