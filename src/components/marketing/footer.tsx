@@ -11,14 +11,9 @@ export function MarketingFooter() {
             <p className="text-sm text-slate-600 max-w-sm leading-relaxed">
               Inteligencia artificial fundamentada en la normativa peruana de
               Contrataciones del Estado. Una herramienta de{' '}
-              <a
-                href="https://promptive.pe"
-                target="_blank"
-                rel="noreferrer"
-                className="font-semibold text-slate-900 hover:text-brand-600 transition-colors"
-              >
-                Promptive
-              </a>
+              <span className="font-semibold text-slate-900">
+                Corporación Gung Ho E.I.R.L.
+              </span>
               .
             </p>
             <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -58,7 +53,7 @@ export function MarketingFooter() {
 
         <div className="mt-12 pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <p className="text-xs text-slate-500">
-            © {new Date().getFullYear()} LexIA · Promptive. Todos los derechos reservados.
+            © {new Date().getFullYear()} LexIA · Corporación Gung Ho E.I.R.L. Todos los derechos reservados.
           </p>
           <p className="text-xs text-slate-500">
             Hecho en Lima con Next.js, Supabase y mucha jurisprudencia.

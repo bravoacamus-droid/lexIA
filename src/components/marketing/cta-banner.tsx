@@ -14,7 +14,7 @@ export function CtaBanner() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-dark via-brand-900 to-brand-700 px-8 py-16 sm:py-20 text-center"
+          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-950 via-brand-900 to-brand-700 px-8 py-16 sm:py-20 text-center"
         >
           {/* Decorative mesh + grid sobre el azul oscuro */}
           <div className="absolute inset-0 -z-10 [background:radial-gradient(60%_60%_at_50%_0%,rgba(255,255,255,0.15),transparent_70%),radial-gradient(40%_40%_at_85%_70%,rgba(5,131,242,0.30),transparent_60%)]" />
