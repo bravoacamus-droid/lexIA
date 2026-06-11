@@ -39,7 +39,9 @@ export type AnyGeneratorSlug =
   | 'resolucion_contrato'
   | 'cambio_bienes'
   | 'descargo_penalidades'
-  | 'solicitud_sancion';
+  | 'solicitud_sancion'
+  | 'rnp_aumento_cmc'
+  | 'rnp_actualizacion_financiera';
 
 export interface SelectionFormField {
   name: string;
