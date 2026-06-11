@@ -114,8 +114,18 @@ export function OnboardingWizard({ next, defaultFullName }: Props) {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
+        const err = data as {
+          error?: string;
+          detail?: { fieldErrors?: Record<string, string[]> };
+        };
+        const errCode = err?.error || 'No se pudo guardar';
+        const fieldIssues = err?.detail?.fieldErrors
+          ? Object.entries(err.detail.fieldErrors)
+              .map(([k, v]) => `${k}: ${(v as string[]).join(', ')}`)
+              .join(' · ')
+          : '';
         throw new Error(
-          (data as { error?: string })?.error || 'No se pudo guardar',
+          fieldIssues ? `${errCode} (${fieldIssues})` : errCode,
         );
       }
       toast.success('¡Listo! Bienvenido a LexIA.');
