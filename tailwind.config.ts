@@ -128,6 +128,12 @@ const config: Config = {
           '0%, 100%': { backgroundPosition: '0% 50%' },
           '50%': { backgroundPosition: '100% 50%' },
         },
+        'nav-progress': {
+          '0%': { transform: 'scaleX(0)', opacity: '1' },
+          '30%': { transform: 'scaleX(0.4)', opacity: '1' },
+          '70%': { transform: 'scaleX(0.7)', opacity: '1' },
+          '100%': { transform: 'scaleX(0.95)', opacity: '1' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -138,6 +144,7 @@ const config: Config = {
         'cursor-blink': 'cursor-blink 0.9s infinite',
         'shimmer': 'shimmer 2s linear infinite',
         'gradient-shift': 'gradient-shift 8s ease infinite',
+        'nav-progress': 'nav-progress 8s cubic-bezier(0.1, 0.9, 0.3, 1) forwards',
       },
       backgroundImage: {
         'grid-light': "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='none' stroke='rgb(15 23 42 / 0.06)'%3E%3Cpath d='M0 .5H31.5V32'/%3E%3C/svg%3E\")",

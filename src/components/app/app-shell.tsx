@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { AppSidebar } from '@/components/app/app-sidebar';
 import { AppTopbar } from '@/components/app/app-topbar';
 import { CommandPalette } from '@/components/app/command-palette';
+import { NavProgress } from '@/components/app/nav-progress';
 import { useUiStore } from '@/lib/stores/ui';
 
 export interface AppUser {
@@ -48,6 +49,7 @@ export function AppShell({ user, children }: Props) {
 
   return (
     <div className="min-h-screen bg-background flex">
+      <NavProgress />
       <AppSidebar
         user={user}
         mobileOpen={mobileSidebarOpen}
