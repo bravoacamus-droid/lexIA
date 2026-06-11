@@ -89,7 +89,7 @@ export function DocumentCard({
       </div>
 
       <Link href={`/biblioteca/documento/${document.id}`} className="block group/title">
-        <h3 className="font-serif text-lg leading-snug tracking-tight group-hover/title:text-brand-700 dark:group-hover/title:text-brand-400 transition-colors">
+        <h3 className="text-base font-semibold leading-snug tracking-tight group-hover/title:text-brand-700 dark:group-hover/title:text-brand-400 transition-colors">
           {document.title}
         </h3>
       </Link>
