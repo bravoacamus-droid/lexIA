@@ -11,6 +11,7 @@ import {
   HardHat,
   Briefcase,
   ShieldCheck,
+  ScanSearch,
   type LucideIcon,
 } from 'lucide-react';
 import type { ProfileRole } from '@/lib/auth/session';
@@ -54,6 +55,15 @@ const ACTIONS_BY_ROLE: Record<ProfileRole, ActionItem[]> = {
       accent: 'from-emerald-500/15 to-teal-500/10',
       iconBg:
         'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400',
+    },
+    {
+      icon: ScanSearch,
+      title: 'Audita tu TDR',
+      desc: 'Detecta vicios y direccionamiento antes de publicar el proceso.',
+      href: '/revisor-tdr/nuevo',
+      accent: 'from-fuchsia-500/15 to-pink-500/10',
+      iconBg:
+        'bg-fuchsia-100 dark:bg-fuchsia-950 text-fuchsia-700 dark:text-fuchsia-400',
     },
     {
       icon: FilePen,

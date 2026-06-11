@@ -7,6 +7,7 @@ import {
   HardHat,
   Briefcase,
   ShieldCheck,
+  ScanSearch,
   type LucideIcon,
 } from 'lucide-react';
 import type { ProfileRole } from '@/lib/auth/session';
@@ -74,6 +75,13 @@ export const MENU_SECTIONS: MenuSection[] = [
         href: '/evaluador',
         icon: FileSearch,
         description: 'Compara Bases con ofertas y dictamina por requisito.',
+        roles: ['entity'],
+      },
+      {
+        label: 'Revisor EETT / TDR',
+        href: '/revisor-tdr',
+        icon: ScanSearch,
+        description: 'Audita tu TDR antes de publicarlo: detecta vicios y direccionamiento.',
         roles: ['entity'],
       },
       {

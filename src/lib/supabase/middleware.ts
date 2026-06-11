@@ -7,6 +7,7 @@ const PROTECTED_PREFIXES = [
   '/biblioteca',
   '/evaluador',
   '/revision-oferta',
+  '/revisor-tdr',
   '/generador',
   '/rnp',
   '/admin',

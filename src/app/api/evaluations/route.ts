@@ -6,20 +6,28 @@ import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const createSchema = z.object({
-  title: z.string().min(2).max(160),
-  bases_file_path: z.string().min(1),
-  offer_files: z
-    .array(
-      z.object({
-        name: z.string(),
-        path: z.string(),
-      }),
-    )
-    .min(1)
-    .max(5),
-  mode: z.enum(['committee', 'self_review']).optional().default('committee'),
-});
+const createSchema = z
+  .object({
+    title: z.string().min(2).max(160),
+    bases_file_path: z.string().min(1),
+    offer_files: z
+      .array(z.object({ name: z.string(), path: z.string() }))
+      .max(5)
+      .optional()
+      .default([]),
+    mode: z
+      .enum(['committee', 'self_review', 'tdr_audit'])
+      .optional()
+      .default('committee'),
+  })
+  .refine(
+    (v) => v.mode === 'tdr_audit' || (v.offer_files && v.offer_files.length >= 1),
+    {
+      message:
+        'committee y self_review requieren al menos una oferta; tdr_audit no usa ofertas.',
+      path: ['offer_files'],
+    },
+  );
 
 export async function GET() {
   const supabase = createClient();

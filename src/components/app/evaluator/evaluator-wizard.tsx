@@ -164,14 +164,14 @@ export function EvaluatorWizard({
                     <RadioCard
                       value="eett_tdr"
                       title="Revisor EETT / TDR"
-                      desc="Identifica vicios en los términos de referencia."
-                      soon
+                      desc="Identifica vicios en los términos de referencia (direccionamiento, ambigüedades, plazos)."
+                      href="/revisor-tdr/nuevo"
                     />
                     <RadioCard
                       value="consultas"
                       title="Consultas y observaciones"
-                      desc="Formula consultas en lenguaje legal a partir de un texto."
-                      soon
+                      desc="Formula consultas y observaciones a las Bases de un proceso."
+                      href="/generador/consultas-observaciones"
                     />
                   </RadioGroup>
                 </div>
@@ -359,15 +359,25 @@ function RadioCard({
   desc,
   active,
   soon,
+  href,
 }: {
   value: string;
   title: string;
   desc: string;
   active?: boolean;
   soon?: boolean;
+  /**
+   * Si está presente, al hacer click navega a esa ruta en lugar de
+   * seleccionar el radio. Usado para opciones que viven en otro módulo
+   * (Consultas y observaciones → /generador/consultas-observaciones).
+   */
+  href?: string;
 }) {
+  const router = useRouter();
+  const isLink = !!href;
   return (
     <label
+      onClick={isLink ? () => router.push(href) : undefined}
       className={cn(
         'relative flex flex-col gap-2 rounded-xl border bg-card p-4 cursor-pointer transition-all',
         active && 'border-brand-500 ring-2 ring-brand-500/20',
@@ -376,10 +386,15 @@ function RadioCard({
       )}
     >
       <div className="flex items-center justify-between">
-        <RadioGroupItem value={value} disabled={soon} className={cn(soon && 'opacity-50')} />
+        <RadioGroupItem value={value} disabled={soon || isLink} className={cn((soon || isLink) && 'opacity-0 hidden')} />
         {soon && (
           <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Próximamente
+          </span>
+        )}
+        {isLink && !soon && (
+          <span className="rounded-full bg-brand-100 dark:bg-brand-950 text-brand-700 dark:text-brand-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider">
+            Abrir módulo →
           </span>
         )}
       </div>

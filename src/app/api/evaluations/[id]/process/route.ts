@@ -9,6 +9,8 @@ import {
   EVALUATION_SUMMARY_PROMPT,
   SELF_REVIEW_EVALUATION_PROMPT,
   SELF_REVIEW_SUMMARY_PROMPT,
+  TDR_AUDIT_PROMPT,
+  TDR_AUDIT_SUMMARY_PROMPT,
 } from '@/lib/ai/evaluator-prompts';
 
 export const runtime = 'nodejs';
@@ -33,7 +35,27 @@ type EvaluationItem = {
   sustento_normativo?: Array<{ norma: string; articulo?: string }>;
 };
 
-type EvalMode = 'committee' | 'self_review';
+type EvalMode = 'committee' | 'self_review' | 'tdr_audit';
+
+interface TdrFinding {
+  id: string;
+  categoria: string;
+  severidad: 'critico' | 'alto' | 'medio' | 'bajo';
+  titulo: string;
+  ubicacion: string;
+  extracto_literal: string;
+  descripcion: string;
+  recomendacion: string;
+  fundamento_normativo?: Array<{ norma: string; articulo?: string }>;
+}
+
+interface TdrAuditResult {
+  tipo_documento: 'TDR' | 'EETT' | 'MIXTO';
+  objeto_inferido: string;
+  stats: { criticos: number; altos: number; medios: number; bajos: number };
+  hallazgos: TdrFinding[];
+  resumen_ejecutivo: string;
+}
 
 type OfferEvaluation = {
   nombre: string;
@@ -117,6 +139,88 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
     .from('evaluations')
     .update({ status: 'processing' } as never)
     .eq('id', ev.id);
+
+  // ════════════════════════════════════════════════════════
+  // Branch tdr_audit: pipeline distinto (un solo doc, sin ofertas)
+  // ════════════════════════════════════════════════════════
+  if (mode === 'tdr_audit') {
+    try {
+      const tdrBlob = await downloadFromStorage(admin, ev.bases_file_path);
+      const fullTdrText = (await extractPdfText(tdrBlob)).text;
+      if (fullTdrText.length < 200) {
+        throw new Error('El PDF parece estar vacío o no contiene texto extraíble.');
+      }
+
+      // Cap a 60k chars para no saturar al LLM
+      const tdrText = fullTdrText.length > 60_000
+        ? fullTdrText.slice(0, 30_000)
+            + '\n\n[... contenido intermedio omitido por longitud ...]\n\n'
+            + fullTdrText.slice(-30_000)
+        : fullTdrText;
+      console.log(`[tdr-audit] TDR: ${fullTdrText.length} → ${tdrText.length} chars`);
+
+      const auditRes = await generateText({
+        model: chatModel,
+        system: TDR_AUDIT_PROMPT,
+        prompt: `Audita el siguiente documento de Términos de Referencia / Especificaciones Técnicas. Devuelve EXCLUSIVAMENTE el JSON con la auditoría completa.\n\n${tdrText}`,
+        temperature: 0.2,
+        maxTokens: 8000,
+      });
+
+      const parsed = parseJsonLoose<Omit<TdrAuditResult, 'resumen_ejecutivo'>>(
+        auditRes.text,
+      );
+
+      // Resumen ejecutivo con prompt aparte
+      const summaryRes = await generateText({
+        model: chatModel,
+        system: TDR_AUDIT_SUMMARY_PROMPT,
+        prompt: `Resultado de la auditoría:\n${JSON.stringify(
+          {
+            tipo_documento: parsed.tipo_documento,
+            objeto: parsed.objeto_inferido,
+            stats: parsed.stats,
+            hallazgos: parsed.hallazgos.map((h) => ({
+              severidad: h.severidad,
+              categoria: h.categoria,
+              titulo: h.titulo,
+            })),
+          },
+          null,
+          2,
+        )}`,
+        temperature: 0.3,
+        maxTokens: 1500,
+      });
+
+      const finalResult: TdrAuditResult = {
+        ...parsed,
+        resumen_ejecutivo: summaryRes.text.trim(),
+      };
+
+      await supabase
+        .from('evaluations')
+        .update({
+          status: 'done',
+          result: finalResult as never,
+          completed_at: new Date().toISOString(),
+        } as never)
+        .eq('id', ev.id);
+
+      return NextResponse.json({ ok: true, mode: 'tdr_audit', result: finalResult });
+    } catch (err) {
+      const errorMsg = (err as Error)?.message?.slice(0, 500) || 'unknown';
+      console.error('[tdr-audit] error:', errorMsg);
+      await supabase
+        .from('evaluations')
+        .update({
+          status: 'failed',
+          result: { error: errorMsg, failed_at: new Date().toISOString() } as never,
+        } as never)
+        .eq('id', ev.id);
+      return NextResponse.json({ error: 'audit_failed', detail: errorMsg }, { status: 500 });
+    }
+  }
 
   try {
     // 1. Download Bases + Offers from Storage (admin client to bypass RLS on Storage policies)
