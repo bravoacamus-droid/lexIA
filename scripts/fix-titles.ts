@@ -51,11 +51,17 @@ function normalize(type: string, slug: string): { title: string; number: string 
     return { title: `Opinión N° ${n}`, number: n };
   }
 
-  // Resolución TCE: 6699758-2914-2025-tce-s1
-  m = lower.match(/[-_](\d{1,5})[-_](\d{4})[-_]tc[ep][-_]s(\d+)/);
-  if (m && type === 'resolucion_tce') {
-    const n = `${m[1]}-${m[2]}-TCE-S${m[3]}`;
-    return { title: `Resolución N° ${n}`, number: n };
+  // Resolución TCE: hay dos formatos posibles
+  //   6699758-2914-2025-tce-s1   (4 dígitos)
+  //   8168682-04979-2026-tcp-s3  (5 dígitos con 0 inicial; se quita el cero)
+  if (type === 'resolucion_tce') {
+    m = lower.match(/[-_](0?\d{4,5})[-_](\d{4})[-_]tc[ep][-_]s(\d+)/);
+    if (m) {
+      const sin_cero = m[1].replace(/^0+/, '');
+      const ente = lower.includes('tcp') ? 'TCE-S' : 'TCE-S';
+      const n = `${sin_cero}-${m[2]}-${ente}${m[3]}`;
+      return { title: `Resolución N° ${n}`, number: n };
+    }
   }
 
   // Directiva: 6682412-007-2025-oece-cd

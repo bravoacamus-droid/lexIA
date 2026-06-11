@@ -54,7 +54,7 @@ function ChunkSheetContent({
             <Badge variant="outline" className={`mb-1.5 ${meta.color}`}>
               {meta.label}
             </Badge>
-            <SheetTitle className="font-serif text-xl leading-snug">
+            <SheetTitle className="text-lg font-semibold leading-snug">
               {chunk.doc_number || chunk.doc_title}
             </SheetTitle>
             {chunk.doc_number && (
