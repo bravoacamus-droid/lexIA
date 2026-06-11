@@ -21,7 +21,7 @@ export function ComingSoon({ title, description }: Props) {
           <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-100 dark:bg-brand-950 text-brand-700 dark:text-brand-400 mb-5">
             <Hammer className="h-6 w-6" />
           </span>
-          <h1 className="font-serif text-3xl tracking-tight">{title}</h1>
+          <h1 className="font-semibold text-3xl tracking-tight">{title}</h1>
           {description && (
             <p className="mt-2 text-muted-foreground max-w-md mx-auto text-balance">
               {description}

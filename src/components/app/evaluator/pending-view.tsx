@@ -66,7 +66,7 @@ export function EvaluationPendingView({ id, title, status, backHref = '/evaluado
             <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-400 mb-4">
               <AlertCircle className="h-5 w-5" />
             </span>
-            <h1 className="font-serif text-2xl tracking-tight mb-1">
+            <h1 className="font-semibold text-2xl tracking-tight mb-1">
               La evaluación falló
             </h1>
             <p className="text-sm text-muted-foreground max-w-md mx-auto">

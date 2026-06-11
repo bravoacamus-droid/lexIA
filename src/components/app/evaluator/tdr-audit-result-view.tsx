@@ -148,7 +148,7 @@ export function TdrAuditResultView({ id: _id, title, result, completedAt }: Prop
             <Sparkles className="h-3 w-3" />
             Auditoría completada
           </Badge>
-          <h1 className="font-serif text-3xl sm:text-4xl tracking-tight">{title}</h1>
+          <h1 className="font-semibold text-3xl sm:text-4xl tracking-tight">{title}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             <span className="font-semibold text-foreground">{result.tipo_documento}</span> ·{' '}
             {result.objeto_inferido}
@@ -163,7 +163,7 @@ export function TdrAuditResultView({ id: _id, title, result, completedAt }: Prop
               <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                 Veredicto general
               </p>
-              <p className={cn('mt-1 text-2xl font-serif tracking-tight', veredicto.tone)}>
+              <p className={cn('mt-1 text-2xl font-semibold tracking-tight', veredicto.tone)}>
                 {veredicto.label}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">

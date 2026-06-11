@@ -58,7 +58,7 @@ export default async function RevisorTdrListPage() {
     <div className="container max-w-5xl py-8 space-y-6">
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <h1 className="font-serif text-3xl tracking-tight">Revisor EETT / TDR</h1>
+          <h1 className="font-semibold text-3xl tracking-tight">Revisor EETT / TDR</h1>
           <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
             Antes de publicar, audita tu Término de Referencia o Especificación Técnica.
             LexIA detecta direccionamiento a marca, ambigüedades, requisitos

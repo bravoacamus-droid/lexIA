@@ -188,7 +188,7 @@ export function SelectionGeneratorForm({
   return (
     <div className="container max-w-3xl py-8 space-y-6">
       <header>
-        <h1 className="font-serif text-3xl tracking-tight">{pageTitle}</h1>
+        <h1 className="font-semibold text-3xl tracking-tight">{pageTitle}</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">{pageDescription}</p>
       </header>
 

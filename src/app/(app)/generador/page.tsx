@@ -39,7 +39,7 @@ export default async function GeneradorListPage() {
     <div className="container max-w-5xl py-8 space-y-6">
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <h1 className="font-serif text-3xl tracking-tight">Generador de Documentos</h1>
+          <h1 className="font-semibold text-3xl tracking-tight">Generador de Documentos</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Redacta solicitudes, descargos e informes formales con sustento normativo. La IA
             arma la estructura; tú la editas y exportas a Word.
@@ -58,7 +58,7 @@ export default async function GeneradorListPage() {
           <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 mb-4">
             <FilePen className="h-5 w-5" />
           </span>
-          <h2 className="font-serif text-xl mb-1">Aún no has generado documentos</h2>
+          <h2 className="font-semibold text-xl mb-1">Aún no has generado documentos</h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
             Comienza redactando una solicitud de ampliación de plazo. Pronto agregaremos más
             tipos: descargos por penalidades, cambio de personal clave y más.

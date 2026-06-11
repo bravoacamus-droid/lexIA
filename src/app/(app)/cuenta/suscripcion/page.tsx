@@ -75,7 +75,7 @@ export default async function SubscriptionPage() {
         <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1">
           Cuenta · Suscripción
         </p>
-        <h1 className="font-serif text-3xl tracking-tight">Tu plan y consumo</h1>
+        <h1 className="font-semibold text-3xl tracking-tight">Tu plan y consumo</h1>
       </header>
 
       <Card className="p-6">

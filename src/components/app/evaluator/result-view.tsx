@@ -181,7 +181,7 @@ export function EvaluationResultView({
             <Sparkles className="h-3 w-3" />
             {completedBadge}
           </Badge>
-          <h1 className="font-serif text-3xl sm:text-4xl tracking-tight">{title}</h1>
+          <h1 className="font-semibold text-3xl sm:text-4xl tracking-tight">{title}</h1>
           {completedAt && (
             <p className="mt-1 text-xs text-muted-foreground">
               Completada {formatRelative(completedAt)}

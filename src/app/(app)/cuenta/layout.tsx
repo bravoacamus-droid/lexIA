@@ -47,7 +47,7 @@ export default function CuentaLayout({
         <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-1">
           Cuenta
         </p>
-        <h1 className="font-serif text-3xl tracking-tight">Tu espacio personal</h1>
+        <h1 className="font-semibold text-3xl tracking-tight">Tu espacio personal</h1>
       </header>
 
       <div className="grid lg:grid-cols-[220px_1fr] gap-8">

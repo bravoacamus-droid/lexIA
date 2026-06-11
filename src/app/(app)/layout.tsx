@@ -33,6 +33,7 @@ export default async function AppLayout({
         avatar_url: profile?.avatar_url || null,
         profile_role: (profile?.profile_role as 'entity' | 'provider' | 'consultant' | null) || null,
         organization_name: profile?.organization_name || null,
+        is_admin: Boolean(profile?.is_admin),
       }}
     >
       {children}

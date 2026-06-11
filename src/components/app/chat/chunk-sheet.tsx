@@ -73,7 +73,7 @@ function ChunkSheetContent({
         <div className="relative rounded-r-md border-l-4 border-brand-500 bg-brand-50/40 dark:bg-brand-950/30 px-5 py-4">
           <div
             className="prose-lexia prose-sm
-              prose-headings:font-serif prose-headings:text-foreground
+              prose-headings:font-semibold prose-headings:text-foreground
               prose-h1:text-base prose-h1:mt-0 prose-h1:mb-3 prose-h1:font-semibold
               prose-h2:text-sm prose-h2:mt-4 prose-h2:mb-2 prose-h2:uppercase prose-h2:tracking-wider prose-h2:text-brand-700 dark:prose-h2:text-brand-400
               prose-h3:text-sm prose-h3:mt-3 prose-h3:mb-1

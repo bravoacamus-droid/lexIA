@@ -158,7 +158,7 @@ export function OnboardingWizard({ next, defaultFullName }: Props) {
                 <p className="text-xs font-mono uppercase tracking-widest text-brand-600 mb-2">
                   Paso 1 de 3 · Perfil
                 </p>
-                <h1 className="font-serif text-3xl sm:text-4xl tracking-tight mb-2">
+                <h1 className="font-semibold text-3xl sm:text-4xl tracking-tight mb-2">
                   ¿Cómo te describirías?
                 </h1>
                 <p className="text-muted-foreground">
@@ -208,7 +208,7 @@ export function OnboardingWizard({ next, defaultFullName }: Props) {
                 <p className="text-xs font-mono uppercase tracking-widest text-brand-600 mb-2">
                   Paso 2 de 3 · Datos
                 </p>
-                <h1 className="font-serif text-3xl sm:text-4xl tracking-tight mb-2">
+                <h1 className="font-semibold text-3xl sm:text-4xl tracking-tight mb-2">
                   Cuéntanos un poco más
                 </h1>
                 <p className="text-muted-foreground">
@@ -316,7 +316,7 @@ export function OnboardingWizard({ next, defaultFullName }: Props) {
                 <p className="text-xs font-mono uppercase tracking-widest text-brand-600 mb-2">
                   Paso 3 de 3 · Tour
                 </p>
-                <h1 className="font-serif text-3xl sm:text-4xl tracking-tight mb-2">
+                <h1 className="font-semibold text-3xl sm:text-4xl tracking-tight mb-2">
                   Esto es lo que vas a tener
                 </h1>
                 <p className="text-muted-foreground">

@@ -14,6 +14,7 @@ export interface AppUser {
   avatar_url: string | null;
   profile_role: 'entity' | 'provider' | 'consultant' | null;
   organization_name: string | null;
+  is_admin: boolean;
 }
 
 interface Props {

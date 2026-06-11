@@ -197,7 +197,7 @@ export function ChatPanel({
                   <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-card border border-border mb-4">
                     <LogoMark size="lg" />
                   </div>
-                  <h2 className="font-serif text-2xl tracking-tight mb-1">
+                  <h2 className="font-semibold text-2xl tracking-tight mb-1">
                     {title || 'Nueva conversación'}
                   </h2>
                   <p className="text-sm text-muted-foreground">

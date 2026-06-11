@@ -121,7 +121,7 @@ export function EvaluatorWizard({
           >
             <Card className="p-8">
               <div className="mb-6">
-                <h2 className="font-serif text-2xl tracking-tight mb-1">
+                <h2 className="font-semibold text-2xl tracking-tight mb-1">
                   Nueva evaluación
                 </h2>
                 <p className="text-sm text-muted-foreground">
@@ -201,7 +201,7 @@ export function EvaluatorWizard({
           >
             <Card className="p-8">
               <div className="mb-6">
-                <h2 className="font-serif text-2xl tracking-tight mb-1">
+                <h2 className="font-semibold text-2xl tracking-tight mb-1">
                   Sube las Bases Integradas
                 </h2>
                 <p className="text-sm text-muted-foreground">
@@ -243,7 +243,7 @@ export function EvaluatorWizard({
             <Card className="p-8">
               <div className="mb-6 flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="font-serif text-2xl tracking-tight mb-1">
+                  <h2 className="font-semibold text-2xl tracking-tight mb-1">
                     Sube las ofertas
                   </h2>
                   <p className="text-sm text-muted-foreground">

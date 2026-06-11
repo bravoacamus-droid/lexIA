@@ -96,7 +96,7 @@ export function TdrAuditWizard() {
         >
           <Card className="p-8">
             <div className="mb-6">
-              <h2 className="font-serif text-2xl tracking-tight mb-1">
+              <h2 className="font-semibold text-2xl tracking-tight mb-1">
                 Información de la auditoría
               </h2>
               <p className="text-sm text-muted-foreground">
@@ -143,7 +143,7 @@ export function TdrAuditWizard() {
         >
           <Card className="p-8">
             <div className="mb-6">
-              <h2 className="font-serif text-2xl tracking-tight mb-1">
+              <h2 className="font-semibold text-2xl tracking-tight mb-1">
                 Sube el TDR / EETT a auditar
               </h2>
               <p className="text-sm text-muted-foreground">

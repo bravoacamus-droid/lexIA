@@ -3,6 +3,7 @@ import { generateText } from 'ai';
 import { createClient } from '@/lib/supabase/server';
 import { chatModel } from '@/lib/ai/gemini';
 import { AMPLIACION_PLAZO_SYSTEM_PROMPT } from '@/lib/ai/generator-prompts';
+import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -40,6 +41,12 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
     return NextResponse.json({ error: 'unsupported_type' }, { status: 400 });
   }
 
+  // Feature gate por plan (no estaba en el endpoint legacy)
+  const guard = await ensureCanUse(user.id, 'generator_call');
+  if (!guard.ok) {
+    return NextResponse.json(guard.body, { status: guard.status });
+  }
+
   const userPrompt = buildAmpliacionUserPrompt(row.input_data, row.title);
 
   try {
@@ -63,6 +70,7 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
       .update({ generated_content: text } as never)
       .eq('id', row.id);
 
+    await recordUsage(user.id, 'generator_call');
     return NextResponse.json({ content: text });
   } catch (e) {
     const msg = (e as Error)?.message || 'unknown';

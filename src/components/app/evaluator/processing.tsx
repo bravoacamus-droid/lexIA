@@ -47,7 +47,7 @@ export function Processing() {
         </span>
       </motion.div>
 
-      <h2 className="font-serif text-2xl tracking-tight">
+      <h2 className="font-semibold text-2xl tracking-tight">
         LexIA está evaluando…
       </h2>
       <p className="mt-1.5 text-sm text-muted-foreground max-w-md mx-auto text-balance">

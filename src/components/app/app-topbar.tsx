@@ -2,7 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { Search, LogOut, Settings, Sun, Moon, Menu } from 'lucide-react';
+import {
+  Search,
+  LogOut,
+  Sun,
+  Moon,
+  Menu,
+  UserCircle,
+  CreditCard,
+  ShieldCheck,
+  Wrench,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -23,8 +33,12 @@ const TITLES: Record<string, string> = {
   '/chat': 'Chat LexIA',
   '/biblioteca': 'Biblioteca normativa',
   '/evaluador': 'Evaluador de ofertas',
+  '/revision-oferta': 'Revisión de oferta',
+  '/revisor-tdr': 'Revisor EETT / TDR',
   '/generador': 'Generador de documentos',
-  '/ajustes': 'Ajustes',
+  '/rnp': 'Trámites RNP',
+  '/cuenta': 'Mi cuenta',
+  '/admin': 'Panel administrador',
 };
 
 interface Props {
@@ -100,22 +114,50 @@ export function AppTopbar({ user, onOpenPalette, onOpenMobileSidebar }: Props) {
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" className="w-64">
             <DropdownMenuLabel>
               <div className="flex flex-col">
                 <span className="font-semibold text-sm text-foreground">
                   {user.full_name || 'Usuario LexIA'}
                 </span>
                 <span className="text-[11px] text-muted-foreground truncate">{user.email}</span>
+                {user.organization_name && (
+                  <span className="text-[10px] text-muted-foreground/80 truncate mt-0.5">
+                    {user.organization_name}
+                  </span>
+                )}
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/ajustes">
-                <Settings className="h-4 w-4" />
-                Ajustes
+              <Link href="/cuenta/perfil">
+                <UserCircle className="h-4 w-4" />
+                Mi perfil
               </Link>
             </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/cuenta/suscripcion">
+                <CreditCard className="h-4 w-4" />
+                Suscripción y consumo
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/cuenta/seguridad">
+                <ShieldCheck className="h-4 w-4" />
+                Seguridad
+              </Link>
+            </DropdownMenuItem>
+            {user.is_admin && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/admin">
+                    <Wrench className="h-4 w-4" />
+                    Panel administrador
+                  </Link>
+                </DropdownMenuItem>
+              </>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild className="text-destructive focus:text-destructive">
               <form action="/auth/signout" method="post" className="w-full">

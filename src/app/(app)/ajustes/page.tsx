@@ -21,7 +21,7 @@ export default async function AjustesPage() {
   return (
     <div className="container max-w-3xl py-8 sm:py-10 space-y-8">
       <header>
-        <h1 className="font-serif text-3xl tracking-tight">Ajustes</h1>
+        <h1 className="font-semibold text-3xl tracking-tight">Ajustes</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Personaliza tu perfil y preferencias de LexIA.
         </p>

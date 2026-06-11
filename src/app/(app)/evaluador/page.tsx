@@ -56,7 +56,7 @@ export default async function EvaluatorListPage() {
     <div className="container max-w-5xl py-8 space-y-6">
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <h1 className="font-serif text-3xl tracking-tight">Evaluador IA de Ofertas</h1>
+          <h1 className="font-semibold text-3xl tracking-tight">Evaluador IA de Ofertas</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Compara ofertas contra las Bases del proceso. Identifica observaciones
             subsanables e incumplimientos con sustento normativo.
@@ -75,7 +75,7 @@ export default async function EvaluatorListPage() {
           <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 mb-4">
             <FileSearch className="h-5 w-5" />
           </span>
-          <h2 className="font-serif text-xl mb-1">Aún no tienes evaluaciones</h2>
+          <h2 className="font-semibold text-xl mb-1">Aún no tienes evaluaciones</h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
             Crea tu primera evaluación subiendo las Bases Integradas y hasta 5 ofertas. LexIA
             analizará cada requisito y entregará una matriz comparativa con sustento normativo.

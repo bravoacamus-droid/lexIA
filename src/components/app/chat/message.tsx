@@ -188,7 +188,7 @@ function AssistantMarkdown({
           <li>{renderWithCitations(children, sources, sentinel, onCitationClick)}</li>
         ),
         h1: ({ children }) => (
-          <h1 className="font-serif">
+          <h1 className="font-semibold">
             {renderWithCitations(children, sources, sentinel, onCitationClick)}
           </h1>
         ),

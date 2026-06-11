@@ -236,7 +236,7 @@ export function GeneratorWizard({ userRole = null }: GeneratorWizardProps) {
           >
             <Card className="p-8">
               <div className="mb-6">
-                <h2 className="font-serif text-2xl tracking-tight mb-1">
+                <h2 className="font-semibold text-2xl tracking-tight mb-1">
                   ¿Desde qué rol vas a redactar?
                 </h2>
                 <p className="text-sm text-muted-foreground">
@@ -283,7 +283,7 @@ export function GeneratorWizard({ userRole = null }: GeneratorWizardProps) {
           >
             <Card className="p-8">
               <div className="mb-6">
-                <h2 className="font-serif text-2xl tracking-tight mb-1">
+                <h2 className="font-semibold text-2xl tracking-tight mb-1">
                   Selecciona el tipo de documento
                 </h2>
                 <p className="text-sm text-muted-foreground">
@@ -343,7 +343,7 @@ export function GeneratorWizard({ userRole = null }: GeneratorWizardProps) {
           >
             <Card className="p-8">
               <div className="mb-6">
-                <h2 className="font-serif text-2xl tracking-tight mb-1">
+                <h2 className="font-semibold text-2xl tracking-tight mb-1">
                   Solicitud de ampliación de plazo
                 </h2>
                 <p className="text-sm text-muted-foreground">

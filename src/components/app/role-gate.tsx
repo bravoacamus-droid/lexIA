@@ -29,7 +29,7 @@ export function RoleGateBlocked({ allow, moduleName, reason }: Props) {
         <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-secondary text-muted-foreground mb-5">
           <Lock className="h-5 w-5" />
         </span>
-        <h1 className="font-serif text-3xl tracking-tight mb-2">
+        <h1 className="font-semibold text-3xl tracking-tight mb-2">
           {moduleName} no está disponible para tu perfil
         </h1>
         <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">

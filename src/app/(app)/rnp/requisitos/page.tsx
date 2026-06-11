@@ -53,7 +53,7 @@ export default async function RequisitosRnpPage() {
     <div className="container max-w-4xl py-8 space-y-6">
       <header className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="font-serif text-3xl tracking-tight">
+          <h1 className="font-semibold text-3xl tracking-tight">
             Requisitos del trámite RNP
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">

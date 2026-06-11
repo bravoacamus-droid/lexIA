@@ -63,7 +63,7 @@ export default async function RnpHubPage() {
   return (
     <div className="container max-w-5xl py-8 space-y-8">
       <header>
-        <h1 className="font-serif text-3xl tracking-tight">Trámites RNP</h1>
+        <h1 className="font-semibold text-3xl tracking-tight">Trámites RNP</h1>
         <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
           Asistentes guiados para los trámites del Registro Nacional de
           Proveedores del OECE. Llenamos los formatos oficiales con tu

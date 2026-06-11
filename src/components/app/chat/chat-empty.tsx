@@ -101,7 +101,7 @@ export function ChatEmpty({ autoCreate, prefillQuery }: Props) {
           <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-card border border-border shadow-soft mb-5">
             <LogoMark size="xl" />
           </div>
-          <h1 className="font-serif text-4xl sm:text-5xl tracking-tight text-balance">
+          <h1 className="font-semibold text-4xl sm:text-5xl tracking-tight text-balance">
             ¿En qué te ayudo,{' '}
             <span className="italic gradient-text">hoy</span>?
           </h1>

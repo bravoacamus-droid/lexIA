@@ -284,7 +284,7 @@ export function DocumentViewer({
                 </>
               )}
             </Badge>
-            <h1 className="font-serif text-3xl sm:text-4xl tracking-tight text-balance">
+            <h1 className="font-semibold text-3xl sm:text-4xl tracking-tight text-balance">
               {doc.title}
             </h1>
             {doc.summary && (
@@ -303,7 +303,7 @@ export function DocumentViewer({
               rehypePlugins={[rehypeRaw]}
               components={{
                 h1: ({ children }) => (
-                  <h1 id={slugifyChildren(children)} className="font-serif scroll-mt-32">
+                  <h1 id={slugifyChildren(children)} className="font-semibold scroll-mt-32">
                     {children}
                   </h1>
                 ),

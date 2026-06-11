@@ -184,7 +184,7 @@ export function LibraryView({
   return (
     <div className="container max-w-7xl py-8 space-y-6">
       <header className="space-y-1">
-        <h1 className="font-serif text-3xl tracking-tight">Biblioteca normativa</h1>
+        <h1 className="font-semibold text-3xl tracking-tight">Biblioteca normativa</h1>
         <p className="text-sm text-muted-foreground">
           Busca semánticamente en la base de Contrataciones del Estado. Guarda lo que te
           importa en carpetas personales.

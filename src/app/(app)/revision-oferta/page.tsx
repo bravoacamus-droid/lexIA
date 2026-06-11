@@ -57,7 +57,7 @@ export default async function RevisionOfertaListPage() {
     <div className="container max-w-5xl py-8 space-y-6">
       <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <h1 className="font-serif text-3xl tracking-tight">Auto-revisión de tu oferta</h1>
+          <h1 className="font-semibold text-3xl tracking-tight">Auto-revisión de tu oferta</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Antes de presentar, LexIA audita tu propia propuesta contra las Bases del
             proceso. Detecta lo que el comité te puede observar y lo que puede sacarte

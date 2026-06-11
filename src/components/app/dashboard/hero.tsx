@@ -46,7 +46,7 @@ export function DashboardHero({ fullName }: Props) {
           {client?.today || ''}
         </p>
         <h1
-          className="font-serif text-4xl sm:text-5xl tracking-tight text-balance"
+          className="font-semibold text-4xl sm:text-5xl tracking-tight text-balance"
           suppressHydrationWarning
         >
           {client?.greeting || 'Hola'},{' '}

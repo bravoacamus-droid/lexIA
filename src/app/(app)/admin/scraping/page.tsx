@@ -57,7 +57,7 @@ export default async function AdminScrapingPage() {
           <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-secondary text-muted-foreground mb-5">
             <Lock className="h-5 w-5" />
           </span>
-          <h1 className="font-serif text-3xl tracking-tight mb-2">
+          <h1 className="font-semibold text-3xl tracking-tight mb-2">
             Solo para administradores
           </h1>
           <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
@@ -88,7 +88,7 @@ export default async function AdminScrapingPage() {
   return (
     <div className="container max-w-6xl py-8 space-y-8">
       <header>
-        <h1 className="font-serif text-3xl tracking-tight">
+        <h1 className="font-semibold text-3xl tracking-tight">
           Bot de scraping de normativa
         </h1>
         <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
