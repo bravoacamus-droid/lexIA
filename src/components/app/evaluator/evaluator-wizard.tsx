@@ -35,7 +35,18 @@ const STEPS = [
   { id: 3, label: 'Ofertas' },
 ];
 
-export function EvaluatorWizard() {
+type EvalMode = 'committee' | 'self_review';
+
+interface EvaluatorWizardProps {
+  mode?: EvalMode;
+  /** Ruta de retorno tras crear (default /evaluador/[id]). */
+  resultPathPrefix?: string;
+}
+
+export function EvaluatorWizard({
+  mode = 'committee',
+  resultPathPrefix = '/evaluador',
+}: EvaluatorWizardProps = {}) {
   const router = useRouter();
   const [step, setStep] = useState<Step>(1);
   const [title, setTitle] = useState('');
@@ -54,6 +65,7 @@ export function EvaluatorWizard() {
           title: title.trim(),
           bases_file_path: bases.path,
           offer_files: offers.map((o) => ({ name: o.name, path: o.path })),
+          mode,
         }),
       });
       if (!createRes.ok) {
@@ -73,11 +85,11 @@ export function EvaluatorWizard() {
           const s = j?.evaluation?.status;
           if (s === 'done') {
             clearInterval(pollId);
-            router.push(`/evaluador/${evaluation.id}`);
+            router.push(`${resultPathPrefix}/${evaluation.id}`);
           } else if (s === 'failed') {
             clearInterval(pollId);
             toast.error('La evaluación falló. Revisa los PDFs e intenta de nuevo.');
-            router.push(`/evaluador/${evaluation.id}`);
+            router.push(`${resultPathPrefix}/${evaluation.id}`);
           }
         } catch {
           /* keep polling */

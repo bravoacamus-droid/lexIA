@@ -7,6 +7,8 @@ import {
   REQUIREMENTS_EXTRACTION_PROMPT,
   OFFER_EVALUATION_PROMPT,
   EVALUATION_SUMMARY_PROMPT,
+  SELF_REVIEW_EVALUATION_PROMPT,
+  SELF_REVIEW_SUMMARY_PROMPT,
 } from '@/lib/ai/evaluator-prompts';
 
 export const runtime = 'nodejs';
@@ -22,10 +24,16 @@ type Requirement = {
 
 type EvaluationItem = {
   requirement_id: string;
-  status: 'cumple' | 'subsanable' | 'no_cumple';
+  /**
+   * committee → cumple | subsanable | no_cumple
+   * self_review → ok | riesgo | critico
+   */
+  status: 'cumple' | 'subsanable' | 'no_cumple' | 'ok' | 'riesgo' | 'critico';
   detalle: string;
   sustento_normativo?: Array<{ norma: string; articulo?: string }>;
 };
+
+type EvalMode = 'committee' | 'self_review';
 
 type OfferEvaluation = {
   nombre: string;
@@ -84,7 +92,7 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
 
   const { data: evalData, error: evalErr } = await supabase
     .from('evaluations')
-    .select('id, bases_file_path, offer_files, user_id, status')
+    .select('id, bases_file_path, offer_files, user_id, status, mode')
     .eq('id', ctx.params.id)
     .maybeSingle();
 
@@ -97,7 +105,9 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
     offer_files: Array<{ name: string; path: string }>;
     user_id: string;
     status: string;
+    mode: EvalMode | null;
   };
+  const mode: EvalMode = ev.mode || 'committee';
   if (ev.user_id !== user.id) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
@@ -192,10 +202,19 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
             })),
           );
 
+          const evaluationSystem =
+            mode === 'self_review'
+              ? SELF_REVIEW_EVALUATION_PROMPT
+              : OFFER_EVALUATION_PROMPT;
+          const reminderTail =
+            mode === 'self_review'
+              ? `RECUERDA: Devuelve EXACTAMENTE ${requirements.length} items con status ok|riesgo|critico. Sé útil y honesto.`
+              : `RECUERDA: Devuelve EXACTAMENTE ${requirements.length} items en el JSON, uno por cada requirement_id. Sé GENEROSO con CUMPLE cuando la oferta menciona el requisito.`;
+
           const res = await generateText({
             model: chatModel,
-            system: OFFER_EVALUATION_PROMPT,
-            prompt: `REQUISITOS DE LAS BASES (debes evaluar TODOS y cada uno):\n${reqJson}\n\nOFERTA DEL POSTOR (${o.name}):\n${text}\n\nRECUERDA: Devuelve EXACTAMENTE ${requirements.length} items en el JSON, uno por cada requirement_id. Sé GENEROSO con CUMPLE cuando la oferta menciona el requisito.`,
+            system: evaluationSystem,
+            prompt: `REQUISITOS DE LAS BASES (debes evaluar TODOS y cada uno):\n${reqJson}\n\nOFERTA DEL POSTOR (${o.name}):\n${text}\n\n${reminderTail}`,
             temperature: 0.2,
             maxTokens: 8000,
           });
@@ -262,7 +281,10 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
 
     const summaryRes = await generateText({
       model: chatModel,
-      system: EVALUATION_SUMMARY_PROMPT,
+      system:
+        mode === 'self_review'
+          ? SELF_REVIEW_SUMMARY_PROMPT
+          : EVALUATION_SUMMARY_PROMPT,
       prompt: summaryPrompt,
       temperature: 0.3,
       maxTokens: 1500,

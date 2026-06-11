@@ -6,6 +6,7 @@ const PROTECTED_PREFIXES = [
   '/chat',
   '/biblioteca',
   '/evaluador',
+  '/revision-oferta',
   '/generador',
   '/rnp',
   '/admin',

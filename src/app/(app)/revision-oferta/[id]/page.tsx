@@ -9,7 +9,7 @@ interface Props {
   params: { id: string };
 }
 
-export default async function EvaluationPage({ params }: Props) {
+export default async function RevisionDetailPage({ params }: Props) {
   const supabase = createClient();
   const {
     data: { user },
@@ -19,7 +19,7 @@ export default async function EvaluationPage({ params }: Props) {
   const { data } = await supabase
     .from('evaluations')
     .select(
-      'id, title, status, offer_files, result, created_at, completed_at, user_id',
+      'id, title, status, offer_files, result, mode, created_at, completed_at, user_id',
     )
     .eq('id', params.id)
     .maybeSingle();
@@ -31,6 +31,7 @@ export default async function EvaluationPage({ params }: Props) {
     status: 'pending' | 'processing' | 'done' | 'failed';
     offer_files: Array<{ name: string }> | null;
     result: unknown;
+    mode: 'committee' | 'self_review' | null;
     created_at: string;
     completed_at: string | null;
     user_id: string;
@@ -44,6 +45,7 @@ export default async function EvaluationPage({ params }: Props) {
         title={ev.title}
         status={ev.status as 'pending' | 'processing' | 'failed'}
         offers={ev.offer_files || []}
+        backHref="/revision-oferta"
       />
     );
   }
@@ -54,7 +56,8 @@ export default async function EvaluationPage({ params }: Props) {
       title={ev.title}
       result={ev.result as never}
       completedAt={ev.completed_at}
-      mode="committee"
+      mode={ev.mode || 'self_review'}
+      backHref="/revision-oferta"
     />
   );
 }

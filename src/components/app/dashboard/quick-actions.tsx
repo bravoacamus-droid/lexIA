@@ -10,6 +10,7 @@ import {
   FilePen,
   HardHat,
   Briefcase,
+  ShieldCheck,
   type LucideIcon,
 } from 'lucide-react';
 import type { ProfileRole } from '@/lib/auth/session';
@@ -67,6 +68,15 @@ const ACTIONS_BY_ROLE: Record<ProfileRole, ActionItem[]> = {
   provider: [
     ...SHARED_ACTIONS,
     {
+      icon: ShieldCheck,
+      title: 'Audita tu oferta',
+      desc: 'Antes de presentar, audita tu oferta contra las Bases del proceso.',
+      href: '/revision-oferta/nuevo',
+      accent: 'from-emerald-500/15 to-teal-500/10',
+      iconBg:
+        'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400',
+    },
+    {
       icon: FilePen,
       title: 'Generar documento',
       desc: 'Consultas, observaciones, apelaciones, ampliación de plazo.',
@@ -78,7 +88,7 @@ const ACTIONS_BY_ROLE: Record<ProfileRole, ActionItem[]> = {
     {
       icon: HardHat,
       title: 'Trámites RNP',
-      desc: 'Aumento de CMC, actualización financiera (pronto).',
+      desc: 'Aumento de CMC, actualización financiera.',
       href: '/rnp',
       accent: 'from-purple-500/15 to-fuchsia-500/10',
       iconBg:

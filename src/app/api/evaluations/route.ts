@@ -18,6 +18,7 @@ const createSchema = z.object({
     )
     .min(1)
     .max(5),
+  mode: z.enum(['committee', 'self_review']).optional().default('committee'),
 });
 
 export async function GET() {
@@ -29,7 +30,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('evaluations')
-    .select('id, title, status, offer_files, created_at, completed_at')
+    .select('id, title, status, offer_files, mode, created_at, completed_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(50);
@@ -68,8 +69,9 @@ export async function POST(req: Request) {
       status: 'pending',
       bases_file_path: parsed.data.bases_file_path,
       offer_files: parsed.data.offer_files as never,
+      mode: parsed.data.mode,
     } as never)
-    .select('id, title, status, created_at')
+    .select('id, title, status, created_at, mode')
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

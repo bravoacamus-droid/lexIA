@@ -6,6 +6,7 @@ import {
   FilePen,
   HardHat,
   Briefcase,
+  ShieldCheck,
   type LucideIcon,
 } from 'lucide-react';
 import type { ProfileRole } from '@/lib/auth/session';
@@ -92,6 +93,13 @@ export const MENU_SECTIONS: MenuSection[] = [
         href: '/generador',
         icon: FilePen,
         description: 'Consultas, Observaciones, Apelaciones, Ampliación de Plazo.',
+        roles: ['provider'],
+      },
+      {
+        label: 'Revisión de oferta',
+        href: '/revision-oferta',
+        icon: ShieldCheck,
+        description: 'Audita tu propia oferta antes de presentarla.',
         roles: ['provider'],
       },
       {

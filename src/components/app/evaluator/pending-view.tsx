@@ -13,6 +13,7 @@ interface Props {
   title: string;
   status: 'pending' | 'processing' | 'failed';
   offers: Array<{ name: string }>;
+  backHref?: string;
 }
 
 interface ErrorDetail {
@@ -21,7 +22,7 @@ interface ErrorDetail {
   failed_at?: string;
 }
 
-export function EvaluationPendingView({ id, title, status }: Props) {
+export function EvaluationPendingView({ id, title, status, backHref = '/evaluador' }: Props) {
   const router = useRouter();
   const [errorDetail, setErrorDetail] = useState<ErrorDetail | null>(null);
 
@@ -99,13 +100,13 @@ export function EvaluationPendingView({ id, title, status }: Props) {
 
           <div className="flex items-center justify-center gap-2">
             <Button variant="outline" asChild>
-              <Link href="/evaluador">
+              <Link href={backHref}>
                 <ArrowLeft className="h-4 w-4" />
                 Volver
               </Link>
             </Button>
             <Button asChild>
-              <Link href="/evaluador/nuevo">
+              <Link href={`${backHref}/nuevo`}>
                 <RefreshCw className="h-4 w-4" />
                 Intentar de nuevo
               </Link>

@@ -19,7 +19,11 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn, formatRelative } from '@/lib/utils';
 
-type Status = 'cumple' | 'subsanable' | 'no_cumple';
+type Status =
+  | 'cumple' | 'subsanable' | 'no_cumple'
+  | 'ok' | 'riesgo' | 'critico';
+
+type EvalMode = 'committee' | 'self_review';
 
 interface Postor {
   nombre: string;
@@ -47,9 +51,18 @@ interface Props {
   title: string;
   result: Result;
   completedAt: string | null;
+  mode?: EvalMode;
+  backHref?: string;
 }
 
-const STATUS_META: Record<Status, { label: string; icon: any; class: string; pill: string }> = {
+interface StatusMeta {
+  label: string;
+  icon: typeof CheckCircle2;
+  class: string;
+  pill: string;
+}
+
+const STATUS_META: Record<Status, StatusMeta> = {
   cumple: {
     label: 'Cumple',
     icon: CheckCircle2,
@@ -68,6 +81,31 @@ const STATUS_META: Record<Status, { label: string; icon: any; class: string; pil
     class: 'text-red-600 dark:text-red-400',
     pill: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300',
   },
+  ok: {
+    label: 'OK',
+    icon: CheckCircle2,
+    class: 'text-emerald-600 dark:text-emerald-400',
+    pill: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
+  },
+  riesgo: {
+    label: 'Riesgo',
+    icon: AlertTriangle,
+    class: 'text-amber-600 dark:text-amber-400',
+    pill: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
+  },
+  critico: {
+    label: 'Crítico',
+    icon: XCircle,
+    class: 'text-red-600 dark:text-red-400',
+    pill: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300',
+  },
+};
+
+// Mapeo de status a "bucket" (positivo, advertencia, negativo) — independiente del modo.
+const STATUS_BUCKET: Record<Status, 'good' | 'warn' | 'bad'> = {
+  cumple: 'good', ok: 'good',
+  subsanable: 'warn', riesgo: 'warn',
+  no_cumple: 'bad', critico: 'bad',
 };
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -78,17 +116,35 @@ const CATEGORY_LABEL: Record<string, string> = {
   administrativa: 'Documentación administrativa',
 };
 
-export function EvaluationResultView({ id, title, result, completedAt }: Props) {
+export function EvaluationResultView({
+  id,
+  title,
+  result,
+  completedAt,
+  mode = 'committee',
+  backHref = '/evaluador',
+}: Props) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const counts = result.postores.map((nombre) => {
-    const stats = { cumple: 0, subsanable: 0, no_cumple: 0 };
+    const stats = { good: 0, warn: 0, bad: 0 };
     for (const item of result.items) {
       const p = item.postores.find((pp) => pp.nombre === nombre);
-      if (p) stats[p.status] += 1;
+      if (p) {
+        const bucket = STATUS_BUCKET[p.status as Status] || 'warn';
+        stats[bucket] += 1;
+      }
     }
     return { nombre, ...stats };
   });
+
+  // Labels diferentes según modo
+  const isSelfReview = mode === 'self_review';
+  const goodLabel = isSelfReview ? 'OK' : 'Cumple';
+  const warnLabel = isSelfReview ? 'Riesgo' : 'Subsanable';
+  const badLabel = isSelfReview ? 'Crítico' : 'No cumple';
+  const summaryHeading = isSelfReview ? 'Diagnóstico para presentar' : 'Resumen ejecutivo';
+  const completedBadge = isSelfReview ? 'Auditoría completada' : 'Evaluación completada';
 
   return (
     <>
@@ -97,7 +153,7 @@ export function EvaluationResultView({ id, title, result, completedAt }: Props) 
         <div className="container max-w-7xl flex items-center justify-between gap-4 py-3">
           <div className="flex items-center gap-3 min-w-0">
             <Button asChild variant="ghost" size="sm">
-              <Link href="/evaluador">
+              <Link href={backHref}>
                 <ArrowLeft className="h-4 w-4" />
                 Volver
               </Link>
@@ -123,7 +179,7 @@ export function EvaluationResultView({ id, title, result, completedAt }: Props) 
         >
           <Badge variant="success" className="mb-2">
             <Sparkles className="h-3 w-3" />
-            Evaluación completada
+            {completedBadge}
           </Badge>
           <h1 className="font-serif text-3xl sm:text-4xl tracking-tight">{title}</h1>
           {completedAt && (
@@ -137,7 +193,7 @@ export function EvaluationResultView({ id, title, result, completedAt }: Props) 
         <Card className="p-6 bg-gradient-to-br from-brand-50/50 to-violet-50/30 dark:from-brand-950/30 dark:to-violet-950/20 border-brand-200/50 dark:border-brand-900/50">
           <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-brand-700 dark:text-brand-400 mb-3">
             <Sparkles className="h-3.5 w-3.5" />
-            Resumen ejecutivo
+            {summaryHeading}
           </h2>
           <p className="text-[15px] leading-relaxed text-foreground/95">
             {result.resumen_ejecutivo}
@@ -152,17 +208,27 @@ export function EvaluationResultView({ id, title, result, completedAt }: Props) 
           'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
         )}>
           {counts.map((c, i) => {
-            const total = c.cumple + c.subsanable + c.no_cumple;
-            const recommendation = c.no_cumple > 0
-              ? 'No admitida'
-              : c.subsanable > 0
-                ? 'Admitida con observaciones'
-                : 'Admitida';
-            const recColor = c.no_cumple > 0
+            const total = c.good + c.warn + c.bad;
+            const recommendation = isSelfReview
+              ? (c.bad > 0
+                  ? 'No la presentes así'
+                  : c.warn > 0
+                    ? 'Corrige antes de presentar'
+                    : 'Lista para presentar')
+              : (c.bad > 0
+                  ? 'No admitida'
+                  : c.warn > 0
+                    ? 'Admitida con observaciones'
+                    : 'Admitida');
+            const recColor = c.bad > 0
               ? 'text-red-700 dark:text-red-400'
-              : c.subsanable > 0
+              : c.warn > 0
                 ? 'text-amber-700 dark:text-amber-400'
                 : 'text-emerald-700 dark:text-emerald-400';
+            const cardLabel = isSelfReview ? 'Tu oferta' : `Postor ${i + 1}`;
+            const goodStatus: Status = isSelfReview ? 'ok' : 'cumple';
+            const warnStatus: Status = isSelfReview ? 'riesgo' : 'subsanable';
+            const badStatus: Status = isSelfReview ? 'critico' : 'no_cumple';
             return (
               <motion.div
                 key={c.nombre}
@@ -172,23 +238,23 @@ export function EvaluationResultView({ id, title, result, completedAt }: Props) 
               >
                 <Card className="p-5">
                   <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
-                    Postor {i + 1}
+                    {cardLabel}
                   </p>
                   <h3 className="font-semibold text-base mt-0.5 truncate">{c.nombre}</h3>
                   <p className={cn('mt-1 text-xs font-semibold', recColor)}>
                     {recommendation}
                   </p>
                   <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                    <StatBox label="Cumple" count={c.cumple} status="cumple" />
-                    <StatBox label="Subsanable" count={c.subsanable} status="subsanable" />
-                    <StatBox label="No cumple" count={c.no_cumple} status="no_cumple" />
+                    <StatBox label={goodLabel} count={c.good} status={goodStatus} />
+                    <StatBox label={warnLabel} count={c.warn} status={warnStatus} />
+                    <StatBox label={badLabel} count={c.bad} status={badStatus} />
                   </div>
                   <div className="mt-3 h-1 bg-secondary rounded-full overflow-hidden flex">
                     {total > 0 && (
                       <>
-                        <div className="bg-emerald-500" style={{ width: `${(c.cumple / total) * 100}%` }} />
-                        <div className="bg-amber-500" style={{ width: `${(c.subsanable / total) * 100}%` }} />
-                        <div className="bg-red-500" style={{ width: `${(c.no_cumple / total) * 100}%` }} />
+                        <div className="bg-emerald-500" style={{ width: `${(c.good / total) * 100}%` }} />
+                        <div className="bg-amber-500" style={{ width: `${(c.warn / total) * 100}%` }} />
+                        <div className="bg-red-500" style={{ width: `${(c.bad / total) * 100}%` }} />
                       </>
                     )}
                   </div>
