@@ -5,6 +5,9 @@
  */
 import { config as loadEnv } from 'dotenv';
 import { join } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { writeFileSync, unlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 
 loadEnv({ path: join(process.cwd(), '.env.local') });
 loadEnv();
@@ -12,20 +15,35 @@ loadEnv();
 const PROJECT_REF = process.env.SUPABASE_PROJECT_REF!;
 const ACCESS_TOKEN = process.env.SUPABASE_ACCESS_TOKEN!;
 
-async function query(sql: string) {
-  const res = await fetch(
-    `https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${ACCESS_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ query: sql }),
-    },
+/**
+ * Same workaround as apply-migration: fetch() en Node 22 falla con 401 en
+ * el Management API; curl con --data-binary @file funciona.
+ */
+async function query(sql: string): Promise<unknown> {
+  const tmpFile = join(tmpdir(), `query-${Date.now()}.json`);
+  writeFileSync(tmpFile, JSON.stringify({ query: sql }));
+  const res = spawnSync(
+    'curl',
+    [
+      '-sS',
+      '-X', 'POST',
+      '-H', `Authorization: Bearer ${ACCESS_TOKEN}`,
+      '-H', 'Content-Type: application/json',
+      '--data-binary', `@${tmpFile}`,
+      '-w', '\n__STATUS__:%{http_code}',
+      `https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query`,
+    ],
+    { encoding: 'utf-8' },
   );
-  if (!res.ok) throw new Error(await res.text());
-  return await res.json();
+  try { unlinkSync(tmpFile); } catch { /* ignore */ }
+  const out = (res.stdout || '') + (res.stderr || '');
+  const m = out.match(/__STATUS__:(\d+)/);
+  const status = m ? parseInt(m[1]) : 0;
+  const body = out.replace(/\n?__STATUS__:\d+/, '').trim();
+  if (status < 200 || status >= 300) {
+    throw new Error(`HTTP ${status}: ${body.slice(0, 200)}`);
+  }
+  return JSON.parse(body);
 }
 
 async function main() {
