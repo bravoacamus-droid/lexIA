@@ -15,8 +15,10 @@ import { join } from 'node:path';
 
 config({ path: join(process.cwd(), '.env.local') });
 
-const TOKEN = process.env.SUPABASE_ACCESS_TOKEN;
-const PROJECT_REF = process.env.SUPABASE_PROJECT_REF;
+// dotenv en Windows a veces deja \r al final. Sanitizamos los env vars
+// antes de inyectarlos al header HTTP (un \r en Authorization → 401).
+const TOKEN = process.env.SUPABASE_ACCESS_TOKEN?.trim().replace(/[\r\n"']/g, '');
+const PROJECT_REF = process.env.SUPABASE_PROJECT_REF?.trim().replace(/[\r\n"']/g, '');
 
 if (!TOKEN || !PROJECT_REF) {
   console.error('Faltan SUPABASE_ACCESS_TOKEN o SUPABASE_PROJECT_REF en .env.local');
