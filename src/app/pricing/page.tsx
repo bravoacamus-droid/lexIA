@@ -278,10 +278,10 @@ function TierCard({
       onMouseMove={onMove}
       onMouseLeave={() => setGlow({ x: -200, y: -200 })}
       className={cn(
-        'group relative p-7 rounded-2xl flex flex-col h-full overflow-hidden transition-all duration-300',
+        'group relative p-7 rounded-2xl flex flex-col h-full transition-all duration-300',
         tier.recommended
           ? 'bg-slate-900 text-white shadow-2xl shadow-brand-500/30 border border-brand-500/50 sm:scale-[1.02] hover:-translate-y-1'
-          : 'bg-white border border-slate-200 hover:border-slate-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/5',
+          : 'bg-white border border-slate-200 overflow-hidden hover:border-slate-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/5',
       )}
     >
       {/* Spotlight cursor */}
