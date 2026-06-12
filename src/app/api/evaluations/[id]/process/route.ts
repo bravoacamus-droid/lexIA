@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { generateText } from 'ai';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { chatModel } from '@/lib/ai/gemini';
+import { chatModel, CHAT_MODEL_ID } from '@/lib/ai/gemini';
+import { recordAiUsage } from '@/lib/ai/usage-log';
 import { extractPdfText } from '@/lib/ai/pdf';
 import {
   REQUIREMENTS_EXTRACTION_PROMPT,
@@ -159,12 +160,22 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
         : fullTdrText;
       console.log(`[tdr-audit] TDR: ${fullTdrText.length} → ${tdrText.length} chars`);
 
+      const auditStarted = Date.now();
       const auditRes = await generateText({
         model: chatModel,
         system: TDR_AUDIT_PROMPT,
         prompt: `Audita el siguiente documento de Términos de Referencia / Especificaciones Técnicas. Devuelve EXCLUSIVAMENTE el JSON con la auditoría completa.\n\n${tdrText}`,
         temperature: 0.2,
         maxTokens: 8000,
+      });
+      void recordAiUsage({
+        userId: ev.user_id,
+        feature: 'evaluation_tdr_audit',
+        model: CHAT_MODEL_ID,
+        inputTokens: auditRes.usage?.promptTokens ?? 0,
+        outputTokens: auditRes.usage?.completionTokens ?? 0,
+        latencyMs: Date.now() - auditStarted,
+        metadata: { evaluation_id: ev.id, step: 'audit' },
       });
 
       const parsed = parseJsonLoose<Omit<TdrAuditResult, 'resumen_ejecutivo'>>(
@@ -239,12 +250,22 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
     // 2. Extract requirements from Bases
     let reqRes;
     try {
+      const reqStarted = Date.now();
       reqRes = await generateText({
         model: chatModel,
         system: REQUIREMENTS_EXTRACTION_PROMPT,
         prompt: `Analiza el siguiente texto de las Bases Integradas y devuelve ÚNICAMENTE el JSON con los requisitos. NO incluyas comentarios, explicaciones, ni texto fuera del JSON. La respuesta DEBE comenzar con { y terminar con }.\n\n${basesText}`,
         temperature: 0.1,
         maxTokens: 6000,
+      });
+      void recordAiUsage({
+        userId: ev.user_id,
+        feature: 'evaluation_extract_requirements',
+        model: CHAT_MODEL_ID,
+        inputTokens: reqRes.usage?.promptTokens ?? 0,
+        outputTokens: reqRes.usage?.completionTokens ?? 0,
+        latencyMs: Date.now() - reqStarted,
+        metadata: { evaluation_id: ev.id, step: 'extract_requirements' },
       });
       console.log(`[evaluator] LLM respondió ${reqRes.text.length} chars`);
     } catch (err) {

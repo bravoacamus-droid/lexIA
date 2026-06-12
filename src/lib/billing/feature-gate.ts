@@ -121,9 +121,9 @@ export async function checkFeatureGate(
     };
   }
 
-  // Cuota del tier
-  const limit = getQuota(tier, feature);
-  if (limit <= 0) {
+  // Cuota del tier + bonus del mes
+  const baseLimit = getQuota(tier, feature);
+  if (baseLimit <= 0) {
     return {
       allowed: false,
       reason: 'quota_exceeded',
@@ -134,13 +134,21 @@ export async function checkFeatureGate(
       },
     };
   }
-  if (!Number.isFinite(limit)) {
+  if (!Number.isFinite(baseLimit)) {
     // Ilimitado
-    return { allowed: true, remaining: Number.POSITIVE_INFINITY, limit, consumed: 0 };
+    return {
+      allowed: true,
+      remaining: Number.POSITIVE_INFINITY,
+      limit: baseLimit,
+      consumed: 0,
+    };
   }
 
-  // Consumo del mes
   const period = currentPeriodStart();
+  const bonusExtra = await sumBonusForPeriod(admin, userId, feature, period);
+  const limit = baseLimit + bonusExtra;
+
+  // Consumo del mes
   const { data: usage } = await admin
     .from('feature_usage')
     .select('count')
@@ -233,6 +241,58 @@ export async function ensureCanUse(
   const status =
     result.reason === 'unauthenticated' ? 401 : 402; // 402 Payment Required
   return { ok: false, status, body: result.error };
+}
+
+/** Suma los bonificaciones vigentes del mes para un feature. */
+async function sumBonusForPeriod(
+  admin: ReturnType<typeof adminClient>,
+  userId: string,
+  feature: FeatureKey,
+  period: string,
+): Promise<number> {
+  const { data } = await admin
+    .from('user_credit_bonuses')
+    .select('amount')
+    .eq('user_id', userId)
+    .eq('feature', feature)
+    .eq('period_start', period);
+  return ((data || []) as Array<{ amount: number }>).reduce(
+    (acc, r) => acc + (r.amount || 0),
+    0,
+  );
+}
+
+/** Suma del bonus del mes para una feature (server, con bypass RLS). */
+export async function getMonthlyBonus(
+  userId: string,
+  feature: FeatureKey,
+): Promise<number> {
+  const admin = adminClient();
+  return sumBonusForPeriod(admin, userId, feature, currentPeriodStart());
+}
+
+/** Suma de TODOS los bonus del mes por feature (para /cuenta). */
+export async function getMonthlyBonuses(
+  userId: string,
+): Promise<Record<FeatureKey, number>> {
+  const admin = adminClient();
+  const period = currentPeriodStart();
+  const { data } = await admin
+    .from('user_credit_bonuses')
+    .select('feature, amount')
+    .eq('user_id', userId)
+    .eq('period_start', period);
+
+  const out: Record<FeatureKey, number> = {
+    chat_message: 0,
+    generator_call: 0,
+    evaluation_run: 0,
+    scraping_admin: 0,
+  };
+  for (const row of (data || []) as Array<{ feature: FeatureKey; amount: number }>) {
+    out[row.feature] = (out[row.feature] || 0) + row.amount;
+  }
+  return out;
 }
 
 /** Resume el consumo del usuario en el mes actual (para mostrar en /cuenta). */

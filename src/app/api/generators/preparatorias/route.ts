@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { generateText } from 'ai';
 import { createClient } from '@/lib/supabase/server';
-import { chatModel } from '@/lib/ai/gemini';
+import { chatModel, CHAT_MODEL_ID } from '@/lib/ai/gemini';
+import { recordAiUsage } from '@/lib/ai/usage-log';
 import { embedOne } from '@/lib/ai/embeddings';
 import {
   TDR_EETT_SYSTEM,
@@ -159,11 +160,22 @@ ${JSON.stringify(input_data, null, 2)}
 ${base_text ? `TEXTO BASE PROVISTO (insumos previos del área usuaria / cotizaciones / antecedentes):\n${base_text.slice(0, 12000)}\n\n` : ''}Genera el documento en MARKDOWN siguiendo la estructura indicada en las instrucciones del sistema y el estilo de los MODELOS de referencia. No incluyas texto previo ni posterior — solo el documento.`;
 
   try {
-    const { text } = await generateText({
+    const startedAt = Date.now();
+    const result = await generateText({
       model: chatModel,
       system,
       prompt: userPrompt,
       temperature: 0.3,
+    });
+    const { text } = result;
+    void recordAiUsage({
+      userId: user.id,
+      feature: `generator_${slug}`,
+      model: CHAT_MODEL_ID,
+      inputTokens: result.usage?.promptTokens ?? 0,
+      outputTokens: result.usage?.completionTokens ?? 0,
+      latencyMs: Date.now() - startedAt,
+      metadata: { slug, title },
     });
 
     if (!text || text.trim().length < 200) {

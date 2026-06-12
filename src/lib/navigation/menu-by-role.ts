@@ -8,6 +8,7 @@ import {
   Briefcase,
   ShieldCheck,
   ScanSearch,
+  ClipboardList,
   type LucideIcon,
 } from 'lucide-react';
 import type { ProfileRole } from '@/lib/auth/session';
@@ -129,6 +130,18 @@ export const MENU_SECTIONS: MenuSection[] = [
         description: 'Análisis avanzado y modelos de litigio.',
         roles: ['consultant'],
         comingSoon: true,
+      },
+    ],
+  },
+  {
+    label: 'Comunidad',
+    items: [
+      {
+        label: 'Encuestas',
+        href: '/encuestas',
+        icon: ClipboardList,
+        description:
+          'Comparte tu experiencia y obtén créditos extra para usar la plataforma.',
       },
     ],
   },

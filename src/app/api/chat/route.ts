@@ -3,11 +3,12 @@ import { streamText, generateText } from 'ai';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { embedOne } from '@/lib/ai/embeddings';
-import { chatModel, fastModel } from '@/lib/ai/gemini';
+import { chatModel, fastModel, CHAT_MODEL_ID, FAST_MODEL_ID } from '@/lib/ai/gemini';
 import { buildChatSystemPrompt, TITLE_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 import type { ChatSource, NormativeDocType } from '@/lib/supabase/types';
 import type { ProfileRole } from '@/lib/auth/session';
 import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
+import { recordAiUsage } from '@/lib/ai/usage-log';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -157,6 +158,7 @@ export async function POST(req: Request) {
   const trimmedHistory = messages.slice(-MAX_HISTORY);
 
   // 5. Stream
+  const chatStartedAt = Date.now();
   const result = streamText({
     model: chatModel,
     system: systemPrompt,
@@ -165,7 +167,18 @@ export async function POST(req: Request) {
     onError({ error }) {
       console.error('[chat] streamText runtime error:', error);
     },
-    onFinish: async ({ text }) => {
+    onFinish: async ({ text, usage }) => {
+      // Bitácora de tokens del chat
+      void recordAiUsage({
+        userId: user.id,
+        feature: 'chat',
+        model: CHAT_MODEL_ID,
+        inputTokens: usage?.promptTokens ?? 0,
+        outputTokens: usage?.completionTokens ?? 0,
+        latencyMs: Date.now() - chatStartedAt,
+        metadata: { conversation_id: conversationId },
+      });
+
       // Persistir respuesta del asistente
       await supabase.from('chat_messages').insert({
         conversation_id: conversationId,
@@ -178,12 +191,23 @@ export async function POST(req: Request) {
       const convoData = convo as { id: string; title: string | null };
       if (!convoData.title) {
         try {
-          const { text: rawTitle } = await generateText({
+          const titleStartedAt = Date.now();
+          const titleResult = await generateText({
             model: fastModel,
             system: TITLE_SYSTEM_PROMPT,
             prompt: `Pregunta del usuario:\n${lastUser.content}\n\nRespuesta:\n${text.slice(0, 400)}`,
             temperature: 0.2,
             maxTokens: 30,
+          });
+          const rawTitle = titleResult.text;
+          void recordAiUsage({
+            userId: user.id,
+            feature: 'chat_title',
+            model: FAST_MODEL_ID,
+            inputTokens: titleResult.usage?.promptTokens ?? 0,
+            outputTokens: titleResult.usage?.completionTokens ?? 0,
+            latencyMs: Date.now() - titleStartedAt,
+            metadata: { conversation_id: conversationId },
           });
           const cleanTitle = rawTitle
             .replace(/^["']|["']$/g, '')

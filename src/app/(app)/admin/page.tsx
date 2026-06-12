@@ -392,7 +392,31 @@ export default async function AdminPage() {
         <h2 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-3">
           Herramientas de mantenimiento
         </h2>
-        <div className="grid sm:grid-cols-2 gap-3">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <Link
+            href="/admin/encuestas"
+            className="group rounded-xl border border-border bg-card p-5 hover:border-brand-400 hover:shadow-md hover:-translate-y-0.5 transition-all"
+          >
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 mb-3">
+              <Users className="h-4 w-4" />
+            </span>
+            <h3 className="font-semibold text-base mb-1">Encuestas</h3>
+            <p className="text-xs text-muted-foreground">
+              Estadísticas por perfil y respuestas agregadas.
+            </p>
+          </Link>
+          <Link
+            href="/admin/uso-ia"
+            className="group rounded-xl border border-border bg-card p-5 hover:border-brand-400 hover:shadow-md hover:-translate-y-0.5 transition-all"
+          >
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-700 mb-3">
+              <TrendingUp className="h-4 w-4" />
+            </span>
+            <h3 className="font-semibold text-base mb-1">Uso de IA</h3>
+            <p className="text-xs text-muted-foreground">
+              Gasto de tokens por modelo, feature y usuario.
+            </p>
+          </Link>
           <Link
             href="/admin/scraping"
             className="group rounded-xl border border-border bg-card p-5 hover:border-brand-400 hover:shadow-md hover:-translate-y-0.5 transition-all"

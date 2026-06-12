@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { generateText } from 'ai';
 import { createClient } from '@/lib/supabase/server';
-import { chatModel } from '@/lib/ai/gemini';
+import { chatModel, CHAT_MODEL_ID } from '@/lib/ai/gemini';
 import { AMPLIACION_PLAZO_SYSTEM_PROMPT } from '@/lib/ai/generator-prompts';
 import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
+import { recordAiUsage } from '@/lib/ai/usage-log';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -50,11 +51,22 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
   const userPrompt = buildAmpliacionUserPrompt(row.input_data, row.title);
 
   try {
-    const { text } = await generateText({
+    const startedAt = Date.now();
+    const result = await generateText({
       model: chatModel,
       system: AMPLIACION_PLAZO_SYSTEM_PROMPT,
       prompt: userPrompt,
       temperature: 0.3,
+    });
+    const { text } = result;
+    void recordAiUsage({
+      userId: user.id,
+      feature: 'generator_ampliacion_plazo',
+      model: CHAT_MODEL_ID,
+      inputTokens: result.usage?.promptTokens ?? 0,
+      outputTokens: result.usage?.completionTokens ?? 0,
+      latencyMs: Date.now() - startedAt,
+      metadata: { document_id: row.id, document_type: row.document_type },
     });
 
     if (!text || text.trim().length < 50) {
