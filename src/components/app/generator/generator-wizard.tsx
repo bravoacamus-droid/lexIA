@@ -30,6 +30,7 @@ type DocType =
   | 'cambio_bienes'
   | 'consultas_observaciones'
   | 'apelaciones'
+  | 'armado_oferta'
   | 'bases_estandar'
   | 'pliego_absolucion'
   | 'tdr_eett'
@@ -74,6 +75,13 @@ const DOC_TYPES: Record<Role, Array<{
   href?: string;
 }>> = {
   contratista: [
+    {
+      id: 'armado_oferta' as DocType,
+      icon: FileText,
+      title: 'Armado de oferta',
+      desc: 'Genera todos los formatos y anexos oficiales de la oferta (DJ datos del postor, Art. 51, oferta económica, personal clave, equipamiento, experiencia) a partir de las Bases Integradas y tus datos.',
+      href: '/generador/armado-oferta',
+    },
     {
       id: 'consultas_observaciones' as DocType,
       icon: FileText,

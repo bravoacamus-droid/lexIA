@@ -33,6 +33,7 @@ export type AnyGeneratorSlug =
   | 'pliego_absolucion'
   | 'bases_estandar'
   | 'apelaciones'
+  | 'armado_oferta'
   | 'tdr_eett'
   | 'estrategia_contratacion'
   | 'cambio_personal_clave'

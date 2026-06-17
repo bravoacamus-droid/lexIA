@@ -10,6 +10,7 @@ import {
   PLIEGO_ABSOLUCION_SYSTEM,
   BASES_ESTANDAR_SYSTEM,
   APELACIONES_SYSTEM,
+  ARMADO_OFERTA_SYSTEM,
 } from '@/lib/ai/selection-generator-prompts';
 import {
   loadTemplates,
@@ -27,7 +28,8 @@ type SelectionSlug =
   | 'consultas_observaciones'
   | 'pliego_absolucion'
   | 'bases_estandar'
-  | 'apelaciones';
+  | 'apelaciones'
+  | 'armado_oferta';
 
 const SCHEMA = z.object({
   slug: z.enum([
@@ -35,6 +37,7 @@ const SCHEMA = z.object({
     'pliego_absolucion',
     'bases_estandar',
     'apelaciones',
+    'armado_oferta',
   ]),
   title: z.string().min(2).max(160),
   object_type: z
@@ -58,6 +61,7 @@ const SYSTEM_BY_SLUG: Record<SelectionSlug, string> = {
   pliego_absolucion: PLIEGO_ABSOLUCION_SYSTEM,
   bases_estandar: BASES_ESTANDAR_SYSTEM,
   apelaciones: APELACIONES_SYSTEM,
+  armado_oferta: ARMADO_OFERTA_SYSTEM,
 };
 
 const ROLE_BY_SLUG: Record<SelectionSlug, ProfileRole[]> = {
@@ -65,6 +69,7 @@ const ROLE_BY_SLUG: Record<SelectionSlug, ProfileRole[]> = {
   pliego_absolucion: ['entity', 'consultant'],
   bases_estandar: ['entity', 'consultant'],
   apelaciones: ['provider', 'consultant'],
+  armado_oferta: ['provider', 'consultant'],
 };
 
 interface HybridRow {
@@ -110,6 +115,8 @@ function buildQueryForRag(slug: SelectionSlug, title: string): string {
       'estructura de bases estándar, requisitos de calificación, factores de evaluación, valor referencial',
     apelaciones:
       'recurso de apelación contrataciones, competencia Tribunal OECE, garantía 3% UIT, plazo 8 días hábiles, art. 49 Ley 32069',
+    armado_oferta:
+      'oferta postor, formatos y anexos de bases estándar, declaración jurada de datos del postor, art. 51 Ley 32069 impedimentos, experiencia del postor, personal clave, oferta económica, RNP',
   };
   return `${title}. ${baseQueries[slug]}`;
 }
