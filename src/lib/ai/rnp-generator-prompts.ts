@@ -8,9 +8,18 @@
 
 const COMMON_RULES = `REGLAS COMUNES OBLIGATORIAS:
 - Redacta en español formal, propio del derecho administrativo peruano.
-- Cita la norma exacta cuando aplique (Reglamento del RNP, Directiva del OECE).
-- Devuelve el documento en MARKDOWN.
-- NO incluyas texto fuera del documento.`;
+- Cita la norma exacta cuando aplique: Ley N° 32069 (Ley General de
+  Contrataciones Públicas), su Reglamento (DS N° 009-2025-EF),
+  Directivas del OECE sobre RNP. NO uses la derogada Ley 30225 ni
+  el DS 344-2018-EF.
+- Devuelve el documento en MARKDOWN. Usa tablas markdown para los
+  Estados Financieros (Balance General, Estado de Resultados),
+  cuadros de obras acreditadas y checklists de documentos.
+- Para campos donde el usuario NO proporcionó información, usa
+  *[Pendiente de completar: describir X]*. NUNCA inventes montos,
+  números de partida ni RUCs.
+- NO incluyas texto fuera del documento (sin saludo previo, sin
+  explicaciones del proceso, sin comentarios al usuario).`;
 
 // ════════════════════════════════════════════════════════
 // 1. AUMENTO DE CAPACIDAD MÁXIMA DE CONTRATACIÓN
