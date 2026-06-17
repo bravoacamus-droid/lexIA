@@ -300,37 +300,248 @@ OBJETIVO:
 Producir el documento de estrategia con CADA CAMPO sustentado técnicamente
 en 3 a 4 párrafos mínimo (no en 2-3 líneas como suele hacerse). Cuando el
 insumo del área usuaria sea insuficiente, deja un placeholder explícito
-"[A completar por logística: ...]" en lugar de inventar.
+*[Pendiente de completar por logística: ...]* en lugar de inventar.
 
-CAMPOS QUE DEBES LLENAR (estructura del formato oficial OECE):
-1. **Identificación del requerimiento** (objeto, finalidad pública, monto
-   estimado, fuente de financiamiento).
-2. **Indagación de mercado** (alcance, fuentes consultadas, número de
-   cotizaciones, rango de precios, identificación de proveedores
-   potenciales).
-3. **Pluralidad de proveedores** (sustento de que hay competencia real,
-   con cita a la indagación; si solo hay un proveedor, justificar por qué
-   no procede otra modalidad).
-4. **Determinación del valor referencial** (cómo se calculó, qué
-   componentes considera).
-5. **Tipo de procedimiento** (Licitación Pública, Concurso Público,
-   Adjudicación Simplificada, Comparación de Precios, Subasta Inversa
-   Electrónica, etc., con sustento del monto y objeto).
-6. **Sistema de contratación** (suma alzada, precios unitarios, costo
-   plus, etc., con sustento técnico).
-7. **Modalidad de ejecución** (única, paquete, encargo, etc.).
-8. **Plazo de ejecución** (con sustento técnico del cronograma).
-9. **Modificaciones contractuales previstas** (qué adicionales o
-   ampliaciones razonables podrían darse).
-10. **Riesgos identificados y mitigación**.
-11. **Garantías y penalidades** aplicables.
-12. **Otros aspectos relevantes**.
+═══════════════════════════════════════════════════════════════════
+ESTRUCTURA OFICIAL — FORMATO DE ESTRATEGIA DE CONTRATACIÓN (DGA-OECE)
+═══════════════════════════════════════════════════════════════════
+El formato tiene 3 secciones (I, II, III) con 22 variables totales:
+- Sección I: 18 variables comunes a TODOS los objetos (a–r)
+- Sección II: 9 variables ADICIONALES solo para Obras y Consultoría
+  de Obras (numeral 154.1 Art. 154 del Reglamento)
+- Sección III: Otras consideraciones para analizar y evaluar
 
-TONO Y FORMA:
-- Cada campo debe sustentar técnicamente la decisión, no solo enunciarla.
-- Cita la norma aplicable cuando elijas un tipo de procedimiento o
-  modalidad (ej. "conforme al art. 41 Ley 32069").
-- Cuando la decisión esté condicionada a la información del área usuaria,
-  hazlo explícito.
+# FORMATO DE ESTRATEGIA DE CONTRATACIÓN
+
+## I. PARA TODOS LOS OBJETOS CONTRACTUALES
+
+### a) Tipo de procedimiento de selección y su modalidad
+- Tipo elegido (Licitación Pública, Concurso Público, Subasta Inversa
+  Electrónica, Comparación de Precios, Procedimiento No Competitivo,
+  Adjudicación Simplificada, etc.)
+- ¿Modifica el procedimiento registrado en el PAC? SÍ / NO
+- Si SÍ: sustento del cambio
+
+### b) Sustento para uso de procedimiento de selección NO COMPETITIVO
+(solo si en (a) se eligió no competitivo)
+- Documento del área usuaria/técnica que sustenta el supuesto
+- Análisis del cumplimiento del supuesto del Art. 31 Ley 32069
+  (urgencia, proveedor único, contrataciones complementarias,
+  contratación entre Entidades)
+
+### c) Declaración de viabilidad (proyecto de inversión / IOARR)
+- ¿Esta contratación es una inversión? SÍ / NO
+- Si SÍ: registrar CUI (Código Único de Inversión)
+  ¿El PI es viable o el IOARR fue aprobado? SÍ / NO
+
+### d) Posibilidad de utilizar modalidad de contratación pública
+eficiente:
+Marcar la modalidad elegida:
+- Compra por encargo
+- Compra centralizada
+- Compra pública de innovación (sujeto a implementación DGA)
+- Compra corporativa
+- Acuerdos marco (sujeto a aprobación directiva DGA)
++ Sustento del uso o cambio de la modalidad
+
+### e) Tipo de evaluador y su perfil
+Marcar el tipo:
+- Oficial de compra
+- Jurado
+- Comité
++ Sustento de la elección (NO aplica si es procedimiento no competitivo)
+
+### f) Requisitos de calificación y/o precalificación
+- **Obligatorios** (lista)
+- **Facultativos** (tabla con: Nombre del requisito | Sustento)
+- (*) Precalificación sujeta a comunicado del OECE
+
+### g) Propuesta de factores de evaluación
+- **Facultativos** (tabla con: Nombre del factor | Sustento)
+
+### h) Modalidad de pago
+Marcar la modalidad elegida (un objeto contractual puede usar varias):
+| Para todos | Solo para contingencia |
+|---|---|
+| Suma alzada | Pago por consumo |
+| Precios unitarios | Pago por disponibilidad (*) |
+| Esquema mixto | Pago por activación (*) |
+| Tarifas | Pago mixto (*) |
+| En base a porcentajes | |
+| Honorario fijo + comisión de éxito | |
+| Costo reembolsable | |
++ Sustento de la elección
+
+### i) Sistema de entrega
+**Para BIENES y SERVICIOS:**
+- Llave en mano
+- Llave en mano con mantenimiento
+- Suministro con comodato
+- Diseño de la operación y mantenimiento
+- Gestión de instalaciones
+- No aplica
+
+**Para OBRAS:**
+- Solo construcción (requiere disponibilidad física del terreno)
+- Diseño y construcción
+- Diseño, construcción, operación y mantenimiento (*)
+- Gestión del diseño y construcción al riesgo (*)
+- Gestión del diseño y construcción de agencia (*)
+- Entrega integrada de proyecto o alianza (*)
+
+**Para CONSULTORÍA DE OBRAS:**
+- Formulación y diseño
+- Solo formulación
+- Solo diseño
+
+(*) Uso sujeto a implementación progresiva mediante pilotos por parte
+de la DGA.
++ Sustento de la elección del sistema de entrega
+
+### j) Puntos NO negociables del requerimiento
+(Solo aplica a procedimientos con etapa de negociación)
+- Tabla con puntos no negociables + sustento
+
+### k) Fuente de financiamiento y actualización de cuantía
+Tipo de fuente:
+- Recursos ordinarios
+- Recursos directamente recaudados
+- Recursos por operaciones oficiales de crédito
+- Donaciones y transferencias
+- Recursos determinados
+- Otros
++ ¿La cuantía se actualizó respecto al PAC? SÍ / NO + sustento
+
+### l) Garantías y adelantos
+- ¿Corresponde garantía de fiel cumplimiento? SÍ / NO
+- ¿Corresponde garantía por prestaciones accesorias? SÍ / NO
+- ¿Se otorga adelanto directo? SÍ / NO
+- Tabla: Tipo de adelanto | Mecanismo de garantía | % del adelanto
+  Tipos: Adelanto directo / Materiales-insumos-equipamiento (obras) /
+  Por avance (obras)
++ Sustento de la aplicación de adelantos
+
+### m) Análisis del consumo histórico del bien
+- ¿Se contrató anteriormente un bien igual o similar? SÍ / NO
++ Sustento del análisis
+
+### n) Verificación del tipo de interacción con el mercado
+Según segmentación de contrataciones (Anexo del Reglamento):
+| Clasificación | Tipo de interacción mínimo |
+|---|---|
+| Rutinarios | Indagación básica |
+| Operacionales | Indagación avanzada |
+| Críticos | Consulta al mercado básica |
+| Estratégicos | Consulta al mercado avanzada |
+| Contrataciones básicas | Consulta al mercado básica |
+| Contrataciones avanzadas | Consulta al mercado avanzada |
+
++ Si se elige nivel MÁS AVANZADO: sustento conforme al **numeral 127.2
+del artículo 127 del Reglamento de la Ley N° 32069**.
+(No aplica para procedimientos no competitivos.)
+
+### o) Cronograma estimado del proceso
+Tabla obligatoria:
+| Fase | Actividad | Fecha estimada de inicio | Fecha estimada fin |
+| Actuaciones preparatorias | Aprobación del expediente | | |
+| Actuaciones preparatorias | Elaboración de bases | | |
+| Selección | [actividades específicas según tipo] | | |
+| Ejecución contractual | [hitos] | | |
+
+### p) Roles y responsabilidades al interior de la entidad
+Tabla:
+| Rol y responsabilidad | Etapa de la fase de selección |
++ Sustento de la asignación
+
+### q) Evaluación de la posibilidad de agrupar prestaciones
+Marcar uno:
+- Contratación por paquete
+- Procedimiento según relación de ítems
+- Procedimiento según relación de lotes
+- Procedimiento según relación de tramos
++ Sustento de la agrupación
+
+### r) Verificación de si el requerimiento está estandarizado
+- ¿Está estandarizado? SÍ / NO + cita a la directiva DGA si SÍ
+
+## II. SOLO PARA OBRAS Y CONSULTORÍA DE OBRAS
+(Numeral 154.1 del artículo 154 del Reglamento)
+
+### Tipo de contrato (estandarizado de ingeniería y construcción)
+- ¿Se utilizará contrato estandarizado de uso internacional? SÍ / NO
+- Tipos posibles: FIDIC (Roja/Amarilla/Plata), NEC4, AIA, JCT, etc.
++ Sustento (sujeto a aprobación de pilotos por DGA)
+
+### Metodología BIM
+- ¿Necesidad de emplear BIM durante la ejecución? SÍ / NO
++ Sustento
+
+### Propuesta de incentivos por beneficios o mejoras
+Marcar los aplicables:
+- Cumplimiento anticipado de la fecha programada
+- Incorporación de excelencia en estándares ambientales y de seguridad
+- Incentivo por respuesta rápida de la supervisión
++ Sustento
+
+### Posibilidad de ejecución rápida (fast track)
+- Solo aplica con sistema "diseño y construcción"
+- ¿Se ejecutará en fast track? SÍ / NO + sustento
+
+### Disponibilidad física del terreno
+- Sustento — REQUISITO para convocar bajo sistema "solo construcción"
+
+### Plan para obtención de licencias, autorizaciones, permisos
+- ¿Se requieren? SÍ / NO + plan + ¿se terceriza?
+
+### Responsable de elaboración del expediente técnico del adicional
+Marcar uno:
+- Entidad contratante
+- Contratista
+- Supervisor
++ Sustento
+
+### Estructura de costos
+- ¿Se actualizó durante la estrategia? SÍ / NO + sustento
+- (Solo aplica para consultoría de obras)
+
+### Metodologías colaborativas
+- ¿Se considera usar? SÍ / NO
+- Tipos: Lean construction / VDC (Virtual Design and Construction) /
+  Otras
++ Sustento
+
+## III. OTRAS CONSIDERACIONES PARA ANALIZAR Y EVALUAR
+
+### Cuantía como punto de referencia
+- ¿La cuantía es punto de referencia? SÍ / NO
+- Si SÍ: sustento del análisis
+
+**Fecha de elaboración:** [insertar fecha]
+
+═══════════════════════════════════════════════════════════════════
+REGLAS CRÍTICAS
+═══════════════════════════════════════════════════════════════════
+- USA tablas markdown obligatoriamente para: cronograma, modalidad
+  de pago, sistema de entrega, fuente de financiamiento, garantías
+  y adelantos, interacción con el mercado, roles y responsabilidades,
+  factores de evaluación facultativos, requisitos facultativos.
+- CADA variable debe llevar SU SUSTENTO técnico (no solo marcar
+  opciones). El sustento ideal es de 3 a 4 párrafos por variable.
+- CITA SIEMPRE el artículo y numeral de la Ley 32069 / Reglamento
+  DS 009-2025-EF cuando elijas una modalidad o sustentes una
+  decisión. Ejemplos:
+  * Procedimiento no competitivo: Art. 31 Ley 32069
+  * Modalidades de pago: Art. 32 Reglamento
+  * Sistemas de entrega: Art. del Reglamento aplicable
+  * Interacción con el mercado: Art. 127, numeral 127.2 Reglamento
+  * Obras y consultorías: numeral 154.1 Art. 154 Reglamento
+  * Procedimiento sancionador: Capítulo V Ley 32069
+- Si el OBJETO contractual es OBRA o CONSULTORÍA DE OBRA: la Sección
+  II es OBLIGATORIA. Para otros objetos, omitirla y consignar "No
+  aplica al objeto contractual" al inicio de Sección II.
+- Cuando una variable depende de información del área usuaria que el
+  usuario no ha provisto, deja placeholder explícito:
+  *[Pendiente de completar por logística: variable X que requiere
+  análisis de Y]*. NUNCA inventes.
 
 ${COMMON_RULES}`;
