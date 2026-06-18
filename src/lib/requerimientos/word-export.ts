@@ -48,6 +48,24 @@ interface ClauseInput {
   included: boolean;
 }
 
+interface EntregaInput {
+  numero: number;
+  descripcion: string;
+  plazo_dias: number | null;
+  monto_pen: number | null;
+  forma_pago: string;
+}
+
+interface ItemInput {
+  numero: number;
+  codigo: string | null;
+  descripcion: string;
+  unidad_medida: string;
+  cantidad: number;
+  precio_unitario_pen: number | null;
+  marca_modelo: string | null;
+}
+
 interface ExportInput {
   anexoTitulo: string; // "ESPECIFICACIONES TÉCNICAS" / "TÉRMINOS DE REFERENCIA"
   objeto: string; // "Bien" / "Servicio" / "Obra" / "Consultoría de Obra"
@@ -57,6 +75,18 @@ interface ExportInput {
   denominacion: string;
   areaUsuaria: string | null;
   clauses: ClauseInput[];
+  entregas: EntregaInput[];
+  items: ItemInput[];
+}
+
+function fmtPen(n: number | null): string {
+  if (n === null || isNaN(n)) return '—';
+  return n.toLocaleString('es-PE', {
+    style: 'currency',
+    currency: 'PEN',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -420,6 +450,174 @@ function makeKeyValueTable(
   });
 }
 
+function cellText(text: string, opts: { bold?: boolean; align?: (typeof AlignmentType)[keyof typeof AlignmentType] } = {}): TableCell {
+  return new TableCell({
+    children: [
+      new Paragraph({
+        alignment: opts.align,
+        children: [
+          new TextRun({ text: text || '—', font: FONT, size: 20, bold: opts.bold }),
+        ],
+      }),
+    ],
+  });
+}
+
+function headerCell(text: string): TableCell {
+  return new TableCell({
+    shading: { type: ShadingType.CLEAR, color: 'auto', fill: LIGHT_GRAY_SHADE },
+    children: [
+      new Paragraph({
+        children: [
+          new TextRun({ text, bold: true, font: FONT, size: 20 }),
+        ],
+      }),
+    ],
+  });
+}
+
+function makeEntregasTable(entregas: EntregaInput[]): Table {
+  const headerRow = new TableRow({
+    tableHeader: true,
+    children: [
+      headerCell('N°'),
+      headerCell('Descripción del entregable'),
+      headerCell('Plazo (días)'),
+      headerCell('Monto (S/)'),
+      headerCell('Forma de pago'),
+    ],
+  });
+
+  const dataRows = entregas
+    .sort((a, b) => a.numero - b.numero)
+    .map(
+      (e) =>
+        new TableRow({
+          children: [
+            cellText(String(e.numero), { align: AlignmentType.CENTER }),
+            cellText(e.descripcion),
+            cellText(
+              e.plazo_dias !== null ? String(e.plazo_dias) : '—',
+              { align: AlignmentType.CENTER },
+            ),
+            cellText(fmtPen(e.monto_pen), { align: AlignmentType.RIGHT }),
+            cellText(e.forma_pago),
+          ],
+        }),
+    );
+
+  const total = entregas.reduce((acc, e) => acc + (e.monto_pen ?? 0), 0);
+  const totalRow = new TableRow({
+    children: [
+      new TableCell({
+        columnSpan: 3,
+        shading: { type: ShadingType.CLEAR, color: 'auto', fill: LIGHT_GRAY_SHADE },
+        children: [
+          new Paragraph({
+            alignment: AlignmentType.RIGHT,
+            children: [
+              new TextRun({ text: 'TOTAL', bold: true, font: FONT, size: 20 }),
+            ],
+          }),
+        ],
+      }),
+      new TableCell({
+        shading: { type: ShadingType.CLEAR, color: 'auto', fill: LIGHT_GRAY_SHADE },
+        children: [
+          new Paragraph({
+            alignment: AlignmentType.RIGHT,
+            children: [
+              new TextRun({ text: fmtPen(total), bold: true, font: FONT, size: 20, color: BRAND_DARK }),
+            ],
+          }),
+        ],
+      }),
+      new TableCell({
+        shading: { type: ShadingType.CLEAR, color: 'auto', fill: LIGHT_GRAY_SHADE },
+        children: [new Paragraph({ children: [new TextRun({ text: '' })] })],
+      }),
+    ],
+  });
+
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: TABLE_BORDERS,
+    rows: [headerRow, ...dataRows, totalRow],
+  });
+}
+
+function makeItemsTable(items: ItemInput[]): Table {
+  const headerRow = new TableRow({
+    tableHeader: true,
+    children: [
+      headerCell('N°'),
+      headerCell('Código'),
+      headerCell('Descripción'),
+      headerCell('U.M.'),
+      headerCell('Cant.'),
+      headerCell('P. Unit. (S/)'),
+      headerCell('Subtotal (S/)'),
+    ],
+  });
+
+  const dataRows = items
+    .sort((a, b) => a.numero - b.numero)
+    .map((i) => {
+      const subtotal = (i.precio_unitario_pen ?? 0) * (i.cantidad ?? 0);
+      const descParts = [i.descripcion];
+      if (i.marca_modelo) descParts.push(`(Marca/Modelo referencial: ${i.marca_modelo} o equivalente técnico)`);
+      return new TableRow({
+        children: [
+          cellText(String(i.numero), { align: AlignmentType.CENTER }),
+          cellText(i.codigo || '—'),
+          cellText(descParts.join(' ')),
+          cellText(i.unidad_medida, { align: AlignmentType.CENTER }),
+          cellText(i.cantidad.toLocaleString('es-PE'), { align: AlignmentType.CENTER }),
+          cellText(fmtPen(i.precio_unitario_pen), { align: AlignmentType.RIGHT }),
+          cellText(fmtPen(subtotal), { align: AlignmentType.RIGHT }),
+        ],
+      });
+    });
+
+  const total = items.reduce(
+    (acc, i) => acc + (i.precio_unitario_pen ?? 0) * (i.cantidad ?? 0),
+    0,
+  );
+  const totalRow = new TableRow({
+    children: [
+      new TableCell({
+        columnSpan: 6,
+        shading: { type: ShadingType.CLEAR, color: 'auto', fill: LIGHT_GRAY_SHADE },
+        children: [
+          new Paragraph({
+            alignment: AlignmentType.RIGHT,
+            children: [
+              new TextRun({ text: 'VALOR REFERENCIAL', bold: true, font: FONT, size: 20 }),
+            ],
+          }),
+        ],
+      }),
+      new TableCell({
+        shading: { type: ShadingType.CLEAR, color: 'auto', fill: LIGHT_GRAY_SHADE },
+        children: [
+          new Paragraph({
+            alignment: AlignmentType.RIGHT,
+            children: [
+              new TextRun({ text: fmtPen(total), bold: true, font: FONT, size: 20, color: BRAND_DARK }),
+            ],
+          }),
+        ],
+      }),
+    ],
+  });
+
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: TABLE_BORDERS,
+    rows: [headerRow, ...dataRows, totalRow],
+  });
+}
+
 // ════════════════════════════════════════════════════════════════════
 // API pública
 // ════════════════════════════════════════════════════════════════════
@@ -517,6 +715,20 @@ export async function generateRequirementDocx(input: ExportInput): Promise<Buffe
         ],
       }),
     );
+  }
+
+  // 3. Registro de entregas y RTM
+  if (input.entregas && input.entregas.length > 0) {
+    blocks.push(makeSectionHeading('3. REGISTRO DE ENTREGAS Y RTM'));
+    blocks.push(makeEntregasTable(input.entregas));
+    blocks.push(new Paragraph({ children: [new TextRun({ text: '', size: 4 })] }));
+  }
+
+  // 4. Registro de ítems
+  if (input.items && input.items.length > 0) {
+    blocks.push(makeSectionHeading('4. REGISTRO DE ÍTEMS'));
+    blocks.push(makeItemsTable(input.items));
+    blocks.push(new Paragraph({ children: [new TextRun({ text: '', size: 4 })] }));
   }
 
   const doc = new Document({

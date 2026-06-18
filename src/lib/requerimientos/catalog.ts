@@ -26,6 +26,61 @@ export interface ClauseDefinition {
   aiHint: string;
 }
 
+// ════════════════════════════════════════════════════════════════════
+// Paso 2 — REGISTRO DE ENTREGAS Y RTM
+// Cada fila representa un hito/entregable del contrato.
+// ════════════════════════════════════════════════════════════════════
+export interface Entrega {
+  id: string;
+  numero: number;
+  descripcion: string;
+  plazo_dias: number | null;
+  monto_pen: number | null;
+  forma_pago: string;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// Paso 3 — REGISTRO DE ÍTEMS
+// Catálogo de bienes/servicios/partidas del contrato.
+// ════════════════════════════════════════════════════════════════════
+export const UNIDADES_MEDIDA = [
+  'UND',
+  'KG',
+  'GR',
+  'TON',
+  'L',
+  'ML',
+  'M',
+  'M2',
+  'M3',
+  'KM',
+  'HR',
+  'DIA',
+  'MES',
+  'AÑO',
+  'GLB',
+  'PAR',
+  'DOC',
+  'JGO',
+  'CJA',
+  'PAQ',
+  'TAR',
+  'ROL',
+] as const;
+
+export type UnidadMedida = (typeof UNIDADES_MEDIDA)[number];
+
+export interface Item {
+  id: string;
+  numero: number;
+  codigo: string | null;
+  descripcion: string;
+  unidad_medida: string;
+  cantidad: number;
+  precio_unitario_pen: number | null;
+  marca_modelo: string | null;
+}
+
 const COMMON_AI_PREAMBLE =
   'Bajo la Ley N° 32069 y su Reglamento DS N° 009-2025-EF, redacta esta cláusula en español jurídico formal, con citas normativas precisas. NO inventes números de opinión ni resolución que no estén en el contexto normativo provisto. Profesionaliza la información puntual del usuario sin cambiar su sentido.';
 

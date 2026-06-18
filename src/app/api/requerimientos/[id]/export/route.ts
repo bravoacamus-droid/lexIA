@@ -50,6 +50,22 @@ export async function GET(req: Request, ctx: { params: { id: string } }) {
       order: number;
       included: boolean;
     }>;
+    entregas: Array<{
+      numero: number;
+      descripcion: string;
+      plazo_dias: number | null;
+      monto_pen: number | null;
+      forma_pago: string;
+    }> | null;
+    items: Array<{
+      numero: number;
+      codigo: string | null;
+      descripcion: string;
+      unidad_medida: string;
+      cantidad: number;
+      precio_unitario_pen: number | null;
+      marca_modelo: string | null;
+    }> | null;
   };
 
   if (row.user_id !== user.id) {
@@ -75,6 +91,8 @@ export async function GET(req: Request, ctx: { params: { id: string } }) {
     denominacion: row.denominacion,
     areaUsuaria: row.area_usuaria,
     clauses: row.clauses || [],
+    entregas: row.entregas || [],
+    items: row.items || [],
   });
 
   const safeName = row.denominacion

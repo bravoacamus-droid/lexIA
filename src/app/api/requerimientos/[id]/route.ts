@@ -16,12 +16,34 @@ const ClauseSchema = z.object({
   is_custom: z.boolean().optional().default(false),
 });
 
+const EntregaSchema = z.object({
+  id: z.string(),
+  numero: z.number().int().min(1),
+  descripcion: z.string().max(600),
+  plazo_dias: z.number().int().min(1).max(9999).nullable(),
+  monto_pen: z.number().min(0).nullable(),
+  forma_pago: z.string().max(120),
+});
+
+const ItemSchema = z.object({
+  id: z.string(),
+  numero: z.number().int().min(1),
+  codigo: z.string().max(40).nullable(),
+  descripcion: z.string().max(500),
+  unidad_medida: z.string().max(10),
+  cantidad: z.number().min(0),
+  precio_unitario_pen: z.number().min(0).nullable(),
+  marca_modelo: z.string().max(120).nullable(),
+});
+
 const UpdateSchema = z.object({
   area_usuaria: z.string().max(160).optional().nullable(),
   denominacion: z.string().min(2).max(500).optional(),
   organo_unidad_organica: z.string().max(160).optional().nullable(),
   actividad_poi: z.string().max(500).optional().nullable(),
   clauses: z.array(ClauseSchema).optional(),
+  entregas: z.array(EntregaSchema).max(100).optional(),
+  items: z.array(ItemSchema).max(500).optional(),
   status: z.enum(['draft', 'review', 'final', 'archived']).optional(),
 });
 
