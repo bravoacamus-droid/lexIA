@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { DocumentEditor } from '@/components/app/generator/document-editor';
+import { DocumentUsageCard } from '@/components/app/generator/document-usage-card';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,13 +39,21 @@ export default async function GeneradorDocumentPage({ params, searchParams }: Pr
   if (row.user_id !== user.id) notFound();
 
   return (
-    <DocumentEditor
-      id={row.id}
-      documentType={row.document_type}
-      title={row.title}
-      status={row.status}
-      initialContent={row.generated_content || ''}
-      autoGenerate={searchParams.generate === '1' && !row.generated_content}
-    />
+    <div className="space-y-6">
+      <DocumentEditor
+        id={row.id}
+        documentType={row.document_type}
+        title={row.title}
+        status={row.status}
+        initialContent={row.generated_content || ''}
+        autoGenerate={searchParams.generate === '1' && !row.generated_content}
+      />
+      <div className="container max-w-5xl pb-12">
+        <DocumentUsageCard
+          documentId={row.id}
+          pollWhileEmpty={!row.generated_content}
+        />
+      </div>
+    </div>
   );
 }

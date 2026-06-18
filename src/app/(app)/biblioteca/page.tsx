@@ -13,6 +13,7 @@ export default async function LibraryPage() {
   if (!user) return null;
 
   // Cargamos en paralelo todo lo que necesita la vista inicial
+  const INITIAL_PAGE_SIZE = 30;
   const [foldersRes, savedRes, recentDocsRes, typeCountsRes] = await Promise.all([
     supabase
       .from('user_folders')
@@ -25,9 +26,11 @@ export default async function LibraryPage() {
       .eq('user_id', user.id),
     supabase
       .from('normative_documents')
-      .select('id, type, number, title, summary, date, source_url')
-      .order('date', { ascending: false })
-      .limit(20),
+      .select('id, type, number, title, summary, date, source_url', {
+        count: 'exact',
+      })
+      .order('date', { ascending: false, nullsFirst: false })
+      .range(0, INITIAL_PAGE_SIZE - 1),
     supabase.from('normative_documents').select('type'),
   ]);
 
@@ -58,11 +61,16 @@ export default async function LibraryPage() {
     typeCounts[row.type] = (typeCounts[row.type] || 0) + 1;
   }
 
+  const initialDocuments = (recentDocsRes.data || []) as never[];
+  const totalDocuments = (recentDocsRes.count ?? initialDocuments.length) as number;
+
   return (
     <LibraryView
       initialFolders={folders}
       unfiledCount={unfiledCount}
-      initialDocuments={(recentDocsRes.data || []) as never}
+      initialDocuments={initialDocuments}
+      initialTotal={totalDocuments}
+      pageSize={INITIAL_PAGE_SIZE}
       savedDocIds={Array.from(savedDocIds)}
       typeCounts={typeCounts}
     />

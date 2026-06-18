@@ -168,21 +168,20 @@ ${base_text ? `TEXTO BASE PROVISTO (insumos previos del área usuaria / cotizaci
       temperature: 0.3,
     });
     const { text } = result;
-    void recordAiUsage({
-      userId: user.id,
-      feature: `generator_${slug}`,
-      model: CHAT_MODEL_ID,
-      inputTokens: result.usage?.promptTokens ?? 0,
-      outputTokens: result.usage?.completionTokens ?? 0,
-      latencyMs: Date.now() - startedAt,
-      metadata: { slug, title },
-    });
+    const latencyMs = Date.now() - startedAt;
 
     if (!text || text.trim().length < 200) {
-      return NextResponse.json(
-        { error: 'empty_response' },
-        { status: 502 },
-      );
+      void recordAiUsage({
+        userId: user.id,
+        feature: `generator_${slug}`,
+        model: CHAT_MODEL_ID,
+        inputTokens: result.usage?.promptTokens ?? 0,
+        outputTokens: result.usage?.completionTokens ?? 0,
+        latencyMs,
+        status: 'error',
+        metadata: { slug, title, error: 'empty_response' },
+      });
+      return NextResponse.json({ error: 'empty_response' }, { status: 502 });
     }
 
     const { data: doc, error: insertErr } = await supabase
@@ -204,11 +203,19 @@ ${base_text ? `TEXTO BASE PROVISTO (insumos previos del área usuaria / cotizaci
       );
     }
 
-    await recordUsage(user.id, 'generator_call');
-    return NextResponse.json({
-      content: text,
-      document_id: (doc as { id: string }).id,
+    const documentId = (doc as { id: string }).id;
+    void recordAiUsage({
+      userId: user.id,
+      feature: `generator_${slug}`,
+      model: CHAT_MODEL_ID,
+      inputTokens: result.usage?.promptTokens ?? 0,
+      outputTokens: result.usage?.completionTokens ?? 0,
+      latencyMs,
+      metadata: { slug, title, document_id: documentId },
     });
+
+    await recordUsage(user.id, 'generator_call');
+    return NextResponse.json({ content: text, document_id: documentId });
   } catch (e) {
     const msg = (e as Error).message || 'unknown';
     console.error('[generators/preparatorias] LLM error:', msg);

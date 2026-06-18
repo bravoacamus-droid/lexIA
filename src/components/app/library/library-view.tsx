@@ -47,6 +47,8 @@ interface Props {
   initialFolders: FolderItem[];
   unfiledCount: number;
   initialDocuments: BrowseDoc[];
+  initialTotal: number;
+  pageSize: number;
   savedDocIds: string[];
   typeCounts: Record<string, number>;
 }
@@ -55,6 +57,8 @@ export function LibraryView({
   initialFolders,
   unfiledCount: initialUnfiled,
   initialDocuments,
+  initialTotal,
+  pageSize,
   savedDocIds: initialSavedIds,
   typeCounts,
 }: Props) {
@@ -75,6 +79,12 @@ export function LibraryView({
   const [mode, setMode] = useState<'browse' | 'search' | 'folder'>('browse');
   const [loading, setLoading] = useState(false);
 
+  // Infinite scroll state — solo aplica en modo browse sin query y sin folder
+  const [browseTotal, setBrowseTotal] = useState<number>(initialTotal);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [exhausted, setExhausted] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
   // Save modal state
   const [savingDocId, setSavingDocId] = useState<string | null>(null);
 
@@ -84,11 +94,12 @@ export function LibraryView({
     return () => clearTimeout(t);
   }, [query]);
 
-  // Fetch on debounced/type/folder change
+  // Fetch on debounced/type/folder change — reset paginación al cambiar filtros
   useEffect(() => {
     let cancelled = false;
     async function run() {
       setLoading(true);
+      setExhausted(false);
       try {
         // Si hay carpeta/saved seleccionado y NO hay query, traer documentos guardados.
         // Si hay query, ignorar la selección y buscar normalmente.
@@ -106,16 +117,20 @@ export function LibraryView({
             .filter((d: BrowseDoc | null): d is BrowseDoc => d !== null);
           setBrowseDocs(docs);
           setMode('folder');
+          setExhausted(true);
           return;
         }
 
+        // En modo browse sin query: usar limit más alto para tener pesado inicial
+        const initialLimit = debounced ? 12 : pageSize;
         const res = await fetch('/api/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             query: debounced,
             type,
-            limit: 12,
+            limit: initialLimit,
+            offset: 0,
           }),
         });
         const json = await res.json();
@@ -123,9 +138,13 @@ export function LibraryView({
         if (json.mode === 'search') {
           setMode('search');
           setResults(json.results || []);
+          setExhausted(true); // los modos search no paginan (devuelve los top N)
         } else {
           setMode('browse');
-          setBrowseDocs(json.documents || []);
+          const docs = (json.documents || []) as BrowseDoc[];
+          setBrowseDocs(docs);
+          if (typeof json.total === 'number') setBrowseTotal(json.total);
+          setExhausted(json.hasMore === false);
         }
       } catch {
         toast.error('Error al buscar. Intenta de nuevo.');
@@ -137,7 +156,63 @@ export function LibraryView({
     return () => {
       cancelled = true;
     };
-  }, [debounced, type, selectedFolderId]);
+  }, [debounced, type, selectedFolderId, pageSize]);
+
+  // Infinite scroll: cargar siguiente página al ver el sentinel
+  useEffect(() => {
+    if (mode !== 'browse' || debounced || selectedFolderId) return;
+    if (exhausted || loading || loadingMore) return;
+    if (!sentinelRef.current) return;
+
+    const target = sentinelRef.current;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry?.isIntersecting) return;
+        if (loadingMore || exhausted) return;
+
+        setLoadingMore(true);
+        const currentLength = browseDocs.length;
+        fetch('/api/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: '',
+            type,
+            limit: pageSize,
+            offset: currentLength,
+          }),
+        })
+          .then((r) => r.json())
+          .then((json) => {
+            if (json.mode !== 'browse') return;
+            const more = (json.documents || []) as BrowseDoc[];
+            setBrowseDocs((prev) => {
+              const seen = new Set(prev.map((d) => d.id));
+              const fresh = more.filter((d) => !seen.has(d.id));
+              return [...prev, ...fresh];
+            });
+            if (typeof json.total === 'number') setBrowseTotal(json.total);
+            if (json.hasMore === false || more.length === 0) setExhausted(true);
+          })
+          .catch(() => toast.error('Error al cargar más documentos.'))
+          .finally(() => setLoadingMore(false));
+      },
+      { rootMargin: '400px' },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [
+    mode,
+    debounced,
+    selectedFolderId,
+    exhausted,
+    loading,
+    loadingMore,
+    browseDocs.length,
+    type,
+    pageSize,
+  ]);
 
   async function onSave(documentId: string) {
     setSavingDocId(documentId);
@@ -249,6 +324,10 @@ export function LibraryView({
             <BrowseList
               docs={browseDocs}
               loading={loading}
+              loadingMore={loadingMore}
+              exhausted={exhausted}
+              total={mode === 'browse' && !selectedFolderId ? browseTotal : null}
+              sentinelRef={sentinelRef}
               savedIds={savedIds}
               onSave={onSave}
               onUnsave={onUnsave}
@@ -353,13 +432,28 @@ function SearchResultsList({
 interface BrowseProps {
   docs: BrowseDoc[];
   loading: boolean;
+  loadingMore: boolean;
+  exhausted: boolean;
+  total: number | null;
+  sentinelRef: React.RefObject<HTMLDivElement>;
   savedIds: Set<string>;
   onSave: (id: string) => void;
   onUnsave: (id: string) => void;
   folderName?: string | null;
 }
 
-function BrowseList({ docs, loading, savedIds, onSave, onUnsave, folderName }: BrowseProps) {
+function BrowseList({
+  docs,
+  loading,
+  loadingMore,
+  exhausted,
+  total,
+  sentinelRef,
+  savedIds,
+  onSave,
+  onUnsave,
+  folderName,
+}: BrowseProps) {
   if (loading && docs.length === 0) return <LoadingSkeleton />;
   if (docs.length === 0) {
     return (
@@ -378,7 +472,11 @@ function BrowseList({ docs, loading, savedIds, onSave, onUnsave, folderName }: B
   return (
     <div>
       <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-3">
-        {folderName ? `${folderName} · ${docs.length} documento${docs.length === 1 ? '' : 's'}` : 'Recientes'}
+        {folderName
+          ? `${folderName} · ${docs.length} documento${docs.length === 1 ? '' : 's'}`
+          : total != null
+            ? `Recientes · ${docs.length} de ${total}`
+            : `Recientes · ${docs.length}`}
       </p>
       <div className="space-y-3">
         {docs.map((d) => (
@@ -391,6 +489,18 @@ function BrowseList({ docs, loading, savedIds, onSave, onUnsave, folderName }: B
           />
         ))}
       </div>
+      {/* Sentinel + skeleton para infinite scroll */}
+      {!folderName && (
+        <div ref={sentinelRef} className="mt-6">
+          {loadingMore && <LoadingSkeleton compact />}
+          {exhausted && docs.length > 0 && !loadingMore && (
+            <p className="text-center text-xs text-muted-foreground py-6">
+              Has llegado al final · {docs.length} documento
+              {docs.length === 1 ? '' : 's'}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -441,10 +551,11 @@ function ActiveFolderBadge({
   );
 }
 
-function LoadingSkeleton() {
+function LoadingSkeleton({ compact = false }: { compact?: boolean }) {
+  const count = compact ? 2 : 3;
   return (
     <div className="space-y-3">
-      {[1, 2, 3].map((i) => (
+      {Array.from({ length: count }, (_, i) => i + 1).map((i) => (
         <div key={i} className="rounded-xl border border-border bg-card p-5 animate-pulse-soft">
           <div className="h-3 w-20 bg-secondary rounded mb-3" />
           <div className="h-5 w-3/4 bg-secondary rounded mb-2" />

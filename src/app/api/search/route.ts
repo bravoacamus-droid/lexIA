@@ -15,6 +15,7 @@ const requestSchema = z.object({
     .optional(),
   year: z.number().int().min(1990).max(2100).nullable().optional(),
   limit: z.number().int().min(1).max(50).optional(),
+  offset: z.number().int().min(0).optional(),
 });
 
 interface HybridRow {
@@ -38,26 +39,33 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'invalid_body', issues: parsed.error.issues }, { status: 400 });
   }
 
-  const { query, type, year, limit = 12 } = parsed.data;
+  const { query, type, year, limit = 12, offset = 0 } = parsed.data;
   const trimmed = query.trim();
 
-  // Sin query → listar docs (paginable) con filtros
+  // Sin query → listar docs (paginable) con filtros + conteo total para saber
+  // cuándo terminar el infinite scroll.
   if (!trimmed) {
     let q = supabase
       .from('normative_documents')
-      .select('id, type, number, title, summary, date, source_url')
-      .order('date', { ascending: false })
-      .limit(limit);
+      .select('id, type, number, title, summary, date, source_url', {
+        count: 'exact',
+      })
+      .order('date', { ascending: false, nullsFirst: false })
+      .range(offset, offset + limit - 1);
     if (type) q = q.eq('type', type);
     if (year) {
       q = q.gte('date', `${year}-01-01`).lte('date', `${year}-12-31`);
     }
-    const { data, error } = await q;
+    const { data, count, error } = await q;
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({
       mode: 'browse',
       documents: data || [],
       results: [],
+      total: count ?? null,
+      offset,
+      limit,
+      hasMore: count != null ? offset + (data?.length || 0) < count : false,
     });
   }
 
