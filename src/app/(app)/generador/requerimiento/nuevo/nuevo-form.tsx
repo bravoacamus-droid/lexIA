@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
@@ -16,7 +16,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+import { ArrowLeft, Sparkles, Zap, FileText } from 'lucide-react';
+import {
+  getTemplatesForObjeto,
+  type RequirementTemplate,
+} from '@/lib/requerimientos/templates';
+import { cn } from '@/lib/utils';
 
 type Objeto = 'bien' | 'servicio' | 'obra' | 'consultoria_obra';
 
@@ -27,6 +32,49 @@ export function NuevoRequerimientoForm() {
   const [areaUsuaria, setAreaUsuaria] = useState('');
   const [denominacion, setDenominacion] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [templateId, setTemplateId] = useState<string | null>(null);
+  // Para evitar pisar lo que el usuario haya escrito manualmente cuando
+  // luego cambie de plantilla, marcamos qué campos vienen de plantilla.
+  const [denomFromTpl, setDenomFromTpl] = useState(false);
+  const [areaFromTpl, setAreaFromTpl] = useState(false);
+
+  const templates: RequirementTemplate[] = useMemo(() => {
+    if (!objeto) return [];
+    return getTemplatesForObjeto(objeto);
+  }, [objeto]);
+
+  // Al cambiar objeto, limpiamos plantilla seleccionada
+  useEffect(() => {
+    setTemplateId(null);
+    if (denomFromTpl) {
+      setDenominacion('');
+      setDenomFromTpl(false);
+    }
+    if (areaFromTpl) {
+      setAreaUsuaria('');
+      setAreaFromTpl(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [objeto]);
+
+  function pickTemplate(tpl: RequirementTemplate | null) {
+    if (tpl === null) {
+      setTemplateId(null);
+      return;
+    }
+    setTemplateId(tpl.id);
+    // Sugerimos denominación y área usuaria pero el usuario puede editarlas
+    if (!denominacion || denomFromTpl) {
+      setDenominacion(tpl.denominacion);
+      setDenomFromTpl(true);
+    }
+    if (!areaUsuaria || areaFromTpl) {
+      if (tpl.area_usuaria_sugerida) {
+        setAreaUsuaria(tpl.area_usuaria_sugerida);
+        setAreaFromTpl(true);
+      }
+    }
+  }
 
   async function submit() {
     if (!objeto) {
@@ -47,13 +95,18 @@ export function NuevoRequerimientoForm() {
           objeto,
           area_usuaria: areaUsuaria.trim() || undefined,
           denominacion: denominacion.trim(),
+          template_id: templateId || undefined,
         }),
       });
       const json = await res.json();
       if (!res.ok) {
         throw new Error(json?.message || json?.error || 'No se pudo crear');
       }
-      toast.success('Requerimiento creado');
+      toast.success(
+        templateId
+          ? 'Requerimiento creado con plantilla aplicada'
+          : 'Requerimiento creado',
+      );
       router.push(`/generador/requerimiento/${json.id}`);
     } catch (e) {
       toast.error((e as Error).message);
@@ -122,13 +175,76 @@ export function NuevoRequerimientoForm() {
           </div>
         </div>
 
+        {/* Selector de plantilla */}
+        {objeto && templates.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Zap className="h-4 w-4 text-brand-600" />
+              <p className="text-xs font-semibold uppercase tracking-wider text-brand-700">
+                ¿Quieres partir de una plantilla? (opcional)
+              </p>
+            </div>
+            <p className="text-[11px] text-muted-foreground mb-3">
+              Las plantillas marcan cláusulas, pre-rellenan contenido típico de
+              ese tipo de contratación y sugieren entregas e ítems. Después
+              puedes editar todo libremente.
+            </p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => pickTemplate(null)}
+                className={cn(
+                  'rounded-lg border-2 p-4 text-left transition-all',
+                  templateId === null
+                    ? 'border-brand-500 bg-brand-50'
+                    : 'border-border/60 hover:border-border bg-card hover:bg-secondary/30',
+                )}
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-semibold text-sm">Empezar de cero</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  Estructura del Anexo vacía. Marcas las cláusulas y rellenas tú
+                  o con ayuda de la IA.
+                </p>
+              </button>
+
+              {templates.map((tpl) => (
+                <button
+                  key={tpl.id}
+                  type="button"
+                  onClick={() => pickTemplate(tpl)}
+                  className={cn(
+                    'rounded-lg border-2 p-4 text-left transition-all',
+                    templateId === tpl.id
+                      ? 'border-brand-500 bg-brand-50'
+                      : 'border-border/60 hover:border-border bg-card hover:bg-secondary/30',
+                  )}
+                >
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Zap className="h-4 w-4 text-brand-600" />
+                    <span className="font-semibold text-sm">{tpl.label}</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-snug">
+                    {tpl.description}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div>
           <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Área usuaria
           </Label>
           <Input
             value={areaUsuaria}
-            onChange={(e) => setAreaUsuaria(e.target.value)}
+            onChange={(e) => {
+              setAreaUsuaria(e.target.value);
+              setAreaFromTpl(false);
+            }}
             placeholder="Ej. Sub Dirección de Tecnologías de Información"
             maxLength={160}
             className="mt-1.5"
@@ -147,7 +263,10 @@ export function NuevoRequerimientoForm() {
           </div>
           <Textarea
             value={denominacion}
-            onChange={(e) => setDenominacion(e.target.value.slice(0, 500))}
+            onChange={(e) => {
+              setDenominacion(e.target.value.slice(0, 500));
+              setDenomFromTpl(false);
+            }}
             placeholder="Ej. ADQUISICIÓN DE COMPUTADORAS PERSONALES PARA LA DIRECCIÓN ADMINISTRATIVA"
             rows={4}
             maxLength={500}
@@ -157,7 +276,7 @@ export function NuevoRequerimientoForm() {
         <div className="flex justify-end pt-2">
           <Button onClick={submit} size="lg" variant="glow" loading={submitting}>
             <Sparkles className="h-4 w-4" />
-            Crear y continuar
+            {templateId ? 'Crear con plantilla' : 'Crear y continuar'}
           </Button>
         </div>
       </Card>

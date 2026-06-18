@@ -5,6 +5,10 @@ import {
   getInitialClauses,
   type ObjectoContractual,
 } from '@/lib/requerimientos/catalog';
+import {
+  applyTemplate,
+  getTemplateById,
+} from '@/lib/requerimientos/templates';
 import { ensureCanUse } from '@/lib/billing/feature-gate';
 
 export const runtime = 'nodejs';
@@ -15,6 +19,7 @@ const CreateSchema = z.object({
   objeto: z.enum(['bien', 'servicio', 'obra', 'consultoria_obra']),
   area_usuaria: z.string().max(160).optional(),
   denominacion: z.string().min(2).max(500),
+  template_id: z.string().max(80).optional(),
 });
 
 /** POST /api/requerimientos — crear nuevo requerimiento (paso 1) */
@@ -37,10 +42,29 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
-  const { anio, objeto, area_usuaria, denominacion } = parsed.data;
+  const { anio, objeto, area_usuaria, denominacion, template_id } = parsed.data;
 
-  // Inicializar cláusulas vacías según objeto
-  const clauses = getInitialClauses(objeto as ObjectoContractual);
+  // Si se eligió una plantilla y aplica al objeto seleccionado, la aplicamos.
+  // Esto pre-rellena cláusulas, entregas e ítems típicos.
+  let clauses: unknown = getInitialClauses(objeto as ObjectoContractual);
+  let entregas: unknown[] = [];
+  let items: unknown[] = [];
+  let denominacionFinal = denominacion;
+  let areaUsuariaFinal = area_usuaria || null;
+
+  if (template_id) {
+    const tpl = getTemplateById(template_id);
+    if (tpl && tpl.objeto === objeto) {
+      const applied = applyTemplate(tpl);
+      clauses = applied.clauses;
+      entregas = applied.entregas;
+      items = applied.items;
+      // Solo sobrescribir denominación/área si el usuario dejó los defaults
+      // de la plantilla intactos (lo cual es el caso típico).
+      if (!area_usuaria) areaUsuariaFinal = applied.area_usuaria;
+      // La denominación del form siempre prevalece para no perder lo que tipeó.
+    }
+  }
 
   const { data, error } = await supabase
     .from('entity_requirements')
@@ -48,9 +72,11 @@ export async function POST(req: Request) {
       user_id: user.id,
       anio,
       objeto,
-      area_usuaria: area_usuaria || null,
-      denominacion,
+      area_usuaria: areaUsuariaFinal,
+      denominacion: denominacionFinal,
       clauses: clauses as never,
+      entregas: entregas as never,
+      items: items as never,
       status: 'draft',
     } as never)
     .select('id')
