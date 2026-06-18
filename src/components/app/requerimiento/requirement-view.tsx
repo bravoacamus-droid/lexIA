@@ -87,58 +87,48 @@ export function RequirementView({ initial }: Props) {
     await patchRequirement({ clauses: next });
   }
 
-  function exportToWord() {
+  async function exportToWord() {
     setExporting(true);
-    // Generación cliente-side simple: serializa el HTML de cada cláusula incluida
     try {
-      const orderedIncluded = [...clauses]
-        .sort((a, b) => a.order - b.order)
-        .filter((c) => c.included);
-
-      const headerHtml = `
-        <h1 style="text-align:center">${OBJETO_ANEXO_TITULOS[initial.objeto]}</h1>
-        <h2>1. DATOS GENERALES</h2>
-        <table style="width:100%; border-collapse:collapse" border="1">
-          <tr><th style="text-align:left; padding:6px">Órgano y/o Unidad orgánica</th><td style="padding:6px">${escapeHtml(organoUnidad)}</td></tr>
-          <tr><th style="text-align:left; padding:6px">Actividad del POI/Acción Estratégica PEI</th><td style="padding:6px">${escapeHtml(actividadPoi)}</td></tr>
-          <tr><th style="text-align:left; padding:6px">Denominación</th><td style="padding:6px">${escapeHtml(denominacion)}</td></tr>
-        </table>
-      `;
-
-      const clausesHtml = orderedIncluded
-        .map(
-          (c, idx) => `
-        <h2>${idx + 2}. ${escapeHtml(c.label)}</h2>
-        ${c.content || '<p><em>(sin contenido)</em></p>'}
-      `,
-        )
-        .join('\n');
-
-      const full = `<html>
-        <head>
-          <meta charset="utf-8" />
-          <title>${escapeHtml(initial.denominacion)}</title>
-          <style>
-            body { font-family: 'Calibri', sans-serif; padding: 24px; }
-            h1 { font-size: 16pt; }
-            h2 { font-size: 13pt; color: #021D40; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
-            table { margin: 8px 0; }
-            p { margin: 6px 0; }
-          </style>
-        </head>
-        <body>${headerHtml}${clausesHtml}</body>
-      </html>`;
-
-      const blob = new Blob(['﻿', full], {
-        type: 'application/msword',
+      // Asegurar que el último estado de cláusulas y header esté en BD
+      // antes de pedir el .docx (evita que el export refleje datos viejos).
+      const orderedIncluded = clauses.filter((c) => c.included);
+      if (orderedIncluded.length === 0) {
+        toast.error(
+          'Marca al menos una cláusula antes de generar el Word',
+        );
+        setExporting(false);
+        return;
+      }
+      await patchRequirement({
+        area_usuaria: areaUsuaria.trim() || null,
+        denominacion: denominacion.trim(),
+        organo_unidad_organica: organoUnidad.trim() || null,
+        actividad_poi: actividadPoi.trim() || null,
+        clauses,
       });
+
+      const res = await fetch(
+        `/api/requerimientos/${initial.id}/export?format=docx`,
+        { method: 'GET' },
+      );
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        throw new Error(json?.error || `HTTP ${res.status}`);
+      }
+      const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${initial.objeto}-${initial.anio}-${initial.denominacion.slice(0, 50).replace(/[^a-z0-9]+/gi, '-')}.doc`;
+      // Toma el filename del header si está, sino arma uno básico
+      const cd = res.headers.get('Content-Disposition') || '';
+      const match = cd.match(/filename="([^"]+)"/);
+      a.download =
+        match?.[1] ||
+        `requerimiento-${initial.objeto}-${initial.anio}.docx`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success('Documento exportado');
+      toast.success('Documento Word descargado');
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -373,10 +363,3 @@ export function RequirementView({ initial }: Props) {
   );
 }
 
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
