@@ -126,6 +126,13 @@ const DOC_TYPES: Record<Role, Array<{
   ],
   area_usuaria: [
     {
+      id: 'tdr_eett' as DocType,
+      icon: FileText,
+      title: 'Requerimiento (Anexo SEACE) — RECOMENDADO',
+      desc: 'Wizard tipo SEACE con cláusulas reordenables. Marca las que aplican, pega tu texto o deja que LexIA lo profesionalice con sustento normativo. Exporta a Word.',
+      href: '/generador/requerimiento',
+    },
+    {
       id: 'bases_estandar' as DocType,
       icon: Building2,
       title: 'Bases Estándar OECE',

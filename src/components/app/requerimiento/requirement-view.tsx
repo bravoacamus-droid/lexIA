@@ -1,0 +1,382 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { toast } from 'sonner';
+import { ArrowLeft, FileDown } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { ClauseList, type Clause } from './clause-list';
+import {
+  OBJETO_LABELS,
+  OBJETO_ANEXO_TITULOS,
+  type ObjectoContractual,
+} from '@/lib/requerimientos/catalog';
+import { cn } from '@/lib/utils';
+
+export interface RequirementInitial {
+  id: string;
+  nro: string | null;
+  anio: number;
+  objeto: ObjectoContractual;
+  area_usuaria: string | null;
+  denominacion: string;
+  organo_unidad_organica: string | null;
+  actividad_poi: string | null;
+  clauses: Clause[];
+  status: 'draft' | 'review' | 'final' | 'archived';
+}
+
+interface Props {
+  initial: RequirementInitial;
+}
+
+type Tab = 'datos' | 'anexo';
+
+export function RequirementView({ initial }: Props) {
+  const router = useRouter();
+  const [tab, setTab] = useState<Tab>('datos');
+
+  const [areaUsuaria, setAreaUsuaria] = useState(initial.area_usuaria || '');
+  const [denominacion, setDenominacion] = useState(initial.denominacion);
+  const [organoUnidad, setOrganoUnidad] = useState(
+    initial.organo_unidad_organica || '',
+  );
+  const [actividadPoi, setActividadPoi] = useState(initial.actividad_poi || '');
+  const [clauses, setClauses] = useState<Clause[]>(initial.clauses);
+  const [savingHeader, setSavingHeader] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  async function patchRequirement(body: Record<string, unknown>) {
+    const res = await fetch(`/api/requerimientos/${initial.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const json = await res.json().catch(() => null);
+      throw new Error(json?.error || `HTTP ${res.status}`);
+    }
+  }
+
+  async function saveHeader() {
+    setSavingHeader(true);
+    try {
+      await patchRequirement({
+        area_usuaria: areaUsuaria.trim() || null,
+        denominacion: denominacion.trim(),
+        organo_unidad_organica: organoUnidad.trim() || null,
+        actividad_poi: actividadPoi.trim() || null,
+      });
+      toast.success('Datos guardados');
+      router.refresh();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSavingHeader(false);
+    }
+  }
+
+  async function saveClauses(next: Clause[]) {
+    setClauses(next);
+    await patchRequirement({ clauses: next });
+  }
+
+  function exportToWord() {
+    setExporting(true);
+    // Generación cliente-side simple: serializa el HTML de cada cláusula incluida
+    try {
+      const orderedIncluded = [...clauses]
+        .sort((a, b) => a.order - b.order)
+        .filter((c) => c.included);
+
+      const headerHtml = `
+        <h1 style="text-align:center">${OBJETO_ANEXO_TITULOS[initial.objeto]}</h1>
+        <h2>1. DATOS GENERALES</h2>
+        <table style="width:100%; border-collapse:collapse" border="1">
+          <tr><th style="text-align:left; padding:6px">Órgano y/o Unidad orgánica</th><td style="padding:6px">${escapeHtml(organoUnidad)}</td></tr>
+          <tr><th style="text-align:left; padding:6px">Actividad del POI/Acción Estratégica PEI</th><td style="padding:6px">${escapeHtml(actividadPoi)}</td></tr>
+          <tr><th style="text-align:left; padding:6px">Denominación</th><td style="padding:6px">${escapeHtml(denominacion)}</td></tr>
+        </table>
+      `;
+
+      const clausesHtml = orderedIncluded
+        .map(
+          (c, idx) => `
+        <h2>${idx + 2}. ${escapeHtml(c.label)}</h2>
+        ${c.content || '<p><em>(sin contenido)</em></p>'}
+      `,
+        )
+        .join('\n');
+
+      const full = `<html>
+        <head>
+          <meta charset="utf-8" />
+          <title>${escapeHtml(initial.denominacion)}</title>
+          <style>
+            body { font-family: 'Calibri', sans-serif; padding: 24px; }
+            h1 { font-size: 16pt; }
+            h2 { font-size: 13pt; color: #021D40; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+            table { margin: 8px 0; }
+            p { margin: 6px 0; }
+          </style>
+        </head>
+        <body>${headerHtml}${clausesHtml}</body>
+      </html>`;
+
+      const blob = new Blob(['﻿', full], {
+        type: 'application/msword',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${initial.objeto}-${initial.anio}-${initial.denominacion.slice(0, 50).replace(/[^a-z0-9]+/gi, '-')}.doc`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Documento exportado');
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  return (
+    <div className="container max-w-5xl py-6 space-y-5">
+      <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div className="min-w-0">
+          <Button asChild variant="ghost" size="sm" className="mb-2 -ml-2">
+            <Link href="/generador/requerimiento">
+              <ArrowLeft className="h-4 w-4" />
+              Volver
+            </Link>
+          </Button>
+          <div className="flex items-center gap-2 mb-1">
+            <Badge variant="outline" className="text-[10px]">
+              {OBJETO_LABELS[initial.objeto]}
+            </Badge>
+            <span className="text-[11px] text-muted-foreground">
+              Año {initial.anio}
+            </span>
+            <Badge variant="secondary" className="text-[10px]">
+              {initial.status === 'final'
+                ? 'Final'
+                : initial.status === 'review'
+                  ? 'Revisión'
+                  : 'Borrador'}
+            </Badge>
+          </div>
+          <h1 className="font-semibold text-2xl tracking-tight truncate">
+            {denominacion || 'Nuevo requerimiento'}
+          </h1>
+        </div>
+        <Button onClick={exportToWord} loading={exporting} variant="glow">
+          <FileDown className="h-4 w-4" />
+          Generar Word
+        </Button>
+      </header>
+
+      {/* Tabs */}
+      <div className="flex border-b border-border">
+        <button
+          type="button"
+          onClick={() => setTab('datos')}
+          className={cn(
+            'px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors',
+            tab === 'datos'
+              ? 'border-brand-500 text-brand-700'
+              : 'border-transparent text-muted-foreground hover:text-foreground',
+          )}
+        >
+          Datos del requerimiento
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('anexo')}
+          className={cn(
+            'px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors',
+            tab === 'anexo'
+              ? 'border-brand-500 text-brand-700'
+              : 'border-transparent text-muted-foreground hover:text-foreground',
+          )}
+        >
+          Anexo N° 01-{initial.objeto === 'bien' ? 'B' : 'A'}
+        </button>
+      </div>
+
+      {tab === 'datos' && (
+        <Card className="p-7 space-y-5">
+          <p className="text-[10px] uppercase tracking-widest font-semibold text-brand-600">
+            1.1 Datos generales
+          </p>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Objeto
+              </Label>
+              <Input
+                value={OBJETO_LABELS[initial.objeto]}
+                disabled
+                className="mt-1.5 bg-secondary/50"
+              />
+            </div>
+            <div>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Año
+              </Label>
+              <Input
+                value={initial.anio}
+                disabled
+                className="mt-1.5 bg-secondary/50"
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Área usuaria
+            </Label>
+            <Input
+              value={areaUsuaria}
+              onChange={(e) => setAreaUsuaria(e.target.value)}
+              placeholder="Ej. Sub Dirección de Tecnologías de Información"
+              maxLength={160}
+              className="mt-1.5"
+            />
+          </div>
+
+          <div>
+            <div className="flex items-baseline justify-between gap-2 mb-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Denominación de la contratación
+              </Label>
+              <span className="text-[10px] font-mono text-muted-foreground">
+                {denominacion.length}/500
+              </span>
+            </div>
+            <Textarea
+              value={denominacion}
+              onChange={(e) => setDenominacion(e.target.value.slice(0, 500))}
+              rows={3}
+              maxLength={500}
+            />
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={saveHeader} loading={savingHeader}>
+              Guardar datos generales
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {tab === 'anexo' && (
+        <div className="space-y-5">
+          <Card className="p-7 space-y-5">
+            <div className="text-center mb-3">
+              <h2 className="font-semibold text-xl tracking-wide">
+                {OBJETO_ANEXO_TITULOS[initial.objeto]}
+              </h2>
+            </div>
+
+            <p className="text-[10px] uppercase tracking-widest font-semibold text-brand-600">
+              1. Datos generales
+            </p>
+
+            <div>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Órgano y/o Unidad orgánica
+              </Label>
+              <Textarea
+                value={organoUnidad}
+                onChange={(e) =>
+                  setOrganoUnidad(e.target.value.slice(0, 100))
+                }
+                rows={2}
+                maxLength={100}
+                className="mt-1.5"
+                placeholder="Ej. ABASTECIMIENTO"
+              />
+              <p className="text-[10px] text-right text-muted-foreground mt-0.5">
+                {organoUnidad.length}/100
+              </p>
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Actividad del POI / Acción Estratégica PEI
+              </Label>
+              <Textarea
+                value={actividadPoi}
+                onChange={(e) =>
+                  setActividadPoi(e.target.value.slice(0, 500))
+                }
+                rows={3}
+                maxLength={500}
+                className="mt-1.5"
+                placeholder="Indica la actividad del POI o la acción estratégica del PEI a la que se vincula la contratación"
+              />
+              <p className="text-[10px] text-right text-muted-foreground mt-0.5">
+                {actividadPoi.length}/500
+              </p>
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Denominación de la contratación
+              </Label>
+              <Textarea
+                value={denominacion}
+                disabled
+                rows={2}
+                className="mt-1.5 bg-secondary/50"
+              />
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                Se hereda del tab "Datos del requerimiento"
+              </p>
+            </div>
+
+            <div className="flex justify-end">
+              <Button onClick={saveHeader} loading={savingHeader} size="sm">
+                Guardar datos generales
+              </Button>
+            </div>
+          </Card>
+
+          <Card className="p-7">
+            <div className="flex items-center justify-between mb-4 gap-3">
+              <p className="text-[10px] uppercase tracking-widest font-semibold text-brand-600">
+                2. Cláusulas del anexo
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Marca las que aplican · arrastra para reordenar · expande para
+                editar
+              </p>
+            </div>
+
+            <ClauseList
+              requirementId={initial.id}
+              objeto={initial.objeto}
+              initialClauses={clauses}
+              onSaveDraft={saveClauses}
+            />
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
