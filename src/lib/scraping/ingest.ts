@@ -1,6 +1,10 @@
 import { extractText, getDocumentProxy } from 'unpdf';
 import { createClient } from '@supabase/supabase-js';
 import { chunkText } from '@/lib/ingestion/chunker';
+import {
+  classifyByPattern,
+  type NormativeDocType,
+} from '@/lib/scraping/classifier';
 
 const UA = 'Mozilla/5.0 (compatible; LexIA-Bot/1.0; +https://lexia.pe/bot)';
 
@@ -12,6 +16,10 @@ interface IngestResult {
   reason?: string;
   chunkCount?: number;
   documentId?: string;
+  /** Tipo final asignado (puede diferir del docType solicitado por reclasificación). */
+  finalType?: NormativeDocType;
+  /** Si el classifier reclasificó respecto del docType de la fuente. */
+  reclassified?: boolean;
 }
 
 /**
@@ -33,6 +41,16 @@ export async function ingestPdfFromUrl(opts: {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
+  // 0. Auto-clasificación: el docType de la fuente es un default. Si la URL
+  // o el texto del link sugieren un tipo más específico (ej. la fuente es
+  // "directiva" pero el link es un manual SEACE), lo sobreescribimos.
+  const classified = classifyByPattern({
+    url: opts.url,
+    linkText: opts.linkText,
+    defaultType: opts.docType as NormativeDocType,
+  });
+  const finalType = classified.type;
+
   // 1. Idempotencia: ¿ya está esta URL en BD?
   const { data: existing } = await supabase
     .from('normative_documents')
@@ -40,7 +58,12 @@ export async function ingestPdfFromUrl(opts: {
     .eq('source_url', opts.url)
     .maybeSingle();
   if (existing) {
-    return { inserted: false, reason: 'ya existe (source_url)' };
+    return {
+      inserted: false,
+      reason: 'ya existe (source_url)',
+      finalType,
+      reclassified: classified.reclassified,
+    };
   }
 
   // 2. Descargar PDF
@@ -96,16 +119,22 @@ export async function ingestPdfFromUrl(opts: {
   const number = inferNumberFromText(opts.linkText || '') || basenameFromUrl(opts.url);
   const title = (opts.linkText || basenameFromUrl(opts.url)).slice(0, 240);
 
-  // 6. Insertar documento
+  // 6. Insertar documento (usando el tipo reclasificado, no el de la fuente)
   const { data: inserted, error: insErr } = await supabase
     .from('normative_documents')
     .insert({
-      type: opts.docType,
+      type: finalType,
       number,
       title,
       source_url: opts.url,
       raw_text: text,
-      metadata: { pages, ingested_by: 'scraping_bot' },
+      metadata: {
+        pages,
+        ingested_by: 'scraping_bot',
+        source_doc_type: opts.docType,
+        classifier_matched: classified.matchedRule,
+        reclassified: classified.reclassified,
+      },
     } as never)
     .select('id')
     .single();
@@ -151,6 +180,8 @@ export async function ingestPdfFromUrl(opts: {
     inserted: true,
     chunkCount: chunks.length,
     documentId: (inserted as { id: string }).id,
+    finalType,
+    reclassified: classified.reclassified,
   };
 }
 
