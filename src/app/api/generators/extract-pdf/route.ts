@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
-import { extractText, getDocumentProxy } from 'unpdf';
 import { createClient } from '@/lib/supabase/server';
+import {
+  extractPdfText,
+  PdfHasNoTextError,
+  PDF_OCR_INSTRUCTIONS,
+} from '@/lib/ai/pdf';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -30,46 +34,41 @@ export async function POST(req: Request) {
   if (!(file instanceof File)) {
     return NextResponse.json({ error: 'no_file' }, { status: 400 });
   }
-  if (file.size > 30 * 1024 * 1024) {
+  if (file.size > 100 * 1024 * 1024) {
     return NextResponse.json(
-      { error: 'file_too_large', detail: 'Máximo 30 MB.' },
+      { error: 'file_too_large', detail: 'Máximo 100 MB.' },
       { status: 400 },
     );
   }
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const data = new Uint8Array(
-      buffer.buffer,
-      buffer.byteOffset,
-      buffer.byteLength,
-    );
-    const pdf = await getDocumentProxy(data);
-    const result = await extractText(pdf, { mergePages: true });
-    const text = String(result.text)
+    const { text: raw, pages } = await extractPdfText(buffer);
+    const text = raw
       .replace(/ /g, '')
       .replace(/[ \t]+/g, ' ')
       .replace(/\n{3,}/g, '\n\n')
       .trim();
 
-    if (text.length < 200) {
-      return NextResponse.json(
-        {
-          error: 'too_little_text',
-          detail:
-            'El PDF tiene muy poco texto extraíble. ¿Es un escaneo sin OCR?',
-        },
-        { status: 422 },
-      );
-    }
-
     return NextResponse.json({
       text,
-      pages: pdf.numPages,
+      pages,
       filename: file.name,
       size: file.size,
     });
   } catch (e) {
+    if (e instanceof PdfHasNoTextError) {
+      console.warn(
+        `[extract-pdf] PDF sin OCR: ${e.charsExtracted} chars en ${e.pages} pág.`,
+      );
+      return NextResponse.json(
+        {
+          error: 'pdf_needs_ocr',
+          detail: PDF_OCR_INSTRUCTIONS,
+        },
+        { status: 422 },
+      );
+    }
     const msg = (e as Error).message || 'unknown';
     console.error('[extract-pdf] error:', msg);
     return NextResponse.json(

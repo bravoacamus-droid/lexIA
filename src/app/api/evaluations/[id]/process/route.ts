@@ -3,7 +3,11 @@ import { generateText } from 'ai';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { chatModel, CHAT_MODEL_ID } from '@/lib/ai/gemini';
 import { recordAiUsage } from '@/lib/ai/usage-log';
-import { extractPdfText } from '@/lib/ai/pdf';
+import {
+  extractPdfText,
+  PdfHasNoTextError,
+  PDF_OCR_INSTRUCTIONS,
+} from '@/lib/ai/pdf';
 import {
   REQUIREMENTS_EXTRACTION_PROMPT,
   OFFER_EVALUATION_PROMPT,
@@ -61,6 +65,9 @@ interface TdrAuditResult {
 type OfferEvaluation = {
   nombre: string;
   items: EvaluationItem[];
+  /** Bandera cuando la oferta no se pudo leer por estar escaneada sin OCR. */
+  ocr_issue?: boolean;
+  ocr_note?: string;
 };
 
 function parseJsonLoose<T>(text: string): T {
@@ -147,10 +154,9 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
   if (mode === 'tdr_audit') {
     try {
       const tdrBlob = await downloadFromStorage(admin, ev.bases_file_path);
+      // extractPdfText lanza PdfHasNoTextError automáticamente si detecta
+      // que el PDF es escaneado (sin texto). Lo capturamos abajo.
       const fullTdrText = (await extractPdfText(tdrBlob)).text;
-      if (fullTdrText.length < 200) {
-        throw new Error('El PDF parece estar vacío o no contiene texto extraíble.');
-      }
 
       // Cap a 60k chars para no saturar al LLM
       const tdrText = fullTdrText.length > 60_000
@@ -220,27 +226,38 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
 
       return NextResponse.json({ ok: true, mode: 'tdr_audit', result: finalResult });
     } catch (err) {
-      const errorMsg = (err as Error)?.message?.slice(0, 500) || 'unknown';
-      console.error('[tdr-audit] error:', errorMsg);
+      const isOcrIssue = err instanceof PdfHasNoTextError;
+      const errorMsg = isOcrIssue
+        ? PDF_OCR_INSTRUCTIONS
+        : (err as Error)?.message?.slice(0, 500) || 'unknown';
+      console.error('[tdr-audit] error:', isOcrIssue ? 'pdf_needs_ocr' : errorMsg);
       await supabase
         .from('evaluations')
         .update({
           status: 'failed',
-          result: { error: errorMsg, failed_at: new Date().toISOString() } as never,
+          result: {
+            error: errorMsg,
+            error_code: isOcrIssue ? 'pdf_needs_ocr' : 'audit_failed',
+            failed_at: new Date().toISOString(),
+          } as never,
         } as never)
         .eq('id', ev.id);
-      return NextResponse.json({ error: 'audit_failed', detail: errorMsg }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: isOcrIssue ? 'pdf_needs_ocr' : 'audit_failed',
+          detail: errorMsg,
+        },
+        { status: isOcrIssue ? 422 : 500 },
+      );
     }
   }
 
   try {
     // 1. Download Bases + Offers from Storage (admin client to bypass RLS on Storage policies)
     const basesBlob = await downloadFromStorage(admin, ev.bases_file_path);
+    // extractPdfText lanza PdfHasNoTextError automáticamente si detecta
+    // que el PDF de Bases es escaneado (sin texto).
     const fullBasesText = (await extractPdfText(basesBlob)).text;
-
-    if (fullBasesText.length < 200) {
-      throw new Error('El PDF de Bases parece estar vacío o no contiene texto extraíble.');
-    }
 
     // Smart trimming: si las Bases son grandes (>40K chars), extraer SOLO los
     // capítulos relevantes para no saturar al LLM.
@@ -357,6 +374,20 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
             .slice(0, 80) || o.name.replace(/\.pdf$/i, '');
           return { nombre: displayName, items };
         } catch (err) {
+          if (err instanceof PdfHasNoTextError) {
+            console.warn(
+              `[evaluator] Oferta ${o.name}: PDF escaneado sin OCR (${err.charsExtracted} chars en ${err.pages} pág).`,
+            );
+            return {
+              nombre: o.name,
+              items: [],
+              ocr_issue: true,
+              ocr_note:
+                'Esta oferta es un PDF escaneado sin texto extraíble. ' +
+                'No se pudo evaluar automáticamente. ' +
+                PDF_OCR_INSTRUCTIONS,
+            };
+          }
           console.error(`Error en oferta ${o.name}:`, err);
           return { nombre: o.name, items: [] };
         }
@@ -434,27 +465,36 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
 
     return NextResponse.json({ ok: true, result });
   } catch (err) {
-    const errorMessage = (err as Error).message;
+    const isOcrIssue = err instanceof PdfHasNoTextError;
+    const errorMessage = isOcrIssue
+      ? PDF_OCR_INSTRUCTIONS
+      : (err as Error).message;
     const errorStack = (err as Error).stack?.slice(0, 1000);
-    console.error('[evaluator] Pipeline error:', errorMessage);
-    console.error('[evaluator] Stack:', errorStack);
+    console.error(
+      '[evaluator] Pipeline error:',
+      isOcrIssue ? 'pdf_needs_ocr (Bases)' : errorMessage,
+    );
+    if (!isOcrIssue) console.error('[evaluator] Stack:', errorStack);
 
-    // Persistir el error en la BD para que el cliente pueda mostrarlo
     await supabase
       .from('evaluations')
       .update({
         status: 'failed',
         result: {
           error: errorMessage,
-          error_stack: errorStack,
+          error_code: isOcrIssue ? 'pdf_needs_ocr' : 'processing_failed',
+          error_stack: isOcrIssue ? undefined : errorStack,
           failed_at: new Date().toISOString(),
         } as never,
       } as never)
       .eq('id', ev.id);
 
     return NextResponse.json(
-      { error: 'processing_failed', message: errorMessage },
-      { status: 500 },
+      {
+        error: isOcrIssue ? 'pdf_needs_ocr' : 'processing_failed',
+        message: errorMessage,
+      },
+      { status: isOcrIssue ? 422 : 500 },
     );
   }
 }
