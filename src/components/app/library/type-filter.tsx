@@ -10,12 +10,18 @@ interface Props {
 }
 
 const ORDER: NormativeDocType[] = [
+  // Normativa vinculante primero
   'ley',
   'reglamento',
   'directiva',
   'opinion',
   'pronunciamiento',
   'resolucion_tce',
+  // Operativos / informativos al final
+  'tupa',
+  'comunicado',
+  'guia',
+  'manual_seace',
 ];
 
 export function TypeFilter({ value, onChange, counts }: Props) {

@@ -10,7 +10,18 @@ export const maxDuration = 30;
 const requestSchema = z.object({
   query: z.string().min(0).max(500),
   type: z
-    .enum(['ley', 'reglamento', 'directiva', 'opinion', 'pronunciamiento', 'resolucion_tce'])
+    .enum([
+      'ley',
+      'reglamento',
+      'directiva',
+      'opinion',
+      'pronunciamiento',
+      'resolucion_tce',
+      'manual_seace',
+      'tupa',
+      'comunicado',
+      'guia',
+    ])
     .nullable()
     .optional(),
   year: z.number().int().min(1990).max(2100).nullable().optional(),

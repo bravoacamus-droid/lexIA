@@ -12,7 +12,13 @@ export type NormativeDocType =
   | 'directiva'
   | 'opinion'
   | 'pronunciamiento'
-  | 'resolucion_tce';
+  | 'resolucion_tce'
+  // Agregados en migración 0019 — taxonomía ampliada para no clasificar
+  // como 'directiva' contenido que en realidad es operativo o informativo.
+  | 'manual_seace'
+  | 'tupa'
+  | 'comunicado'
+  | 'guia';
 
 export interface Profile {
   id: string;

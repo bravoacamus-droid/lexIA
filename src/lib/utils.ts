@@ -93,6 +93,31 @@ export const DOC_TYPE_META: Record<
     bg: 'bg-fuchsia-100 dark:bg-fuchsia-950',
     tagColor: '#C026D3',
   },
+  // Tipos agregados en migración 0019
+  manual_seace: {
+    label: 'Manual SEACE',
+    color: 'text-slate-700 dark:text-slate-300',
+    bg: 'bg-slate-100 dark:bg-slate-900',
+    tagColor: '#475569',
+  },
+  tupa: {
+    label: 'TUPA',
+    color: 'text-emerald-700 dark:text-emerald-300',
+    bg: 'bg-emerald-100 dark:bg-emerald-950',
+    tagColor: '#059669',
+  },
+  comunicado: {
+    label: 'Comunicado',
+    color: 'text-stone-700 dark:text-stone-300',
+    bg: 'bg-stone-100 dark:bg-stone-900',
+    tagColor: '#78716C',
+  },
+  guia: {
+    label: 'Guía',
+    color: 'text-teal-700 dark:text-teal-300',
+    bg: 'bg-teal-100 dark:bg-teal-950',
+    tagColor: '#0D9488',
+  },
 };
 
 export function getDocTypeMeta(type: string) {
