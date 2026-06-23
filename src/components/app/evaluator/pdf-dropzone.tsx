@@ -32,7 +32,7 @@ export function PdfDropzone({
   label = 'Arrastra el PDF o haz click',
   accept = 'application/pdf',
   compact = false,
-  maxSize = 25 * 1024 * 1024,
+  maxSize = 100 * 1024 * 1024,
 }: Props) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);

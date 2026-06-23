@@ -205,7 +205,7 @@ export function EvaluatorWizard({
                   Sube las Bases Integradas
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  PDF con los requisitos del proceso (hasta 25 MB). LexIA extraerá los
+                  PDF con los requisitos del proceso (hasta 100 MB). LexIA extraerá los
                   requisitos de calificación automáticamente.
                 </p>
               </div>

@@ -147,7 +147,7 @@ export function TdrAuditWizard() {
                 Sube el TDR / EETT a auditar
               </h2>
               <p className="text-sm text-muted-foreground">
-                PDF con el documento ya redactado (hasta 25 MB). LexIA lo va a auditar
+                PDF con el documento ya redactado (hasta 100 MB). LexIA lo va a auditar
                 completo, sección por sección, detectando vicios potenciales.
               </p>
             </div>

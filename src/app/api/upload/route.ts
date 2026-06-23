@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-const MAX_SIZE = 25 * 1024 * 1024; // 25MB
+const MAX_SIZE = 100 * 1024 * 1024; // 100MB
 const ALLOWED_TYPES = ['application/pdf'];
 
 export async function POST(req: Request) {
