@@ -197,13 +197,17 @@ async function embedBatch(texts: string[]): Promise<number[][]> {
 }
 
 function inferNumber(filename: string, packageFolder: string): string {
-  // Si el filename es "Directiva.pdf" o similar, usar el nombre de la carpeta
-  if (/^(directiva|lineamiento|guia|c[oó]digo|norma)\.pdf$/i.test(filename)) {
-    return packageFolder;
-  }
-  // Si el filename ya tiene la nomenclatura completa
-  const cleaned = filename.replace(/\.pdf$/i, '').replace(/^[\d.\s-]+/, '');
-  return cleaned.length > 5 ? cleaned : packageFolder;
+  const cleanedFn = filename.replace(/\.pdf$/i, '').trim();
+
+  // Para archivos con identificador propio (códigos numéricos largos como
+  // 7472010-anexo-..., 6684501-resolucion-..., etc.), usarlo directo.
+  const stripped = cleanedFn.replace(/^[\d.\s-]+/, '').trim();
+  if (stripped.length > 25) return stripped;
+
+  // En cualquier otro caso (genérico, ambiguo, repetible), combinar
+  // packageFolder con el filename para garantizar unicidad bajo el
+  // constraint UNIQUE(type, number).
+  return `${packageFolder} · ${cleanedFn}`;
 }
 
 interface IngestResult {
@@ -214,10 +218,39 @@ interface IngestResult {
   pages?: number;
 }
 
+/**
+ * Extrae el "identificador normativo" del nombre de la carpeta-paquete,
+ * útil para detectar duplicados contra BD aunque vengan por otro path.
+ *
+ * Ejemplos:
+ *   "Directiva N° 007-2025-OECE-CD - Registro..."  → "007-2025-OECE-CD"
+ *   "Directiva Nº 0001-2026-EF54.01 - ..."          → "0001-2026-EF54.01"
+ *   "Lineamiento N° 002-2025-OECE-CD - Conducta..."→ "002-2025-OECE-CD"
+ *   "Directiva N° 0002-2025-EF54.01"                → "0002-2025-EF54.01"
+ */
+function extractNormativeId(packageFolder: string): string | null {
+  // Patrón general: dígitos-año-emisor[-subcódigo]
+  // - 007-2025-OECE-CD
+  // - 0001-2026-EF54.01
+  // - 000048-2025-jefatura
+  const patterns = [
+    /(\d{3,6}[-_]?\d{4}[-_](?:oece|osce)[-_]cd)/i,
+    /(\d{3,6}[-_]?\d{4}[-_]ef[-_]?5401(?:\.\d+)?)/i,
+    /(\d{3,6}[-_]?\d{4}[-_](?:peru[\s_-]?compras|peruompras))/i,
+    /(\d{3,6}[-_]?\d{4}[-_]oece(?:[-_]pre)?)/i,
+  ];
+  const cleaned = packageFolder.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  for (const re of patterns) {
+    const m = cleaned.match(re);
+    if (m) return m[1].toLowerCase().replace(/_/g, '-');
+  }
+  return null;
+}
+
 async function processFinding(f: Finding): Promise<IngestResult> {
   const originalPath = f.relPath.replace(/\\/g, '/');
 
-  // Idempotencia: ¿ya está esta misma ruta original ingestada?
+  // 1. Idempotencia exacta: ¿ya está esta misma ruta original ingestada?
   const { data: existing } = await supabase
     .from('normative_documents')
     .select('id')
@@ -225,6 +258,27 @@ async function processFinding(f: Finding): Promise<IngestResult> {
     .maybeSingle();
   if (existing) {
     return { ok: true, finding: f, reason: 'ya existe (original_path)' };
+  }
+
+  // 2. Deduplicación aproximada por id normativo:
+  // si en BD existe ya el MISMO documento normativo (mismo número o título
+  // contiene el id), lo saltamos. Esto evita duplicar la Directiva 007-2025
+  // si vino por otra fuente previa.
+  const normId = extractNormativeId(f.packageFolder);
+  if (normId) {
+    const { data: dup } = await supabase
+      .from('normative_documents')
+      .select('id, number, title')
+      .or(`number.ilike.%${normId}%,title.ilike.%${normId}%`)
+      .eq('type', f.guessedType)
+      .limit(1);
+    if (dup && dup.length > 0) {
+      return {
+        ok: true,
+        finding: f,
+        reason: `ya existe (norm-id: ${normId})`,
+      };
+    }
   }
 
   let buffer: Buffer;
@@ -279,6 +333,7 @@ async function processFinding(f: Finding): Promise<IngestResult> {
         original_path: originalPath,
         emitter: f.emitter,
         package_folder: f.packageFolder,
+        norm_id: extractNormativeId(f.packageFolder),
         ingested_by: 'cliente_docs_script',
         classifier_matched: f.matchedRule,
       },
