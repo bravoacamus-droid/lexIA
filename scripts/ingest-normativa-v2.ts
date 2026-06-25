@@ -63,6 +63,10 @@ const VALID_TYPES = [
   'tupa',         // Texto Único de Procedimientos Administrativos
   'comunicado',   // comunicados oficiales OECE/PERUCOMPRAS
   'guia',         // guías, tableros, FAQ (orientativos)
+  // Tipos agregados en migración 0020 — DGA / OECE / Perú Compras:
+  'lineamiento',  // orientativo, emite OECE/Perú Compras
+  'codigo_etica', // regla de conducta, fuerza similar a directiva
+  'resolucion',   // resoluciones directorales/jefaturales
 ] as const;
 
 type DocType = (typeof VALID_TYPES)[number];

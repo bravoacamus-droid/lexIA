@@ -118,6 +118,25 @@ export const DOC_TYPE_META: Record<
     bg: 'bg-teal-100 dark:bg-teal-950',
     tagColor: '#0D9488',
   },
+  // Tipos agregados en migración 0020 (DGA / OECE / Perú Compras)
+  lineamiento: {
+    label: 'Lineamiento',
+    color: 'text-indigo-700 dark:text-indigo-300',
+    bg: 'bg-indigo-100 dark:bg-indigo-950',
+    tagColor: '#4F46E5',
+  },
+  codigo_etica: {
+    label: 'Código de Ética',
+    color: 'text-rose-700 dark:text-rose-300',
+    bg: 'bg-rose-100 dark:bg-rose-950',
+    tagColor: '#E11D48',
+  },
+  resolucion: {
+    label: 'Resolución',
+    color: 'text-orange-700 dark:text-orange-300',
+    bg: 'bg-orange-100 dark:bg-orange-950',
+    tagColor: '#EA580C',
+  },
 };
 
 export function getDocTypeMeta(type: string) {

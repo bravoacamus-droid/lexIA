@@ -21,6 +21,9 @@ const requestSchema = z.object({
       'tupa',
       'comunicado',
       'guia',
+      'lineamiento',
+      'codigo_etica',
+      'resolucion',
     ])
     .nullable()
     .optional(),

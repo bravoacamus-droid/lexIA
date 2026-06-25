@@ -24,7 +24,10 @@ export type NormativeDocType =
   | 'manual_seace'
   | 'tupa'
   | 'comunicado'
-  | 'guia';
+  | 'guia'
+  | 'lineamiento'
+  | 'codigo_etica'
+  | 'resolucion';
 
 interface ClassifyRule {
   type: NormativeDocType;
@@ -89,10 +92,28 @@ export const CLASSIFICATION_RULES: ClassifyRule[] = [
 
   // Documentos normativos vinculantes
   {
+    type: 'codigo_etica',
+    urlPattern: /codigo[-_]de[-_]etica|c[oó]digo[-_]etica/i,
+    textPattern: /c[oó]digo\s+de\s+[ée]tica/i,
+    label: 'Código de Ética',
+  },
+  {
+    type: 'lineamiento',
+    urlPattern: /lineamiento[s]?[-_](?:n[-_°º]?|oece|peru[-_]?compras)|lineamientos[-_]para[-_]el[-_]cumplimiento/i,
+    textPattern: /^lineamiento[s]?\s+(n[°º.]?\s*\d|para)/i,
+    label: 'Lineamiento OECE / Perú Compras',
+  },
+  {
+    type: 'resolucion',
+    urlPattern: /resoluci[oó]n[-_]directoral|resoluci[oó]n[-_]jefatural|resoluci[oó]n[-_]n[-_°º]?\s?\d+[-_]\d{4}[-_]ef[-_]?5401|resoluci[oó]n[-_]\d{4,}[-_]\d{4}[-_](?:pre|jefatura|oece)/i,
+    textPattern: /^resoluci[oó]n\s+(?:directoral|jefatural)\s+n[°º.]?\s*\d/i,
+    label: 'Resolución Directoral / Jefatural',
+  },
+  {
     type: 'directiva',
-    urlPattern: /\d{3,}[-_]\d{4}[-_]oece[-_]cd|directiva[-_]n[-_°º]?\s?\d+|directiva[-_]\d/i,
+    urlPattern: /\d{3,}[-_]\d{4}[-_]oece[-_]cd|\d{4}[-_]\d{4}[-_]ef[-_]?5401|directiva[-_]n[-_°º]?\s?\d+|directiva[-_]\d|directiva[-_](?:oece|peru[-_]?compras|dga)/i,
     textPattern: /^directiva\s+n[°º.]?\s*\d/i,
-    label: 'Directiva del OECE/CD',
+    label: 'Directiva',
   },
   {
     type: 'pronunciamiento',

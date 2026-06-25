@@ -13,12 +13,15 @@ export type NormativeDocType =
   | 'opinion'
   | 'pronunciamiento'
   | 'resolucion_tce'
-  // Agregados en migración 0019 — taxonomía ampliada para no clasificar
-  // como 'directiva' contenido que en realidad es operativo o informativo.
+  // Agregados en migración 0019 — operativos / informativos del OECE.
   | 'manual_seace'
   | 'tupa'
   | 'comunicado'
-  | 'guia';
+  | 'guia'
+  // Agregados en migración 0020 — normativa DGA / OECE / Perú Compras.
+  | 'lineamiento'
+  | 'codigo_etica'
+  | 'resolucion';
 
 export interface Profile {
   id: string;
