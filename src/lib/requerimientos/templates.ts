@@ -4,17 +4,11 @@
  * Cada plantilla aplica al crear un nuevo requerimiento:
  *  - Marca las cláusulas relevantes para ese tipo
  *  - Pre-rellena el contenido HTML de las cláusulas técnicas
- *  - Sugiere entregas típicas y un ítem inicial
  *
  * El usuario puede luego editar todo libremente — las plantillas son
  * un punto de partida que acelera 10x el armado de casos comunes.
  */
-import {
-  getInitialClauses,
-  type ObjectoContractual,
-  type Entrega,
-  type Item,
-} from './catalog';
+import { getInitialClauses, type ObjectoContractual } from './catalog';
 import type { Clause } from '@/components/app/requerimiento/clause-list';
 
 export interface RequirementTemplate {
@@ -35,8 +29,6 @@ export interface RequirementTemplate {
   }>;
   /** Cláusulas que NO se marcan como incluidas (por defecto todas se marcan). */
   clauses_excluded?: string[];
-  entregas: Array<Omit<Entrega, 'id'>>;
-  items: Array<Omit<Item, 'id'>>;
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -81,27 +73,6 @@ const TPL_COMPUTADORAS: RequirementTemplate = {
       id: 'conformidad',
       content:
         '<p>La conformidad del bien es emitida por el responsable del área usuaria (Sub Dirección de Tecnologías de Información) en un plazo máximo de siete (7) días calendario contados desde la recepción de los equipos. La conformidad se otorga previa verificación del cumplimiento de las características técnicas, ejecución de pruebas de funcionamiento y revisión de la documentación de garantía.</p>',
-    },
-  ],
-  entregas: [
-    {
-      numero: 1,
-      descripcion:
-        'Entrega única del total de equipos en la sede de la Entidad, con instalación básica y verificación de funcionamiento.',
-      plazo_dias: 30,
-      monto_pen: null,
-      forma_pago: 'Pago único contra conformidad',
-    },
-  ],
-  items: [
-    {
-      numero: 1,
-      codigo: '43211503',
-      descripcion: 'Computadora personal de escritorio con periféricos',
-      unidad_medida: 'UND',
-      cantidad: 10,
-      precio_unitario_pen: 3500,
-      marca_modelo: null,
     },
   ],
 };
@@ -151,36 +122,6 @@ const TPL_MTTO_AIRES: RequirementTemplate = {
     },
   ],
   clauses_excluded: ['gastos_desplazamiento', 'consideraciones_generales_productos'],
-  entregas: [
-    {
-      numero: 1,
-      descripcion:
-        'Reporte mensual de mantenimiento preventivo (1 entregable por mes, con detalle por equipo).',
-      plazo_dias: 30,
-      monto_pen: null,
-      forma_pago: 'Mensual contra conformidad',
-    },
-    {
-      numero: 2,
-      descripcion:
-        'Reporte de atenciones correctivas ejecutadas en el mes (cuando aplique).',
-      plazo_dias: 30,
-      monto_pen: null,
-      forma_pago: 'Mensual contra conformidad',
-    },
-  ],
-  items: [
-    {
-      numero: 1,
-      codigo: '72101501',
-      descripcion:
-        'Servicio de mantenimiento preventivo y correctivo mensual de equipos de aire acondicionado tipo split',
-      unidad_medida: 'MES',
-      cantidad: 12,
-      precio_unitario_pen: 1500,
-      marca_modelo: null,
-    },
-  ],
 };
 
 // ════════════════════════════════════════════════════════════════════
@@ -227,36 +168,6 @@ const TPL_PAVIMENTACION: RequirementTemplate = {
         '<p><strong>Ubicación de la obra:</strong> (indicar dirección completa: calle/avenida, distrito, provincia, región).</p><p><strong>Plazo de ejecución contractual:</strong> (indicar plazo en días calendario, p.ej. 180 días calendario) contados a partir del cumplimiento de las siguientes condiciones: (i) designación del Inspector o Supervisor de obra, (ii) entrega del terreno mediante acta, (iii) entrega del expediente técnico aprobado, (iv) entrega del calendario de avance valorizado adelantado por el contratista, y (v) entrega del adelanto directo cuando este haya sido solicitado.</p>',
     },
   ],
-  entregas: [
-    {
-      numero: 1,
-      descripcion:
-        'Valorización mensual de obra ejecutada, conforme a metrados verificados por el Inspector/Supervisor.',
-      plazo_dias: 30,
-      monto_pen: null,
-      forma_pago: 'Mensual por avance físico',
-    },
-    {
-      numero: 2,
-      descripcion:
-        'Acta de Recepción de Obra al concluir la ejecución (entregable final con planos as-built, manuales y liquidación).',
-      plazo_dias: 180,
-      monto_pen: null,
-      forma_pago: 'Contra recepción final',
-    },
-  ],
-  items: [
-    {
-      numero: 1,
-      codigo: '72141118',
-      descripcion:
-        'Ejecución de obra: Pavimentación de vía local conforme al expediente técnico aprobado',
-      unidad_medida: 'GLB',
-      cantidad: 1,
-      precio_unitario_pen: 800000,
-      marca_modelo: null,
-    },
-  ],
 };
 
 // ════════════════════════════════════════════════════════════════════
@@ -298,60 +209,6 @@ const TPL_EXPEDIENTE_TECNICO: RequirementTemplate = {
         '<p><strong>Lugar de prestación:</strong> Oficina del consultor para el desarrollo del estudio + zona del proyecto (indicar distrito/provincia/región) para visitas de campo y trabajos de geotecnia.</p><p><strong>Plazo de ejecución contractual:</strong> Ciento veinte (120) días calendario contados a partir del día siguiente del perfeccionamiento del contrato o de la notificación de la orden de servicio, lo que ocurra primero.</p>',
     },
   ],
-  entregas: [
-    {
-      numero: 1,
-      descripcion:
-        'Plan de trabajo, cronograma detallado y conformación del equipo técnico con cartas de aceptación firmadas.',
-      plazo_dias: 15,
-      monto_pen: null,
-      forma_pago: '10% del contrato contra aprobación',
-    },
-    {
-      numero: 2,
-      descripcion:
-        'Informe preliminar con resultados de estudios básicos (topografía, suelos, tránsito, hidrología, impacto ambiental).',
-      plazo_dias: 45,
-      monto_pen: null,
-      forma_pago: '25% del contrato contra aprobación',
-    },
-    {
-      numero: 3,
-      descripcion:
-        'Anteproyecto con diseño preliminar, planos esquemáticos y presupuesto estimado para revisión.',
-      plazo_dias: 75,
-      monto_pen: null,
-      forma_pago: '25% del contrato contra aprobación',
-    },
-    {
-      numero: 4,
-      descripcion:
-        'Expediente técnico preliminar con todos los entregables para revisión y observaciones de la Entidad.',
-      plazo_dias: 105,
-      monto_pen: null,
-      forma_pago: '20% del contrato contra aprobación',
-    },
-    {
-      numero: 5,
-      descripcion:
-        'Expediente técnico final con observaciones levantadas, listo para aprobación formal por resolución administrativa.',
-      plazo_dias: 120,
-      monto_pen: null,
-      forma_pago: '20% del contrato contra aprobación',
-    },
-  ],
-  items: [
-    {
-      numero: 1,
-      codigo: '81101500',
-      descripcion:
-        'Servicio de consultoría para la elaboración del expediente técnico de obra vial',
-      unidad_medida: 'GLB',
-      cantidad: 1,
-      precio_unitario_pen: 120000,
-      marca_modelo: null,
-    },
-  ],
 };
 
 // ════════════════════════════════════════════════════════════════════
@@ -381,8 +238,6 @@ export function applyTemplate(template: RequirementTemplate): {
   area_usuaria: string | null;
   denominacion: string;
   clauses: Clause[];
-  entregas: Entrega[];
-  items: Item[];
 } {
   // Partimos del catálogo base del objeto correspondiente.
   const baseClauses = getInitialClauses(template.objeto) as Clause[];
@@ -404,21 +259,9 @@ export function applyTemplate(template: RequirementTemplate): {
     };
   });
 
-  const entregas: Entrega[] = template.entregas.map((e, idx) => ({
-    ...e,
-    id: `ent-tpl-${idx}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-  }));
-
-  const items: Item[] = template.items.map((i, idx) => ({
-    ...i,
-    id: `itm-tpl-${idx}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-  }));
-
   return {
     area_usuaria: template.area_usuaria_sugerida,
     denominacion: template.denominacion,
     clauses,
-    entregas,
-    items,
   };
 }

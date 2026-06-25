@@ -45,11 +45,9 @@ export async function POST(req: Request) {
   const { anio, objeto, area_usuaria, denominacion, template_id } = parsed.data;
 
   // Si se eligió una plantilla y aplica al objeto seleccionado, la aplicamos.
-  // Esto pre-rellena cláusulas, entregas e ítems típicos.
+  // Esto pre-rellena las cláusulas típicas.
   let clauses: unknown = getInitialClauses(objeto as ObjectoContractual);
-  let entregas: unknown[] = [];
-  let items: unknown[] = [];
-  let denominacionFinal = denominacion;
+  const denominacionFinal = denominacion;
   let areaUsuariaFinal = area_usuaria || null;
 
   if (template_id) {
@@ -57,8 +55,6 @@ export async function POST(req: Request) {
     if (tpl && tpl.objeto === objeto) {
       const applied = applyTemplate(tpl);
       clauses = applied.clauses;
-      entregas = applied.entregas;
-      items = applied.items;
       // Solo sobrescribir denominación/área si el usuario dejó los defaults
       // de la plantilla intactos (lo cual es el caso típico).
       if (!area_usuaria) areaUsuariaFinal = applied.area_usuaria;
@@ -75,8 +71,6 @@ export async function POST(req: Request) {
       area_usuaria: areaUsuariaFinal,
       denominacion: denominacionFinal,
       clauses: clauses as never,
-      entregas: entregas as never,
-      items: items as never,
       status: 'draft',
     } as never)
     .select('id')

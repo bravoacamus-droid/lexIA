@@ -60,8 +60,6 @@ export default async function RequerimientoPage({ params }: Props) {
     organo_unidad_organica: string | null;
     actividad_poi: string | null;
     clauses: RequirementInitial['clauses'];
-    entregas: RequirementInitial['entregas'];
-    items: RequirementInitial['items'];
     status: RequirementInitial['status'];
   };
   if (row.user_id !== user.id) notFound();
@@ -84,8 +82,6 @@ export default async function RequerimientoPage({ params }: Props) {
     organo_unidad_organica: row.organo_unidad_organica,
     actividad_poi: row.actividad_poi,
     clauses,
-    entregas: Array.isArray(row.entregas) ? row.entregas : [],
-    items: Array.isArray(row.items) ? row.items : [],
     status: row.status,
   };
 
