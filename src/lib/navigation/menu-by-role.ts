@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   ScanSearch,
   ClipboardList,
+  PhoneCall,
   type LucideIcon,
 } from 'lucide-react';
 import type { ProfileRole } from '@/lib/auth/session';
@@ -65,6 +66,14 @@ export const MENU_SECTIONS: MenuSection[] = [
         href: '/biblioteca',
         icon: Library,
         description: 'Ley 32069, Reglamento, opiniones y jurisprudencia.',
+      },
+      {
+        label: 'Llamadas con el Abogado Virtual',
+        href: '/llamadas',
+        icon: PhoneCall,
+        description:
+          'Conversa por voz con LexIA y obtén respuestas con sustento normativo citado al artículo.',
+        accent: true,
       },
     ],
   },
