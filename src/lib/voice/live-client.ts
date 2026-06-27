@@ -104,8 +104,19 @@ export class LiveClient {
       setTimeout(() => reject(new Error('Timeout abriendo WebSocket')), 10000);
     });
     this.ws.onmessage = (e) => this.handleServerMessage(e.data);
-    this.ws.onclose = () => this.cleanup();
-    this.ws.onerror = () => this.cfg.onError('Error de conexión con Gemini Live');
+    this.ws.onclose = (ev) => {
+      // Gemini cierra con código 1008 + reason específico cuando hay
+      // problema con el modelo, permisos o billing. Lo mostramos al
+      // usuario para que sepa qué hacer.
+      if (ev.code !== 1000 && ev.code !== 1005) {
+        const reason = ev.reason || 'sin detalle';
+        this.cfg.onError(
+          `Llamada cerrada (código ${ev.code}): ${reason.slice(0, 200)}`,
+        );
+      }
+      this.cleanup();
+    };
+    this.ws.onerror = () => this.cfg.onError('Error de red con Gemini Live');
 
     // 2. Enviar setup
     this.ws.send(

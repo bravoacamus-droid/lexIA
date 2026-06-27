@@ -43,6 +43,7 @@
     "@tiptap/pm": "^2.10.4",
     "@tiptap/react": "^2.10.4",
     "@tiptap/starter-kit": "^2.10.4",
+    "@types/ws": "^8.18.1",
     "ai": "^4.0.27",
     "canvas-confetti": "^1.9.4",
     "cheerio": "^1.2.0",
@@ -72,6 +73,7 @@
     "tailwindcss-animate": "^1.0.7",
     "unpdf": "^0.12.1",
     "voyageai": "^0.0.4",
+    "ws": "^8.21.0",
     "zod": "^3.24.1",
     "zustand": "^5.0.2"
   },

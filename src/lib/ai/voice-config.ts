@@ -6,11 +6,22 @@
  */
 
 /**
- * Modelo Gemini Live API utilizado. gemini-2.5-flash-native-audio
- * es el modelo recomendado para voz a partir de Google I/O 2026.
+ * Modelo Gemini Live API utilizado.
+ *
+ * Validación en producción 27/06/2026: nuestra API key NO acepta el alias
+ * corto 'gemini-2.5-flash-native-audio' (devuelve "model not found").
+ * El nombre real publicado en /v1beta/models con soporte
+ * bidiGenerateContent es 'gemini-2.5-flash-native-audio-latest', y es el
+ * que validamos contra el WebSocket de Live API. Los otros nombres
+ * disponibles son:
+ *   - gemini-2.5-flash-native-audio-preview-09-2025
+ *   - gemini-2.5-flash-native-audio-preview-12-2025
+ *   - gemini-3.1-flash-live-preview
+ *   - gemini-3.5-live-translate-preview (solo traducción)
  */
 export const VOICE_MODEL_ID =
-  process.env.GEMINI_LIVE_MODEL_ID || 'gemini-2.5-flash-native-audio';
+  process.env.GEMINI_LIVE_MODEL_ID ||
+  'gemini-2.5-flash-native-audio-latest';
 
 /** Versión actual del disclaimer aceptado. Si cambia, se vuelve a pedir. */
 export const DISCLAIMER_VERSION = 'v1-2026-06-26';
