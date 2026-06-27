@@ -132,7 +132,7 @@ export const DOC_TYPE_META: Record<
     tagColor: '#E11D48',
   },
   resolucion: {
-    label: 'Resolución',
+    label: 'Resolución Directoral',
     color: 'text-orange-700 dark:text-orange-300',
     bg: 'bg-orange-100 dark:bg-orange-950',
     tagColor: '#EA580C',

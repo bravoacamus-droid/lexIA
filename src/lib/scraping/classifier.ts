@@ -105,9 +105,14 @@ export const CLASSIFICATION_RULES: ClassifyRule[] = [
   },
   {
     type: 'resolucion',
-    urlPattern: /resoluci[oó]n[-_]directoral|resoluci[oó]n[-_]jefatural|resoluci[oó]n[-_]n[-_°º]?\s?\d+[-_]\d{4}[-_]ef[-_]?5401|resoluci[oó]n[-_]\d{4,}[-_]\d{4}[-_](?:pre|jefatura|oece)/i,
-    textPattern: /^resoluci[oó]n\s+(?:directoral|jefatural)\s+n[°º.]?\s*\d/i,
-    label: 'Resolución Directoral / Jefatural',
+    urlPattern:
+      /resoluci[oó]n[-_]directoral|resoluci[oó]n[-_]jefatural|resoluci[oó]n[-_]n[-_°º]?\s?\d+[-_]\d{4}[-_]ef[-_]?5401|resoluci[oó]n[-_]\d{4,}[-_]\d{4}[-_](?:pre|jefatura|oece)|resoluci[oó]n[-_]n[-_°º]?[-_]?\d{2,6}[-_]\d{4}|resoluci[oó]n[-_]que[-_](?:aprueba|modifica|corrige|rectifica)|resoluci[oó]n[-_]de[-_](?:aprobaci[oó]n|modificaci[oó]n)|\d{6,}[-_]resoluci[oó]n/i,
+    // textPattern también captura "Resolución que aprueba la directiva",
+    // "Resolución que modifica por primera vez", "Resolución directoral N° X",
+    // "Resolución jefatural", etc.
+    textPattern:
+      /^(?:\d+[.\s-]+)?resoluci[oó]n(?:\s+(?:directoral|jefatural|que|de|n[°º.]?))/i,
+    label: 'Resolución Directoral / Jefatural / Aprobatoria',
   },
   {
     type: 'directiva',
