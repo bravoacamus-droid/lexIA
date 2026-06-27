@@ -1,0 +1,461 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { toast } from 'sonner';
+import {
+  Phone,
+  PhoneOff,
+  ArrowLeft,
+  Shield,
+  Mic,
+  MicOff,
+  Pause,
+  Play,
+  Sparkles,
+  BookOpen,
+} from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+
+interface Props {
+  hasConsent: boolean;
+  disclaimerVersion: string;
+}
+
+type Stage = 'consent' | 'setup' | 'connecting' | 'active' | 'ending';
+
+interface ConsentState {
+  ia_no_lawyer: boolean;
+  recording: boolean;
+  data_in_google_cloud: boolean;
+  no_confidential_third_party: boolean;
+}
+
+const VOICES = [
+  { id: 'Aoede', label: 'Aoede (femenina, neutra)' },
+  { id: 'Kore', label: 'Kore (femenina, cálida)' },
+  { id: 'Puck', label: 'Puck (masculina, juvenil)' },
+  { id: 'Charon', label: 'Charon (masculina, grave)' },
+] as const;
+
+export function CallStarter({ hasConsent, disclaimerVersion }: Props) {
+  const router = useRouter();
+  const [stage, setStage] = useState<Stage>(hasConsent ? 'setup' : 'consent');
+  const [consent, setConsent] = useState<ConsentState>({
+    ia_no_lawyer: false,
+    recording: false,
+    data_in_google_cloud: false,
+    no_confidential_third_party: false,
+  });
+  const [savingConsent, setSavingConsent] = useState(false);
+  const [voiceId, setVoiceId] = useState<string>('Aoede');
+  const [callId, setCallId] = useState<string | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [muted, setMuted] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [agentState, setAgentState] = useState<'idle' | 'listening' | 'thinking' | 'speaking'>(
+    'idle',
+  );
+
+  const allConsented =
+    consent.ia_no_lawyer &&
+    consent.recording &&
+    consent.data_in_google_cloud &&
+    consent.no_confidential_third_party;
+
+  async function saveConsent() {
+    if (!allConsented) {
+      toast.error('Debes aceptar las 4 casillas para continuar.');
+      return;
+    }
+    setSavingConsent(true);
+    try {
+      const res = await fetch('/api/voice/consent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accepted_ia_no_lawyer: true,
+          accepted_recording: true,
+          accepted_data_in_google_cloud: true,
+          accepted_no_confidential_third_party: true,
+        }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        throw new Error(json?.detail || `HTTP ${res.status}`);
+      }
+      toast.success('Consentimiento registrado');
+      setStage('setup');
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSavingConsent(false);
+    }
+  }
+
+  async function startCall() {
+    setStage('connecting');
+    try {
+      const res = await fetch('/api/voice/calls', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voice_id: voiceId }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json?.detail || json?.error || 'No se pudo crear la llamada');
+      }
+      setCallId(json.call.id);
+      // En el Día 4 conectaremos el WebSocket de Gemini Live aquí.
+      // Por ahora simulamos la conexión y dejamos la pantalla funcional.
+      await new Promise((r) => setTimeout(r, 1500));
+      setStage('active');
+      setAgentState('speaking');
+      startTimer();
+      // Simular flujo de turnos para visualizar UI
+      simulateAgentTurns();
+    } catch (e) {
+      toast.error((e as Error).message);
+      setStage('setup');
+    }
+  }
+
+  function startTimer() {
+    const interval = setInterval(() => {
+      if (paused) return;
+      setElapsedSeconds((s) => s + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }
+
+  function simulateAgentTurns() {
+    // Solo para visualizar la UI hasta Día 4
+    const cycle = ['speaking', 'idle', 'listening', 'thinking', 'speaking'] as const;
+    let i = 0;
+    const interval = setInterval(() => {
+      if (paused || stage === 'ending') return;
+      setAgentState(cycle[i % cycle.length]);
+      i += 1;
+    }, 3000);
+    return () => clearInterval(interval);
+  }
+
+  async function endCall() {
+    if (!callId) return;
+    setStage('ending');
+    try {
+      await fetch(`/api/voice/calls/${callId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'completed',
+          duration_seconds: elapsedSeconds,
+        }),
+      });
+      toast.success('Llamada finalizada');
+      router.push(`/llamadas/${callId}`);
+    } catch (e) {
+      toast.error((e as Error).message);
+      setStage('active');
+    }
+  }
+
+  // ───── ETAPA: CONSENTIMIENTO ─────
+  if (stage === 'consent') {
+    return (
+      <div className="container max-w-2xl py-6 space-y-5">
+        <Button asChild variant="ghost" size="sm">
+          <Link href="/llamadas">
+            <ArrowLeft className="h-4 w-4" />
+            Volver
+          </Link>
+        </Button>
+
+        <Card className="p-7 space-y-5">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400">
+              <Shield className="h-5 w-5" />
+            </span>
+            <div>
+              <h1 className="font-semibold text-2xl tracking-tight">
+                Antes de tu primera llamada
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Necesitamos tu consentimiento para usar esta funcionalidad
+                (Ley N° 29733).
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3 pt-2">
+            <ConsentCheckbox
+              checked={consent.ia_no_lawyer}
+              onChange={(v) => setConsent((s) => ({ ...s, ia_no_lawyer: v }))}
+              text="Acepto que esta es una conversación con inteligencia artificial, no con un abogado licenciado. La información es orientativa y no constituye asesoría legal profesional."
+            />
+            <ConsentCheckbox
+              checked={consent.recording}
+              onChange={(v) => setConsent((s) => ({ ...s, recording: v }))}
+              text="Acepto que la llamada sea grabada y la transcripción almacenada en mi cuenta para que pueda consultarla después. Puedo eliminar mis grabaciones en cualquier momento."
+            />
+            <ConsentCheckbox
+              checked={consent.data_in_google_cloud}
+              onChange={(v) =>
+                setConsent((s) => ({ ...s, data_in_google_cloud: v }))
+              }
+              text="Entiendo que mis datos se procesan en servidores de Google Cloud (Estados Unidos / Brasil) bajo los términos de privacidad de LexIA y Google."
+            />
+            <ConsentCheckbox
+              checked={consent.no_confidential_third_party}
+              onChange={(v) =>
+                setConsent((s) => ({ ...s, no_confidential_third_party: v }))
+              }
+              text="Acepto no compartir información confidencial de terceros, datos personales sensibles ni secretos profesionales en esta llamada."
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border/40">
+            <Button asChild variant="outline">
+              <Link href="/llamadas">Cancelar</Link>
+            </Button>
+            <Button
+              onClick={saveConsent}
+              disabled={!allConsented}
+              loading={savingConsent}
+            >
+              Acepto y continuar
+            </Button>
+          </div>
+
+          <p className="text-[10px] text-muted-foreground text-center">
+            Versión del aviso: {disclaimerVersion}
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
+  // ───── ETAPA: SETUP (elegir voz, iniciar) ─────
+  if (stage === 'setup' || stage === 'connecting') {
+    return (
+      <div className="container max-w-2xl py-6 space-y-5">
+        <Button asChild variant="ghost" size="sm">
+          <Link href="/llamadas">
+            <ArrowLeft className="h-4 w-4" />
+            Volver
+          </Link>
+        </Button>
+
+        <Card className="p-7 space-y-6">
+          <div>
+            <h1 className="font-semibold text-2xl tracking-tight mb-1">
+              Llamar al Abogado Virtual
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Antes de iniciar, elige la voz preferida y permite el micrófono cuando te lo pida el navegador.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Voz del agente
+            </Label>
+            <Select value={voiceId} onValueChange={setVoiceId}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {VOICES.map((v) => (
+                  <SelectItem key={v.id} value={v.id}>
+                    {v.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="rounded-lg bg-amber-50/40 dark:bg-amber-950/30 border border-amber-500/30 p-4 text-xs leading-relaxed">
+            <p className="font-semibold text-amber-900 dark:text-amber-100 mb-1">
+              🤖 Recordatorio
+            </p>
+            <p className="text-amber-900/80 dark:text-amber-100/80">
+              Estás hablando con IA, no con un abogado real. La información es
+              orientativa y no constituye asesoría legal profesional.
+            </p>
+          </div>
+
+          <Button
+            onClick={startCall}
+            size="lg"
+            variant="glow"
+            className="w-full"
+            loading={stage === 'connecting'}
+          >
+            <Phone className="h-4 w-4" />
+            {stage === 'connecting' ? 'Conectando…' : 'Iniciar llamada'}
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  // ───── ETAPA: LLAMADA ACTIVA ─────
+  return (
+    <div className="container max-w-2xl py-6">
+      <Card className="p-7 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
+            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+              Llamada activa
+            </p>
+          </div>
+          <div className="text-2xl font-mono font-bold tabular-nums">
+            {formatTimer(elapsedSeconds)}
+          </div>
+        </div>
+
+        {/* Banner permanente */}
+        <div className="rounded-lg bg-amber-50/40 dark:bg-amber-950/30 border border-amber-500/30 px-3 py-2 text-[11px]">
+          <p className="text-amber-900 dark:text-amber-100">
+            🤖 Estás hablando con IA · Información orientativa, no asesoría legal
+          </p>
+        </div>
+
+        {/* Indicador de estado */}
+        <div className="py-10 flex flex-col items-center justify-center">
+          <div
+            className={cn(
+              'relative h-32 w-32 rounded-full flex items-center justify-center transition-all',
+              agentState === 'speaking' &&
+                'bg-brand-500 text-white shadow-lg shadow-brand-500/40',
+              agentState === 'listening' &&
+                'bg-emerald-500 text-white shadow-lg shadow-emerald-500/40',
+              agentState === 'thinking' &&
+                'bg-amber-500 text-white shadow-lg shadow-amber-500/40',
+              agentState === 'idle' && 'bg-secondary text-muted-foreground',
+            )}
+          >
+            {(agentState === 'speaking' || agentState === 'listening') && (
+              <>
+                <span
+                  className={cn(
+                    'absolute inset-0 rounded-full animate-ping opacity-30',
+                    agentState === 'speaking' ? 'bg-brand-500' : 'bg-emerald-500',
+                  )}
+                />
+                <span
+                  className={cn(
+                    'absolute inset-2 rounded-full animate-pulse opacity-50',
+                    agentState === 'speaking' ? 'bg-brand-400' : 'bg-emerald-400',
+                  )}
+                />
+              </>
+            )}
+            {agentState === 'thinking' ? (
+              <BookOpen className="h-10 w-10 relative animate-pulse" />
+            ) : (
+              <Sparkles className="h-10 w-10 relative" />
+            )}
+          </div>
+          <p className="mt-5 text-sm font-semibold">
+            {agentState === 'speaking' && 'Abogada Virtual está hablando…'}
+            {agentState === 'listening' && 'Te escucho…'}
+            {agentState === 'thinking' && 'Consultando normativa…'}
+            {agentState === 'idle' && 'Tu turno'}
+          </p>
+          {agentState === 'thinking' && (
+            <p className="text-xs text-muted-foreground mt-1">
+              📚 Buscando en la Ley 32069 y pronunciamientos del OECE
+            </p>
+          )}
+        </div>
+
+        {/* Controles */}
+        <div className="flex items-center justify-center gap-3">
+          <Button
+            variant={muted ? 'default' : 'outline'}
+            size="lg"
+            onClick={() => setMuted((m) => !m)}
+            aria-label={muted ? 'Activar micrófono' : 'Silenciar micrófono'}
+            className="h-14 w-14 rounded-full p-0"
+          >
+            {muted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+          </Button>
+
+          <Button
+            variant={paused ? 'default' : 'outline'}
+            size="lg"
+            onClick={() => setPaused((p) => !p)}
+            aria-label={paused ? 'Reanudar' : 'Pausar'}
+            className="h-14 w-14 rounded-full p-0"
+          >
+            {paused ? <Play className="h-5 w-5" /> : <Pause className="h-5 w-5" />}
+          </Button>
+
+          <Button
+            variant="destructive"
+            size="lg"
+            onClick={endCall}
+            loading={stage === 'ending'}
+            className="h-14 px-6 rounded-full"
+          >
+            <PhoneOff className="h-5 w-5" />
+            Colgar
+          </Button>
+        </div>
+
+        <p className="text-[10px] text-muted-foreground text-center">
+          Voz: {VOICES.find((v) => v.id === voiceId)?.label} · ID llamada: {callId?.slice(0, 8)}
+        </p>
+      </Card>
+    </div>
+  );
+}
+
+function ConsentCheckbox({
+  checked,
+  onChange,
+  text,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  text: string;
+}) {
+  return (
+    <label
+      className={cn(
+        'flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors',
+        checked
+          ? 'border-brand-500/50 bg-brand-50/40 dark:bg-brand-950/30'
+          : 'border-border hover:border-border/80',
+      )}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-0.5 h-4 w-4 rounded border-border accent-brand-600"
+      />
+      <span className="text-sm leading-relaxed">{text}</span>
+    </label>
+  );
+}
+
+function formatTimer(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
