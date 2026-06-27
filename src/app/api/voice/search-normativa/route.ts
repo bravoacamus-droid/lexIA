@@ -53,48 +53,63 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 
-  // Ejecutar búsqueda
-  const results = await searchNormativa({
-    query: parsed.data.query,
-    filter_type: parsed.data.filter_type ?? null,
-    match_count: 5,
-  });
-  const formatted = formatResultsForLLM(results);
+  // Ejecutar búsqueda. CRÍTICO: cualquier error aquí NO debe lanzar
+  // 500 — el cliente de voz necesita una respuesta 200 con content para
+  // entregársela al modelo y que la conversación continúe. Si la
+  // búsqueda falla, devolvemos un mensaje al modelo en lugar de
+  // dejar al modelo esperando indefinidamente.
+  try {
+    const results = await searchNormativa({
+      query: parsed.data.query,
+      filter_type: parsed.data.filter_type ?? null,
+      match_count: 5,
+    });
+    const formatted = formatResultsForLLM(results);
 
-  // Acumular en la llamada (rag_queries_count + cited_documents)
-  const prevCount = (call as { rag_queries_count: number }).rag_queries_count || 0;
-  const prevCited =
-    ((call as { cited_documents: Array<{ citation: string; title: string }> })
-      .cited_documents as Array<{ citation: string; title: string }>) || [];
-  const newCitations = results.map((r) => ({
-    citation: r.citation,
-    title: r.title,
-  }));
-  // Deduplicar por citation+title
-  const seen = new Set(prevCited.map((c) => `${c.citation}::${c.title}`));
-  for (const nc of newCitations) {
-    const k = `${nc.citation}::${nc.title}`;
-    if (!seen.has(k)) {
-      seen.add(k);
-      prevCited.push(nc);
-    }
-  }
-
-  await supabase
-    .from('voice_calls')
-    .update({
-      rag_queries_count: prevCount + 1,
-      cited_documents: prevCited as never,
-    } as never)
-    .eq('id', parsed.data.call_id);
-
-  return NextResponse.json({
-    content: formatted,
-    results_count: results.length,
-    citations: results.map((r) => ({
+    // Acumular en la llamada (rag_queries_count + cited_documents)
+    const prevCount = (call as { rag_queries_count: number }).rag_queries_count || 0;
+    const prevCited =
+      ((call as { cited_documents: Array<{ citation: string; title: string }> })
+        .cited_documents as Array<{ citation: string; title: string }>) || [];
+    const newCitations = results.map((r) => ({
       citation: r.citation,
       title: r.title,
-      type: r.type,
-    })),
-  });
+    }));
+    // Deduplicar por citation+title
+    const seen = new Set(prevCited.map((c) => `${c.citation}::${c.title}`));
+    for (const nc of newCitations) {
+      const k = `${nc.citation}::${nc.title}`;
+      if (!seen.has(k)) {
+        seen.add(k);
+        prevCited.push(nc);
+      }
+    }
+
+    await supabase
+      .from('voice_calls')
+      .update({
+        rag_queries_count: prevCount + 1,
+        cited_documents: prevCited as never,
+      } as never)
+      .eq('id', parsed.data.call_id);
+
+    return NextResponse.json({
+      content: formatted,
+      results_count: results.length,
+      citations: results.map((r) => ({
+        citation: r.citation,
+        title: r.title,
+        type: r.type,
+      })),
+    });
+  } catch (err) {
+    console.error('[voice/search-normativa] búsqueda falló:', err);
+    return NextResponse.json({
+      content:
+        'No se pudo consultar la base normativa en este momento. Responde al usuario con tu mejor conocimiento general indicando que verifique el numeral exacto en el portal del OECE.',
+      results_count: 0,
+      citations: [],
+      error_internal: (err as Error).message,
+    });
+  }
 }

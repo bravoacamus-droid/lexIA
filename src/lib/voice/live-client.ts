@@ -343,8 +343,26 @@ export class LiveClient {
     if (msg.toolCall) {
       this.setState('thinking');
       for (const fc of msg.toolCall.functionCalls) {
+        // Cinturón de seguridad: incluso si la implementación del
+        // onToolCall ya tiene timeout interno, garantizamos aquí un
+        // máximo de 18s antes de devolver una respuesta de fallback
+        // al modelo. Sin esto un onToolCall que nunca resuelva deja
+        // al modelo esperando y la conversación se rompe en silencio.
+        const TIMEOUT_MS = 18000;
+        const timeoutResult = new Promise<string>((resolve) =>
+          setTimeout(
+            () =>
+              resolve(
+                'Timeout consultando la base normativa. Responde con tu mejor conocimiento general y sugiere verificar en el portal del OECE.',
+              ),
+            TIMEOUT_MS,
+          ),
+        );
         try {
-          const result = await this.cfg.onToolCall(fc.name, fc.args);
+          const result = await Promise.race([
+            this.cfg.onToolCall(fc.name, fc.args),
+            timeoutResult,
+          ]);
           this.sendToolResponse(fc.id, fc.name, result);
         } catch (e) {
           this.sendToolResponse(

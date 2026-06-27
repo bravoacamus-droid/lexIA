@@ -147,17 +147,33 @@ export function CallStarter({ hasConsent, disclaimerVersion }: Props) {
           if (name !== 'search_normativa') {
             return JSON.stringify({ error: 'function not implemented' });
           }
-          const r = await fetch('/api/voice/search-normativa', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              query: (args.query as string) || '',
-              filter_type: (args.filter_type as string) ?? null,
-              call_id: newCallId,
-            }),
-          });
-          const j = await r.json();
-          return r.ok ? j.content : `error: ${j.error || 'desconocido'}`;
+          // Timeout duro de 15s: si el bridge no responde, abortamos
+          // y devolvemos un fallback al modelo. Sin esto, una request
+          // colgada deja al modelo esperando indefinidamente y la
+          // conversación se rompe en silencio (bug del 27/06/2026).
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), 15000);
+          try {
+            const r = await fetch('/api/voice/search-normativa', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                query: (args.query as string) || '',
+                filter_type: (args.filter_type as string) ?? null,
+                call_id: newCallId,
+              }),
+              signal: ctrl.signal,
+            });
+            const j = await r.json();
+            return r.ok ? j.content : `error: ${j.error || 'desconocido'}`;
+          } catch (e) {
+            const isAbort = (e as Error).name === 'AbortError';
+            return isAbort
+              ? 'La búsqueda en la base normativa tardó demasiado. Responde con tu conocimiento general y avisa al usuario que verificarías el numeral exacto en el portal del OECE.'
+              : `error de bridge: ${(e as Error).message}`;
+          } finally {
+            clearTimeout(timer);
+          }
         },
         onTranscript: (speaker, text, ts) => {
           // Persistir transcripción (fire-and-forget)
