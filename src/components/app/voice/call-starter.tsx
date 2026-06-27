@@ -210,14 +210,15 @@ export function CallStarter({ hasConsent, disclaimerVersion }: Props) {
     if (!callId) return;
     setStage('ending');
     try {
-      // 1. Cortar la conexión Live
-      await liveClientRef.current?.stop();
-      liveClientRef.current = null;
+      // 1. Cortar la conexión Live (esto también detiene MediaRecorder)
+      const client = liveClientRef.current;
+      await client?.stop();
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
         timerIntervalRef.current = null;
       }
-      // 2. Marcar la llamada como completada
+
+      // 2. Marcar la llamada como completada (con duración)
       await fetch(`/api/voice/calls/${callId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -226,6 +227,28 @@ export function CallStarter({ hasConsent, disclaimerVersion }: Props) {
           duration_seconds: elapsedSeconds,
         }),
       });
+
+      // 3. Subir audio grabado (fire-and-forget; no bloqueamos la salida)
+      const blob = client?.getRecordedBlob();
+      if (blob && blob.size > 1024) {
+        const fd = new FormData();
+        fd.append(
+          'audio',
+          new File([blob], `${callId}.webm`, { type: blob.type || 'audio/webm' }),
+        );
+        void fetch(`/api/voice/calls/${callId}/upload-audio`, {
+          method: 'POST',
+          body: fd,
+        }).catch((e) => console.warn('upload audio fallo:', e.message));
+      }
+
+      // 4. Generar resumen ejecutivo (también fire-and-forget para no
+      //    demorar la redirección — el detalle hará un fetch al cargar)
+      void fetch(`/api/voice/calls/${callId}/summarize`, {
+        method: 'POST',
+      }).catch((e) => console.warn('summarize fallo:', e.message));
+
+      liveClientRef.current = null;
       toast.success('Llamada finalizada');
       router.push(`/llamadas/${callId}`);
     } catch (e) {

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Star, Trash2, MessageSquareText } from 'lucide-react';
+import { Star, Trash2, MessageSquareText, Download, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,6 +13,7 @@ interface Props {
   currentRating: number | null;
   currentComment: string | null;
   canDelete: boolean;
+  hasAudio: boolean;
 }
 
 export function CallActions({
@@ -20,12 +21,31 @@ export function CallActions({
   currentRating,
   currentComment,
   canDelete,
+  hasAudio,
 }: Props) {
   const router = useRouter();
   const [rating, setRating] = useState<number>(currentRating || 0);
   const [comment, setComment] = useState<string>(currentComment || '');
   const [savingRating, setSavingRating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [downloadingAudio, setDownloadingAudio] = useState(false);
+
+  async function downloadAudio() {
+    setDownloadingAudio(true);
+    try {
+      const res = await fetch(`/api/voice/calls/${callId}/audio-url`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.detail || json?.error || 'No se pudo obtener el audio');
+      const a = document.createElement('a');
+      a.href = json.url;
+      a.download = `lexia-llamada-${callId.slice(0, 8)}.webm`;
+      a.click();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setDownloadingAudio(false);
+    }
+  }
 
   async function saveRating() {
     if (rating < 1 || rating > 5) {
@@ -78,6 +98,30 @@ export function CallActions({
 
   return (
     <Card className="p-6 space-y-4">
+      {hasAudio && (
+        <div className="pb-4 border-b border-border/40">
+          <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-2">
+            Grabación
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={downloadAudio}
+            disabled={downloadingAudio}
+          >
+            {downloadingAudio ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            Descargar audio
+          </Button>
+          <p className="text-[10px] text-muted-foreground mt-1.5">
+            Solo se grabó tu voz. La voz del agente está en la transcripción.
+          </p>
+        </div>
+      )}
+
       <div className="space-y-3">
         <p className="text-[10px] uppercase tracking-widest font-semibold text-brand-600 flex items-center gap-1.5">
           <MessageSquareText className="h-3.5 w-3.5" />

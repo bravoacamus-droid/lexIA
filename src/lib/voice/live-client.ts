@@ -84,6 +84,8 @@ export class LiveClient {
   private accumulatedAgentText = '';
   private muted = false;
   private agentState: AgentState = 'idle';
+  private mediaRecorder: MediaRecorder | null = null;
+  private recordedChunks: Blob[] = [];
 
   constructor(config: LiveClientConfig) {
     this.cfg = config;
@@ -152,6 +154,35 @@ export class LiveClient {
       this.setState('listening');
     };
     this.sourceNode.connect(this.workletNode);
+
+    // Grabar el audio del usuario con MediaRecorder.
+    // Usamos webm que es el formato más compatible con browsers modernos.
+    try {
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : 'audio/webm';
+      this.mediaRecorder = new MediaRecorder(this.mediaStream, {
+        mimeType,
+        audioBitsPerSecond: 32000,
+      });
+      this.mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) this.recordedChunks.push(e.data);
+      };
+      // Capturar chunks cada 1s para no perder mucho si crash
+      this.mediaRecorder.start(1000);
+    } catch (e) {
+      console.warn('[live] MediaRecorder no disponible:', (e as Error).message);
+    }
+  }
+
+  /**
+   * Devuelve el blob con la grabación del audio del usuario, o null
+   * si MediaRecorder no estaba activo.
+   */
+  getRecordedBlob(): Blob | null {
+    if (this.recordedChunks.length === 0) return null;
+    const mimeType = this.mediaRecorder?.mimeType || 'audio/webm';
+    return new Blob(this.recordedChunks, { type: mimeType });
   }
 
   private setupPlayback() {
@@ -319,6 +350,18 @@ export class LiveClient {
   }
 
   async stop() {
+    // Parar MediaRecorder antes de cleanup para no perder el último chunk
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      const stopped = new Promise<void>((resolve) => {
+        this.mediaRecorder!.onstop = () => resolve();
+      });
+      try {
+        this.mediaRecorder.stop();
+      } catch {
+        /* ignore */
+      }
+      await Promise.race([stopped, new Promise((r) => setTimeout(r, 1500))]);
+    }
     this.cleanup();
   }
 

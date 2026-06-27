@@ -40,10 +40,11 @@ export default async function LlamadaDetailPage({ params }: Props) {
     tokens_out: number | null;
     cost_usd: number | null;
     rag_queries_count: number;
-    cited_documents: Array<{ id: string; type: string; title: string }>;
+    cited_documents: Array<{ id: string; type: string; title: string; citation: string }>;
     summary: string | null;
     user_rating: number | null;
     user_rating_comment: string | null;
+    audio_storage_path: string | null;
   };
 
   const { data: transcripts } = await supabase
@@ -151,18 +152,20 @@ export default async function LlamadaDetailPage({ params }: Props) {
       {c.cited_documents && c.cited_documents.length > 0 && (
         <Card className="p-6 space-y-3">
           <p className="text-[10px] uppercase tracking-widest font-semibold text-brand-600">
-            Fuentes citadas durante la llamada
+            Fuentes consultadas durante la llamada
           </p>
           <ul className="space-y-2">
             {c.cited_documents.map((d, i) => (
               <li key={i} className="flex items-start gap-2 text-sm">
                 <BookOpen className="h-4 w-4 text-brand-600 mt-0.5 shrink-0" />
-                <Link
-                  href={`/biblioteca/documento/${d.id}`}
-                  className="text-brand-700 dark:text-brand-400 hover:underline"
-                >
-                  {d.title}
-                </Link>
+                <div className="min-w-0">
+                  <p className="font-medium text-brand-700 dark:text-brand-400">
+                    {d.citation}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {d.title}
+                  </p>
+                </div>
               </li>
             ))}
           </ul>
@@ -175,6 +178,7 @@ export default async function LlamadaDetailPage({ params }: Props) {
         currentRating={c.user_rating}
         currentComment={c.user_rating_comment}
         canDelete={c.status !== 'active'}
+        hasAudio={!!c.audio_storage_path}
       />
     </div>
   );
