@@ -12,7 +12,27 @@ const UpdateSchema = z.object({
   summary: z.string().max(2000).optional(),
   user_rating: z.number().int().min(1).max(5).optional(),
   user_rating_comment: z.string().max(500).optional(),
+  tokens_in: z.number().int().min(0).optional(),
+  tokens_out: z.number().int().min(0).optional(),
 });
+
+/**
+ * Calcula el costo USD de una llamada según el pricing oficial de
+ * Gemini Live API (junio 2026):
+ *   - Audio input: $0.005 / minuto
+ *   - Audio output: $0.018 / minuto
+ *
+ * Heurística: 40% del tiempo total el usuario habla, 60% el agente.
+ * Esta proporción es ajustable; tokens_in/tokens_out NO se usan
+ * porque la facturación de Live API es por minuto de audio, no por
+ * token (los tokens reflejan el contenido pero el cobro es por tiempo).
+ */
+function estimateCostUSD(durationSeconds: number): number {
+  const minutes = durationSeconds / 60;
+  const audioInputCost = minutes * 0.4 * 0.005;
+  const audioOutputCost = minutes * 0.6 * 0.018;
+  return parseFloat((audioInputCost + audioOutputCost).toFixed(6));
+}
 
 /**
  * GET /api/voice/calls/[id]
@@ -83,9 +103,12 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
   for (const [k, v] of Object.entries(parsed.data)) {
     if (v !== undefined) update[k] = v;
   }
-  // Al marcar 'completed' o 'failed', registrar ended_at
+  // Al marcar 'completed' o 'failed', registrar ended_at y costo USD
   if (parsed.data.status && parsed.data.status !== (call as { status: string }).status) {
     update.ended_at = new Date().toISOString();
+    if (typeof parsed.data.duration_seconds === 'number' && parsed.data.duration_seconds > 0) {
+      update.cost_usd = estimateCostUSD(parsed.data.duration_seconds);
+    }
   }
 
   const { error } = await supabase

@@ -218,13 +218,16 @@ export function CallStarter({ hasConsent, disclaimerVersion }: Props) {
         timerIntervalRef.current = null;
       }
 
-      // 2. Marcar la llamada como completada (con duración)
+      // 2. Marcar la llamada como completada (con duración + tokens reales)
+      const usage = client?.getUsageTokens();
       await fetch(`/api/voice/calls/${callId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           status: 'completed',
           duration_seconds: elapsedSeconds,
+          tokens_in: usage?.promptTokenCount || 0,
+          tokens_out: usage?.responseTokenCount || 0,
         }),
       });
 

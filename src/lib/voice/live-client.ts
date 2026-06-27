@@ -64,6 +64,49 @@ interface GeminiServerMessage {
   };
   goAway?: { timeLeft: string };
   sessionResumptionUpdate?: object;
+  usageMetadata?: {
+    promptTokenCount?: number;
+    responseTokenCount?: number;
+    totalTokenCount?: number;
+  };
+}
+
+/**
+ * Limpia un fragmento de transcripción que Gemini devuelve.
+ * El modelo a veces emite tokens internos de control (<ctrl46>),
+ * caracteres unicode raros o transcribe ruido como si fuera otro
+ * idioma. Filtrar antes de persistir mejora la UX del historial.
+ */
+function sanitizeTranscript(text: string): string {
+  let s = text;
+  // Quitar tokens de control tipo <ctrl46>, <ctrl42><ctrl42>
+  s = s.replace(/<\/?ctrl\d+>/gi, '');
+  // Quitar tokens de control específicos del modelo
+  s = s.replace(/<\/?(?:noinput|noaudio|silence|pad)>/gi, '');
+  // Colapsar espacios múltiples
+  s = s.replace(/\s+/g, ' ').trim();
+  return s;
+}
+
+/**
+ * Detecta si un texto es probable transcripción de ruido en idioma
+ * que no es español. Si tiene proporción alta de caracteres no
+ * latinos (árabe, hindi, chino, cirílico, etc.) lo marcamos como ruido
+ * para no guardarlo en la transcripción del usuario.
+ */
+function isLikelyNoise(text: string): boolean {
+  if (text.length < 2) return true;
+  // Detectar bloques unicode no latinos
+  const arabic = /[؀-ۿ]/;
+  const devanagari = /[ऀ-ॿ]/;
+  const cjk = /[一-鿿]/;
+  const cyrillic = /[Ѐ-ӿ]/;
+  if (arabic.test(text) || devanagari.test(text) || cjk.test(text) || cyrillic.test(text)) {
+    return true;
+  }
+  // Solo caracteres no alfanuméricos
+  if (!/[a-záéíóúñü0-9]/i.test(text)) return true;
+  return false;
 }
 
 const LIVE_WS_URL =
@@ -77,7 +120,6 @@ export class LiveClient {
   private mediaStream: MediaStream | null = null;
   private workletNode: AudioWorkletNode | null = null;
   private sourceNode: MediaStreamAudioSourceNode | null = null;
-  private playbackQueue: ArrayBuffer[] = [];
   private isPlayingAudio = false;
   private startedAt = 0;
   private accumulatedUserText = '';
@@ -86,6 +128,12 @@ export class LiveClient {
   private agentState: AgentState = 'idle';
   private mediaRecorder: MediaRecorder | null = null;
   private recordedChunks: Blob[] = [];
+  /** Tokens acumulados durante la sesión (último usageMetadata recibido). */
+  private lastUsage: {
+    promptTokenCount: number;
+    responseTokenCount: number;
+    totalTokenCount: number;
+  } = { promptTokenCount: 0, responseTokenCount: 0, totalTokenCount: 0 };
 
   constructor(config: LiveClientConfig) {
     this.cfg = config;
@@ -196,6 +244,18 @@ export class LiveClient {
     return new Blob(this.recordedChunks, { type: mimeType });
   }
 
+  /**
+   * Devuelve los tokens consumidos en la sesión hasta el momento.
+   * Gemini Live API los envía periódicamente vía usageMetadata.
+   */
+  getUsageTokens(): {
+    promptTokenCount: number;
+    responseTokenCount: number;
+    totalTokenCount: number;
+  } {
+    return { ...this.lastUsage };
+  }
+
   private setupPlayback() {
     // Gemini envía audio en 24kHz PCM
     this.playbackContext = new AudioContext({ sampleRate: 24000 });
@@ -228,6 +288,14 @@ export class LiveClient {
       return;
     }
 
+    if (msg.usageMetadata) {
+      this.lastUsage = {
+        promptTokenCount: msg.usageMetadata.promptTokenCount ?? 0,
+        responseTokenCount: msg.usageMetadata.responseTokenCount ?? 0,
+        totalTokenCount: msg.usageMetadata.totalTokenCount ?? 0,
+      };
+    }
+
     if (msg.serverContent) {
       const sc = msg.serverContent;
       if (sc.inputTranscription?.text) {
@@ -246,26 +314,27 @@ export class LiveClient {
         }
       }
       if (sc.turnComplete) {
-        if (this.accumulatedUserText.trim()) {
-          this.cfg.onTranscript(
-            'user',
-            this.accumulatedUserText.trim(),
-            this.elapsedSeconds(),
-          );
-          this.accumulatedUserText = '';
+        const userClean = sanitizeTranscript(this.accumulatedUserText);
+        if (userClean && !isLikelyNoise(userClean)) {
+          this.cfg.onTranscript('user', userClean, this.elapsedSeconds());
         }
-        if (this.accumulatedAgentText.trim()) {
-          this.cfg.onTranscript(
-            'assistant',
-            this.accumulatedAgentText.trim(),
-            this.elapsedSeconds(),
-          );
-          this.accumulatedAgentText = '';
+        this.accumulatedUserText = '';
+
+        const agentClean = sanitizeTranscript(this.accumulatedAgentText);
+        if (agentClean && !isLikelyNoise(agentClean)) {
+          this.cfg.onTranscript('assistant', agentClean, this.elapsedSeconds());
         }
+        this.accumulatedAgentText = '';
+
         this.setState('idle');
       }
       if (sc.interrupted) {
-        this.playbackQueue = [];
+        // Cancelar audio en cola: resetear el cursor de playback al
+        // tiempo actual hace que cualquier chunk programado después
+        // sea silenciado por la siguiente sobreescritura.
+        if (this.playbackContext) {
+          this.nextPlaybackTime = this.playbackContext.currentTime;
+        }
         this.setState('listening');
       }
       return;
@@ -306,43 +375,37 @@ export class LiveClient {
     );
   }
 
+  /** Timestamp del playback donde empezará el siguiente chunk. */
+  private nextPlaybackTime = 0;
+
   private queueAudioPlayback(b64: string) {
-    const buffer = base64ToArrayBuffer(b64);
-    this.playbackQueue.push(buffer);
-    if (!this.isPlayingAudio) {
-      void this.processPlaybackQueue();
-    }
-  }
-
-  private async processPlaybackQueue() {
-    if (!this.playbackContext || this.isPlayingAudio) return;
-    this.isPlayingAudio = true;
-    while (this.playbackQueue.length > 0) {
-      const buffer = this.playbackQueue.shift();
-      if (!buffer) continue;
-      await this.playPCMBuffer(buffer);
-    }
-    this.isPlayingAudio = false;
-    this.setState('idle');
-  }
-
-  private async playPCMBuffer(pcmBuffer: ArrayBuffer): Promise<void> {
     if (!this.playbackContext) return;
-    // Gemini envía Int16 PCM. Convertir a Float32 para AudioBuffer.
-    const int16 = new Int16Array(pcmBuffer);
+    const buffer = base64ToArrayBuffer(b64);
+    // Convertir Int16 PCM a Float32 y reproducir inmediatamente
+    // programado en el timeline del AudioContext para que los chunks
+    // se encadenen sin gaps (lo que causaba el "ruido" tipo clic
+    // entre fragmentos).
+    const int16 = new Int16Array(buffer);
     const float32 = new Float32Array(int16.length);
     for (let i = 0; i < int16.length; i++) {
       float32[i] = int16[i] / 32768;
     }
     const audioBuf = this.playbackContext.createBuffer(1, float32.length, 24000);
     audioBuf.copyToChannel(float32, 0);
-    return new Promise<void>((resolve) => {
-      const src = this.playbackContext!.createBufferSource();
-      src.buffer = audioBuf;
-      src.connect(this.playbackContext!.destination);
-      src.onended = () => resolve();
-      src.start();
-    });
+    const src = this.playbackContext.createBufferSource();
+    src.buffer = audioBuf;
+    src.connect(this.playbackContext.destination);
+    const now = this.playbackContext.currentTime;
+    const startAt = Math.max(now, this.nextPlaybackTime);
+    src.start(startAt);
+    this.nextPlaybackTime = startAt + audioBuf.duration;
+    this.isPlayingAudio = true;
+    src.onended = () => {
+      // Si la cola ya terminó, marcar idle
+      if (this.playbackContext && this.playbackContext.currentTime >= this.nextPlaybackTime - 0.05) {
+        this.isPlayingAudio = false;
+      }
+    };
   }
 
   setMuted(muted: boolean) {
@@ -413,7 +476,7 @@ export class LiveClient {
       this.mediaStream.getTracks().forEach((t) => t.stop());
       this.mediaStream = null;
     }
-    this.playbackQueue = [];
+    this.nextPlaybackTime = 0;
     this.isPlayingAudio = false;
   }
 }

@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Wrench,
   Lock,
+  PhoneCall,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ROLE_LABELS } from '@/lib/navigation/menu-by-role';
@@ -427,6 +428,18 @@ export default async function AdminPage() {
             <h3 className="font-semibold text-base mb-1">Bot de scraping</h3>
             <p className="text-xs text-muted-foreground">
               Monitorea las fuentes oficiales y ejecuta corridas manuales.
+            </p>
+          </Link>
+          <Link
+            href="/admin/voz"
+            className="group rounded-xl border border-border bg-card p-5 hover:border-brand-400 hover:shadow-md hover:-translate-y-0.5 transition-all"
+          >
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-400 mb-3">
+              <PhoneCall className="h-4 w-4" />
+            </span>
+            <h3 className="font-semibold text-base mb-1">Llamadas con IA</h3>
+            <p className="text-xs text-muted-foreground">
+              Costo real, top usuarios, calificaciones y consentimientos de voz.
             </p>
           </Link>
           <Card className="p-5 bg-secondary/40">
