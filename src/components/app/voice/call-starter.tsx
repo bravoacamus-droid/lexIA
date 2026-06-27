@@ -325,7 +325,14 @@ export function CallStarter({ hasConsent, disclaimerVersion }: Props) {
           </div>
 
           <p className="text-[10px] text-muted-foreground text-center">
-            Versión del aviso: {disclaimerVersion}
+            Versión del aviso: {disclaimerVersion} ·{' '}
+            <Link
+              href="/legal/privacidad-voz"
+              target="_blank"
+              className="underline hover:text-foreground"
+            >
+              Política de privacidad de voz
+            </Link>
           </p>
         </Card>
       </div>
