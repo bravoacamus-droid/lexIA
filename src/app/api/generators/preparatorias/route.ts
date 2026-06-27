@@ -37,6 +37,8 @@ const SCHEMA = z.object({
     .optional(),
   input_data: z.record(z.unknown()),
   base_text: z.string().optional(),
+  /** Instrucciones adicionales opcionales del usuario (refactor 26/06/2026). */
+  additional_user_prompt: z.string().max(1500).optional(),
 });
 
 const SYSTEM_BY_SLUG: Record<PreparatoriaSlug, string> = {
@@ -110,7 +112,14 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
-  const { slug, title, object_type, input_data, base_text } = parsed.data;
+  const {
+    slug,
+    title,
+    object_type,
+    input_data,
+    base_text,
+    additional_user_prompt,
+  } = parsed.data;
 
   // Role gate
   const { data: profile } = await supabase
@@ -152,12 +161,12 @@ ${fewShot || '(No hay modelos cargados para este generador.)'}
 CONTEXTO NORMATIVO PARA CITAS:
 ${rag || '(No se encontró sustento normativo específico.)'}`;
 
-  const userPrompt = `DATOS DEL USUARIO (formulario):
+  const userPrompt = `DATOS DEL CASO (formulario):
 \`\`\`json
 ${JSON.stringify(input_data, null, 2)}
 \`\`\`
 
-${base_text ? `TEXTO BASE PROVISTO (insumos previos del área usuaria / cotizaciones / antecedentes):\n${base_text.slice(0, 12000)}\n\n` : ''}Genera el documento en MARKDOWN siguiendo la estructura indicada en las instrucciones del sistema y el estilo de los MODELOS de referencia. No incluyas texto previo ni posterior — solo el documento.`;
+${base_text ? `DOCUMENTOS DEL CASO (extraído de los PDFs subidos por el usuario):\n${base_text.slice(0, 80000)}\n\n` : ''}${additional_user_prompt ? `INSTRUCCIONES ADICIONALES DEL USUARIO (énfasis especial pedido):\n${additional_user_prompt}\n\nAplica los criterios predefinidos del sistema Y atiende este énfasis.\n\n` : ''}Genera el documento en MARKDOWN siguiendo la estructura indicada en las instrucciones del sistema y el estilo de los MODELOS de referencia. No incluyas texto previo ni posterior — solo el documento.`;
 
   try {
     const startedAt = Date.now();

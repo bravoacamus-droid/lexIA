@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { SelectionGeneratorForm } from '@/components/app/generator/selection/selection-generator-form';
+import { GeneratorFormV2 } from '@/components/app/generator/generator-form-v2';
 import { RoleGateBlocked, isRoleAllowed } from '@/components/app/role-gate';
 import type { ProfileRole } from '@/lib/auth/session';
 
@@ -32,62 +32,13 @@ export default async function BasesEstandarPage() {
   }
 
   return (
-    <SelectionGeneratorForm
+    <GeneratorFormV2
       slug="bases_estandar"
       pageTitle="Bases Estándar OECE 2025"
-      pageDescription="LexIA parte de la plantilla oficial OECE correspondiente al tipo de procedimiento y objeto, y rellena los campos clave con los datos del proceso."
-      pageInfoBullets={[
-        'Elige el tipo de objeto (Bienes, Servicios, Obras, Consultoría). Cargamos la plantilla OECE 2025 correcta.',
-        'Solo llenamos la Sección Específica (Cap. 3 Requerimiento y Cap. 4 Factores). La General es boilerplate.',
-        'Si los requisitos podrían considerarse direccionamiento, LexIA lo advierte expresamente.',
-      ]}
+      pageDescription="Sube los Términos de Referencia o EETT y la Estrategia de Contratación si los tienes. LexIA parte de la plantilla oficial OECE correspondiente al tipo de procedimiento y objeto, y rellena la Sección Específica con los datos del proceso."
       showObjectType
-      fields={[
-        {
-          name: 'procedimiento',
-          label: 'Denominación del procedimiento',
-          placeholder: 'Ej. Mejoramiento de la carretera vecinal Tramo Sur — Provincia de Tacna',
-          required: true,
-        },
-        {
-          name: 'numero',
-          label: 'Número del procedimiento',
-          placeholder: 'Ej. Licitación Pública N° 005-2026-MTC/20',
-          required: true,
-        },
-        {
-          name: 'entidad',
-          label: 'Entidad convocante',
-          placeholder: 'Ej. PROVIAS Nacional · MTC',
-          required: true,
-        },
-        {
-          name: 'valor_referencial',
-          label: 'Valor referencial (S/)',
-          placeholder: '32500000.00',
-        },
-        {
-          name: 'plazo_ejecucion',
-          label: 'Plazo de ejecución (días calendario)',
-          placeholder: '360',
-        },
-        {
-          name: 'requisitos_calificacion',
-          label: 'Requisitos de calificación (lista resumida)',
-          hint: 'Capacidad legal, técnico-profesional y económica. LexIA expandirá cada uno con sustento.',
-          type: 'textarea',
-          rows: 6,
-          placeholder:
-            'Capacidad legal: vigencia de poderes, RNP vigente.\nTécnica: Residente con 8 años de experiencia específica en obras viales con carpeta asfáltica en caliente.\nEconómica: facturación acumulada mínima en obras similares = 1.075 × valor referencial en los últimos 10 años.',
-        },
-        {
-          name: 'factores_evaluacion',
-          label: 'Factores de evaluación adicionales (opcional)',
-          hint: 'Más allá del precio, factores diferenciadores (ej. plazo, sostenibilidad, calidad).',
-          type: 'textarea',
-          rows: 4,
-        },
-      ]}
+      minDocuments={0}
+      maxDocuments={3}
     />
   );
 }

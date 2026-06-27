@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { SelectionGeneratorForm } from '@/components/app/generator/selection/selection-generator-form';
+import { GeneratorFormV2 } from '@/components/app/generator/generator-form-v2';
 import { RoleGateBlocked, isRoleAllowed } from '@/components/app/role-gate';
 import type { ProfileRole } from '@/lib/auth/session';
 
@@ -32,52 +32,13 @@ export default async function PliegoAbsolucionPage() {
   }
 
   return (
-    <SelectionGeneratorForm
+    <GeneratorFormV2
       slug="pliego_absolucion"
       pageTitle="Pliego de Absolución de Consultas y Observaciones"
-      pageDescription="LexIA recibe las consultas/observaciones presentadas por los participantes y genera el pliego oficial con respuesta razonada por cada cuestionamiento."
-      pageInfoBullets={[
-        'Sube el PDF con todas las consultas y observaciones recibidas (consolidado o por participante).',
-        'LexIA dictamina: PROCEDE / NO PROCEDE / SE PRECISA por cada cuestionamiento, con sustento normativo.',
-        'Cuando PROCEDE, propone el texto modificado de las Bases. Output: pliego listo para Bases Integradas.',
-      ]}
+      pageDescription="Sube las Bases y el consolidado de consultas/observaciones recibidas. LexIA dictamina PROCEDE / NO PROCEDE por cada cuestionamiento con sustento normativo y propone el texto integrado de las Bases Integradas."
       showObjectType
-      showPdfUpload
-      pdfUploadLabel="Consultas y observaciones recibidas (PDF consolidado)"
-      pdfUploadHint="Sube el PDF con los escritos de cada participante. El archivo se procesa en memoria y no se guarda."
-      fields={[
-        {
-          name: 'procedimiento',
-          label: 'Denominación y número del procedimiento',
-          placeholder:
-            'Ej. Concurso Público N° 010-2026-MTC — Servicio de mantenimiento vial Tramo Sur',
-          required: true,
-        },
-        {
-          name: 'entidad',
-          label: 'Entidad convocante',
-          placeholder: 'Ej. PROVIAS Descentralizado',
-          required: true,
-        },
-        {
-          name: 'comite',
-          label: 'Comité de Selección',
-          placeholder: 'Ing. María Quispe (Presidenta) · CPC Carlos Vargas · Abog. Luis Torres',
-          hint: 'Nombres y cargos de los miembros que firman el pliego.',
-        },
-        {
-          name: 'fecha_absolucion',
-          label: 'Fecha de absolución',
-          placeholder: '2026-07-14',
-        },
-        {
-          name: 'criterios_internos',
-          label: 'Criterios internos / lineamientos previos (opcional)',
-          hint: 'Cualquier orientación interna que el comité quiera aplicar, política institucional, etc.',
-          type: 'textarea',
-          rows: 4,
-        },
-      ]}
+      minDocuments={1}
+      maxDocuments={3}
     />
   );
 }
