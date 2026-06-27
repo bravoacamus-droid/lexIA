@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { DISCLAIMER_VERSION } from '@/lib/ai/voice-config';
+import { ensureCanUse } from '@/lib/billing/feature-gate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -29,6 +30,12 @@ export async function POST(req: Request) {
       { error: 'invalid_payload', detail: parsed.error.flatten() },
       { status: 400 },
     );
+  }
+
+  // Feature gate: ¿el plan del usuario incluye llamadas y tiene cuota?
+  const guard = await ensureCanUse(user.id, 'voice_call_minute');
+  if (!guard.ok) {
+    return NextResponse.json(guard.body, { status: guard.status });
   }
 
   // Verificar consentimiento vigente

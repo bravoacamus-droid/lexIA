@@ -288,6 +288,7 @@ export async function getMonthlyBonuses(
     generator_call: 0,
     evaluation_run: 0,
     scraping_admin: 0,
+    voice_call_minute: 0,
   };
   for (const row of (data || []) as Array<{ feature: FeatureKey; amount: number }>) {
     out[row.feature] = (out[row.feature] || 0) + row.amount;
@@ -312,6 +313,7 @@ export async function getMonthlyUsage(
     generator_call: 0,
     evaluation_run: 0,
     scraping_admin: 0,
+    voice_call_minute: 0,
   };
   for (const row of (data || []) as Array<{ feature: FeatureKey; count: number }>) {
     init[row.feature] = row.count;

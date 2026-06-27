@@ -13,7 +13,8 @@ export type FeatureKey =
   | 'chat_message'
   | 'generator_call'
   | 'evaluation_run'
-  | 'scraping_admin';
+  | 'scraping_admin'
+  | 'voice_call_minute';
 
 export interface TierDefinition {
   /** Slug interno (coincide con el enum SQL). */
@@ -45,11 +46,13 @@ export const TIERS: TierDefinition[] = [
       generator_call: 25,
       evaluation_run: 5,
       scraping_admin: 0,
+      voice_call_minute: 5,
     },
     highlights: [
       '30 días de prueba sin compromiso',
       'Acceso a todos los generadores',
       'Chat con sustento normativo',
+      '5 minutos de llamada con el Abogado Virtual (prueba)',
       'No se solicita tarjeta de crédito',
     ],
   },
@@ -63,12 +66,14 @@ export const TIERS: TierDefinition[] = [
       generator_call: 15,
       evaluation_run: 3,
       scraping_admin: 0,
+      voice_call_minute: 0,
     },
     highlights: [
       '300 mensajes de chat al mes',
       '15 generaciones de documentos al mes',
       '3 evaluaciones de ofertas al mes',
       'Biblioteca normativa completa',
+      'Sin Llamadas con el Abogado Virtual (disponible en Pro)',
     ],
   },
   {
@@ -81,11 +86,13 @@ export const TIERS: TierDefinition[] = [
       generator_call: 80,
       evaluation_run: 15,
       scraping_admin: 0,
+      voice_call_minute: 30,
     },
     highlights: [
       '1 500 mensajes de chat al mes',
       '80 generaciones de documentos al mes',
       '15 evaluaciones de ofertas al mes',
+      '30 minutos de llamadas con el Abogado Virtual al mes',
       'Soporte prioritario por correo',
       'Historial completo y exportación',
     ],
@@ -101,9 +108,12 @@ export const TIERS: TierDefinition[] = [
       generator_call: Number.POSITIVE_INFINITY,
       evaluation_run: Number.POSITIVE_INFINITY,
       scraping_admin: Number.POSITIVE_INFINITY,
+      voice_call_minute: 120,
     },
     highlights: [
       'Uso ilimitado de chat, generadores y evaluador',
+      '120 minutos de llamadas con el Abogado Virtual al mes',
+      'Voces premium adicionales',
       'Múltiples usuarios bajo una sola cuenta',
       'Onboarding personalizado',
       'API de integración con sistemas internos',
@@ -127,4 +137,5 @@ export const FEATURE_LABELS: Record<FeatureKey, string> = {
   generator_call: 'generaciones de documentos',
   evaluation_run: 'evaluaciones de ofertas',
   scraping_admin: 'corridas del bot de scraping',
+  voice_call_minute: 'minutos de llamada con el Abogado Virtual',
 };

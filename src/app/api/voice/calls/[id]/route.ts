@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { recordUsage } from '@/lib/billing/feature-gate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -92,6 +93,19 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
     .update(update as never)
     .eq('id', ctx.params.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Si la llamada se cerró con duración, descontar de la cuota mensual.
+  // Redondeamos hacia arriba: una llamada de 0:01 a 0:59 consume 1 minuto.
+  // Llamada de 1:00 a 1:59 consume 2 min, etc.
+  if (
+    parsed.data.status === 'completed' &&
+    typeof parsed.data.duration_seconds === 'number' &&
+    parsed.data.duration_seconds > 0 &&
+    (call as { status: string }).status === 'active'
+  ) {
+    const minutes = Math.ceil(parsed.data.duration_seconds / 60);
+    void recordUsage(user.id, 'voice_call_minute', minutes);
+  }
 
   return NextResponse.json({ ok: true });
 }

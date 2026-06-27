@@ -5,25 +5,29 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Phone, PhoneCall, Star, Clock, BookOpen, Crown } from 'lucide-react';
 import { formatRelative } from '@/lib/utils';
+import { checkFeatureGate } from '@/lib/billing/feature-gate';
+import { getCurrentUserWithRole } from '@/lib/auth/session';
+import { getTier } from '@/lib/billing/tiers';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Llamadas con el Abogado Virtual' };
 
 export default async function LlamadasPage() {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  const ctx = await getCurrentUserWithRole();
+  if (!ctx) return null;
 
-  const { data: calls } = await supabase
-    .from('voice_calls')
-    .select(
-      'id, status, started_at, ended_at, duration_seconds, summary, voice_id, rag_queries_count, user_rating',
-    )
-    .eq('user_id', user.id)
-    .order('started_at', { ascending: false })
-    .limit(30);
+  const [{ data: calls }, gate] = await Promise.all([
+    supabase
+      .from('voice_calls')
+      .select(
+        'id, status, started_at, ended_at, duration_seconds, summary, voice_id, rag_queries_count, user_rating',
+      )
+      .eq('user_id', ctx.userId)
+      .order('started_at', { ascending: false })
+      .limit(30),
+    checkFeatureGate(ctx.userId, 'voice_call_minute'),
+  ]);
 
   const callList = (calls || []) as Array<{
     id: string;
@@ -37,14 +41,17 @@ export default async function LlamadasPage() {
     user_rating: number | null;
   }>;
 
-  // Cuota mensual (placeholder — día 7 conectará con feature gate real)
-  const monthMinutesUsed = callList.reduce(
-    (acc, c) =>
-      acc + (c.duration_seconds && c.status === 'completed' ? c.duration_seconds / 60 : 0),
-    0,
-  );
-  const cuotaTotal = 30; // Pro default
-  const cuotaRestante = Math.max(0, cuotaTotal - monthMinutesUsed);
+  // Cuota real desde feature gate (incluye bonus si los hay)
+  const tier = ctx.subscription?.tier
+    ? getTier(ctx.subscription.tier)
+    : getTier('free_trial');
+  const cuotaTotal = gate.allowed ? gate.limit : 0;
+  const cuotaUsada = gate.allowed ? gate.consumed : 0;
+  const cuotaRestante = gate.allowed ? gate.remaining : 0;
+  const tierIncluyeVoz = isFinite(cuotaTotal) && cuotaTotal > 0;
+  const cuotaPercent = isFinite(cuotaTotal) && cuotaTotal > 0
+    ? Math.min(100, (cuotaUsada / cuotaTotal) * 100)
+    : 0;
 
   return (
     <div className="container max-w-4xl py-6 space-y-5">
@@ -53,7 +60,7 @@ export default async function LlamadasPage() {
           <div className="flex items-center gap-2 mb-1">
             <Badge variant="outline" className="text-[10px]">
               <Crown className="h-3 w-3" />
-              Plan Pro
+              Plan {tier.label}
             </Badge>
             <Badge variant="secondary" className="text-[10px]">
               INNOVACIÓN LEGAL
@@ -67,36 +74,67 @@ export default async function LlamadasPage() {
             normativo citado al artículo. Como hablar con un abogado, pero 24/7.
           </p>
         </div>
-        <Button asChild size="lg" variant="glow">
-          <Link href="/llamadas/nueva">
-            <PhoneCall className="h-4 w-4" />
-            Iniciar llamada
-          </Link>
-        </Button>
+        {tierIncluyeVoz ? (
+          <Button asChild size="lg" variant="glow">
+            <Link href="/llamadas/nueva">
+              <PhoneCall className="h-4 w-4" />
+              Iniciar llamada
+            </Link>
+          </Button>
+        ) : (
+          <Button asChild size="lg" variant="outline">
+            <Link href="/pricing">
+              <Crown className="h-4 w-4" />
+              Actualizar a Pro
+            </Link>
+          </Button>
+        )}
       </header>
 
       {/* Cuota */}
-      <Card className="p-5 bg-brand-50/40 dark:bg-brand-950/30 border-brand-500/30">
-        <div className="flex items-center justify-between gap-3 mb-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-brand-700 dark:text-brand-400">
-            Cuota mensual
+      {tierIncluyeVoz ? (
+        <Card className="p-5 bg-brand-50/40 dark:bg-brand-950/30 border-brand-500/30">
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-brand-700 dark:text-brand-400">
+              Cuota mensual
+            </p>
+            <p className="text-xs text-muted-foreground font-mono">
+              {cuotaUsada} de {isFinite(cuotaTotal) ? cuotaTotal : '∞'} min
+            </p>
+          </div>
+          {isFinite(cuotaTotal) && (
+            <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-brand-500 to-brand-400 transition-all"
+                style={{ width: `${cuotaPercent}%` }}
+              />
+            </div>
+          )}
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Te quedan{' '}
+            {isFinite(cuotaRestante) ? `${cuotaRestante} minutos` : 'minutos ilimitados'} este
+            mes. La cuota se renueva el día 1.
           </p>
-          <p className="text-xs text-muted-foreground font-mono">
-            {monthMinutesUsed.toFixed(1)} de {cuotaTotal} min
-          </p>
-        </div>
-        <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-brand-500 to-brand-400 transition-all"
-            style={{
-              width: `${Math.min(100, (monthMinutesUsed / cuotaTotal) * 100)}%`,
-            }}
-          />
-        </div>
-        <p className="mt-2 text-[11px] text-muted-foreground">
-          Te quedan {cuotaRestante.toFixed(1)} minutos este mes. La cuota se renueva el día 1.
-        </p>
-      </Card>
+        </Card>
+      ) : (
+        <Card className="p-5 bg-amber-50/40 dark:bg-amber-950/30 border-amber-500/30">
+          <div className="flex items-start gap-3">
+            <Crown className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+            <div className="min-w-0">
+              <p className="font-semibold text-sm text-amber-900 dark:text-amber-100">
+                Llamadas con el Abogado Virtual no está disponible en tu plan {tier.label}
+              </p>
+              <p className="text-xs text-amber-900/80 dark:text-amber-100/80 mt-1 leading-relaxed">
+                Actualiza a <strong>Pro</strong> para incluir 30 minutos al mes, o a{' '}
+                <strong>Enterprise</strong> para 120 minutos al mes.
+              </p>
+              <Button asChild size="sm" variant="outline" className="mt-3">
+                <Link href="/pricing">Ver planes</Link>
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Historial */}
       {callList.length === 0 ? (
