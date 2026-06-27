@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { LiveClient, type AgentState } from '@/lib/voice/live-client';
 import {
   Phone,
   PhoneOff,
@@ -34,6 +35,7 @@ interface Props {
 }
 
 type Stage = 'consent' | 'setup' | 'connecting' | 'active' | 'ending';
+type AgentStateExtended = AgentState;
 
 interface ConsentState {
   ia_no_lawyer: boolean;
@@ -64,9 +66,10 @@ export function CallStarter({ hasConsent, disclaimerVersion }: Props) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [muted, setMuted] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [agentState, setAgentState] = useState<'idle' | 'listening' | 'thinking' | 'speaking'>(
-    'idle',
-  );
+  const [agentState, setAgentState] = useState<AgentStateExtended>('idle');
+  const liveClientRef = useRef<LiveClient | null>(null);
+  const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const callIdRef = useRef<string | null>(null);
 
   const allConsented =
     consent.ia_no_lawyer &&
@@ -107,54 +110,114 @@ export function CallStarter({ hasConsent, disclaimerVersion }: Props) {
   async function startCall() {
     setStage('connecting');
     try {
-      const res = await fetch('/api/voice/calls', {
+      // 1. Crear la llamada en BD
+      const createRes = await fetch('/api/voice/calls', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ voice_id: voiceId }),
       });
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json?.detail || json?.error || 'No se pudo crear la llamada');
+      const createJson = await createRes.json();
+      if (!createRes.ok) {
+        throw new Error(createJson?.detail || createJson?.error || 'No se pudo crear la llamada');
       }
-      setCallId(json.call.id);
-      // En el Día 4 conectaremos el WebSocket de Gemini Live aquí.
-      // Por ahora simulamos la conexión y dejamos la pantalla funcional.
-      await new Promise((r) => setTimeout(r, 1500));
+      const newCallId = createJson.call.id as string;
+      setCallId(newCallId);
+      callIdRef.current = newCallId;
+
+      // 2. Obtener config (API key, modelo, voz, system prompt, tools)
+      const cfgRes = await fetch('/api/voice/session-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ call_id: newCallId }),
+      });
+      const cfgJson = await cfgRes.json();
+      if (!cfgRes.ok) {
+        throw new Error(cfgJson?.detail || cfgJson?.error || 'No se pudo obtener configuración');
+      }
+
+      // 3. Inicializar LiveClient (WebSocket + audio)
+      const client = new LiveClient({
+        apiKey: cfgJson.api_key,
+        model: cfgJson.model,
+        voiceId: cfgJson.voice_id,
+        systemInstruction: cfgJson.system_instruction,
+        tools: cfgJson.tools,
+        callId: newCallId,
+        onToolCall: async (name, args) => {
+          if (name !== 'search_normativa') {
+            return JSON.stringify({ error: 'function not implemented' });
+          }
+          const r = await fetch('/api/voice/search-normativa', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: (args.query as string) || '',
+              filter_type: (args.filter_type as string) ?? null,
+              call_id: newCallId,
+            }),
+          });
+          const j = await r.json();
+          return r.ok ? j.content : `error: ${j.error || 'desconocido'}`;
+        },
+        onTranscript: (speaker, text, ts) => {
+          // Persistir transcripción (fire-and-forget)
+          void fetch('/api/voice/transcript', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              call_id: newCallId,
+              speaker,
+              timestamp_seconds: ts,
+              text,
+            }),
+          });
+        },
+        onStateChange: (s) => setAgentState(s),
+        onError: (msg) => toast.error(msg),
+      });
+
+      await client.start();
+      liveClientRef.current = client;
       setStage('active');
-      setAgentState('speaking');
       startTimer();
-      // Simular flujo de turnos para visualizar UI
-      simulateAgentTurns();
     } catch (e) {
-      toast.error((e as Error).message);
+      toast.error((e as Error).message.slice(0, 120));
       setStage('setup');
     }
   }
 
   function startTimer() {
-    const interval = setInterval(() => {
-      if (paused) return;
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    timerIntervalRef.current = setInterval(() => {
       setElapsedSeconds((s) => s + 1);
     }, 1000);
-    return () => clearInterval(interval);
   }
 
-  function simulateAgentTurns() {
-    // Solo para visualizar la UI hasta Día 4
-    const cycle = ['speaking', 'idle', 'listening', 'thinking', 'speaking'] as const;
-    let i = 0;
-    const interval = setInterval(() => {
-      if (paused || stage === 'ending') return;
-      setAgentState(cycle[i % cycle.length]);
-      i += 1;
-    }, 3000);
-    return () => clearInterval(interval);
-  }
+  // Cleanup al desmontar
+  useEffect(() => {
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      void liveClientRef.current?.stop();
+    };
+  }, []);
+
+  // Reflejar mute en el cliente
+  useEffect(() => {
+    liveClientRef.current?.setMuted(muted);
+  }, [muted]);
 
   async function endCall() {
     if (!callId) return;
     setStage('ending');
     try {
+      // 1. Cortar la conexión Live
+      await liveClientRef.current?.stop();
+      liveClientRef.current = null;
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+      // 2. Marcar la llamada como completada
       await fetch(`/api/voice/calls/${callId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
