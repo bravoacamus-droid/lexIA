@@ -114,12 +114,24 @@ export async function searchNormativa(
  * Formatea el resultado para inyectarlo de vuelta a Gemini Live como
  * respuesta de la function call. Texto legible para que el modelo lo
  * use en su respuesta hablada.
+ *
+ * Defensa anti-alucinación (28/06/2026): además de los fragmentos,
+ * inyectamos una whitelist EXPLÍCITA de los identificadores de
+ * documento primario que sí están en BD ("citation" field). El modelo
+ * recibe instrucción de citar SOLO esos identificadores. Otros
+ * números/referencias que aparezcan dentro del texto de los fragmentos
+ * son citas internas y NO documentos disponibles en LexIA.
+ *
+ * Bug que esto previene: en la llamada d54603a1 el modelo citó
+ * "Directiva 007-2025-OECE-CD" y "Pronunciamiento 335-2026/OECE-DSAT"
+ * que NO existen — probablemente porque otros documentos en los
+ * chunks los mencionaban internamente.
  */
 export function formatResultsForLLM(
   results: NormativaSearchResult[],
 ): string {
   if (results.length === 0) {
-    return 'No se encontraron resultados en la base normativa para esta consulta. Sugiérele al usuario verificar en el portal del OECE o consultar a un abogado colegiado para el caso específico.';
+    return 'No se encontraron resultados en la base normativa para esta consulta. Dile al usuario textualmente: "No encontré documentos sobre eso en mi base normativa actual. Te sugiero verificar en el portal del OECE o consultar a un abogado colegiado". NO INVENTES ninguna cita.';
   }
 
   const items = results
@@ -128,7 +140,28 @@ export function formatResultsForLLM(
     })
     .join('\n\n---\n\n');
 
-  return `Encontré ${results.length} fragmento(s) relevante(s) en la base normativa de LexIA. Úsalos para responder al usuario citando cada fuente con su número de artículo o documento exacto. NO inventes citas que no estén en estos fragmentos.\n\n${items}`;
+  // Whitelist: solo estos identificadores son citables como documento
+  // primario disponible en la base normativa de LexIA.
+  const whitelistLines = results
+    .map((r, i) => `  ${i + 1}. ${r.citation}`)
+    .join('\n');
+
+  return `Encontré ${results.length} fragmento(s) relevante(s) en la base normativa de LexIA.
+
+═══════════════════════════════════════════════════════
+DOCUMENTOS DISPONIBLES PARA CITAR (whitelist estricta):
+═══════════════════════════════════════════════════════
+${whitelistLines}
+
+REGLA CRÍTICA: Solo puedes citar como documento primario los que están en esa lista. Si el texto de un fragmento menciona otra directiva, opinión, pronunciamiento o resolución por número, ese número es una cita interna de ese documento — NO está disponible en mi base, NO lo cites como fuente. Si necesitas referirte a algo que solo aparece mencionado pero no está en la whitelist, di: "según se hace referencia en el [documento de la whitelist]" — sin afirmar que tienes ese otro documento.
+
+Cuando cites artículos de la Ley o el Reglamento, di el número del artículo solo si aparece textualmente en algún fragmento. Si no aparece, di: "según los pronunciamientos disponibles" sin inventar el número del artículo.
+
+═══════════════════════════════════════════════════════
+FRAGMENTOS:
+═══════════════════════════════════════════════════════
+
+${items}`;
 }
 
 function formatTypeLabel(type: string): string {

@@ -68,14 +68,31 @@ Indica al usuario que no encuentras sustento normativo específico para esta con
     })
     .join('\n\n---\n\n');
 
+  const whitelist = chunks
+    .map((c, i) => `  [${i + 1}] ${formatDocLabel(c)}`)
+    .join('\n');
+
   return `${SYSTEM_PROMPT_BASE}${rolePrefix}
 
+═══════════════════════════════════════════════════════
+DOCUMENTOS DISPONIBLES EN LA BASE NORMATIVA (whitelist):
+═══════════════════════════════════════════════════════
+${whitelist}
+
+REGLA CRÍTICA — alucinación detectada el 28/06/2026 cuando el modelo inventó "Directiva 007-2025-OECE-CD" y "Pronunciamiento 335-2026/OECE-DSAT" inexistentes:
+
+1. SOLO puedes citar como FUENTE PRIMARIA los documentos que están en la whitelist [N] arriba.
+2. Si dentro del texto de un fragmento aparece OTRA directiva, opinión, pronunciamiento o resolución por número, ese número es una cita interna — NO está disponible como documento propio, NO lo cites como si lo tuvieras.
+3. Si necesitas referirte a algo que solo se menciona internamente, di: "según se hace referencia en la [Fuente N de la whitelist]" sin afirmar que tienes acceso al documento referenciado.
+4. Cuando cites artículos de Ley o Reglamento, solo cita el número si el texto del artículo aparece dentro del fragmento. Si el fragmento solo lo menciona, di: "el pronunciamiento hace referencia al artículo X" sin transcribir contenido que no tienes.
+
+═══════════════════════════════════════════════════════
 CONTEXTO NORMATIVO RECUPERADO:
-A continuación encontrarás los fragmentos más relevantes de la base normativa para esta consulta. Cita cada uno por su número entre corchetes.
+═══════════════════════════════════════════════════════
 
 ${context}
 
-Recuerda: cita SOLO de los fragmentos numerados arriba. No menciones ningún otro documento o artículo que no esté presente en este contexto.`;
+Cita cada fragmento por su número entre corchetes [N]. Si los fragmentos no responden la pregunta, dilo honestamente y sugiere verificar en el portal del OECE.`;
 }
 
 function formatDocLabel(c: ChatSource): string {
