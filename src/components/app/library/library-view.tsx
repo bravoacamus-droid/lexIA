@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Sparkles, Loader2, X, BookmarkCheck, Inbox, Folder } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Sparkles, X, BookmarkCheck, Inbox, Folder } from 'lucide-react';
 import { TypeFilter } from '@/components/app/library/type-filter';
+import { TagSearchInput } from '@/components/app/library/tag-search-input';
 import { LawSelector, type LawFilter } from '@/components/app/law-selector';
 import { FoldersPanel } from '@/components/app/library/folders-panel';
 import { DocumentCard } from '@/components/app/library/document-card';
@@ -42,6 +42,10 @@ interface SearchResult {
   topChunkContent: string;
   score: number;
   chunkCount: number;
+  /** Cuántas de las queries multi-tag matchearon en este documento. */
+  matchedCount?: number;
+  /** Índices de queries que matchearon, alineado a `tags` del componente. */
+  matchedQueries?: number[];
 }
 
 interface Props {
@@ -71,6 +75,7 @@ export function LibraryView({
 
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
   const [type, setType] = useState<NormativeDocType | null>(null);
   // Filtro de ley aplicable (null = ambas). Persiste solo durante la
   // navegación; al recargar Biblioteca vuelve a Ambas.
@@ -126,13 +131,15 @@ export function LibraryView({
         }
 
         // En modo browse sin query: usar limit más alto para tener pesado inicial
-        const initialLimit = debounced ? 12 : pageSize;
+        const hasSearchInput = debounced.length > 0 || tags.length > 0;
+        const initialLimit = hasSearchInput ? 12 : pageSize;
         const law = lawFilter && lawFilter.length === 1 ? lawFilter[0] : null;
         const res = await fetch('/api/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             query: debounced,
+            queries: tags,
             type,
             law,
             limit: initialLimit,
@@ -162,11 +169,11 @@ export function LibraryView({
     return () => {
       cancelled = true;
     };
-  }, [debounced, type, selectedFolderId, pageSize, lawFilter]);
+  }, [debounced, type, selectedFolderId, pageSize, lawFilter, tags]);
 
   // Infinite scroll: cargar siguiente página al ver el sentinel
   useEffect(() => {
-    if (mode !== 'browse' || debounced || selectedFolderId) return;
+    if (mode !== 'browse' || debounced || tags.length > 0 || selectedFolderId) return;
     if (exhausted || loading || loadingMore) return;
     if (!sentinelRef.current) return;
 
@@ -277,18 +284,20 @@ export function LibraryView({
 
       {/* Search + filter */}
       <div className="space-y-3">
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar opinión, pronunciamiento, resolución, artículo…"
-            className="pl-11 h-12 text-base shadow-sm"
-          />
-          {loading && (
-            <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
-          )}
-        </div>
+        <TagSearchInput
+          tags={tags}
+          input={query}
+          onTagsChange={setTags}
+          onInputChange={setQuery}
+          loading={loading}
+          placeholder="Busca por palabras clave… (Enter para agregar tag, combina varios)"
+        />
+        {tags.length > 0 && (
+          <p className="text-[11px] text-muted-foreground -mt-1.5">
+            Buscando documentos que mencionan <strong>{tags.length}</strong> término
+            {tags.length !== 1 ? 's' : ''}. Los que coincidan en más tags suben en el ranking.
+          </p>
+        )}
         <div className="flex flex-wrap items-center gap-3">
           <TypeFilter value={type} onChange={setType} counts={typeCounts} />
           <LawSelector
@@ -335,6 +344,7 @@ export function LibraryView({
               onSave={onSave}
               onUnsave={onUnsave}
               query={debounced}
+              highlightTerms={tags.length > 0 ? tags : debounced ? [debounced] : []}
             />
           ) : (
             <BrowseList
@@ -382,6 +392,8 @@ interface ResultsProps {
   onSave: (id: string) => void;
   onUnsave: (id: string) => void;
   query: string;
+  /** Términos para resaltar en title/excerpt. Si vacío, sin highlight. */
+  highlightTerms: string[];
 }
 
 function SearchResultsList({
@@ -391,6 +403,7 @@ function SearchResultsList({
   onSave,
   onUnsave,
   query,
+  highlightTerms,
 }: ResultsProps) {
   if (loading && results.length === 0) {
     return <LoadingSkeleton />;
@@ -407,11 +420,30 @@ function SearchResultsList({
     );
   }
 
+  // Contar resultados por tipo para el badge de resumen
+  const countsByType = new Map<string, number>();
+  for (const r of results) {
+    countsByType.set(r.doc_type, (countsByType.get(r.doc_type) || 0) + 1);
+  }
+  const typeBreakdown = Array.from(countsByType.entries()).sort(
+    (a, b) => b[1] - a[1],
+  );
+
   return (
     <div>
-      <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-3">
-        {results.length} resultados
-      </p>
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
+          {results.length} resultado{results.length !== 1 ? 's' : ''}
+        </p>
+        {typeBreakdown.map(([t, n]) => (
+          <span
+            key={t}
+            className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground/80 px-1.5 py-0.5 rounded bg-secondary/60"
+          >
+            {t} {n}
+          </span>
+        ))}
+      </div>
       <div className="space-y-3">
         <AnimatePresence initial={false}>
           {results.map((r, i) => (
@@ -433,6 +465,9 @@ function SearchResultsList({
                   source_url: r.source_url,
                 }}
                 excerpt={r.topChunkContent}
+                highlightTerms={highlightTerms}
+                matchedCount={r.matchedCount}
+                totalQueries={highlightTerms.length}
                 isSaved={savedIds.has(r.document_id)}
                 onSave={() => onSave(r.document_id)}
                 onUnsave={() => onUnsave(r.document_id)}

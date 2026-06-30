@@ -9,6 +9,14 @@ export const maxDuration = 30;
 
 const requestSchema = z.object({
   query: z.string().min(0).max(500),
+  /**
+   * Búsqueda multi-tag (queries en paralelo). Si se envía no vacío,
+   * tiene prioridad sobre `query`. Cada string se busca por separado
+   * y los resultados se combinan; un documento que matchea N de las
+   * queries se rankea con bonus proporcional. Inspirado en el feature
+   * de LEX Contrataciones (pero con brand LexIA).
+   */
+  queries: z.array(z.string().min(1).max(80)).max(8).optional(),
   type: z
     .enum([
       'ley',
@@ -60,12 +68,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'invalid_body', issues: parsed.error.issues }, { status: 400 });
   }
 
-  const { query, type, year, law, limit = 12, offset = 0 } = parsed.data;
+  const { query, queries, type, year, law, limit = 12, offset = 0 } = parsed.data;
   const trimmed = query.trim();
+  // Normalizar queries multi-tag: dedupe + trim + filter vacíos.
+  const multiTags = Array.from(
+    new Set((queries || []).map((q) => q.trim()).filter(Boolean)),
+  ).slice(0, 8);
+  const isMultiTag = multiTags.length > 0;
 
   // Sin query → listar docs (paginable) con filtros + conteo total para saber
   // cuándo terminar el infinite scroll.
-  if (!trimmed) {
+  if (!trimmed && !isMultiTag) {
     let q = supabase
       .from('normative_documents')
       .select('id, type, number, title, summary, date, source_url, applicable_law', {
@@ -91,10 +104,25 @@ export async function POST(req: Request) {
     });
   }
 
-  // Con query → hybrid search
-  let queryEmbedding: number[];
+  // ──────────────────────────────────────────────────────────────
+  // Búsqueda con queries (multi-tag o single)
+  //
+  // Estrategia: lanzamos una hybrid_search por cada query/tag en
+  // paralelo. Los chunks devueltos se agrupan por document_id. Un
+  // documento que aparece en N queries gana bonus (∝ N). El score
+  // final es la suma de similitudes ponderada.
+  //
+  // Multi-tag con 1 sola query equivale al flujo single. Se mantiene
+  // retrocompat: si no envías `queries`, usamos [query].
+  // ──────────────────────────────────────────────────────────────
+  const activeQueries = isMultiTag ? multiTags : [trimmed];
+
+  // Embedding por query en paralelo
+  let queryEmbeddings: Array<number[] | null>;
   try {
-    queryEmbedding = await embedOne(trimmed, 'RETRIEVAL_QUERY');
+    queryEmbeddings = await Promise.all(
+      activeQueries.map((q) => embedOne(q, 'RETRIEVAL_QUERY').catch(() => null)),
+    );
   } catch (err) {
     return NextResponse.json(
       { error: 'embedding_failed', detail: (err as Error).message },
@@ -102,19 +130,28 @@ export async function POST(req: Request) {
     );
   }
 
-  const { data: rows, error } = await supabase.rpc('hybrid_search', {
-    query_text: trimmed,
-    query_embedding: queryEmbedding,
-    match_count: limit * 2,
-    filter_type: type || null,
-    filter_law: law ? [law] : null,
-  });
+  // Hybrid search por query en paralelo (saltamos queries cuyo embedding falló)
+  const perQueryRows = await Promise.all(
+    activeQueries.map(async (q, i) => {
+      const emb = queryEmbeddings[i];
+      if (!emb) return [] as HybridRow[];
+      const { data, error } = await supabase.rpc('hybrid_search', {
+        query_text: q,
+        query_embedding: emb,
+        match_count: limit * 2,
+        filter_type: type || null,
+        filter_law: law ? [law] : null,
+      });
+      if (error) {
+        console.error('[search] hybrid_search error para query', q, ':', error.message);
+        return [] as HybridRow[];
+      }
+      return ((data || []) as HybridRow[]).map((r) => ({ ...r, _q: i }));
+    }),
+  );
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  // Agrupar chunks por documento — el primer hit es el más relevante
+  // Agrupar chunks por documento. Para cada doc anotamos en qué
+  // queries apareció (set) para calcular bonus multi-tag.
   const byDoc = new Map<
     string,
     {
@@ -125,30 +162,35 @@ export async function POST(req: Request) {
       topChunkContent: string;
       score: number;
       chunkCount: number;
+      matchedQueries: Set<number>;
     }
   >();
 
-  for (const r of (rows || []) as HybridRow[]) {
-    const existing = byDoc.get(r.document_id);
-    if (existing) {
-      existing.chunkCount += 1;
-      existing.score += r.similarity;
-    } else {
-      byDoc.set(r.document_id, {
-        document_id: r.document_id,
-        doc_type: r.doc_type,
-        doc_number: r.doc_number,
-        doc_title: r.doc_title,
-        topChunkContent: r.content,
-        score: r.similarity,
-        chunkCount: 1,
-      });
+  for (const rows of perQueryRows) {
+    for (const r of rows as Array<HybridRow & { _q: number }>) {
+      const existing = byDoc.get(r.document_id);
+      if (existing) {
+        existing.chunkCount += 1;
+        existing.score += r.similarity;
+        existing.matchedQueries.add(r._q);
+      } else {
+        byDoc.set(r.document_id, {
+          document_id: r.document_id,
+          doc_type: r.doc_type,
+          doc_number: r.doc_number,
+          doc_title: r.doc_title,
+          topChunkContent: r.content,
+          score: r.similarity,
+          chunkCount: 1,
+          matchedQueries: new Set([r._q]),
+        });
+      }
     }
   }
 
   // Hidratar fechas y summaries
   const docIds = Array.from(byDoc.keys());
-  let docMetaMap = new Map<
+  const docMetaMap = new Map<
     string,
     { date: string | null; summary: string | null; source_url: string | null }
   >();
@@ -169,11 +211,30 @@ export async function POST(req: Request) {
     }
   }
 
+  // Bonus multi-tag: documentos que matchean N queries reciben score
+  // ponderado por N. Asegura que un doc con todos los tags suba sobre
+  // uno con un solo tag aunque la similitud individual sea menor.
   const results = Array.from(byDoc.values())
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
     .map((r) => ({
       ...r,
+      matchedCount: r.matchedQueries.size,
+      finalScore: r.score * (1 + (r.matchedQueries.size - 1) * 0.5),
+    }))
+    .sort((a, b) => {
+      if (b.matchedCount !== a.matchedCount) return b.matchedCount - a.matchedCount;
+      return b.finalScore - a.finalScore;
+    })
+    .slice(0, limit)
+    .map((r) => ({
+      document_id: r.document_id,
+      doc_type: r.doc_type,
+      doc_number: r.doc_number,
+      doc_title: r.doc_title,
+      topChunkContent: r.topChunkContent,
+      score: r.finalScore,
+      chunkCount: r.chunkCount,
+      matchedCount: r.matchedCount,
+      matchedQueries: Array.from(r.matchedQueries),
       ...(docMetaMap.get(r.document_id) || {
         date: null,
         summary: null,
@@ -181,5 +242,10 @@ export async function POST(req: Request) {
       }),
     }));
 
-  return NextResponse.json({ mode: 'search', results });
+  return NextResponse.json({
+    mode: 'search',
+    results,
+    queries: activeQueries,
+    multiTag: isMultiTag,
+  });
 }

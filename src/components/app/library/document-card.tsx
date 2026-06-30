@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ExternalLink, Star, StarOff, ArrowUpRight } from 'lucide-react';
+import { ExternalLink, Star, ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { cn, getDocTypeMeta, formatDate, truncate } from '@/lib/utils';
+import { cn, getDocTypeMeta, formatDate } from '@/lib/utils';
+import { HighlightedText } from '@/components/app/library/highlighted-text';
 import type { NormativeDocType } from '@/lib/supabase/types';
 
 interface DocumentMini {
@@ -21,6 +22,12 @@ interface DocumentMini {
 interface Props {
   document: DocumentMini;
   excerpt?: string;
+  /** Términos a resaltar en title/excerpt (búsqueda multi-tag). */
+  highlightTerms?: string[];
+  /** Cuántos de los terms matchearon en este doc. */
+  matchedCount?: number;
+  /** Total de queries activos. */
+  totalQueries?: number;
   isSaved?: boolean;
   onSave?: () => void;
   onUnsave?: () => void;
@@ -29,6 +36,9 @@ interface Props {
 export function DocumentCard({
   document,
   excerpt,
+  highlightTerms = [],
+  matchedCount,
+  totalQueries = 0,
   isSaved,
   onSave,
   onUnsave,
@@ -41,7 +51,7 @@ export function DocumentCard({
       className="group rounded-xl border border-border bg-card p-5 hover:border-brand-400 hover:shadow-md transition-all"
     >
       <div className="flex items-start justify-between gap-3 mb-2">
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-2 min-w-0 flex-wrap">
           <Badge variant="outline" className={cn('border-transparent', meta.bg, meta.color)}>
             <span
               className="inline-block h-1.5 w-1.5 rounded-full mr-1"
@@ -61,6 +71,20 @@ export function DocumentCard({
                 {formatDate(document.date)}
               </span>
             </>
+          )}
+          {totalQueries >= 2 && typeof matchedCount === 'number' && (
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider rounded px-1.5 py-0.5',
+                matchedCount === totalQueries
+                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                  : 'bg-secondary text-muted-foreground',
+              )}
+              title={`Coincide con ${matchedCount} de ${totalQueries} términos buscados`}
+            >
+              <CheckCircle2 className="h-3 w-3" />
+              {matchedCount}/{totalQueries}
+            </span>
           )}
         </div>
         <div className="flex items-center gap-1">
@@ -90,20 +114,30 @@ export function DocumentCard({
 
       <Link href={`/biblioteca/documento/${document.id}`} className="block group/title">
         <h3 className="text-base font-semibold leading-snug tracking-tight group-hover/title:text-brand-700 dark:group-hover/title:text-brand-400 transition-colors">
-          {document.title}
+          <HighlightedText
+            text={document.title}
+            terms={highlightTerms}
+            maxLength={500}
+          />
         </h3>
       </Link>
 
       {document.summary && !excerpt && (
         <p className="mt-2 text-sm text-muted-foreground leading-relaxed line-clamp-2">
-          {document.summary}
+          <HighlightedText
+            text={document.summary}
+            terms={highlightTerms}
+            maxLength={220}
+          />
         </p>
       )}
 
       {excerpt && (
         <div className="mt-3 border-l-2 border-brand-500 bg-brand-50/30 dark:bg-brand-950/30 pl-3 py-2 text-sm leading-relaxed">
-          <p className="line-clamp-3 text-foreground/85 italic">
-            "{truncate(excerpt, 280)}"
+          <p className="text-foreground/85 italic">
+            "
+            <HighlightedText text={excerpt} terms={highlightTerms} maxLength={300} />
+            "
           </p>
         </div>
       )}
