@@ -22,6 +22,7 @@ import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn, getDocTypeMeta, formatDate } from '@/lib/utils';
 import { formatNormativaText } from '@/lib/normativa/format-raw';
+import { SummaryPanel, type DocumentSummary } from '@/components/app/library/summary-panel';
 import { toast } from 'sonner';
 import { SaveToFolderDialog } from '@/components/app/library/save-to-folder';
 import { HighlightToolbar } from '@/components/app/library/highlight-toolbar';
@@ -48,6 +49,9 @@ interface Props {
   isSaved: boolean;
   savedFolderId: string | null;
   folders: FolderItem[];
+  initialSummary?: DocumentSummary | null;
+  initialSummaryGeneratedAt?: string | null;
+  initialSummaryModel?: string | null;
 }
 
 const HIGHLIGHT_COLORS: Record<string, string> = {
@@ -61,6 +65,9 @@ export function DocumentViewer({
   initialAnnotations,
   isSaved: initialSaved,
   folders: initialFolders,
+  initialSummary = null,
+  initialSummaryGeneratedAt = null,
+  initialSummaryModel = null,
 }: Props) {
   const meta = getDocTypeMeta(doc.type);
   const [saved, setSaved] = useState(initialSaved);
@@ -347,9 +354,18 @@ export function DocumentViewer({
           </article>
         </main>
 
-        {/* Highlights sidebar (right) */}
-        <aside className="hidden lg:block col-span-3">
-          <Card className="p-4 sticky top-32">
+        {/* Sidebar derecho: Resumen IA + Relacionados + Mis resaltados */}
+        <aside className="hidden lg:block col-span-3 space-y-5">
+          {/* Resumen IA generado + Documentos relacionados */}
+          <div className="sticky top-32 space-y-5">
+            <SummaryPanel
+              documentId={doc.id}
+              initialSummary={initialSummary}
+              initialGeneratedAt={initialSummaryGeneratedAt}
+              initialModel={initialSummaryModel}
+            />
+            {/* Mis resaltados */}
+          <Card className="p-4">
             <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
               <Highlighter className="h-3.5 w-3.5" />
               Mis resaltados
@@ -396,6 +412,7 @@ export function DocumentViewer({
               </ul>
             )}
           </Card>
+          </div>
         </aside>
       </div>
 

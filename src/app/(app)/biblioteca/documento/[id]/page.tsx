@@ -18,7 +18,9 @@ export default async function DocumentPage({ params }: Props) {
 
   const { data: doc } = await supabase
     .from('normative_documents')
-    .select('id, type, number, title, summary, date, source_url, raw_text')
+    .select(
+      'id, type, number, title, summary, date, source_url, raw_text, ai_summary, ai_summary_generated_at, ai_summary_model',
+    )
     .eq('id', params.id)
     .maybeSingle();
 
@@ -32,6 +34,9 @@ export default async function DocumentPage({ params }: Props) {
     date: string | null;
     source_url: string | null;
     raw_text: string | null;
+    ai_summary: import('@/components/app/library/summary-panel').DocumentSummary | null;
+    ai_summary_generated_at: string | null;
+    ai_summary_model: string | null;
   };
 
   const [annotationsRes, savedRes, foldersRes] = await Promise.all([
@@ -71,6 +76,9 @@ export default async function DocumentPage({ params }: Props) {
           created_at: string;
         }>
       ).map((f) => ({ ...f, count: 0 }))}
+      initialSummary={document.ai_summary}
+      initialSummaryGeneratedAt={document.ai_summary_generated_at}
+      initialSummaryModel={document.ai_summary_model}
     />
   );
 }
