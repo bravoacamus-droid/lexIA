@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { detectTextCitations, type TextCitationMatch } from '@/lib/citations/detect';
 import { motion } from 'framer-motion';
 import {
   Copy,
@@ -221,58 +222,144 @@ function renderWithCitations(
   sentinel: string,
   onClick: (src: ChatSource) => void,
 ): React.ReactNode {
-  function process(node: React.ReactNode): React.ReactNode {
-    if (typeof node === 'string') {
-      const parts = node.split(sentinel);
-      if (parts.length < 2) return node;
-      return parts.map((p, i) => {
-        if (i % 2 === 1) {
-          const n = parseInt(p, 10);
-          if (Number.isFinite(n) && n >= 1) {
-            const src = sources[n - 1];
-            if (!src) {
-              return (
-                <span
-                  key={i}
-                  className="citation-chip opacity-50"
-                  title="Cita no disponible"
-                >
-                  {n}
-                </span>
-              );
-            }
+  // Procesa un string nodo: primero busca el sentinel ⟨LEXC⟩N⟨LEXC⟩ que
+  // representa el chip [N] del modelo, luego dentro de los fragmentos
+  // de texto restantes detecta menciones textuales (Art. X, Opinión N°...,
+  // Pronunciamiento N°..., etc.) y las enlaza si coinciden con un source.
+  function processString(s: string, baseKey: string | number): React.ReactNode {
+    const parts = s.split(sentinel);
+    if (parts.length < 2) {
+      return processTextualCitations(s, sources, baseKey, onClick);
+    }
+    return parts.map((p, i) => {
+      const key = `${baseKey}-${i}`;
+      if (i % 2 === 1) {
+        const n = parseInt(p, 10);
+        if (Number.isFinite(n) && n >= 1) {
+          const src = sources[n - 1];
+          if (!src) {
             return (
-              <Tooltip key={i}>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => onClick(src)}
-                    className="citation-chip"
-                    aria-label={`Cita ${n}`}
-                  >
-                    {n}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-xs">
-                  <p className="font-semibold mb-1">{shortLabel(src)}</p>
-                  <p className="line-clamp-3 opacity-80 text-[11px]">
-                    {src.snippet}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
+              <span
+                key={key}
+                className="citation-chip opacity-50"
+                title="Cita no disponible"
+              >
+                {n}
+              </span>
             );
           }
+          return (
+            <Tooltip key={key}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => onClick(src)}
+                  className="citation-chip"
+                  aria-label={`Cita ${n}`}
+                >
+                  {n}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                <p className="font-semibold mb-1">{shortLabel(src)}</p>
+                <p className="line-clamp-3 opacity-80 text-[11px]">
+                  {src.snippet}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          );
         }
-        return <span key={i}>{p}</span>;
-      });
+      }
+      return processTextualCitations(p, sources, key, onClick);
+    });
+  }
+
+  function process(node: React.ReactNode, key: string | number = 'r'): React.ReactNode {
+    if (typeof node === 'string') return processString(node, key);
+    if (Array.isArray(node)) {
+      return node.map((n, i) => (
+        <span key={`${key}-${i}`}>{process(n, `${key}-${i}`)}</span>
+      ));
     }
-    if (Array.isArray(node)) return node.map((n, i) => <span key={i}>{process(n)}</span>);
     return node;
   }
 
-  if (Array.isArray(children)) {
-    return children.map((c, i) => <span key={i}>{process(c)}</span>);
-  }
-  return process(children);
+  return process(children, 'root');
+}
+
+/**
+ * Resuelve menciones textuales (Art. X, Opinión Y, Pronunciamiento Z)
+ * dentro de un string y las renderiza como chips clickeables si el
+ * patrón coincide con un source del mensaje. Si no, deja texto plano —
+ * esto refuerza la defensa anti-alucinación: el usuario VE que esa
+ * mención no tiene cita verificable.
+ */
+function processTextualCitations(
+  text: string,
+  sources: ChatSource[],
+  baseKey: string | number,
+  onClick: (src: ChatSource) => void,
+): React.ReactNode {
+  if (!text || sources.length === 0) return text;
+  const matches = detectTextCitations(text, sources);
+  if (matches.length === 0) return text;
+
+  const out: React.ReactNode[] = [];
+  let cursor = 0;
+  matches.forEach((m, i) => {
+    if (m.start > cursor) {
+      out.push(text.slice(cursor, m.start));
+    }
+    if (m.source) {
+      out.push(
+        <TextCitationLink
+          key={`${baseKey}-tc-${i}`}
+          match={m}
+          source={m.source}
+          onClick={onClick}
+        />,
+      );
+    } else {
+      // No matchea ningún source → texto plano (no inventamos link)
+      out.push(<span key={`${baseKey}-tc-${i}`}>{m.text}</span>);
+    }
+    cursor = m.end;
+  });
+  if (cursor < text.length) out.push(text.slice(cursor));
+  return out;
+}
+
+/**
+ * Chip clickeable para una cita textual. Diseño más sutil que el
+ * citation-chip numérico [N]: subrayado punteado + color brand al
+ * hover. No queremos llenar el texto de chips ruidosos.
+ */
+function TextCitationLink({
+  match,
+  source,
+  onClick,
+}: {
+  match: TextCitationMatch;
+  source: ChatSource;
+  onClick: (src: ChatSource) => void;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={() => onClick(source)}
+          className="text-citation-link"
+          aria-label={`Abrir ${match.text}`}
+        >
+          {match.text}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-xs">
+        <p className="font-semibold mb-1">{shortLabel(source)}</p>
+        <p className="line-clamp-3 opacity-80 text-[11px]">{source.snippet}</p>
+      </TooltipContent>
+    </Tooltip>
+  );
 }
 
 function shortLabel(src: ChatSource): string {

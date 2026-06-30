@@ -165,16 +165,31 @@
            bg-citation-bg text-emerald-900 dark:bg-citation-bg-dark dark:text-emerald-300
            cursor-pointer hover:scale-110 transition-transform;
   }
+  /**
+   * Chips para citas TEXTUALES dentro del chat ("Art. 51", "Opinión N° 001-2017").
+   * Más sutiles que .citation-chip para no romper el flujo de lectura: subrayado
+   * punteado en color brand, sin background ni borde. Hover muestra background.
+   */
+  .text-citation-link {
+    @apply inline text-brand-700 dark:text-brand-400 font-medium
+           underline decoration-dotted decoration-brand-400/60 underline-offset-2
+           hover:bg-brand-50 dark:hover:bg-brand-950/40 hover:decoration-solid
+           rounded-sm px-0.5 -mx-0.5 cursor-pointer transition-colors;
+  }
   .prose-lexia {
     @apply prose prose-slate dark:prose-invert max-w-none
-           prose-headings:font-semibold prose-headings:tracking-tight
-           prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg
-           prose-p:leading-relaxed prose-p:text-[15px]
+           prose-headings:font-semibold prose-headings:tracking-tight prose-headings:scroll-mt-24
+           prose-h1:text-2xl prose-h1:mt-7 prose-h1:mb-3
+           prose-h2:text-lg prose-h2:mt-6 prose-h2:mb-2 prose-h2:text-brand-900 dark:prose-h2:text-brand-300
+           prose-h3:text-base prose-h3:mt-5 prose-h3:mb-2
+           prose-p:leading-[1.7] prose-p:text-[15px] prose-p:my-3.5
            prose-strong:text-foreground prose-strong:font-semibold
            prose-a:text-brand-700 dark:prose-a:text-brand-400 prose-a:no-underline hover:prose-a:underline
            prose-code:bg-secondary prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-[13px] prose-code:font-mono
-           prose-blockquote:border-brand-500 prose-blockquote:bg-accent/50 prose-blockquote:not-italic
-           prose-ul:my-3 prose-li:my-1;
+           prose-blockquote:border-brand-500 prose-blockquote:bg-accent/50 prose-blockquote:not-italic prose-blockquote:my-4
+           prose-ul:my-3 prose-li:my-1.5 prose-li:leading-relaxed
+           prose-ol:my-3
+           prose-hr:my-5;
   }
 }
 

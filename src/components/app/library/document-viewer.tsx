@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn, getDocTypeMeta, formatDate } from '@/lib/utils';
+import { formatNormativaText } from '@/lib/normativa/format-raw';
 import { toast } from 'sonner';
 import { SaveToFolderDialog } from '@/components/app/library/save-to-folder';
 import { HighlightToolbar } from '@/components/app/library/highlight-toolbar';
@@ -75,7 +76,15 @@ export function DocumentViewer({
   } | null>(null);
 
   const contentRef = useRef<HTMLDivElement | null>(null);
-  const text = doc.raw_text || '';
+  // Formatear el texto plano del PDF a markdown estructurado antes de
+  // renderizar. El extractor de PDF deja headings y artículos como
+  // texto plano; formatNormativaText los convierte en H1/H2 y agrupa
+  // párrafos. Mejora drásticamente la lectura — feedback de César
+  // 28/06/2026: "texto plano computarizado, no facilita la lectura".
+  const text = useMemo(
+    () => formatNormativaText(doc.raw_text),
+    [doc.raw_text],
+  );
 
   // Detect text selection and show toolbar
   useEffect(() => {

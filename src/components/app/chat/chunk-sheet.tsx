@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, BookOpen } from 'lucide-react';
 import { getDocTypeMeta } from '@/lib/utils';
+import { formatNormativaText } from '@/lib/normativa/format-raw';
 import type { ChatSource } from '@/lib/supabase/types';
 
 interface Props {
@@ -82,7 +83,9 @@ function ChunkSheetContent({
               prose-ul:my-2 prose-li:my-0.5 prose-li:text-[14px]
               prose-ol:my-2"
           >
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{chunk.snippet}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {formatNormativaText(chunk.snippet)}
+            </ReactMarkdown>
           </div>
         </div>
 
