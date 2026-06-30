@@ -30,6 +30,12 @@ export interface SearchOptions {
   query: string;
   /** Filtrar por tipo. Si no se pasa, busca en todos los tipos. */
   filter_type?: string | null;
+  /**
+   * Filtrar por ley aplicable. Valores válidos en cada elemento del
+   * array: 'ley_32069' | 'ley_30225'. Si null/empty, no se filtra.
+   * Configurado a nivel de llamada (voice_calls.law_filter).
+   */
+  filter_law?: string[] | null;
   /** Cuántos chunks devolver (default 5, max 10). */
   match_count?: number;
 }
@@ -76,11 +82,14 @@ export async function searchNormativa(
   }
 
   const admin = createAdminClient();
+  const filterLaw =
+    opts.filter_law && opts.filter_law.length > 0 ? opts.filter_law : null;
   const { data, error } = await admin.rpc('hybrid_search', {
     query_text: opts.query,
     query_embedding: embedding,
     match_count: matchCount,
     filter_type: filterType,
+    filter_law: filterLaw,
   });
   if (error) {
     console.error('[voice-search] hybrid_search error:', error.message);

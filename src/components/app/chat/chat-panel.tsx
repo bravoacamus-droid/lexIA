@@ -8,6 +8,7 @@ import { ChatMessageView } from '@/components/app/chat/message';
 import { ChatInput } from '@/components/app/chat/chat-input';
 import { ChunkSheet } from '@/components/app/chat/chunk-sheet';
 import { Suggested } from '@/components/app/chat/suggested';
+import { LawSelector, type LawFilter } from '@/components/app/law-selector';
 import type { ChatMessage, ChatSource } from '@/lib/supabase/types';
 import { useConversations } from '@/lib/stores/conversations';
 import { Loader2, AlertTriangle } from 'lucide-react';
@@ -17,6 +18,7 @@ interface Props {
   conversationId: string;
   title: string | null;
   initialMessages: ChatMessage[];
+  initialLawFilter?: LawFilter;
   prefillQuery?: string | null;
 }
 
@@ -31,8 +33,26 @@ export function ChatPanel({
   conversationId,
   title,
   initialMessages,
+  initialLawFilter = null,
   prefillQuery,
 }: Props) {
+  const [lawFilter, setLawFilterState] = useState<LawFilter>(initialLawFilter);
+  // Persistimos el cambio de filtro a la conversación (no a perfil).
+  // /api/chat lee chat_conversations.law_filter para acotar el RAG.
+  const setLawFilter = useCallback(
+    (next: LawFilter) => {
+      setLawFilterState(next);
+      void fetch(`/api/conversations/${conversationId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ law_filter: next }),
+      }).catch(() => {
+        toast.error('No se pudo guardar el filtro de ley para esta conversación.');
+      });
+    },
+    [conversationId],
+  );
+
   const touch = useConversations((s) => s.touch);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [sourcesById, setSourcesById] = useState<Record<string, ChatSource[]>>(
@@ -181,6 +201,19 @@ export function ChatPanel({
   return (
     <>
       <div className="flex-1 min-h-0 flex flex-col">
+        {/* Mini-header de la conversación con selector de ley */}
+        <div className="border-b border-border bg-card/40 backdrop-blur">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground truncate min-w-0">
+              {title || 'Nueva conversación'}
+            </p>
+            <LawSelector
+              value={lawFilter}
+              onChange={setLawFilter}
+              ariaLabel="Filtrar el RAG de esta conversación por ley aplicable"
+            />
+          </div>
+        </div>
         <div
           ref={scrollRef}
           className="flex-1 overflow-y-auto scrollbar-thin"

@@ -8,6 +8,14 @@ export const dynamic = 'force-dynamic';
 const patchSchema = z.object({
   title: z.string().min(1).max(80).optional(),
   pinned: z.boolean().optional(),
+  /**
+   * Filtro de ley aplicable a esta conversación. Array vacío o null =
+   * sin filtro. Valores válidos: 'ley_32069', 'ley_30225'.
+   */
+  law_filter: z
+    .array(z.enum(['ley_32069', 'ley_30225']))
+    .nullable()
+    .optional(),
 });
 
 export async function GET(_req: Request, ctx: { params: { id: string } }) {
@@ -19,7 +27,7 @@ export async function GET(_req: Request, ctx: { params: { id: string } }) {
 
   const { data: convo, error } = await supabase
     .from('chat_conversations')
-    .select('id, title, pinned, created_at, updated_at, user_id')
+    .select('id, title, pinned, law_filter, created_at, updated_at, user_id')
     .eq('id', ctx.params.id)
     .maybeSingle();
 
@@ -58,7 +66,7 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
     .update(parsed.data as never)
     .eq('id', ctx.params.id)
     .eq('user_id', user.id)
-    .select('id, title, pinned, updated_at')
+    .select('id, title, pinned, law_filter, updated_at')
     .single();
 
   if (error) {

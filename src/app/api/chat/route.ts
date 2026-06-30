@@ -72,7 +72,7 @@ export async function POST(req: Request) {
   const [convoRes, profileRes] = await Promise.all([
     supabase
       .from('chat_conversations')
-      .select('id, user_id, title')
+      .select('id, user_id, title, law_filter')
       .eq('id', conversationId)
       .maybeSingle(),
     supabase
@@ -82,12 +82,19 @@ export async function POST(req: Request) {
       .maybeSingle(),
   ]);
 
-  const convo = convoRes.data;
+  const convo = convoRes.data as
+    | { id: string; user_id: string; title: string; law_filter: string[] | null }
+    | null;
   const userRole = (profileRes.data?.profile_role as ProfileRole | null) || null;
 
-  if (!convo || (convo as { user_id: string }).user_id !== user.id) {
+  if (!convo || convo.user_id !== user.id) {
     return NextResponse.json({ error: 'not_found' }, { status: 404 });
   }
+
+  // Filtro de ley a nivel de conversación (persistente por sesión, no
+  // a nivel de perfil). Null o array vacío = no filtra (busca en ambas).
+  const lawFilter =
+    convo.law_filter && convo.law_filter.length > 0 ? convo.law_filter : null;
 
   // Gate de cuota de mensajes
   const guard = await ensureCanUse(user.id, 'chat_message');
@@ -117,6 +124,7 @@ export async function POST(req: Request) {
       query_embedding: queryEmbedding,
       match_count: MAX_CHUNKS,
       filter_type: null,
+      filter_law: lawFilter,
     });
 
     if (searchError) {

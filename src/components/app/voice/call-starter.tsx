@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { LawSelector, type LawFilter } from '@/components/app/law-selector';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -62,6 +63,9 @@ export function CallStarter({ hasConsent, disclaimerVersion }: Props) {
   });
   const [savingConsent, setSavingConsent] = useState(false);
   const [voiceId, setVoiceId] = useState<string>('Aoede');
+  // Filtro de ley aplicable a esta llamada (null = ambas). Se envía al
+  // crear la llamada y queda persistido en voice_calls.law_filter.
+  const [lawFilter, setLawFilter] = useState<LawFilter>(null);
   const [callId, setCallId] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [muted, setMuted] = useState(false);
@@ -114,7 +118,10 @@ export function CallStarter({ hasConsent, disclaimerVersion }: Props) {
       const createRes = await fetch('/api/voice/calls', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ voice_id: voiceId }),
+        body: JSON.stringify({
+          voice_id: voiceId,
+          law_filter: lawFilter || [],
+        }),
       });
       const createJson = await createRes.json();
       if (!createRes.ok) {
@@ -395,6 +402,23 @@ export function CallStarter({ hasConsent, disclaimerVersion }: Props) {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Régimen normativo
+            </Label>
+            <div>
+              <LawSelector
+                value={lawFilter}
+                onChange={setLawFilter}
+                size="md"
+                ariaLabel="Restringir el RAG de esta llamada a Ley 30225, Ley 32069 o ambas"
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Elige sobre cuál ley quieres consultar. <strong>Ambas</strong> es lo más amplio (incluye jurisprudencia de Ley 30225 y Ley 32069). Útil para acotar si tu caso está bajo un régimen específico.
+            </p>
           </div>
 
           <div className="rounded-lg bg-amber-50/40 dark:bg-amber-950/30 border border-amber-500/30 p-4 text-xs leading-relaxed">

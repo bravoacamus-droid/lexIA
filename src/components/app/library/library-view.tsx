@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Sparkles, Loader2, X, BookmarkCheck, Inbox, Folder } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { TypeFilter } from '@/components/app/library/type-filter';
+import { LawSelector, type LawFilter } from '@/components/app/law-selector';
 import { FoldersPanel } from '@/components/app/library/folders-panel';
 import { DocumentCard } from '@/components/app/library/document-card';
 import { SaveToFolderDialog } from '@/components/app/library/save-to-folder';
@@ -71,6 +72,9 @@ export function LibraryView({
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [type, setType] = useState<NormativeDocType | null>(null);
+  // Filtro de ley aplicable (null = ambas). Persiste solo durante la
+  // navegación; al recargar Biblioteca vuelve a Ambas.
+  const [lawFilter, setLawFilter] = useState<LawFilter>(null);
   const [selectedFolderId, setSelectedFolderId] = useState<
     string | null | 'unfiled' | 'all-saved'
   >(null);
@@ -123,12 +127,14 @@ export function LibraryView({
 
         // En modo browse sin query: usar limit más alto para tener pesado inicial
         const initialLimit = debounced ? 12 : pageSize;
+        const law = lawFilter && lawFilter.length === 1 ? lawFilter[0] : null;
         const res = await fetch('/api/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             query: debounced,
             type,
+            law,
             limit: initialLimit,
             offset: 0,
           }),
@@ -156,7 +162,7 @@ export function LibraryView({
     return () => {
       cancelled = true;
     };
-  }, [debounced, type, selectedFolderId, pageSize]);
+  }, [debounced, type, selectedFolderId, pageSize, lawFilter]);
 
   // Infinite scroll: cargar siguiente página al ver el sentinel
   useEffect(() => {
@@ -173,12 +179,14 @@ export function LibraryView({
 
         setLoadingMore(true);
         const currentLength = browseDocs.length;
+        const lawForLoad = lawFilter && lawFilter.length === 1 ? lawFilter[0] : null;
         fetch('/api/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             query: '',
             type,
+            law: lawForLoad,
             limit: pageSize,
             offset: currentLength,
           }),
@@ -212,6 +220,7 @@ export function LibraryView({
     browseDocs.length,
     type,
     pageSize,
+    lawFilter,
   ]);
 
   async function onSave(documentId: string) {
@@ -280,7 +289,14 @@ export function LibraryView({
             <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
           )}
         </div>
-        <TypeFilter value={type} onChange={setType} counts={typeCounts} />
+        <div className="flex flex-wrap items-center gap-3">
+          <TypeFilter value={type} onChange={setType} counts={typeCounts} />
+          <LawSelector
+            value={lawFilter}
+            onChange={setLawFilter}
+            ariaLabel="Filtrar biblioteca por ley aplicable"
+          />
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-12 gap-6">

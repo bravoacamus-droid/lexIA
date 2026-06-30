@@ -45,13 +45,25 @@ export async function POST(req: Request) {
   // Validar ownership de la llamada
   const { data: call } = await supabase
     .from('voice_calls')
-    .select('id, user_id, rag_queries_count, cited_documents')
+    .select('id, user_id, rag_queries_count, cited_documents, law_filter')
     .eq('id', parsed.data.call_id)
     .maybeSingle();
   if (!call) return NextResponse.json({ error: 'call_not_found' }, { status: 404 });
-  if ((call as { user_id: string }).user_id !== user.id) {
+  const callRow = call as {
+    user_id: string;
+    rag_queries_count: number;
+    cited_documents: Array<{ citation: string; title: string }>;
+    law_filter: string[] | null;
+  };
+  if (callRow.user_id !== user.id) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
+
+  // Filtro de ley a nivel de llamada (null/vacío = ambas leyes).
+  const lawFilter =
+    callRow.law_filter && callRow.law_filter.length > 0
+      ? callRow.law_filter
+      : null;
 
   // Ejecutar búsqueda. CRÍTICO: cualquier error aquí NO debe lanzar
   // 500 — el cliente de voz necesita una respuesta 200 con content para
@@ -62,15 +74,14 @@ export async function POST(req: Request) {
     const results = await searchNormativa({
       query: parsed.data.query,
       filter_type: parsed.data.filter_type ?? null,
+      filter_law: lawFilter,
       match_count: 5,
     });
     const formatted = formatResultsForLLM(results);
 
     // Acumular en la llamada (rag_queries_count + cited_documents)
-    const prevCount = (call as { rag_queries_count: number }).rag_queries_count || 0;
-    const prevCited =
-      ((call as { cited_documents: Array<{ citation: string; title: string }> })
-        .cited_documents as Array<{ citation: string; title: string }>) || [];
+    const prevCount = callRow.rag_queries_count || 0;
+    const prevCited = callRow.cited_documents || [];
     const newCitations = results.map((r) => ({
       citation: r.citation,
       title: r.title,

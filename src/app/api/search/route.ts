@@ -28,6 +28,13 @@ const requestSchema = z.object({
     .nullable()
     .optional(),
   year: z.number().int().min(1990).max(2100).nullable().optional(),
+  /**
+   * Filtro por ley aplicable: 'ley_32069' (vigente desde abr-2025) o
+   * 'ley_30225' (régimen anterior). Si no se envía o es null, no se
+   * filtra. Pedido por César para evitar mezclar jurisprudencia de
+   * ambas leyes en una misma búsqueda.
+   */
+  law: z.enum(['ley_32069', 'ley_30225']).nullable().optional(),
   limit: z.number().int().min(1).max(50).optional(),
   offset: z.number().int().min(0).optional(),
 });
@@ -53,7 +60,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'invalid_body', issues: parsed.error.issues }, { status: 400 });
   }
 
-  const { query, type, year, limit = 12, offset = 0 } = parsed.data;
+  const { query, type, year, law, limit = 12, offset = 0 } = parsed.data;
   const trimmed = query.trim();
 
   // Sin query → listar docs (paginable) con filtros + conteo total para saber
@@ -61,7 +68,7 @@ export async function POST(req: Request) {
   if (!trimmed) {
     let q = supabase
       .from('normative_documents')
-      .select('id, type, number, title, summary, date, source_url', {
+      .select('id, type, number, title, summary, date, source_url, applicable_law', {
         count: 'exact',
       })
       .order('date', { ascending: false, nullsFirst: false })
@@ -70,6 +77,7 @@ export async function POST(req: Request) {
     if (year) {
       q = q.gte('date', `${year}-01-01`).lte('date', `${year}-12-31`);
     }
+    if (law) q = q.contains('applicable_law', [law]);
     const { data, count, error } = await q;
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({
@@ -99,6 +107,7 @@ export async function POST(req: Request) {
     query_embedding: queryEmbedding,
     match_count: limit * 2,
     filter_type: type || null,
+    filter_law: law ? [law] : null,
   });
 
   if (error) {

@@ -9,6 +9,14 @@ export const dynamic = 'force-dynamic';
 
 const CreateSchema = z.object({
   voice_id: z.enum(['Aoede', 'Puck', 'Charon', 'Kore']).optional().default('Aoede'),
+  /**
+   * Filtro de ley aplicable para el RAG de esta llamada. Array vacío
+   * o ausente = sin filtro (busca en ambas leyes). Valores válidos:
+   * 'ley_32069', 'ley_30225'.
+   */
+  law_filter: z
+    .array(z.enum(['ley_32069', 'ley_30225']))
+    .optional(),
 });
 
 /**
@@ -61,14 +69,19 @@ export async function POST(req: Request) {
   }
 
   // Crear llamada
+  const lawFilter =
+    parsed.data.law_filter && parsed.data.law_filter.length > 0
+      ? parsed.data.law_filter
+      : null;
   const { data, error } = await supabase
     .from('voice_calls')
     .insert({
       user_id: user.id,
       voice_id: parsed.data.voice_id,
       status: 'active',
+      law_filter: lawFilter,
     } as never)
-    .select('id, voice_id, started_at')
+    .select('id, voice_id, started_at, law_filter')
     .single();
 
   if (error || !data) {

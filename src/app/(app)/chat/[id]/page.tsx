@@ -19,12 +19,17 @@ export default async function ChatConversationPage({ params, searchParams }: Pro
 
   const { data: convo } = await supabase
     .from('chat_conversations')
-    .select('id, title, pinned, created_at, updated_at, user_id')
+    .select('id, title, pinned, law_filter, created_at, updated_at, user_id')
     .eq('id', params.id)
     .maybeSingle();
 
   if (!convo) notFound();
-  const c = convo as { id: string; title: string | null; user_id: string };
+  const c = convo as {
+    id: string;
+    title: string | null;
+    user_id: string;
+    law_filter: Array<'ley_32069' | 'ley_30225'> | null;
+  };
   if (c.user_id !== user.id) notFound();
 
   const { data: messages } = await supabase
@@ -38,6 +43,7 @@ export default async function ChatConversationPage({ params, searchParams }: Pro
       conversationId={params.id}
       title={c.title}
       initialMessages={(messages || []) as unknown as ChatMessage[]}
+      initialLawFilter={c.law_filter}
       prefillQuery={searchParams.q || null}
     />
   );
