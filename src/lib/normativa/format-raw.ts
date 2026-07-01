@@ -108,11 +108,25 @@ function cleanPdfTables(text: string, mode: 'display' | 'strip'): string {
   let out = text;
 
   if (mode === 'display') {
+    // Prefijos comunes que preceden un cuadro y que deben absorberse en el
+    // mismo replace para no dejar texto huérfano entre el título y la tabla.
+    // Ejemplos: "ANEXO Nº 01-RTM CUADRO DE REQUERIMIENTO", "ANEXO N° 02-RTM
+    // CRONOGRAMA DE ENTREGA", "CAPÍTULO III (...) 1.3. OBJETO DE LA
+    // CONVOCATORIA (...)"
+    const OPTIONAL_ANEXO_PREFIX =
+      /(?:\s*(?:ANEXO\s+N[°º.]?\s*\d+[\-\s]*RTM\s+(?:CUADRO\s+DE\s+REQUERIMIENTO|CRONOGRAMA\s+DE\s+ENTREGA)\s*)?)/;
+
     // 1) Cuadro de requerimiento (SIGA/SISMED) → tabla markdown real
-    //    Patrón: "Nº COD. SIGA CODIGO SISMED DESCRIPCION UND. MED. CANTIDAD
+    //    Patrón: "[ANEXO Nº 01-RTM CUADRO DE REQUERIMIENTO]
+    //             Nº COD. SIGA CODIGO SISMED DESCRIPCION UND. MED. CANTIDAD
     //             1 (...) (...) NOMBRE UNID 9400 2 (...) (...) NOMBRE UNID..."
     out = out.replace(
-      /(?:N[°º.]|Nro\.?)\s*COD\.?\s*SIGA\s+CODIGO\s+SISMED\s+DESCRIPCION\s+UND\.?\s*MED\.?\s+CANTIDAD\s+((?:\d{1,3}\s+\(\.{3,}\)\s+\(\.{3,}\)\s+[A-ZÁÉÍÓÚ][A-ZÁÉÍÓÚa-zá-ú0-9 ,.\-]+?\s+(?:UNID|UND|KG|ML|L|CM|MM)\s+\d+\s*)+)/gi,
+      new RegExp(
+        OPTIONAL_ANEXO_PREFIX.source +
+          /(?:N[°º.]|Nro\.?)\s*COD\.?\s*SIGA\s+CODIGO\s+SISMED\s+DESCRIPCION\s+UND\.?\s*MED\.?\s+CANTIDAD\s+((?:\d{1,3}\s+\(\.{3,}\)\s+\(\.{3,}\)\s+[A-ZÁÉÍÓÚ][A-ZÁÉÍÓÚa-zá-ú0-9 ,.\-]+?\s+(?:UNID|UND|KG|ML|L|CM|MM)\s+\d+\s*)+)/
+            .source,
+        'gi',
+      ),
       (_full, rowsBlock) => {
         const rowRx =
           /(\d{1,3})\s+\(\.{3,}\)\s+\(\.{3,}\)\s+([A-ZÁÉÍÓÚ][A-ZÁÉÍÓÚa-zá-ú0-9 ,.\-]+?)\s+(UNID|UND|KG|ML|L|CM|MM)\s+(\d+)/g;
@@ -123,22 +137,25 @@ function cleanPdfTables(text: string, mode: 'display' | 'strip'): string {
         }
         if (rows.length === 0) return '\n\n**Cuadro de requerimiento:** _[contenido omitido]_\n\n';
         // Cada línea en su propio renglón para que ReactMarkdown parsee la tabla.
-        // La sintaxis GFM de tablas requiere \n entre filas.
+        // La sintaxis GFM de tablas requiere \n entre filas + línea en blanco antes.
         const header = '| N° | Descripción | Unidad | Cantidad |';
-        const sep = '|:--:|:------------|:------:|---------:|';
+        const sep = '|:---|:------------|:------:|---------:|';
         const body = rows.map(([n, desc, u, c]) => `| ${n} | ${desc} | ${u} | ${c} |`).join('\n');
         return `\n\n**Cuadro de requerimiento**\n\n${header}\n${sep}\n${body}\n\n`;
       },
     );
 
     // 2) Cronograma de entrega → tabla markdown
-    //    Patrón: "Nº DESCRIPCION 1º E 2º E 3º E 4º E 5º E 6º E 7º E 8º E CANTIDAD TOTAL
-    //             1 NOMBRE_DESCRIPCION (...) (...) (...) (...) (...) (...) (...) (...) 9400
-    //             2 NOMBRE_DESCRIPCION (...) (...) (...) 4300..."
-    //    Los "(...)" son las columnas de entregas vacías; solo importa el
-    //    número del item, la descripción y la cantidad total.
+    //    Patrón: "[ANEXO Nº 02-RTM CRONOGRAMA DE ENTREGA]
+    //             Nº DESCRIPCION 1º E 2º E ... 8º E CANTIDAD TOTAL
+    //             1 NOMBRE_DESCRIPCION (...) (...) ... 9400"
     out = out.replace(
-      /N[°º.]?\s*DESCRIPCION\s+(?:\d+º\s+E\s+){2,}(?:CANTI\s*DAD|CANTIDAD)\s*TOTAL\s+((?:\d{1,3}\s+[A-ZÁÉÍÓÚ][A-ZÁÉÍÓÚa-zá-ú0-9 ,.\-]+?\s+(?:\(\.{3,}\)\s*)+\d+\s*)+)/gi,
+      new RegExp(
+        OPTIONAL_ANEXO_PREFIX.source +
+          /N[°º.]?\s*DESCRIPCION\s+(?:\d+º\s+E\s+){2,}(?:CANTI\s*DAD|CANTIDAD)\s*TOTAL\s+((?:\d{1,3}\s+[A-ZÁÉÍÓÚ][A-ZÁÉÍÓÚa-zá-ú0-9 ,.\-]+?\s+(?:\(\.{3,}\)\s*)+\d+\s*)+)/
+            .source,
+        'gi',
+      ),
       (_full, rowsBlock) => {
         const rowRx =
           /(\d{1,3})\s+([A-ZÁÉÍÓÚ][A-ZÁÉÍÓÚa-zá-ú0-9 ,.\-]+?)\s+(?:\(\.{3,}\)\s*){2,}(\d+)/g;
@@ -149,7 +166,7 @@ function cleanPdfTables(text: string, mode: 'display' | 'strip'): string {
         }
         if (rows.length === 0) return '\n\n**Cronograma de entrega:** _[contenido omitido]_\n\n';
         const header = '| N° | Descripción | Cantidad total |';
-        const sep = '|:--:|:------------|---------------:|';
+        const sep = '|:---|:------------|---------------:|';
         const body = rows.map(([n, desc, c]) => `| ${n} | ${desc} | ${c} |`).join('\n');
         return `\n\n**Cronograma de entrega**\n\n${header}\n${sep}\n${body}\n\n`;
       },
@@ -158,6 +175,14 @@ function cleanPdfTables(text: string, mode: 'display' | 'strip'): string {
     // 3) Colapsar series de "N° E" sueltas restantes (headers de cronograma
     //    que no matchearon el patrón anterior)
     out = out.replace(/(?:\d+º\s+E\s+){2,}(?:CANTI\s*DAD|CANTIDAD)?\s*(?:TOTAL)?/gi, '');
+
+    // 4) "ANEXO Nº XX-RTM …" sueltos (los que quedaron sin cuadro detrás)
+    //    Los convertimos a línea propia en negrita para que se lean como
+    //    encabezado, no como texto plano en medio del párrafo.
+    out = out.replace(
+      /\s+(ANEXO\s+N[°º.]?\s*\d+[\-\s]*RTM\s+(?:CUADRO\s+DE\s+REQUERIMIENTO|CRONOGRAMA\s+DE\s+ENTREGA|ESPECIFICACI[ÓO]N))\b/gi,
+      '\n\n**$1**\n\n',
+    );
   } else {
     // Modo strip (para chunk-sheet / RAG): sustituye por marcador simple
     // 1) Secuencias de "(...)" masivas
@@ -396,7 +421,14 @@ export function formatNormativaText(
 
     // Quitar número de página pegado al inicio
     line = stripPageNumberPrefix(line);
-    if (line.trim() === '') continue;
+    // Preservar líneas en blanco — remarkGfm necesita línea vacía
+    // ANTES del header de una tabla para reconocerla como tabla.
+    // (Fix crítico 30/06/2026: sin esto, tablas del cuadro de
+    //  requerimiento salían como texto plano con caracteres `|`.)
+    if (line.trim() === '') {
+      if (out.length > 0 && out[out.length - 1] !== '') out.push('');
+      continue;
+    }
 
     // Título / Capítulo / Sección → H1
     const tm = line.match(TITULO_RX);
@@ -480,28 +512,57 @@ export function formatNormativaText(
       buf = [];
     }
   }
+  // Helper: garantiza línea en blanco antes del próximo push si el
+  // último elemento del joined NO es ya vacío. Necesario para que
+  // remarkGfm reconozca tablas y encabezados que van pegados a prosa.
+  function ensureBlankBefore() {
+    if (joined.length > 0 && joined[joined.length - 1] !== '') {
+      joined.push('');
+    }
+  }
+
+  let prevWasTableRow = false;
   for (const line of out) {
     if (line === '' || line === '---') {
       flushBuf();
-      joined.push(line);
+      if (line === '' && joined.length > 0 && joined[joined.length - 1] === '') {
+        // no duplicar líneas vacías
+      } else {
+        joined.push(line);
+      }
+      prevWasTableRow = false;
       continue;
     }
+    const isTableRow = line.startsWith('|');
     if (
       line.startsWith('#') ||
       line.startsWith('- ') ||
       line.startsWith('   - ') ||
       line.startsWith('**') ||
-      line.startsWith('|') ||
+      isTableRow ||
       line.startsWith('>') ||
       NUM_LISTA_RX.test(line)
     ) {
       flushBuf();
+      // Fila de tabla: SIEMPRE necesita línea vacía antes del header.
+      // Si la línea anterior no era también fila de tabla, insertamos ''.
+      if (isTableRow && !prevWasTableRow) {
+        ensureBlankBefore();
+      }
       joined.push(line);
+      prevWasTableRow = isTableRow;
       continue;
+    }
+    // Salida de un bloque de tabla → línea vacía para cerrar la tabla
+    if (prevWasTableRow) {
+      ensureBlankBefore();
+      prevWasTableRow = false;
     }
     buf.push(line);
   }
   flushBuf();
+  // Si el documento termina en tabla, cerrar con línea vacía
+  if (prevWasTableRow) ensureBlankBefore();
 
   return joined
     .join('\n')
