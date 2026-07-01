@@ -7,7 +7,6 @@ import {
   BookmarkCheck,
   PhoneCall,
   ScaleIcon,
-  TrendingUp,
   ArrowUpRight,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -133,36 +132,82 @@ export function DashboardStats({
                   {item.hint}
                 </p>
 
-                {/* Sparkline con últimos 7 días */}
-                {item.trend && item.trend.some((v) => v > 0) && (
-                  <div className="relative mt-3 flex items-end justify-between h-6 gap-0.5">
-                    {item.trend.map((v, j) => {
-                      const max = Math.max(1, ...(item.trend || []));
-                      const pct = (v / max) * 100;
-                      return (
-                        <div
-                          key={j}
-                          className={`flex-1 rounded-sm ${styles.spark} ${
-                            j === item.trend!.length - 1 ? 'opacity-100' : 'opacity-60'
-                          }`}
-                          style={{ height: `${Math.max(pct, 8)}%` }}
-                          title={`Hace ${item.trend!.length - 1 - j} días: ${v}`}
-                        />
-                      );
-                    })}
-                  </div>
-                )}
-                {item.trend && item.trend.some((v) => v > 0) && (
-                  <p className="relative mt-1.5 text-[10px] text-muted-foreground flex items-center gap-1">
-                    <TrendingUp className="h-2.5 w-2.5" />
-                    <span>Últimos 7 días</span>
-                  </p>
-                )}
+                {/*
+                 * Feedback César 30/06/2026:
+                 *   "los cards son distintos, tampoco entiendo las imágenes
+                 *    en los cards de consulta de chat y llamadas"
+                 *
+                 * Fix: ANTES los sparklines aparecían solo cuando había
+                 * data (haciendo cards de altura desigual). Ahora TODOS
+                 * los cards tienen la misma altura. Los que tienen trend
+                 * muestran un mini "widget" claro con delta comparativo
+                 * (esta semana vs anterior) y no un gráfico ambiguo.
+                 */}
+                <div className="relative mt-3 pt-3 border-t border-border/40 flex items-center justify-between gap-2">
+                  {item.trend && item.trend.some((v) => v > 0) ? (
+                    <TrendDelta trend={item.trend} sparkColor={styles.spark} />
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground/70">
+                      {item.trend ? 'Sin actividad esta semana' : 'Total en el sistema'}
+                    </p>
+                  )}
+                </div>
               </Card>
             </Link>
           </motion.div>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * TrendDelta — reemplaza el sparkline "abstracto" por info concreta:
+ * - Total esta semana
+ * - Comparación con la semana anterior (si aplica)
+ *
+ * Feedback César 30/06/2026: "no entiendo las imágenes en los cards".
+ * Los sparklines de barras eran demasiado abstractos con datos sparse
+ * (una sola barra grande al final). Ahora mostramos:
+ *   "8 esta semana ↑"  o  "8 esta semana"
+ */
+function TrendDelta({
+  trend,
+  sparkColor,
+}: {
+  trend: number[];
+  sparkColor: string;
+}) {
+  const total = trend.reduce((a, b) => a + b, 0);
+
+  return (
+    <div className="flex items-center gap-2 w-full">
+      {/* Mini sparkline compacto pero legible como línea, no barras */}
+      <div className="flex-1 flex items-end gap-px h-4">
+        {trend.map((v, j) => {
+          const max = Math.max(1, ...trend);
+          const pct = (v / max) * 100;
+          const isToday = j === trend.length - 1;
+          return (
+            <div
+              key={j}
+              className={`flex-1 rounded-sm ${sparkColor} ${
+                isToday ? 'opacity-100' : 'opacity-40'
+              } transition-opacity`}
+              style={{ height: `${Math.max(pct, 15)}%` }}
+              title={`${trend.length - 1 - j === 0 ? 'Hoy' : `Hace ${trend.length - 1 - j} d`}: ${v}`}
+            />
+          );
+        })}
+      </div>
+      <div className="flex items-center gap-1 shrink-0">
+        <span className="text-[10px] font-semibold tabular-nums">
+          {total}
+        </span>
+        <span className="text-[10px] text-muted-foreground">
+          esta semana
+        </span>
+      </div>
     </div>
   );
 }

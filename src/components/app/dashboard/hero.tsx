@@ -179,19 +179,25 @@ export function DashboardHero({ fullName, role }: Props) {
               transition={{ duration: 0.4, delay: 0.3 }}
               className="flex flex-wrap items-center gap-2 pt-2"
             >
-              {ctas.map((cta, i) => {
+              {ctas.map((cta) => {
                 const Icon = cta.icon;
                 if (cta.primary) {
+                  /* Feedback César 30/06/2026: "el botón Auditar mi oferta
+                     no se nota sin hover, su color de texto no hace contraste".
+                     Fix: usar variant="default" del Button (brand-600 nativo)
+                     que garantiza contraste sobre fondos claros. El acento
+                     del rol está en el ícono grande + badge del hero, no
+                     en los botones. Botones consistentes en todos los
+                     perfiles = usabilidad predecible. */
                   return (
                     <Button
                       key={cta.href}
                       asChild
                       size="lg"
-                      className={`${
-                        theme?.classes.solidBg || 'bg-brand-600'
-                      } hover:opacity-90 text-white shadow-lg`}
+                      variant="default"
+                      className="shadow-md hover:shadow-lg"
                     >
-                      <Link href={cta.href} className="gap-2">
+                      <Link href={cta.href} className="gap-2 text-white">
                         <Icon className="h-4 w-4" />
                         {cta.label}
                         <ArrowRight className="h-3.5 w-3.5" />
@@ -200,7 +206,13 @@ export function DashboardHero({ fullName, role }: Props) {
                   );
                 }
                 return (
-                  <Button key={cta.href} asChild variant="outline" size="lg">
+                  <Button
+                    key={cta.href}
+                    asChild
+                    variant="outline"
+                    size="lg"
+                    className="bg-background/60 backdrop-blur-sm"
+                  >
                     <Link href={cta.href} className="gap-2">
                       <Icon className="h-4 w-4" />
                       {cta.label}

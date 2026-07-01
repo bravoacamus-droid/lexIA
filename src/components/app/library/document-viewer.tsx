@@ -270,7 +270,9 @@ export function DocumentViewer({
   return (
     <>
       <div className="border-b border-border bg-card/70 backdrop-blur-sm sticky top-14 z-10">
-        <div className="container max-w-7xl flex items-center justify-between gap-4 py-3">
+        {/* Feedback César 30/06/2026: aprovechar el espacio a la izquierda.
+            Full width con padding responsivo, mismo que library-view. */}
+        <div className="w-full max-w-none px-4 sm:px-6 lg:px-10 xl:px-14 flex items-center justify-between gap-4 py-3">
           <Button asChild variant="ghost" size="sm">
             <Link href="/biblioteca">
               <ArrowLeft className="h-4 w-4" />
@@ -346,7 +348,7 @@ export function DocumentViewer({
         </div>
       </div>
 
-      <div className="container max-w-7xl py-8 grid grid-cols-12 gap-6">
+      <div className="w-full max-w-none px-4 sm:px-6 lg:px-10 xl:px-14 py-8 grid grid-cols-12 gap-6">
         {/* TOC sidebar (left) — solo aparece si hay items.
             Feedback César 30/06/2026: aprovechar más ancho de pantalla.
             Reducido de col-span-3 a col-span-2 para dar más espacio al contenido. */}
