@@ -420,6 +420,29 @@ export function DocumentViewer({
                 {doc.summary}
               </p>
             )}
+            {/* Banner de aviso para "Buscador Interpretativo" — son índices
+                sin texto normativo, solo hipervínculos a opiniones. Sin este
+                aviso, el usuario abre esperando leer el Reglamento y solo
+                ve la lista de títulos de artículo. */}
+            {(doc.title?.toLowerCase().includes('buscador interpretativo') ||
+              doc.title?.toLowerCase().includes('buscador de opiniones organizadas por artículo')) && (
+              <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50/70 dark:border-amber-900/50 dark:bg-amber-950/30 p-4 text-sm">
+                <div className="flex gap-3">
+                  <span className="text-lg">ℹ</span>
+                  <div className="flex-1">
+                    <p className="font-medium text-amber-900 dark:text-amber-200">
+                      Este documento es un índice de opiniones, no el texto normativo.
+                    </p>
+                    <p className="mt-1 text-amber-800 dark:text-amber-300/90 leading-relaxed">
+                      Es el buscador oficial del DTN-OECE que lista los títulos de cada artículo
+                      con hipervínculos hacia las opiniones vinculadas. Para leer el <strong>texto
+                      completo</strong> del Reglamento y de la Ley 32069, consulta el documento{' '}
+                      <em>"Ley N° 32069 + DS N° 009-2025-EF (texto íntegro El Peruano)"</em>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </motion.header>
 
           <article
@@ -573,12 +596,31 @@ function extractToc(markdown: string): TocItem[] {
   const items: TocItem[] = [];
   const seen = new Set<string>();
 
+  // Trunca un heading largo a su parte "canónica" para la TOC.
+  // Los PDFs a veces pegan texto del cuerpo al heading porque el extractor
+  // no reconoció el salto. Truncamos hasta el primer "." o coma si la
+  // longitud excede 80 chars, con fallback a 120.
+  const trimHeading = (raw: string): string => {
+    const clean = raw.replace(/\s+/g, ' ').trim();
+    if (clean.length <= 80) return clean;
+    // Buscar primer punto o "." que cierre una frase corta
+    const cutIdx = clean.slice(0, 100).search(/[.]\s|:\s/);
+    if (cutIdx > 15 && cutIdx < 100) return clean.slice(0, cutIdx + 1);
+    // Fallback: cortar en 120 chars sin partir palabra
+    if (clean.length > 120) {
+      const trunc = clean.slice(0, 120);
+      const lastSpace = trunc.lastIndexOf(' ');
+      return (lastSpace > 60 ? trunc.slice(0, lastSpace) : trunc) + '…';
+    }
+    return clean;
+  };
+
   // 1. Headings markdown estándar (# H1, ## H2, ### H3)
   const reMd = /^(#{1,3})\s+(.+)$/gm;
   let m: RegExpExecArray | null;
   while ((m = reMd.exec(markdown))) {
     const level = m[1].length;
-    const text = m[2].trim();
+    const text = trimHeading(m[2]);
     const id = slugify(text);
     if (!seen.has(id)) {
       seen.add(id);

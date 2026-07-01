@@ -233,11 +233,96 @@ const SPLIT_WORDS: Array<[RegExp, string]> = [
   [/\bCONSULT\s+ORÍA\b/gi, 'CONSULTORÍA'],
 ];
 
+/**
+ * Colapsa rachas de kerning ancho detectadas por tokens.
+ * Ejemplo: "R e g l a m e n t o d e l a L e y" → "Reglamentodela Ley"
+ * (Luego el post-procesamiento re-inserta espacios por casing.)
+ */
+function collapseKerning(text: string): string {
+  // Procesar línea por línea para no cruzar bloques
+  return text
+    .split('\n')
+    .map((line) => {
+      const parts = line.split(' ');
+      const result: string[] = [];
+      let i = 0;
+      while (i < parts.length) {
+        // Ver si arranca una racha de tokens de 1 char
+        if (parts[i].length === 1 && /[A-Za-zÁÉÍÓÚÑáéíóúñ0-9°.,\-]/.test(parts[i])) {
+          let j = i;
+          while (
+            j < parts.length &&
+            parts[j].length === 1 &&
+            /[A-Za-zÁÉÍÓÚÑáéíóúñ0-9°.,\-]/.test(parts[j])
+          ) {
+            j++;
+          }
+          if (j - i >= 5) {
+            // Colapsar la racha
+            result.push(parts.slice(i, j).join(''));
+            i = j;
+            continue;
+          }
+        }
+        result.push(parts[i]);
+        i++;
+      }
+      return result.join(' ');
+    })
+    .join('\n');
+}
+
 function reunifyBrokenWords(text: string): string {
   let out = text;
   for (const [rx, replacement] of SPLIT_WORDS) {
     out = out.replace(rx, replacement);
   }
+
+  // Kerning ancho — común en PDFs generados con software profesional
+  // (InDesign, Acrobat) donde el texto tiene letter-spacing extra.
+  // El extractor lee cada letra como token, quedando: "R e g l a m e n t o".
+  //
+  // Estrategia token-based: tokenizamos por espacios, detectamos rachas de
+  // ≥5 tokens de longitud 1 (letras/dígitos/símbolos sueltos) y colapsamos
+  // esa racha en una sola palabra sin espacios.
+  //
+  // Ejemplo real (TUPA del OECE):
+  //   "R e g l a m e n t o d e l a L e y N ° 3 2 0 6 9 , L e y G e n e r a l"
+  //   → primero: "Reglamentodela Ley N°32069, LeyGeneral"
+  //   → después re-espaciado: "Reglamento de la Ley N° 32069, Ley General"
+  out = collapseKerning(out);
+
+  // Re-espaciado tras colapso: separar límites de palabra evidentes.
+  //   Ejemplo tras colapsar: "Reglamentodela Ley N°32069, LeyGeneralde..."
+  //   Queremos: "Reglamento de la Ley N° 32069, Ley General de..."
+  out = out.replace(/([a-záéíóúñ])([A-ZÁÉÍÓÚÑ])/g, '$1 $2'); // minúscula → Mayúscula
+  out = out.replace(/\b(N)°(\d)/g, '$1° $2'); // "N°32069" → "N° 32069"
+  // "General,Ley" → "General, Ley" (coma sin espacio tras separar)
+  out = out.replace(/([a-záéíóúñ]),([A-ZÁÉÍÓÚÑ])/g, '$1, $2');
+  // Palabras normativas específicas seguidas de dígitos (sin espacio):
+  //   "Artículo381" → "Artículo 381", "Ley32069" → "Ley 32069",
+  //   "Numeral381.5" → "Numeral 381.5", etc.
+  // Solo aplicamos para el vocabulario típico de normativa para evitar
+  // romper códigos alfanuméricos legítimos (RUC, DNI, PA42003A92, etc).
+  out = out.replace(
+    /\b(Art[íi]culo|Ley|Numeral|Reglamento|Decreto|Supremo|T[íi]tulo|Cap[íi]tulo|Secci[óo]n|Anexo|Directiva|Opini[óo]n|Pronunciamiento|p[áa]g)(\d)/gi,
+    '$1 $2',
+  );
+  // Dígitos seguidos de palabra normativa capitalizada (>=4 letras):
+  //   "381Reglamentodela" → "381 Reglamentodela"
+  //   "24/06/2024 25Reglamento" → "24/06/2024 25 Reglamento"
+  // No aplicamos si la palabra siguiente es corta (evita romper códigos
+  // como PA42003A92 donde A + 92 son parte del código).
+  out = out.replace(
+    /(\d)(Art[íi]culo|Ley|Reglamento|Decreto|Supremo|T[íi]tulo|Cap[íi]tulo|Secci[óo]n|Anexo|Directiva|Opini[óo]n|Pronunciamiento|Numeral)\b/gi,
+    '$1 $2',
+  );
+  // Nota: NO separamos conectoras internas ("de", "la", "el", "en", "al")
+  // dentro de palabras porque generan falsos positivos rompiendo palabras
+  // legítimas como "Reglamento" → "Reglam en to", "General" → "Gener al",
+  // "Numeral" → "Numer al", "documento" → "docum en to". Preferimos dejar
+  // "Reglamentodela Ley" (legible aunque no ideal) antes que corromper
+  // palabras válidas del texto.
 
   // Números de expediente sueltos que aparecen inline como notas al pie:
   //   ...texto legítimo. 5 (...). 6 Mediante Expediente N° 2026-0079927.
