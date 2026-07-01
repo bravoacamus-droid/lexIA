@@ -26,7 +26,11 @@ interface Props {
 export function ChunkSheet({ open, onClose, chunk }: Props) {
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-lg flex flex-col p-0">
+      {/* Feedback César 30/06/2026: "puedes hacer más ancha esa ventana que
+          se abre para estructurarlo mejor". Antes era max-w-lg (512px),
+          ahora max-w-2xl (672px) que aprovecha mejor el ancho de pantalla
+          y permite que el texto respire con la nueva estructura. */}
+      <SheetContent side="right" className="w-full sm:max-w-2xl flex flex-col p-0">
         {chunk && <ChunkSheetContent chunk={chunk} onClose={onClose} />}
       </SheetContent>
     </Sheet>
@@ -67,22 +71,16 @@ function ChunkSheetContent({
         </div>
       </SheetHeader>
 
-      <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-5">
-        <div className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-2">
+      <div className="flex-1 overflow-y-auto scrollbar-thin px-8 py-6">
+        <div className="text-[10px] uppercase tracking-widest font-semibold text-brand-600 dark:text-brand-400 mb-3">
           Fragmento citado
         </div>
-        <div className="relative rounded-r-md border-l-4 border-brand-500 bg-brand-50/40 dark:bg-brand-950/30 px-5 py-4">
-          <div
-            className="prose-lexia prose-sm
-              prose-headings:font-semibold prose-headings:text-foreground
-              prose-h1:text-base prose-h1:mt-0 prose-h1:mb-3 prose-h1:font-semibold
-              prose-h2:text-sm prose-h2:mt-4 prose-h2:mb-2 prose-h2:uppercase prose-h2:tracking-wider prose-h2:text-brand-700 dark:prose-h2:text-brand-400
-              prose-h3:text-sm prose-h3:mt-3 prose-h3:mb-1
-              prose-p:text-[14px] prose-p:leading-relaxed prose-p:my-2
-              prose-strong:text-foreground prose-strong:font-semibold
-              prose-ul:my-2 prose-li:my-0.5 prose-li:text-[14px]
-              prose-ol:my-2"
-          >
+        {/* Feedback César 30/06/2026: aplicar el MISMO estilo del chat al
+            fragmento citado. Antes era prose-sm con estructura recortada.
+            Ahora usa prose-lexia completo (idéntico al chat) para consistencia
+            visual entre "cita en el chat" y "cita en el fragmento". */}
+        <div className="relative rounded-lg border-l-4 border-brand-500 bg-brand-50/30 dark:bg-brand-950/20 pl-6 pr-4 py-5">
+          <div className="prose-lexia">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {formatNormativaText(chunk.snippet)}
             </ReactMarkdown>
@@ -90,8 +88,9 @@ function ChunkSheetContent({
         </div>
 
         <p className="mt-6 text-xs text-muted-foreground leading-relaxed">
-          Este es el fragmento que sustenta la afirmación que estaba citada en la respuesta de
-          LexIA. Para revisar el documento completo, abre el visor de la biblioteca normativa.
+          Este es el fragmento que sustenta la afirmación que estaba citada en la
+          respuesta de LexIA. Para revisar el documento completo, abre el visor
+          de la biblioteca normativa.
         </p>
       </div>
 

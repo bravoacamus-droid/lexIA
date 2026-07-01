@@ -119,6 +119,32 @@ export function formatNormativaText(raw: string | null | undefined): string {
   // 2b. Quitar headers de página incrustados: "18Manual de usuario..."
   text = stripInlinePageHeaders(text);
 
+  // 2c. Feedback César 30/06/2026: los textos de pronunciamientos y opiniones
+  //     vienen TODO PEGADO en una sola línea desde el PDF. Insertamos saltos
+  //     de línea antes de secciones estructurales para que después el
+  //     procesador línea por línea pueda detectarlas correctamente.
+  //     Ejemplos:
+  //       "referencia" 1. ANTECEDENTES Mediante...  →  ...\n\n1. ANTECEDENTES\nMediante...
+  //       texto...  2. CUESTIONAMIENTO De manera...  →  ...\n\n2. CUESTIONAMIENTO\nDe manera...
+  //       texto...  ● Cuestionamiento Único: Respecto...  →  ...\n- Cuestionamiento Único:...
+  const SECCION_NAMES =
+    'ANTECEDENTES|CUESTIONAMIENTO|CUESTIONAMIENTO\\s+[ÚU]NICO|AN[ÁA]LISIS|POSICI[ÓO]N|OPINI[ÓO]N|CONCLUSI[ÓO]N|CONCLUSIONES|RECOMENDACIONES|VISTO|RESULTA|CONSIDERANDO|SE\\s+RESUELVE|POR\\s+TANTO|BASE\\s+LEGAL|MARCO\\s+NORMATIVO';
+
+  // Insertar salto ANTES de "N. SECCION" cuando venga pegado
+  text = text.replace(
+    new RegExp(`([^\\n])\\s+(\\d{1,2}[.)]?\\s+(?:${SECCION_NAMES}))\\b`, 'g'),
+    '$1\n\n$2\n',
+  );
+
+  // Insertar salto ANTES de bullets Unicode inline
+  text = text.replace(/([^\n])\s+([●○◦•▪]\s)/g, '$1\n$2');
+
+  // Insertar salto ANTES de sub-numerales "51.2. La formulación..."
+  text = text.replace(/([.!?])\s+(\d{1,3}\.\d{1,3}[.)]?\s+["“]?[A-ZÁÉÍÓÚ])/g, '$1\n\n$2');
+
+  // Insertar salto ANTES de "Artículo N." inline
+  text = text.replace(/([^\n.])\s+(Art[íi]culo\s+\d+)/g, '$1\n\n$2');
+
   // 3. Colapsar 3+ saltos a doble salto
   text = text.replace(/\n{3,}/g, '\n\n');
 

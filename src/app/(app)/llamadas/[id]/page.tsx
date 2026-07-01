@@ -4,9 +4,10 @@ import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Clock, Star, BookOpen, Trash2, Phone } from 'lucide-react';
+import { ArrowLeft, Clock, Star, BookOpen, Phone } from 'lucide-react';
 import { formatRelative } from '@/lib/utils';
 import { CallActions } from '@/components/app/voice/call-actions';
+import { TurnMarkdown } from '@/components/app/voice/turn-markdown';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,7 +63,9 @@ export default async function LlamadaDetailPage({ params }: Props) {
   }>;
 
   return (
-    <div className="container max-w-3xl py-6 space-y-5">
+    // Feedback César 30/06/2026: ampliar el ancho de la vista para que
+    // las transcripciones respiren y usen el mismo layout que el chat.
+    <div className="container max-w-5xl py-6 space-y-5">
       <Button asChild variant="ghost" size="sm">
         <Link href="/llamadas">
           <ArrowLeft className="h-4 w-4" />
@@ -216,31 +219,44 @@ function Turn({
 }) {
   const isUser = turn.speaker === 'user';
   return (
-    <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
+    <div className={`flex gap-4 ${isUser ? 'flex-row-reverse' : ''}`}>
       <span
-        className={`text-[10px] font-mono text-muted-foreground shrink-0 mt-1 ${
+        className={`text-[10px] font-mono text-muted-foreground shrink-0 mt-2 ${
           isUser ? 'text-right' : ''
         }`}
-        style={{ minWidth: 36 }}
+        style={{ minWidth: 40 }}
       >
         {formatDuration(Math.floor(turn.timestamp_seconds))}
       </span>
       <div
-        className={`flex-1 rounded-lg p-3 text-sm ${
+        className={`flex-1 rounded-xl px-5 py-4 ${
           isUser
             ? 'bg-secondary/50'
-            : 'bg-brand-50/40 dark:bg-brand-950/30 border border-brand-500/20'
+            : 'bg-brand-50/30 dark:bg-brand-950/20 border border-brand-500/20'
         }`}
       >
-        <p className="text-[10px] uppercase tracking-wider font-semibold mb-1 text-muted-foreground">
+        <p className="text-[10px] uppercase tracking-widest font-semibold mb-2 text-brand-600 dark:text-brand-400">
           {isUser ? 'Tú' : 'Abogada Virtual'}
         </p>
-        <p className="leading-relaxed">{turn.text}</p>
+        {/* Feedback César 30/06/2026: aplicar el MISMO estilo del chat a
+            las transcripciones. Antes era <p> plain, ahora es prose-lexia
+            con markdown para que las respuestas del agente respetan
+            listas numeradas y sub-headings. */}
+        {isUser ? (
+          <p className="leading-relaxed text-[15px]">{turn.text}</p>
+        ) : (
+          <TurnMarkdown text={turn.text} />
+        )}
         {turn.citations && turn.citations.length > 0 && (
-          <div className="mt-2 pt-2 border-t border-border/30 space-y-0.5">
+          <div className="mt-3 pt-3 border-t border-border/40 space-y-1">
             {turn.citations.map((c, i) => (
-              <p key={i} className="text-[11px] text-muted-foreground">
-                📎 {c.citation} — {c.title}
+              <p
+                key={i}
+                className="text-[11px] text-brand-700 dark:text-brand-400 flex items-start gap-1.5"
+              >
+                <BookOpen className="h-3 w-3 mt-0.5 shrink-0" />
+                <span className="font-medium">{c.citation}</span>
+                <span className="text-muted-foreground">— {c.title}</span>
               </p>
             ))}
           </div>
