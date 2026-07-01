@@ -33,7 +33,15 @@ interface HybridSearchRow {
   similarity: number;
 }
 
-const MAX_CHUNKS = 8;
+/**
+ * Aumentado de 8 a 15 el 29/06/2026 tras diagnosticar bug de recall
+ * pobre en preguntas específicas. Ej. "plazo de difusión del
+ * requerimiento en LP para bienes" — el chunk correcto de la
+ * Directiva 007-2025-OECE-CD tenía similitud ~0.70 pero quedaba
+ * fuera del top-8 porque otros chunks tangenciales tenían ~0.72.
+ * Con 15 el chunk correcto tiene chance de entrar al contexto.
+ */
+const MAX_CHUNKS = 15;
 const MAX_HISTORY = 8;
 
 export async function POST(req: Request) {
