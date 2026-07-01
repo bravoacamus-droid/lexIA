@@ -10,6 +10,7 @@ import {
   ScanSearch,
   ClipboardList,
   PhoneCall,
+  SearchCode,
   type LucideIcon,
 } from 'lucide-react';
 import type { ProfileRole } from '@/lib/auth/session';
@@ -124,6 +125,15 @@ export const MENU_SECTIONS: MenuSection[] = [
         description: 'Asistente normativo con citas verificables.',
         accent: true,
         color: 'brand',
+      },
+      {
+        label: 'Buscador inteligente',
+        href: '/buscador',
+        icon: SearchCode,
+        description:
+          'Combina hasta 8 términos y encuentra jurisprudencia con resaltado por colores.',
+        color: 'teal',
+        accent: true,
       },
       {
         label: 'Biblioteca',
