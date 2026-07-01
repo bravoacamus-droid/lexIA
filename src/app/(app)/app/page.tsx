@@ -1,12 +1,14 @@
 import { createClient } from '@/lib/supabase/server';
 import { DashboardHero } from '@/components/app/dashboard/hero';
 import { DashboardStats } from '@/components/app/dashboard/stats';
-import { DashboardQuickActions } from '@/components/app/dashboard/quick-actions';
 import { DashboardActivity } from '@/components/app/dashboard/activity';
 import { DashboardSuggested } from '@/components/app/dashboard/suggested';
 import { ContinueLeftOff } from '@/components/app/dashboard/continue-left-off';
+import { RoleWidget } from '@/components/app/dashboard/role-widget';
+import { RecentLibrary } from '@/components/app/dashboard/recent-library';
 import { TrialBanner } from '@/components/app/dashboard/trial-banner';
 import type { ProfileRole, SubscriptionRow } from '@/lib/auth/session';
+import type { NormativeDocType } from '@/lib/supabase/types';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Inicio' };
@@ -39,6 +41,10 @@ export default async function DashboardPage() {
     recentChatMsgsRes,
     recentSavedRes,
     recentCallsRes,
+    recentNormativeRes,
+    evaluationsCountRes,
+    generatedDocsCountRes,
+    voiceCallsCountRes,
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -118,6 +124,29 @@ export default async function DashboardPage() {
       .select('started_at')
       .eq('user_id', user.id)
       .gte('started_at', sevenDaysAgo.toISOString()),
+    // Docs normativos recientes con resumen IA (para RecentLibrary)
+    supabase
+      .from('normative_documents')
+      .select('id, type, number, title, date, ai_summary')
+      .not('ai_summary', 'is', null)
+      .order('date', { ascending: false, nullsFirst: false })
+      .limit(4),
+    // Total de evaluaciones del usuario
+    supabase
+      .from('evaluations')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id),
+    // Total de documentos generados del usuario
+    supabase
+      .from('generated_documents')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id),
+    // Total de llamadas del usuario
+    supabase
+      .from('voice_calls')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('status', 'completed'),
   ]);
 
   const fullName = profileRes.data?.full_name || user.email?.split('@')[0] || 'invitado';
@@ -209,7 +238,39 @@ export default async function DashboardPage() {
         }
       />
 
-      <DashboardQuickActions role={role} />
+      {/* Widget grande "Mi trabajo como {rol}" con acciones específicas
+          del perfil y contadores de items relacionados del usuario. */}
+      <RoleWidget
+        role={role}
+        data={{
+          generatedDocsCount: generatedDocsCountRes.count || 0,
+          savedDocsCount: savedCountRes.count || 0,
+          evaluationsCount: evaluationsCountRes.count || 0,
+          voiceCallsCount: voiceCallsCountRes.count || 0,
+        }}
+      />
+
+      {/* Normativa reciente del OECE con resumen IA. Es la carta de
+          presentación real de la utilidad de LexIA. */}
+      <RecentLibrary
+        docs={
+          ((recentNormativeRes.data as Array<{
+            id: string;
+            type: NormativeDocType;
+            number: string | null;
+            title: string;
+            date: string | null;
+            ai_summary: { de_que_trata?: string; temas?: string[] } | null;
+          }>) || []).map((d) => ({
+            id: d.id,
+            type: d.type,
+            number: d.number,
+            title: d.title,
+            date: d.date,
+            ai_summary: d.ai_summary,
+          }))
+        }
+      />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">

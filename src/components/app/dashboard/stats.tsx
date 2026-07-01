@@ -167,6 +167,16 @@ export function DashboardStats({
   );
 }
 
+/**
+ * Estilos por tono para los KPIs. Refactorizado 30/06/2026 tras
+ * feedback: "KPIs con el mismo color de fondo pastel, no se distinguen,
+ * falta jerarquía". Ahora:
+ * - Border más marcado en color del KPI
+ * - Bg semi-sólido (no pastel tenue)
+ * - Ícono más grande y en fondo intenso
+ * - Blob decorativo con opacidad mayor
+ * - Sparkline con color intenso
+ */
 const TONE_STYLES: Record<ToneKey, {
   card: string;
   iconBg: string;
@@ -175,31 +185,31 @@ const TONE_STYLES: Record<ToneKey, {
   spark: string;
 }> = {
   brand: {
-    card: 'hover:border-brand-400 bg-gradient-to-br from-card to-brand-50/30 dark:to-brand-950/20 border-brand-500/10',
-    iconBg: 'bg-brand-100 dark:bg-brand-950',
-    iconFg: 'text-brand-700 dark:text-brand-400',
-    blob: 'bg-brand-300/40 dark:bg-brand-800/40',
+    card: 'border-brand-500/30 hover:border-brand-500 bg-brand-50/60 dark:bg-brand-950/40 dark:border-brand-700/40 hover:dark:border-brand-500',
+    iconBg: 'bg-brand-500 dark:bg-brand-500',
+    iconFg: 'text-white',
+    blob: 'bg-brand-400/50 dark:bg-brand-600/40',
     spark: 'bg-brand-500 dark:bg-brand-400',
   },
   emerald: {
-    card: 'hover:border-emerald-400 bg-gradient-to-br from-card to-emerald-50/30 dark:to-emerald-950/20 border-emerald-500/10',
-    iconBg: 'bg-emerald-100 dark:bg-emerald-950',
-    iconFg: 'text-emerald-700 dark:text-emerald-400',
-    blob: 'bg-emerald-300/40 dark:bg-emerald-800/40',
+    card: 'border-emerald-500/30 hover:border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 dark:border-emerald-700/40 hover:dark:border-emerald-500',
+    iconBg: 'bg-emerald-500 dark:bg-emerald-500',
+    iconFg: 'text-white',
+    blob: 'bg-emerald-400/50 dark:bg-emerald-600/40',
     spark: 'bg-emerald-500 dark:bg-emerald-400',
   },
   rose: {
-    card: 'hover:border-rose-400 bg-gradient-to-br from-card to-rose-50/30 dark:to-rose-950/20 border-rose-500/10',
-    iconBg: 'bg-rose-100 dark:bg-rose-950',
-    iconFg: 'text-rose-700 dark:text-rose-400',
-    blob: 'bg-rose-300/40 dark:bg-rose-800/40',
+    card: 'border-rose-500/30 hover:border-rose-500 bg-rose-50/60 dark:bg-rose-950/40 dark:border-rose-700/40 hover:dark:border-rose-500',
+    iconBg: 'bg-rose-500 dark:bg-rose-500',
+    iconFg: 'text-white',
+    blob: 'bg-rose-400/50 dark:bg-rose-600/40',
     spark: 'bg-rose-500 dark:bg-rose-400',
   },
   violet: {
-    card: 'hover:border-violet-400 bg-gradient-to-br from-card to-violet-50/30 dark:to-violet-950/20 border-violet-500/10',
-    iconBg: 'bg-violet-100 dark:bg-violet-950',
-    iconFg: 'text-violet-700 dark:text-violet-400',
-    blob: 'bg-violet-300/40 dark:bg-violet-800/40',
+    card: 'border-violet-500/30 hover:border-violet-500 bg-violet-50/60 dark:bg-violet-950/40 dark:border-violet-700/40 hover:dark:border-violet-500',
+    iconBg: 'bg-violet-500 dark:bg-violet-500',
+    iconFg: 'text-white',
+    blob: 'bg-violet-400/50 dark:bg-violet-600/40',
     spark: 'bg-violet-500 dark:bg-violet-400',
   },
 };

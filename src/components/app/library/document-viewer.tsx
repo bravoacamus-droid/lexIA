@@ -629,11 +629,11 @@ function HeadingActions({ id, title }: { id: string; title: string }) {
   }
 
   return (
-    <span className="inline-flex ml-2 gap-1 align-middle opacity-0 group-hover/heading:opacity-100 transition-opacity">
+    <span className="inline-flex ml-2 gap-1.5 align-middle opacity-40 hover:opacity-100 group-hover/heading:opacity-90 transition-opacity">
       <button
         type="button"
         onClick={copyAnchor}
-        className="text-muted-foreground hover:text-brand-700 dark:hover:text-brand-400 transition-colors"
+        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:text-brand-700 hover:bg-brand-50 dark:hover:text-brand-400 dark:hover:bg-brand-950/40 transition-colors"
         aria-label="Copiar enlace al artículo"
         title="Copiar enlace al artículo"
       >
@@ -642,7 +642,7 @@ function HeadingActions({ id, title }: { id: string; title: string }) {
       <button
         type="button"
         onClick={askAbout}
-        className="text-muted-foreground hover:text-brand-700 dark:hover:text-brand-400 transition-colors"
+        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:text-brand-700 hover:bg-brand-50 dark:hover:text-brand-400 dark:hover:bg-brand-950/40 transition-colors"
         aria-label="Preguntar a LexIA sobre este artículo"
         title="Preguntar a LexIA sobre este artículo"
       >

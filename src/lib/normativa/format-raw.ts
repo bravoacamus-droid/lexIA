@@ -29,8 +29,13 @@
  * texto ya tiene estructura markdown previa, no se rompe.
  */
 
-// Detección de headings principales
-const TITULO_RX = /^(T[ÍI]TULO\s+[IVXLCDM]+|CAP[ÍI]TULO\s+[IVXLCDM]+|SECCI[ÓO]N\s+[IVXLCDM]+|DISPOSICIONES\s+(?:GENERALES|FINALES|COMPLEMENTARIAS|TRANSITORIAS|COMPLEMENTARIAS\s+FINALES|COMPLEMENTARIAS\s+TRANSITORIAS)|ANEXO\s+[IVXLCDM\d]+)(\.?)(\s|$)/i;
+// Detección de headings principales — también los principales títulos
+// de documentos: "PRONUNCIAMIENTO N° X", "OPINIÓN N° X", "RESOLUCIÓN N° X"
+const TITULO_RX = /^(T[ÍI]TULO\s+[IVXLCDM]+|CAP[ÍI]TULO\s+[IVXLCDM]+|SECCI[ÓO]N\s+[IVXLCDM]+|DISPOSICIONES\s+(?:GENERALES|FINALES|COMPLEMENTARIAS|TRANSITORIAS|COMPLEMENTARIAS\s+FINALES|COMPLEMENTARIAS\s+TRANSITORIAS)|ANEXO\s+[IVXLCDM\d]+|PRONUNCIAMIENTO\s+N\.?°?\s*[\d\-\/A-Z]+|OPINI[ÓO]N\s+N\.?°?\s*[\dD\-\/A-Z]+|RESOLUCI[ÓO]N\s+N\.?°?\s*[\d\-\/A-Z]+|LEY\s+N\.?°?\s*\d+|DECRETO\s+SUPREMO)(\.?)(\s|$)/i;
+
+// Nombres de secciones frecuentes en pronunciamientos/opiniones que
+// deberían actuar como headings (H2) para dar estructura.
+const SECCION_MAYUSCULA_RX = /^(ANTECEDENTES|CUESTIONAMIENTO|AN[ÁA]LISIS|CONCLUSI[ÓO]N|VISTO|RESULTA|CONSIDERANDO|SE\s+RESUELVE|POR\s+TANTO|EL\s+TRIBUNAL|MOTIVO\s+DE\s+LA\s+ELEVACI[ÓO]N|MATERIA|POSICI[ÓO]N|OPINI[ÓO]N|BASE\s+LEGAL|CONCLUSIONES|RECOMENDACIONES|MARCO\s+NORMATIVO)(\s|:|$)/i;
 
 // "Artículo 51" o "Artículo 51.1"
 const ARTICULO_RX = /^(Art[íi]culo\s+\d+(?:[.\-]\d+)*\.?)(\s|$)/;
@@ -82,7 +87,18 @@ function isPdfNoise(line: string): boolean {
  */
 function stripPageNumberPrefix(line: string): string {
   // Solo si el número está seguido de letra sin espacio: "28Manual"
-  return line.replace(/^(\d{1,3})(?=[A-ZÁÉÍÓÚÑ][a-zá-ú])/, '');
+  return line.replace(/^(\d{1,3})(?=[A-ZÁÉÍÓÚÑ][a-zá-úA-ZÁÉÍÓÚÑ])/, '');
+}
+
+/**
+ * También filtramos "18Manual de usuario..." incrustado a mitad de
+ * párrafo. Los PDFs a veces meten el pie-de-página en medio del texto
+ * al hacer el layout re-flow. Detectamos el patrón: número de página
+ * inmediatamente seguido de una repetición del título del documento.
+ */
+function stripInlinePageHeaders(text: string): string {
+  // "18Manual de usuario del Cotizador..." o "35Manual general para..."
+  return text.replace(/\s+\d{1,3}(?=[A-Z][a-z]{2,}\s+[a-záéíóúñ]+\s+(?:de|del|para|general|técnico))/g, ' ');
 }
 
 export function formatNormativaText(raw: string | null | undefined): string {
@@ -95,6 +111,9 @@ export function formatNormativaText(raw: string | null | undefined): string {
 
   // 2. Quitar marcas de página inline dentro de párrafos
   text = text.replace(PAGE_INLINE_RX, ' ');
+
+  // 2b. Quitar headers de página incrustados: "18Manual de usuario..."
+  text = stripInlinePageHeaders(text);
 
   // 3. Colapsar 3+ saltos a doble salto
   text = text.replace(/\n{3,}/g, '\n\n');
@@ -135,6 +154,19 @@ export function formatNormativaText(raw: string | null | undefined): string {
     if (tm) {
       if (out.length > 0 && out[out.length - 1] !== '') out.push('');
       out.push(`# ${line.replace(/\.+$/, '')}`);
+      continue;
+    }
+
+    // Sección en mayúsculas frecuentes en pronunciamientos ("ANTECEDENTES",
+    // "CUESTIONAMIENTO", "ANÁLISIS", "CONCLUSIÓN"). Se trata como H2.
+    // NOTA: la línea debe comenzar con la palabra sección — si va
+    // precedida por un numeral ("1. ANTECEDENTES"), también aplica.
+    const numPrefixMatch = line.match(/^(\d{1,2}[.)]\s+)(.+)$/);
+    const seccionLine = numPrefixMatch ? numPrefixMatch[2] : line;
+    const sm2 = seccionLine.match(SECCION_MAYUSCULA_RX);
+    if (sm2 && seccionLine.length < 100) {
+      if (out.length > 0 && out[out.length - 1] !== '') out.push('');
+      out.push(`## ${line}`);
       continue;
     }
 
