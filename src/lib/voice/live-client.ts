@@ -388,11 +388,12 @@ export class LiveClient {
    * espera silenciosamente a que el humano hable primero — poco
    * natural para una llamada telefónica.
    *
-   * Instrucción interna: le pedimos que se presente siguiendo su
-   * guion del system prompt. El modelo interpreta ese texto como un
-   * evento del sistema, no como una pregunta del usuario, por lo que
-   * NO va a intentar responderlo literalmente sino que ejecutará el
-   * saludo definido en VOICE_SYSTEM_PROMPT.
+   * Rediseño 30/06/2026: el prompt anterior instruía al modelo a
+   * saludar cuando recibiera "[SISTEMA:...]". Esto contaminaba otras
+   * respuestas — el modelo confundía cualquier evento sistémico con
+   * el saludo. Ahora enviamos un mensaje neutro que le da contexto
+   * mínimo al modelo pero no tiene un "guion textual" para copiar.
+   * El modelo simplemente saluda naturalmente y espera.
    */
   private sendInitialGreeting() {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
@@ -405,7 +406,7 @@ export class LiveClient {
               parts: [
                 {
                   text:
-                    '[SISTEMA: El usuario acaba de conectar la llamada telefónica. Salúdalo con tu guion inicial obligatorio ("Hola, soy tu asistente legal de inteligencia artificial…") ahora mismo, sin esperar a que él hable. Después de saludar, quédate en silencio esperando su primera pregunta.]',
+                    'Hola, acabo de conectar. Preséntate brevemente diciendo tu nombre, aclarando que eres IA y que tu información es orientativa basada en la Ley 32069, y pregúntame en qué te puedo consultar.',
                 },
               ],
             },
