@@ -168,7 +168,23 @@ export function formatNormativaText(raw: string | null | undefined): string {
   text = text.replace(/([^\n])\s+([●○◦•▪]\s)/g, '$1\n$2');
 
   // 6) Insertar salto ANTES de sub-numerales inline "51.2. La formulación..."
-  text = text.replace(/([.!?])\s+(\d{1,3}\.\d{1,3}[.)]?\s+["“]?[A-ZÁÉÍÓÚ])/g, '$1\n\n$2');
+  //    Feedback César 30/06/2026: el fix anterior no atrapaba el caso
+  //    con comillas de cierre + apertura entre numerales, común en
+  //    normativa con texto modificado. Ejemplo típico:
+  //       "requerimiento." "51.3. En el plazo máximo de seis días hábiles..."
+  //    El regex anterior fallaba porque las comillas ("," "”") aparecen
+  //    ANTES del sub-numeral y no como parte del sub-numeral.
+  //    Ahora aceptamos comillas o espacios entre el punto anterior y
+  //    el sub-numeral, y también aceptamos comilla antes del sub-numeral.
+  text = text.replace(
+    /([.!?])[\s"“”'']+["“”'']?(\d{1,3}\.\d{1,3}[.)]?\s+["“'']?[A-ZÁÉÍÓÚ])/g,
+    '$1\n\n$2',
+  );
+
+  // 6b) Sub-numerales con salto entre el numeral y su contenido:
+  //     "51.1. \n\n En el caso..." → mantiene formato Word/PDF pero mal;
+  //     detectar y limpiar
+  text = text.replace(/(\d{1,3}\.\d{1,3}\.)\s*\n{1,2}\s*/g, '**$1** ');
 
   // 7) Insertar salto ANTES de "Artículo N." inline
   text = text.replace(/([^\n.])\s+(Art[íi]culo\s+\d+)/g, '$1\n\n$2');
