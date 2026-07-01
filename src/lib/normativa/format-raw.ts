@@ -119,30 +119,58 @@ export function formatNormativaText(raw: string | null | undefined): string {
   // 2b. Quitar headers de página incrustados: "18Manual de usuario..."
   text = stripInlinePageHeaders(text);
 
-  // 2c. Feedback César 30/06/2026: los textos de pronunciamientos y opiniones
-  //     vienen TODO PEGADO en una sola línea desde el PDF. Insertamos saltos
-  //     de línea antes de secciones estructurales para que después el
-  //     procesador línea por línea pueda detectarlas correctamente.
-  //     Ejemplos:
-  //       "referencia" 1. ANTECEDENTES Mediante...  →  ...\n\n1. ANTECEDENTES\nMediante...
-  //       texto...  2. CUESTIONAMIENTO De manera...  →  ...\n\n2. CUESTIONAMIENTO\nDe manera...
-  //       texto...  ● Cuestionamiento Único: Respecto...  →  ...\n- Cuestionamiento Único:...
-  const SECCION_NAMES =
-    'ANTECEDENTES|CUESTIONAMIENTO|CUESTIONAMIENTO\\s+[ÚU]NICO|AN[ÁA]LISIS|POSICI[ÓO]N|OPINI[ÓO]N|CONCLUSI[ÓO]N|CONCLUSIONES|RECOMENDACIONES|VISTO|RESULTA|CONSIDERANDO|SE\\s+RESUELVE|POR\\s+TANTO|BASE\\s+LEGAL|MARCO\\s+NORMATIVO';
+  // 2c. Feedback César 30/06/2026: los textos vienen TODO PEGADO en una
+  //     sola línea desde el PDF. Insertamos saltos ANTES de secciones
+  //     estructurales para que el procesador línea por línea las detecte.
+  //     Cubre 4 formatos comunes:
+  //       PRONUNCIAMIENTOS: "1. ANTECEDENTES", "2. CUESTIONAMIENTO", "3. ANÁLISIS"
+  //       DIRECTIVAS: "I. FINALIDAD", "II. OBJETO", "III. ÁMBITO DE APLICACIÓN"
+  //       RESOLUCIONES: "VISTOS:", "CONSIDERANDO:", "SE RESUELVE:"
+  //       OPINIONES: "MATERIA", "BASE LEGAL", "OPINIÓN"
 
-  // Insertar salto ANTES de "N. SECCION" cuando venga pegado
+  // Nombres de secciones (para prefijo numérico o romano opcional)
+  const SECCION_NAMES =
+    'ANTECEDENTES|CUESTIONAMIENTO|CUESTIONAMIENTO\\s+[ÚU]NICO|AN[ÁA]LISIS|POSICI[ÓO]N|OPINI[ÓO]N|CONCLUSI[ÓO]N|CONCLUSIONES|RECOMENDACIONES|BASE\\s+LEGAL|MARCO\\s+NORMATIVO|MATERIA';
+
+  // Nombres típicos de secciones de DIRECTIVAS (con romano)
+  const DIRECTIVA_SECCIONES =
+    'FINALIDAD|OBJETO|OBJETIVO|OBJETIVOS|[ÁA]MBITO\\s+DE\\s+APLICACI[ÓO]N|DEFINICIONES|GLOSARIO\\s+DE\\s+T[ÉE]RMINOS|GLOSARIO|SIGLAS|ABREVIATURAS|DISPOSICIONES\\s+GENERALES|DISPOSICIONES\\s+ESPEC[ÍI]FICAS|DISPOSICIONES\\s+COMPLEMENTARIAS|DISPOSICIONES\\s+FINALES|DISPOSICIONES\\s+TRANSITORIAS|RESPONSABILIDADES|VIGENCIA|APROBACI[ÓO]N';
+
+  // Nombres de secciones de RESOLUCIONES/ACTOS ADMINISTRATIVOS (sin numeral)
+  const RES_SECCIONES =
+    'VISTOS?|CONSIDERANDO|RESULTA|SE\\s+RESUELVE|POR\\s+TANTO|EL\\s+TRIBUNAL';
+
+  // 1) Insertar salto ANTES de "N. SECCION" (numeral árabe + palabra)
   text = text.replace(
-    new RegExp(`([^\\n])\\s+(\\d{1,2}[.)]?\\s+(?:${SECCION_NAMES}))\\b`, 'g'),
+    new RegExp(`([^\\n])\\s+(\\d{1,2}[.)]?\\s+(?:${SECCION_NAMES}|${DIRECTIVA_SECCIONES}))\\b`, 'g'),
     '$1\n\n$2\n',
   );
 
-  // Insertar salto ANTES de bullets Unicode inline
+  // 2) Insertar salto ANTES de "ROMANO. SECCION" (I. FINALIDAD, IV. BASE LEGAL, etc.)
+  text = text.replace(
+    new RegExp(
+      `([^\\n])\\s+([IVXLCDM]{1,5}\\.[  ]*(?:${SECCION_NAMES}|${DIRECTIVA_SECCIONES}))\\b`,
+      'g',
+    ),
+    '$1\n\n## $2\n',
+  );
+
+  // 3) Insertar salto ANTES de secciones administrativas (VISTOS:, CONSIDERANDO:, SE RESUELVE:)
+  text = text.replace(
+    new RegExp(`([^\\n])\\s+((?:${RES_SECCIONES})\\s*:)`, 'g'),
+    '$1\n\n## $2\n',
+  );
+
+  // 4) "Que," al inicio de considerandos → salto (típico en resoluciones)
+  text = text.replace(/([.;])\s+(Que,\s+)/g, '$1\n\n$2');
+
+  // 5) Insertar salto ANTES de bullets Unicode inline
   text = text.replace(/([^\n])\s+([●○◦•▪]\s)/g, '$1\n$2');
 
-  // Insertar salto ANTES de sub-numerales "51.2. La formulación..."
+  // 6) Insertar salto ANTES de sub-numerales inline "51.2. La formulación..."
   text = text.replace(/([.!?])\s+(\d{1,3}\.\d{1,3}[.)]?\s+["“]?[A-ZÁÉÍÓÚ])/g, '$1\n\n$2');
 
-  // Insertar salto ANTES de "Artículo N." inline
+  // 7) Insertar salto ANTES de "Artículo N." inline
   text = text.replace(/([^\n.])\s+(Art[íi]culo\s+\d+)/g, '$1\n\n$2');
 
   // 3. Colapsar 3+ saltos a doble salto

@@ -281,7 +281,11 @@ export function LibraryView({
   }
 
   return (
-    <div className="container max-w-7xl py-8 space-y-6">
+    /* Feedback César 30/06/2026: "en biblioteca por qué no usas más el
+       ancho si tiene espacio a la izquierda". Ampliamos de max-w-7xl
+       (1280px) a full width con padding responsivo — aprovecha todo el
+       ancho del main del app-shell. */
+    <div className="w-full max-w-none px-4 sm:px-6 lg:px-10 xl:px-14 py-8 space-y-6">
       <header className="space-y-1">
         <h1 className="font-semibold text-3xl tracking-tight">Biblioteca normativa</h1>
         <p className="text-sm text-muted-foreground">
