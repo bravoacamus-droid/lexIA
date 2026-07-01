@@ -21,7 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn, getDocTypeMeta, formatDate } from '@/lib/utils';
-import { formatNormativaText } from '@/lib/normativa/format-raw';
+import { formatForDisplay } from '@/lib/normativa/format-raw';
 import { SummaryPanel, type DocumentSummary } from '@/components/app/library/summary-panel';
 import { toast } from 'sonner';
 import { SaveToFolderDialog } from '@/components/app/library/save-to-folder';
@@ -85,11 +85,16 @@ export function DocumentViewer({
   const contentRef = useRef<HTMLDivElement | null>(null);
   // Formatear el texto plano del PDF a markdown estructurado antes de
   // renderizar. El extractor de PDF deja headings y artículos como
-  // texto plano; formatNormativaText los convierte en H1/H2 y agrupa
-  // párrafos. Mejora drásticamente la lectura — feedback de César
-  // 28/06/2026: "texto plano computarizado, no facilita la lectura".
+  // texto plano; formatForDisplay convierte tablas del PDF en tablas
+  // markdown reales, une palabras partidas y estructura secciones.
+  // NO se usa el mismo formateador del chunk-sheet ni del RAG:
+  //   Biblioteca (usuario final) → formatForDisplay (mode: 'display')
+  //   Chunk-sheet (cita en chat) → formatNormativaText (mode: 'strip')
+  //   RAG (chat/llamada respuestas) → el chunk raw, sin formato
+  // Feedback César 30/06/2026: "la biblioteca es para el usuario y no
+  // tendría que ser la misma que usa el sistema para responder".
   const text = useMemo(
-    () => formatNormativaText(doc.raw_text),
+    () => formatForDisplay(doc.raw_text),
     [doc.raw_text],
   );
 

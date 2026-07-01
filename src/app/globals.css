@@ -203,6 +203,7 @@
            prose-blockquote:border-l-4 prose-blockquote:border-brand-500 prose-blockquote:bg-brand-50/40 dark:prose-blockquote:bg-brand-950/30 prose-blockquote:not-italic prose-blockquote:my-5 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r
            prose-ul:my-4 prose-ul:space-y-2 prose-li:my-2 prose-li:leading-relaxed
            prose-ol:my-4 prose-ol:space-y-2
+           marker:text-foreground/70
            prose-hr:my-8 prose-hr:border-border;
   }
 }

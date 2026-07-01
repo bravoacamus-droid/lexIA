@@ -84,6 +84,149 @@ function isPdfNoise(line: string): boolean {
 }
 
 /**
+ * Limpia residuos típicos de extracción de PDF donde había TABLAS y
+ * los convierte en tablas markdown para render bonito en la BIBLIOTECA.
+ *
+ * Feedback César 30/06/2026:
+ *   "los pronunciamientos tienen tablas con CANTIDAD, COD. SIGA, SISMED,
+ *    UND. MED. que quedan como texto plano ilegible. Lo ideal es que
+ *    para la biblioteca se puedan ver tablas de manera bonita. La
+ *    biblioteca es para el usuario y no tendría que ser la misma que
+ *    usa el sistema para responder."
+ *
+ * Ejemplo real (Pronunciamiento 346-2026):
+ *   Input:  "Nº COD. SIGA CODIGO SISMED DESCRIPCION UND. MED. CANTIDAD
+ *            1 (...) (...) SOPORTE IMPREGNADO CON ALOE VERA 20 cm X 20 cm X 10 UNID 9400
+ *            2 (...) (...) SOPORTE IMPREGNADO CON MANZANILLA 20 cm X 20 cm X 10 UNID 4300"
+ *   Output: tabla markdown con headers "N° | Descripción | Unidad | Cantidad"
+ *
+ * Modo:
+ *   'display'  → renderiza tabla markdown (para biblioteca / usuario)
+ *   'strip'    → colapsa a "[Cuadro de requerimiento]" (para chunk-sheet / RAG)
+ */
+function cleanPdfTables(text: string, mode: 'display' | 'strip'): string {
+  let out = text;
+
+  if (mode === 'display') {
+    // 1) Cuadro de requerimiento (SIGA/SISMED) → tabla markdown real
+    //    Patrón: "Nº COD. SIGA CODIGO SISMED DESCRIPCION UND. MED. CANTIDAD
+    //             1 (...) (...) NOMBRE UNID 9400 2 (...) (...) NOMBRE UNID..."
+    out = out.replace(
+      /(?:N[°º.]|Nro\.?)\s*COD\.?\s*SIGA\s+CODIGO\s+SISMED\s+DESCRIPCION\s+UND\.?\s*MED\.?\s+CANTIDAD\s+((?:\d{1,3}\s+\(\.{3,}\)\s+\(\.{3,}\)\s+[A-ZÁÉÍÓÚ][A-ZÁÉÍÓÚa-zá-ú0-9 ,.\-]+?\s+(?:UNID|UND|KG|ML|L|CM|MM)\s+\d+\s*)+)/gi,
+      (_full, rowsBlock) => {
+        const rowRx =
+          /(\d{1,3})\s+\(\.{3,}\)\s+\(\.{3,}\)\s+([A-ZÁÉÍÓÚ][A-ZÁÉÍÓÚa-zá-ú0-9 ,.\-]+?)\s+(UNID|UND|KG|ML|L|CM|MM)\s+(\d+)/g;
+        const rows: Array<[string, string, string, string]> = [];
+        let m;
+        while ((m = rowRx.exec(rowsBlock)) !== null) {
+          rows.push([m[1], m[2].trim(), m[3], Number(m[4]).toLocaleString('es-PE')]);
+        }
+        if (rows.length === 0) return '\n\n**Cuadro de requerimiento:** _[contenido omitido]_\n\n';
+        // Cada línea en su propio renglón para que ReactMarkdown parsee la tabla.
+        // La sintaxis GFM de tablas requiere \n entre filas.
+        const header = '| N° | Descripción | Unidad | Cantidad |';
+        const sep = '|:--:|:------------|:------:|---------:|';
+        const body = rows.map(([n, desc, u, c]) => `| ${n} | ${desc} | ${u} | ${c} |`).join('\n');
+        return `\n\n**Cuadro de requerimiento**\n\n${header}\n${sep}\n${body}\n\n`;
+      },
+    );
+
+    // 2) Cronograma de entrega → tabla markdown
+    //    Patrón: "Nº DESCRIPCION 1º E 2º E 3º E 4º E 5º E 6º E 7º E 8º E CANTIDAD TOTAL
+    //             1 NOMBRE_DESCRIPCION (...) (...) (...) (...) (...) (...) (...) (...) 9400
+    //             2 NOMBRE_DESCRIPCION (...) (...) (...) 4300..."
+    //    Los "(...)" son las columnas de entregas vacías; solo importa el
+    //    número del item, la descripción y la cantidad total.
+    out = out.replace(
+      /N[°º.]?\s*DESCRIPCION\s+(?:\d+º\s+E\s+){2,}(?:CANTI\s*DAD|CANTIDAD)\s*TOTAL\s+((?:\d{1,3}\s+[A-ZÁÉÍÓÚ][A-ZÁÉÍÓÚa-zá-ú0-9 ,.\-]+?\s+(?:\(\.{3,}\)\s*)+\d+\s*)+)/gi,
+      (_full, rowsBlock) => {
+        const rowRx =
+          /(\d{1,3})\s+([A-ZÁÉÍÓÚ][A-ZÁÉÍÓÚa-zá-ú0-9 ,.\-]+?)\s+(?:\(\.{3,}\)\s*){2,}(\d+)/g;
+        const rows: Array<[string, string, string]> = [];
+        let m;
+        while ((m = rowRx.exec(rowsBlock)) !== null) {
+          rows.push([m[1], m[2].trim(), Number(m[3]).toLocaleString('es-PE')]);
+        }
+        if (rows.length === 0) return '\n\n**Cronograma de entrega:** _[contenido omitido]_\n\n';
+        const header = '| N° | Descripción | Cantidad total |';
+        const sep = '|:--:|:------------|---------------:|';
+        const body = rows.map(([n, desc, c]) => `| ${n} | ${desc} | ${c} |`).join('\n');
+        return `\n\n**Cronograma de entrega**\n\n${header}\n${sep}\n${body}\n\n`;
+      },
+    );
+
+    // 3) Colapsar series de "N° E" sueltas restantes (headers de cronograma
+    //    que no matchearon el patrón anterior)
+    out = out.replace(/(?:\d+º\s+E\s+){2,}(?:CANTI\s*DAD|CANTIDAD)?\s*(?:TOTAL)?/gi, '');
+  } else {
+    // Modo strip (para chunk-sheet / RAG): sustituye por marcador simple
+    // 1) Secuencias de "(...)" masivas
+    out = out.replace(/(?:\s*\(\.{3,}\)\s*){3,}/g, ' [...] ');
+
+    // 2) Encabezado de tabla + filas: colapsar a marcador
+    out = out.replace(
+      /(?:N[°º.]|Nro\.?)\s*COD\.?\s*SIGA\s+CODIGO\s+SISMED\s+DESCRIPCION\s+UND\.?\s*MED\.?\s+CANTIDAD/gi,
+      '\n\n**Cuadro de requerimiento:** ',
+    );
+
+    // 3) Filas del cuadro individualmente
+    out = out.replace(
+      /(\d{1,3})\s+\(\.{3,}\)\s+\(\.{3,}\)\s+([A-ZÁÉÍÓÚ][A-ZÁÉÍÓÚa-zá-ú ]+?)\s+(?:UNID|UND|KG|ML|L|CM|MM)\s+(\d+)/gi,
+      '\n- **Ítem $1:** $2 (cantidad: $3)',
+    );
+
+    // 4) Cronogramas
+    out = out.replace(
+      /(?:\d+º\s+E\s+){3,}(?:CANTI\s*DAD|CANTIDAD)\s*TOTAL/gi,
+      '\n\n**Cronograma de entrega:** ',
+    );
+
+    out = out.replace(/(?:\d+º\s+E\s+){2,}/gi, '');
+  }
+
+  return out;
+}
+
+/**
+ * Palabras que fueron partidas por el extractor de PDF ("CANTI DAD" →
+ * "CANTIDAD"). Es un fenómeno común cuando el PDF tiene kerning ancho
+ * o cuando la palabra estaba dividida en columnas.
+ *
+ * Aplicamos una lista de palabras específicas (más seguro que un
+ * regex genérico que podría fusionar cosas legítimas).
+ */
+const SPLIT_WORDS: Array<[RegExp, string]> = [
+  [/\bCANTI\s+DAD\b/gi, 'CANTIDAD'],
+  [/\bGENERAL\s+ES\b/gi, 'GENERALES'],
+  [/\bCLORHEXIDIN\s+A\b/gi, 'CLORHEXIDINA'],
+  [/\bDESCRIPCI\s+ÓN\b/gi, 'DESCRIPCIÓN'],
+  [/\bINFORMACI\s+ÓN\b/gi, 'INFORMACIÓN'],
+  [/\bMODIFICACI\s+ÓN\b/gi, 'MODIFICACIÓN'],
+  [/\bABSOLUCI\s+ÓN\b/gi, 'ABSOLUCIÓN'],
+  [/\bELEVACI\s+ÓN\b/gi, 'ELEVACIÓN'],
+  [/\bCONTRATACI\s+ÓN\b/gi, 'CONTRATACIÓN'],
+  [/\bCONSULT\s+ORÍA\b/gi, 'CONSULTORÍA'],
+];
+
+function reunifyBrokenWords(text: string): string {
+  let out = text;
+  for (const [rx, replacement] of SPLIT_WORDS) {
+    out = out.replace(rx, replacement);
+  }
+
+  // Números de expediente sueltos que aparecen inline como notas al pie:
+  //   ...texto legítimo. 5 (...). 6 Mediante Expediente N° 2026-0079927.
+  //                        ^ nota   ^ nota
+  // Los envolvemos entre paréntesis para dejar claro que son notas.
+  out = out.replace(
+    /([.,;])\s+(\d{1,2})\s+Mediante\s+(Expediente)/g,
+    '$1 (nota $2 - $3',
+  );
+
+  return out;
+}
+
+/**
  * Extrae número de página que quedó pegado al principio de línea.
  * Ej: "28Manual de usuario" → "Manual de usuario"
  * Ej: "35 XVI." → "XVI." (mantiene el numeral romano)
@@ -105,7 +248,31 @@ function stripInlinePageHeaders(text: string): string {
   return text.replace(/\s+\d{1,3}(?=[A-Z][a-z]{2,}\s+[a-záéíóúñ]+\s+(?:de|del|para|general|técnico))/g, ' ');
 }
 
-export function formatNormativaText(raw: string | null | undefined): string {
+export interface FormatOptions {
+  /**
+   * 'display' → para la biblioteca (usuario final). Convierte tablas
+   *              del PDF en tablas markdown reales.
+   * 'strip'   → para chunk-sheet (citas rápidas). Colapsa tablas a
+   *              marcadores para no diluir el fragmento.
+   *
+   * Default: 'strip' (retrocompat con llamadas existentes).
+   */
+  mode?: 'display' | 'strip';
+}
+
+/**
+ * Alias explícito para la biblioteca: formato bonito con tablas
+ * renderizadas. NO usar para chunk-sheet ni RAG.
+ */
+export function formatForDisplay(raw: string | null | undefined): string {
+  return formatNormativaText(raw, { mode: 'display' });
+}
+
+export function formatNormativaText(
+  raw: string | null | undefined,
+  opts: FormatOptions = {},
+): string {
+  const mode = opts.mode || 'strip';
   if (!raw) return '';
 
   let text = raw;
@@ -118,6 +285,14 @@ export function formatNormativaText(raw: string | null | undefined): string {
 
   // 2b. Quitar headers de página incrustados: "18Manual de usuario..."
   text = stripInlinePageHeaders(text);
+
+  // 2c-bis. Feedback César 30/06/2026 (captura pronunciamiento 346):
+  //   - Tablas del PDF quedaban como texto ilegible con placeholders "(...)"
+  //   - Palabras partidas por columnas: "CANTI DAD", "CLORHEXIDIN A"
+  //   Aplicamos limpiezas ANTES del pre-procesamiento de secciones para
+  //   que el texto de tabla no confunda los detectores.
+  text = cleanPdfTables(text, mode);
+  text = reunifyBrokenWords(text);
 
   // 2c. Feedback César 30/06/2026: los textos vienen TODO PEGADO en una
   //     sola línea desde el PDF. Insertamos saltos ANTES de secciones
@@ -316,6 +491,8 @@ export function formatNormativaText(raw: string | null | undefined): string {
       line.startsWith('- ') ||
       line.startsWith('   - ') ||
       line.startsWith('**') ||
+      line.startsWith('|') ||
+      line.startsWith('>') ||
       NUM_LISTA_RX.test(line)
     ) {
       flushBuf();
