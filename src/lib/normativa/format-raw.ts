@@ -37,6 +37,10 @@ const TITULO_RX = /^(T[ÍI]TULO\s+[IVXLCDM]+|CAP[ÍI]TULO\s+[IVXLCDM]+|SECCI[ÓO
 // deberían actuar como headings (H2) para dar estructura.
 const SECCION_MAYUSCULA_RX = /^(ANTECEDENTES|CUESTIONAMIENTO|AN[ÁA]LISIS|CONCLUSI[ÓO]N|VISTO|RESULTA|CONSIDERANDO|SE\s+RESUELVE|POR\s+TANTO|EL\s+TRIBUNAL|MOTIVO\s+DE\s+LA\s+ELEVACI[ÓO]N|MATERIA|POSICI[ÓO]N|OPINI[ÓO]N|BASE\s+LEGAL|CONCLUSIONES|RECOMENDACIONES|MARCO\s+NORMATIVO)(\s|:|$)/i;
 
+// Marcadores de callout — inicio de párrafo con palabra en mayúscula
+// que debe resaltarse con caja destacada (feedback César 30/06/2026).
+const CALLOUT_RX = /^(IMPORTANTE|CONCLUSI[ÓO]N|CONCLUSIONES|ATENCI[ÓO]N|NOTA|OJO|ADVERTENCIA|OBLIGATORIO|CRITERIO)([:.]?\s|$)/i;
+
 // "Artículo 51" o "Artículo 51.1"
 const ARTICULO_RX = /^(Art[íi]culo\s+\d+(?:[.\-]\d+)*\.?)(\s|$)/;
 
@@ -167,6 +171,16 @@ export function formatNormativaText(raw: string | null | undefined): string {
     if (sm2 && seccionLine.length < 100) {
       if (out.length > 0 && out[out.length - 1] !== '') out.push('');
       out.push(`## ${line}`);
+      continue;
+    }
+
+    // Callout — párrafo que empieza con IMPORTANTE:/CONCLUSIÓN:/ATENCIÓN:
+    // se envuelve en blockquote para que la card destacada lo resalte.
+    // Feedback César 30/06/2026: "partes fundamentales resaltadas".
+    const cm = line.match(CALLOUT_RX);
+    if (cm) {
+      if (out.length > 0 && out[out.length - 1] !== '') out.push('');
+      out.push(`> **${cm[1]}**${line.slice(cm[0].length)}`);
       continue;
     }
 

@@ -51,10 +51,11 @@ REGLAS ESTRICTAS:
 3. Todos los textos en español formal pero accesible.
 4. NO inventes información que no esté en el documento.
 5. Si una sección no aplica (ej. el doc no establece un criterio claro), devuelve un string corto explicando que el documento no aborda ese aspecto.
+6. IMPORTANTE (feedback César 30/06/2026): "de_que_trata" debe tener entre 2 y 3 oraciones (aprox 180-280 caracteres), con contexto sustantivo. NO una línea genérica de 60 caracteres. Debe transmitir el objeto del documento, su alcance principal, y el ámbito de aplicación.
 
 ESQUEMA DEL JSON:
 {
-  "de_que_trata": "1 línea (máx 100 caracteres). Describe el OBJETO del documento.",
+  "de_que_trata": "2-3 oraciones (180-280 caracteres). Describe el OBJETO del documento con contexto suficiente para que un lector entienda de qué trata sin abrir el documento.",
   "que_establece": "1-2 oraciones. La regla o disposición principal.",
   "a_quien_afecta": "1 oración. Quiénes son los destinatarios (entidades, postores, comités, contratistas, etc.).",
   "que_criterio_establece": "1-2 oraciones. El criterio interpretativo o decisorio (especialmente útil para opiniones, pronunciamientos y resoluciones).",
@@ -131,7 +132,7 @@ function validate(obj: unknown): DocumentSummary | null {
     ? o.temas.filter(isString).slice(0, 8)
     : [];
   return {
-    de_que_trata: o.de_que_trata.slice(0, 200),
+    de_que_trata: o.de_que_trata.slice(0, 350),
     que_establece: o.que_establece.slice(0, 500),
     a_quien_afecta: o.a_quien_afecta.slice(0, 300),
     que_criterio_establece: o.que_criterio_establece.slice(0, 500),

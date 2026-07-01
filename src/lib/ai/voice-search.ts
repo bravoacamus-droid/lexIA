@@ -52,6 +52,7 @@ const VALID_TYPES = new Set([
   'codigo_etica',
   'guia',
   'tupa',
+  'bases_estandar',
   'manual_seace',
   'comunicado',
 ]);
@@ -202,6 +203,7 @@ function formatTypeLabel(type: string): string {
     tupa: 'TUPA',
     manual_seace: 'Manual SEACE',
     comunicado: 'Comunicado',
+    bases_estandar: 'Bases Estándar',
   };
   return labels[type] || type;
 }

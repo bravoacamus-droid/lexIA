@@ -176,21 +176,41 @@
            hover:bg-brand-50 dark:hover:bg-brand-950/40 hover:decoration-solid
            rounded-sm px-0.5 -mx-0.5 cursor-pointer transition-colors;
   }
+  /**
+   * Prose LexIA — feedback César 30/06/2026:
+   * "los puntos separados deberían darse un espacio, partes
+   *  fundamentales resaltadas".
+   *
+   * Mejoras aplicadas 30/06/2026:
+   * - H1 más grande + más margen top/bottom (espaciado real entre secciones)
+   * - H2 con separador visual (border-top sutil) + color brand pronunciado
+   * - H3 con acento lateral (border-left brand)
+   * - Párrafos con line-height 1.75 (más aire)
+   * - Blockquote con card look para partes citadas literalmente
+   * - Strong con background sutil brand (destaca "IMPORTANTE" etc.)
+   * - Listas con más separación entre items
+   */
   .prose-lexia {
     @apply prose prose-slate dark:prose-invert max-w-none
            prose-headings:font-semibold prose-headings:tracking-tight prose-headings:scroll-mt-24
-           prose-h1:text-2xl prose-h1:mt-7 prose-h1:mb-3
-           prose-h2:text-lg prose-h2:mt-6 prose-h2:mb-2 prose-h2:text-brand-900 dark:prose-h2:text-brand-300
-           prose-h3:text-base prose-h3:mt-5 prose-h3:mb-2
-           prose-p:leading-[1.7] prose-p:text-[15px] prose-p:my-3.5
+           prose-h1:text-[26px] prose-h1:mt-10 prose-h1:mb-4 prose-h1:pb-2 prose-h1:border-b prose-h1:border-border/60
+           prose-h2:text-xl prose-h2:mt-9 prose-h2:mb-3 prose-h2:pt-4 prose-h2:border-t prose-h2:border-border/40 prose-h2:text-brand-900 dark:prose-h2:text-brand-300
+           prose-h3:text-base prose-h3:mt-6 prose-h3:mb-2 prose-h3:pl-3 prose-h3:border-l-2 prose-h3:border-brand-500
+           prose-p:leading-[1.75] prose-p:text-[15px] prose-p:my-4
            prose-strong:text-foreground prose-strong:font-semibold
            prose-a:text-brand-700 dark:prose-a:text-brand-400 prose-a:no-underline hover:prose-a:underline
-           prose-code:bg-secondary prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-[13px] prose-code:font-mono
-           prose-blockquote:border-brand-500 prose-blockquote:bg-accent/50 prose-blockquote:not-italic prose-blockquote:my-4
-           prose-ul:my-3 prose-li:my-1.5 prose-li:leading-relaxed
-           prose-ol:my-3
-           prose-hr:my-5;
+           prose-code:bg-secondary prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[13px] prose-code:font-mono
+           prose-blockquote:border-l-4 prose-blockquote:border-brand-500 prose-blockquote:bg-brand-50/40 dark:prose-blockquote:bg-brand-950/30 prose-blockquote:not-italic prose-blockquote:my-5 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r
+           prose-ul:my-4 prose-ul:space-y-2 prose-li:my-2 prose-li:leading-relaxed
+           prose-ol:my-4 prose-ol:space-y-2
+           prose-hr:my-8 prose-hr:border-border;
   }
+}
+
+/* Callouts especiales dentro del contenido normativo — se activan si
+ * el texto empieza con "IMPORTANTE", "CONCLUSIÓN", "ATENCIÓN", "NOTA". */
+.prose-lexia p:has(> strong:first-child:is([data-callout])) {
+  @apply bg-amber-50/70 dark:bg-amber-950/30 border-l-4 border-amber-500 pl-4 py-3 rounded-r my-5;
 }
 
 /* TipTap editor */
