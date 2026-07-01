@@ -178,7 +178,7 @@ function normalize(s: string): string {
 }
 
 async function verifyCitationInDb(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   kind: string,
   number: string,
 ): Promise<{ found: boolean; row?: { type: string; number: string | null; title: string } }> {
@@ -220,7 +220,7 @@ async function verifyCitationInDb(
 }
 
 async function runOne(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   tc: TestCase,
 ): Promise<TestResult> {
   const notes: string[] = [];
@@ -228,7 +228,7 @@ async function runOne(
 
   // 1. Embed + hybrid_search (mismo pipeline que /api/chat)
   const emb = await embedOne(tc.question, 'RETRIEVAL_QUERY');
-  const { data: chunks, error: rpcErr } = await admin.rpc('hybrid_search', {
+  const { data: chunks, error: rpcErr } = await (admin as any).rpc('hybrid_search', {
     query_text: tc.question,
     query_embedding: emb,
     match_count: 8,

@@ -285,6 +285,12 @@ export class LiveClient {
     if (msg.setupComplete) {
       console.log('[live] setup complete');
       this.setState('idle');
+      // Disparar saludo proactivo: enviamos un turn del usuario "vacío"
+      // pero con instrucción interna para que el modelo se presente
+      // sin esperar que el humano hable primero. El system prompt ya
+      // define el guion de saludo ("Hola, soy tu asistente legal…").
+      // Este trigger lo activa. Ver src/lib/ai/voice-config.ts.
+      this.sendInitialGreeting();
       return;
     }
 
@@ -374,6 +380,40 @@ export class LiveClient {
       }
       return;
     }
+  }
+
+  /**
+   * Envía un turn de usuario minimalista después del setup para
+   * disparar el saludo proactivo del agente. Sin esto, el modelo
+   * espera silenciosamente a que el humano hable primero — poco
+   * natural para una llamada telefónica.
+   *
+   * Instrucción interna: le pedimos que se presente siguiendo su
+   * guion del system prompt. El modelo interpreta ese texto como un
+   * evento del sistema, no como una pregunta del usuario, por lo que
+   * NO va a intentar responderlo literalmente sino que ejecutará el
+   * saludo definido en VOICE_SYSTEM_PROMPT.
+   */
+  private sendInitialGreeting() {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    this.ws.send(
+      JSON.stringify({
+        clientContent: {
+          turns: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  text:
+                    '[SISTEMA: El usuario acaba de conectar la llamada telefónica. Salúdalo con tu guion inicial obligatorio ("Hola, soy tu asistente legal de inteligencia artificial…") ahora mismo, sin esperar a que él hable. Después de saludar, quédate en silencio esperando su primera pregunta.]',
+                },
+              ],
+            },
+          ],
+          turnComplete: true,
+        },
+      }),
+    );
   }
 
   private sendToolResponse(id: string, name: string, content: string) {
