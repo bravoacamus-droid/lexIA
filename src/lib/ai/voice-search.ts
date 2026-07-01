@@ -113,7 +113,21 @@ export async function searchNormativa(
       type: r.doc_type,
       citation: `${typeLabel}${numberPart}`.trim(),
       title: r.doc_title,
-      snippet: r.content.slice(0, 1200),
+      /**
+       * IMPORTANTE 30/06/2026 — bug definitivo detectado:
+       * Antes cortábamos con .slice(0, 1200). Los chunks del corpus
+       * tienen avg 2750 chars. Truncar a 1200 causaba que la voz NO
+       * viera plazos, sub-numerales o contenido después del primer
+       * numeral. Ejemplo real: chunk 113 de Ley 32069 tiene los
+       * plazos del Art 51.2/51.3/51.4 (5/6/3 días hábiles) entre el
+       * carácter 1500 y 2500. La voz decía "no encuentro plazos"
+       * porque nunca los veía.
+       * El chat NO truncaba (usa c.content completo en route.ts).
+       * Por eso el chat respondía bien y la voz no.
+       * Fix: enviamos el chunk completo (max ~3000 chars, tokens
+       * manejables para Gemini Live).
+       */
+      snippet: r.content,
       similarity: r.similarity,
     };
   });

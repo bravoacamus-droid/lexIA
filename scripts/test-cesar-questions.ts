@@ -102,7 +102,7 @@ async function main() {
         type: r.doc_type,
         citation: r.doc_number || r.doc_type,
         title: r.doc_title,
-        snippet: r.content.slice(0, 1200),
+        snippet: r.content,
         similarity: r.similarity,
       })),
     );
