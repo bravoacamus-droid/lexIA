@@ -21,6 +21,12 @@ export interface FolderItem {
   count: number;
 }
 
+/** Resumen IA — subset que necesitamos para las cards. */
+interface AiSummaryMini {
+  de_que_trata?: string;
+  temas?: string[];
+}
+
 interface BrowseDoc {
   id: string;
   type: NormativeDocType;
@@ -29,6 +35,7 @@ interface BrowseDoc {
   summary: string | null;
   date: string | null;
   source_url: string | null;
+  ai_summary?: AiSummaryMini | null;
 }
 
 interface SearchResult {
@@ -42,6 +49,7 @@ interface SearchResult {
   topChunkContent: string;
   score: number;
   chunkCount: number;
+  ai_summary?: AiSummaryMini | null;
   /** Cuántas de las queries multi-tag matchearon en este documento. */
   matchedCount?: number;
   /** Índices de queries que matchearon, alineado a `tags` del componente. */
@@ -463,6 +471,7 @@ function SearchResultsList({
                   summary: r.summary,
                   date: r.date,
                   source_url: r.source_url,
+                  ai_summary: r.ai_summary,
                 }}
                 excerpt={r.topChunkContent}
                 highlightTerms={highlightTerms}

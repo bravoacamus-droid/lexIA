@@ -2,7 +2,14 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ExternalLink, Star, ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import {
+  ExternalLink,
+  Star,
+  ArrowUpRight,
+  CheckCircle2,
+  Sparkles,
+  Tag,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn, getDocTypeMeta, formatDate } from '@/lib/utils';
@@ -17,6 +24,11 @@ interface DocumentMini {
   summary: string | null;
   date: string | null;
   source_url: string | null;
+  /** Resumen IA generado (si existe). */
+  ai_summary?: {
+    de_que_trata?: string;
+    temas?: string[];
+  } | null;
 }
 
 interface Props {
@@ -122,7 +134,40 @@ export function DocumentCard({
         </h3>
       </Link>
 
-      {document.summary && !excerpt && (
+      {/* Resumen IA — reemplaza al summary genérico si existe.
+          Es el fix visible al feedback de César: "no se muestran los
+          resúmenes". Diseño discreto con ícono ✨ para diferenciarlo
+          del contenido puro del documento. */}
+      {document.ai_summary?.de_que_trata && !excerpt && (
+        <div className="mt-2.5 flex items-start gap-1.5">
+          <Sparkles className="h-3.5 w-3.5 text-brand-500 shrink-0 mt-0.5" />
+          <p className="text-sm text-foreground/80 leading-relaxed line-clamp-2">
+            <HighlightedText
+              text={document.ai_summary.de_que_trata}
+              terms={highlightTerms}
+              maxLength={220}
+            />
+          </p>
+        </div>
+      )}
+
+      {/* Tags de temas principales (si el resumen IA los tiene) */}
+      {document.ai_summary?.temas && document.ai_summary.temas.length > 0 && !excerpt && (
+        <div className="mt-2 flex flex-wrap items-center gap-1">
+          <Tag className="h-3 w-3 text-muted-foreground/70" />
+          {document.ai_summary.temas.slice(0, 4).map((tema) => (
+            <span
+              key={tema}
+              className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-secondary/60 text-muted-foreground hover:bg-brand-100 dark:hover:bg-brand-950 hover:text-brand-700 dark:hover:text-brand-400 transition-colors"
+            >
+              {tema}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Fallback al summary del extractor si NO hay ai_summary */}
+      {document.summary && !document.ai_summary?.de_que_trata && !excerpt && (
         <p className="mt-2 text-sm text-muted-foreground leading-relaxed line-clamp-2">
           <HighlightedText
             text={document.summary}

@@ -17,7 +17,7 @@ import { useUiStore } from '@/lib/stores/ui';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { AppUser } from '@/components/app/app-shell';
-import { getMenuFor, type MenuSection } from '@/lib/navigation/menu-by-role';
+import { getMenuFor, colorClasses, type MenuSection } from '@/lib/navigation/menu-by-role';
 
 interface Props {
   user: AppUser;
@@ -196,6 +196,11 @@ function SidebarBody({
                 const active = isActive(item.href);
                 const Icon = item.icon;
                 const disabled = item.comingSoon === true;
+                // Sistema de colores por sección (feedback de César 30/06/2026:
+                // "no se usan los demás colores de la marca"). Cada item tiene
+                // un color asignado en menu-by-role.ts. El cuadrado del ícono
+                // usa ese color en bg + fg.
+                const colors = colorClasses(item.color);
                 const content = (
                   <Link
                     href={disabled ? '#' : item.href}
@@ -204,24 +209,31 @@ function SidebarBody({
                       if (disabled) e.preventDefault();
                     }}
                     className={cn(
-                      'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                      'group flex items-center gap-3 rounded-lg px-2 py-2 text-sm font-medium transition-colors',
                       collapsed && 'justify-center px-0',
                       disabled
                         ? 'text-muted-foreground/60 cursor-not-allowed'
                         : active
-                          ? 'bg-brand-100 text-brand-900 dark:bg-brand-950 dark:text-brand-200'
-                          : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+                          ? 'bg-brand-100/60 text-brand-900 dark:bg-brand-950/60 dark:text-brand-200'
+                          : 'text-foreground/70 hover:bg-secondary/80 hover:text-foreground',
                     )}
                   >
-                    <Icon
+                    {/* Ícono en cuadrado de color por sección */}
+                    <span
                       className={cn(
-                        'h-4 w-4 shrink-0',
-                        active && !disabled && 'text-brand-700 dark:text-brand-400',
+                        'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-transform',
+                        disabled ? 'bg-secondary text-muted-foreground/60' : colors.bg,
+                        !disabled && 'group-hover:scale-105',
                       )}
-                    />
+                    >
+                      <Icon
+                        className={cn('h-3.5 w-3.5', !disabled && colors.fg)}
+                        strokeWidth={2}
+                      />
+                    </span>
                     {!collapsed && <span className="truncate">{item.label}</span>}
                     {!collapsed && active && !disabled && (
-                      <span className="ml-auto h-1.5 w-1.5 rounded-full bg-brand-600 dark:bg-brand-400" />
+                      <span className={cn('ml-auto h-1.5 w-1.5 rounded-full', colors.dot)} />
                     )}
                     {!collapsed && disabled && (
                       <span className="ml-auto rounded-full bg-secondary px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">

@@ -26,6 +26,15 @@ import type { ProfileRole } from '@/lib/auth/session';
  * Para crecer en próximas etapas: cuando se construyan nuevos generadores
  * (Etapas 6-9 del plan), agregar aquí su entrada y se mostrará automáticamente.
  */
+/**
+ * Familia visual del item — se usa para el color del ícono en la
+ * sidebar y para el badge en cards asociadas. Feedback de César
+ * 30/06/2026: el sistema se veía monocromático (todo azul brand),
+ * "no se usan los demás colores de la marca". Cada sección funcional
+ * ahora tiene su color propio manteniendo la paleta Tailwind existente.
+ */
+export type MenuColor = 'brand' | 'emerald' | 'rose' | 'amber' | 'violet' | 'sky' | 'teal' | 'slate';
+
 export interface MenuItem {
   label: string;
   href: string;
@@ -37,6 +46,59 @@ export interface MenuItem {
   accent?: boolean;
   /** Próximamente — se muestra grisáceo y no navegable. */
   comingSoon?: boolean;
+  /** Color visual del ícono (aplicado a bg del cuadrado y color del svg). */
+  color?: MenuColor;
+}
+
+/**
+ * Utility: dado un MenuColor devuelve las clases Tailwind para bg del
+ * cuadrado del icono y color del icono en sí. Se usa desde el
+ * Sidebar y desde componentes que necesiten replicar el look.
+ */
+export function colorClasses(c: MenuColor | undefined): { bg: string; fg: string; dot: string } {
+  const palette: Record<MenuColor, { bg: string; fg: string; dot: string }> = {
+    brand: {
+      bg: 'bg-brand-50 dark:bg-brand-950/50',
+      fg: 'text-brand-600 dark:text-brand-400',
+      dot: 'bg-brand-500',
+    },
+    emerald: {
+      bg: 'bg-emerald-50 dark:bg-emerald-950/50',
+      fg: 'text-emerald-600 dark:text-emerald-400',
+      dot: 'bg-emerald-500',
+    },
+    rose: {
+      bg: 'bg-rose-50 dark:bg-rose-950/50',
+      fg: 'text-rose-600 dark:text-rose-400',
+      dot: 'bg-rose-500',
+    },
+    amber: {
+      bg: 'bg-amber-50 dark:bg-amber-950/50',
+      fg: 'text-amber-600 dark:text-amber-400',
+      dot: 'bg-amber-500',
+    },
+    violet: {
+      bg: 'bg-violet-50 dark:bg-violet-950/50',
+      fg: 'text-violet-600 dark:text-violet-400',
+      dot: 'bg-violet-500',
+    },
+    sky: {
+      bg: 'bg-sky-50 dark:bg-sky-950/50',
+      fg: 'text-sky-600 dark:text-sky-400',
+      dot: 'bg-sky-500',
+    },
+    teal: {
+      bg: 'bg-teal-50 dark:bg-teal-950/50',
+      fg: 'text-teal-600 dark:text-teal-400',
+      dot: 'bg-teal-500',
+    },
+    slate: {
+      bg: 'bg-slate-100 dark:bg-slate-800/60',
+      fg: 'text-slate-600 dark:text-slate-400',
+      dot: 'bg-slate-500',
+    },
+  };
+  return palette[c || 'brand'];
 }
 
 export interface MenuSection {
@@ -53,6 +115,7 @@ export const MENU_SECTIONS: MenuSection[] = [
         href: '/app',
         icon: LayoutDashboard,
         description: 'Resumen de tu actividad reciente.',
+        color: 'slate',
       },
       {
         label: 'Chat LexIA',
@@ -60,12 +123,14 @@ export const MENU_SECTIONS: MenuSection[] = [
         icon: MessageSquare,
         description: 'Asistente normativo con citas verificables.',
         accent: true,
+        color: 'brand',
       },
       {
         label: 'Biblioteca',
         href: '/biblioteca',
         icon: Library,
         description: 'Ley 32069, Reglamento, opiniones y jurisprudencia.',
+        color: 'emerald',
       },
       {
         label: 'Llamadas con el Abogado Virtual',
@@ -74,6 +139,7 @@ export const MENU_SECTIONS: MenuSection[] = [
         description:
           'Conversa por voz con LexIA y obtén respuestas con sustento normativo citado al artículo.',
         accent: true,
+        color: 'rose',
       },
     ],
   },
@@ -86,6 +152,7 @@ export const MENU_SECTIONS: MenuSection[] = [
         icon: FileSearch,
         description: 'Compara Bases con ofertas y dictamina por requisito.',
         roles: ['entity'],
+        color: 'sky',
       },
       {
         label: 'Revisor EETT / TDR',
@@ -93,6 +160,7 @@ export const MENU_SECTIONS: MenuSection[] = [
         icon: ScanSearch,
         description: 'Audita tu TDR antes de publicarlo: detecta vicios y direccionamiento.',
         roles: ['entity'],
+        color: 'teal',
       },
       {
         label: 'Generador',
@@ -100,6 +168,7 @@ export const MENU_SECTIONS: MenuSection[] = [
         icon: FilePen,
         description: 'TDR, Estrategia de Contratación, Pliego de Absolución.',
         roles: ['entity'],
+        color: 'amber',
       },
     ],
   },
@@ -112,6 +181,7 @@ export const MENU_SECTIONS: MenuSection[] = [
         icon: FilePen,
         description: 'Consultas, Observaciones, Apelaciones, Ampliación de Plazo.',
         roles: ['provider'],
+        color: 'amber',
       },
       {
         label: 'Revisión de oferta',
@@ -119,6 +189,7 @@ export const MENU_SECTIONS: MenuSection[] = [
         icon: ShieldCheck,
         description: 'Audita tu propia oferta antes de presentarla.',
         roles: ['provider'],
+        color: 'sky',
       },
       {
         label: 'Trámites RNP',
@@ -126,6 +197,7 @@ export const MENU_SECTIONS: MenuSection[] = [
         icon: HardHat,
         description: 'Aumento de CMC, actualización financiera, requisitos del trámite.',
         roles: ['provider'],
+        color: 'teal',
       },
     ],
   },
@@ -139,6 +211,7 @@ export const MENU_SECTIONS: MenuSection[] = [
         description: 'Análisis avanzado y modelos de litigio.',
         roles: ['consultant'],
         comingSoon: true,
+        color: 'violet',
       },
     ],
   },
@@ -151,6 +224,7 @@ export const MENU_SECTIONS: MenuSection[] = [
         icon: ClipboardList,
         description:
           'Comparte tu experiencia y obtén créditos extra para usar la plataforma.',
+        color: 'violet',
       },
     ],
   },

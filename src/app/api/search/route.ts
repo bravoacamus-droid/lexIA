@@ -81,9 +81,12 @@ export async function POST(req: Request) {
   if (!trimmed && !isMultiTag) {
     let q = supabase
       .from('normative_documents')
-      .select('id, type, number, title, summary, date, source_url, applicable_law', {
-        count: 'exact',
-      })
+      .select(
+        'id, type, number, title, summary, date, source_url, applicable_law, ai_summary',
+        {
+          count: 'exact',
+        },
+      )
       .order('date', { ascending: false, nullsFirst: false })
       .range(offset, offset + limit - 1);
     if (type) q = q.eq('type', type);
@@ -188,16 +191,21 @@ export async function POST(req: Request) {
     }
   }
 
-  // Hidratar fechas y summaries
+  // Hidratar fechas + summaries + resumen IA + temas
   const docIds = Array.from(byDoc.keys());
   const docMetaMap = new Map<
     string,
-    { date: string | null; summary: string | null; source_url: string | null }
+    {
+      date: string | null;
+      summary: string | null;
+      source_url: string | null;
+      ai_summary: { de_que_trata?: string; temas?: string[] } | null;
+    }
   >();
   if (docIds.length > 0) {
     const { data: metas } = await supabase
       .from('normative_documents')
-      .select('id, date, summary, source_url')
+      .select('id, date, summary, source_url, ai_summary')
       .in('id', docIds);
     if (metas) {
       for (const m of metas as Array<{
@@ -205,6 +213,7 @@ export async function POST(req: Request) {
         date: string | null;
         summary: string | null;
         source_url: string | null;
+        ai_summary: { de_que_trata?: string; temas?: string[] } | null;
       }>) {
         docMetaMap.set(m.id, m);
       }
