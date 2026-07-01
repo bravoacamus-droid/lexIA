@@ -9,12 +9,12 @@ import { motion } from 'framer-motion';
 import {
   ArrowLeft,
   Star,
-  StarOff,
   ExternalLink,
   ListTree,
   Highlighter,
   Trash2,
-  FileText,
+  MessageSquare,
+  Link2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -92,6 +92,12 @@ export function DocumentViewer({
     () => formatNormativaText(doc.raw_text),
     [doc.raw_text],
   );
+
+  // Track del heading (artículo/capítulo) actualmente visible al hacer
+  // scroll. Se usa para mostrar el sticky mini-header con "estás en
+  // Artículo X" y para resaltar el item activo del TOC.
+  const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
+  const [activeHeadingText, setActiveHeadingText] = useState<string>('');
 
   // Detect text selection and show toolbar
   useEffect(() => {
@@ -204,6 +210,63 @@ export function DocumentViewer({
     [text, annotations],
   );
 
+  // Trackear qué heading está actualmente en el viewport para mostrar
+  // el sticky mini-header con "Estás leyendo Artículo X" y para
+  // resaltar el item activo en el TOC. Usamos IntersectionObserver
+  // con rootMargin negativo desde arriba para que solo dispare cuando
+  // el heading ya pasó del "área de lectura".
+  useEffect(() => {
+    if (toc.length === 0) return;
+    const headings = toc
+      .map((t) => document.getElementById(t.id))
+      .filter((el): el is HTMLElement => el !== null);
+    if (headings.length === 0) return;
+
+    // Fallback: si el usuario no ha scrolleado nada, marcar el primero
+    setActiveHeadingId((prev) => prev || toc[0].id);
+    setActiveHeadingText((prev) => prev || toc[0].text);
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Filtramos los que ya cruzaron la línea de 25% del viewport
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible.length > 0) {
+          const el = visible[0].target as HTMLElement;
+          const id = el.id;
+          const item = toc.find((t) => t.id === id);
+          if (item) {
+            setActiveHeadingId(id);
+            setActiveHeadingText(item.text);
+          }
+        }
+      },
+      {
+        rootMargin: '-80px 0px -70% 0px',
+        threshold: [0, 1],
+      },
+    );
+    headings.forEach((h) => observer.observe(h));
+    return () => observer.disconnect();
+  }, [toc]);
+
+  async function copyDocumentLink() {
+    const url = window.location.href;
+    await navigator.clipboard.writeText(url);
+    toast.success('Enlace del documento copiado');
+  }
+
+  function askLexiaAboutDoc() {
+    // Redirige al chat con el documento pre-cargado como contexto.
+    // El chat crea nueva conversación y usa el titulo/tipo/número como
+    // prompt inicial.
+    const prompt = encodeURIComponent(
+      `Sobre el documento "${doc.number || doc.title}" (${doc.type}), quiero preguntar:`,
+    );
+    window.location.href = `/chat?new=1&q=${prompt}`;
+  }
+
   return (
     <>
       <div className="border-b border-border bg-card/70 backdrop-blur-sm sticky top-14 z-10">
@@ -214,12 +277,46 @@ export function DocumentViewer({
               Volver
             </Link>
           </Button>
-          <div className="flex-1 text-center min-w-0">
+          <div className="flex-1 min-w-0">
             <p className="text-xs text-muted-foreground truncate">
               {doc.number || doc.type}
             </p>
+            {activeHeadingText && (
+              <motion.p
+                key={activeHeadingText}
+                initial={{ opacity: 0, y: -2 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+                className="text-xs font-semibold text-brand-700 dark:text-brand-400 truncate"
+              >
+                <span className="text-muted-foreground font-normal">Leyendo · </span>
+                {activeHeadingText}
+              </motion.p>
+            )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" onClick={copyDocumentLink} aria-label="Copiar enlace">
+                  <Link2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Copiar enlace del documento</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={askLexiaAboutDoc}
+                  className="text-brand-700 dark:text-brand-400"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  <span className="hidden sm:inline">Preguntar a LexIA</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Preguntar a LexIA sobre este documento</TooltipContent>
+            </Tooltip>
             {doc.source_url && (
               <Button asChild variant="ghost" size="sm">
                 <a href={doc.source_url} target="_blank" rel="noreferrer">
@@ -259,21 +356,27 @@ export function DocumentViewer({
                 Contenido
               </h2>
               <ul className="space-y-0.5 max-h-[60vh] overflow-y-auto scrollbar-thin">
-                {toc.map((item) => (
-                  <li key={item.id}>
-                    <a
-                      href={`#${item.id}`}
-                      className={cn(
-                        'block py-1 text-xs leading-relaxed transition-colors hover:text-brand-700 dark:hover:text-brand-400',
-                        item.level === 1 ? 'font-semibold text-foreground' : 'text-muted-foreground',
-                        item.level === 2 && 'pl-3',
-                        item.level >= 3 && 'pl-5',
-                      )}
-                    >
-                      {item.text}
-                    </a>
-                  </li>
-                ))}
+                {toc.map((item) => {
+                  const isActive = activeHeadingId === item.id;
+                  return (
+                    <li key={item.id}>
+                      <a
+                        href={`#${item.id}`}
+                        className={cn(
+                          'block py-1 text-xs leading-relaxed transition-colors border-l-2 pl-2 -ml-0.5 rounded-r',
+                          item.level === 1 ? 'font-semibold' : '',
+                          item.level === 2 && 'pl-4',
+                          item.level >= 3 && 'pl-6',
+                          isActive
+                            ? 'border-brand-500 bg-brand-50/60 dark:bg-brand-950/40 text-brand-700 dark:text-brand-400'
+                            : 'border-transparent text-muted-foreground hover:text-brand-700 dark:hover:text-brand-400 hover:border-brand-300',
+                        )}
+                      >
+                        {item.text}
+                      </a>
+                    </li>
+                  );
+                })}
               </ul>
             </Card>
           </aside>
@@ -318,16 +421,24 @@ export function DocumentViewer({
               remarkPlugins={[remarkGfm]}
               rehypePlugins={[rehypeRaw]}
               components={{
-                h1: ({ children }) => (
-                  <h1 id={slugifyChildren(children)} className="font-semibold scroll-mt-32">
-                    {children}
-                  </h1>
-                ),
-                h2: ({ children }) => (
-                  <h2 id={slugifyChildren(children)} className="scroll-mt-32">
-                    {children}
-                  </h2>
-                ),
+                h1: ({ children }) => {
+                  const id = slugifyChildren(children);
+                  return (
+                    <h1 id={id} className="font-semibold scroll-mt-32 group/heading relative">
+                      {children}
+                      <HeadingActions id={id} title={String(children)} />
+                    </h1>
+                  );
+                },
+                h2: ({ children }) => {
+                  const id = slugifyChildren(children);
+                  return (
+                    <h2 id={id} className="scroll-mt-32 group/heading relative">
+                      {children}
+                      <HeadingActions id={id} title={String(children)} />
+                    </h2>
+                  );
+                },
                 h3: ({ children }) => (
                   <h3 id={slugifyChildren(children)} className="scroll-mt-32">
                     {children}
@@ -495,6 +606,50 @@ function extractToc(markdown: string): TocItem[] {
 
   // Limit a 30 items para no saturar
   return items.slice(0, 30);
+}
+
+/**
+ * Botones que aparecen al hover sobre un heading (Artículo X, Título Y).
+ * Permiten: copiar el link permanente (ancla) y preguntar a LexIA
+ * específicamente sobre ese artículo. Feedback de César 30/06/2026:
+ * "faltan botones de copiar cita / preguntar a LexIA sobre este
+ * artículo" en la vista de detalle de documento.
+ */
+function HeadingActions({ id, title }: { id: string; title: string }) {
+  async function copyAnchor() {
+    const url = window.location.href.split('#')[0] + '#' + id;
+    await navigator.clipboard.writeText(url);
+    toast.success('Enlace al artículo copiado');
+  }
+
+  function askAbout() {
+    const clean = title.replace(/\s+/g, ' ').trim();
+    const prompt = encodeURIComponent(`Explícame en detalle: ${clean}`);
+    window.location.href = `/chat?new=1&q=${prompt}`;
+  }
+
+  return (
+    <span className="inline-flex ml-2 gap-1 align-middle opacity-0 group-hover/heading:opacity-100 transition-opacity">
+      <button
+        type="button"
+        onClick={copyAnchor}
+        className="text-muted-foreground hover:text-brand-700 dark:hover:text-brand-400 transition-colors"
+        aria-label="Copiar enlace al artículo"
+        title="Copiar enlace al artículo"
+      >
+        <Link2 className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={askAbout}
+        className="text-muted-foreground hover:text-brand-700 dark:hover:text-brand-400 transition-colors"
+        aria-label="Preguntar a LexIA sobre este artículo"
+        title="Preguntar a LexIA sobre este artículo"
+      >
+        <MessageSquare className="h-3.5 w-3.5" />
+      </button>
+    </span>
+  );
 }
 
 function slugify(text: string): string {
