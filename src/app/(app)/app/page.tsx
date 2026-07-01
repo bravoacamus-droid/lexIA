@@ -172,7 +172,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="container max-w-7xl py-8 sm:py-10 space-y-10">
-      <DashboardHero fullName={fullName} />
+      <DashboardHero fullName={fullName} role={role} />
 
       <TrialBanner subscription={subscription} />
 
@@ -215,7 +215,7 @@ export default async function DashboardPage() {
         <div className="lg:col-span-2">
           <DashboardActivity items={activity} />
         </div>
-        <DashboardSuggested />
+        <DashboardSuggested role={role} />
       </div>
 
     </div>

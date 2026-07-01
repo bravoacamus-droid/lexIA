@@ -106,12 +106,28 @@ export function AppTopbar({ user, onOpenPalette, onOpenMobileSidebar }: Props) {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm" className="rounded-full">
+            <Button variant="ghost" size="icon-sm" className="rounded-full relative">
               <Avatar className="h-7 w-7">
                 <AvatarFallback className="bg-brand-100 dark:bg-brand-950 text-brand-700 dark:text-brand-300">
                   {getInitials(user.full_name || user.email)}
                 </AvatarFallback>
               </Avatar>
+              {/* Dot decorativo con color del rol activo — feedback
+                  César 30/06/2026: "información sobre en qué perfil está".
+                  Aparece en el avatar del topbar como identificador
+                  siempre visible del rol actual. */}
+              {user.profile_role && (
+                <span
+                  className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background ${
+                    user.profile_role === 'entity'
+                      ? 'bg-sky-500'
+                      : user.profile_role === 'provider'
+                        ? 'bg-amber-500'
+                        : 'bg-violet-500'
+                  }`}
+                  aria-label={`Perfil ${user.profile_role}`}
+                />
+              )}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-64">
