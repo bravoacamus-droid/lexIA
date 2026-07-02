@@ -44,6 +44,49 @@ interface HybridSearchRow {
 const MAX_CHUNKS = 15;
 const MAX_HISTORY = 8;
 
+/**
+ * Rerank + dedupe de chunks tras hybrid_search.
+ * Espejo del rerankAndDedupe en voice-search.ts. Ambos endpoints (chat y
+ * voz) usan la MISMA lógica de recuperación para mantener consistencia.
+ *
+ * - Boostea chunks tipo 'ley' o 'reglamento' cuando la query pide una
+ *   regla base (prevalece, artículo, plazo, establece, etc.). Sin este
+ *   boost, pronunciamientos ganaban la similaridad por repetir vocabulario
+ *   y ocultaban la fuente primaria.
+ * - Dedupe por firma (primeros 200 chars) para evitar 3 copias del mismo
+ *   pronunciamiento cuando la BD tiene documentos duplicados.
+ */
+function rerankChunks(
+  rows: HybridSearchRow[],
+  query: string,
+  keepCount: number,
+): HybridSearchRow[] {
+  const wantsBaseRule =
+    /(?:prevalece|prevalecen|artículo|numeral|inciso|plazo|obliga|est[aá]blece|determina|dispone|regula)/i.test(
+      query,
+    );
+  const seen = new Set<string>();
+  const scored = rows
+    .map((r) => {
+      let score = r.similarity;
+      if (wantsBaseRule && (r.doc_type === 'ley' || r.doc_type === 'reglamento')) {
+        score += 0.08;
+      }
+      return { row: r, score };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  const out: HybridSearchRow[] = [];
+  for (const { row } of scored) {
+    const sig = row.content.slice(0, 200).replace(/\s+/g, ' ').trim();
+    if (seen.has(sig)) continue;
+    seen.add(sig);
+    out.push(row);
+    if (out.length >= keepCount) break;
+  }
+  return out;
+}
+
 export async function POST(req: Request) {
   // Verificación temprana de env vars críticas — devolvemos error claro si faltan
   if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
@@ -125,12 +168,19 @@ export async function POST(req: Request) {
     console.error('Voyage embedding error:', err);
   }
 
-  // 2. Hybrid search (only if we have an embedding)
+  // 2. Hybrid search + rerank (only if we have an embedding).
+  //    Sobre-recuperamos 2x para que el rerank tenga margen. Sin esto,
+  //    el chunk correcto de Ley/Reglamento puede quedar fuera del top
+  //    cuando pronunciamientos aplicando el mismo concepto ganan la
+  //    similaridad por repetir vocabulario (bug reportado 01/07/2026:
+  //    Art. 66.6 sobre prevalencia NO aparecía en top-6 mientras el
+  //    Pronunciamiento 298 y Directiva 003 dominaban).
   if (queryEmbedding) {
+    const oversample = Math.min(MAX_CHUNKS * 2, 30);
     const { data: chunks, error: searchError } = await supabase.rpc('hybrid_search', {
       query_text: lastUser.content,
       query_embedding: queryEmbedding,
-      match_count: MAX_CHUNKS,
+      match_count: oversample,
       filter_type: null,
       filter_law: lawFilter,
     });
@@ -138,7 +188,9 @@ export async function POST(req: Request) {
     if (searchError) {
       console.error('Hybrid search error:', searchError);
     } else if (chunks) {
-      sources = (chunks as HybridSearchRow[]).map((c) => ({
+      const raw = chunks as HybridSearchRow[];
+      const reranked = rerankChunks(raw, lastUser.content, MAX_CHUNKS);
+      sources = reranked.map((c) => ({
         chunk_id: c.chunk_id,
         doc_id: c.document_id,
         doc_title: c.doc_title,

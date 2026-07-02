@@ -85,10 +85,14 @@ export async function searchNormativa(
   const admin = createAdminClient();
   const filterLaw =
     opts.filter_law && opts.filter_law.length > 0 ? opts.filter_law : null;
+  // Sobre-recuperamos (2x) para tener margen al rerankear. Antes traíamos
+  // exactamente matchCount y perdíamos chunks importantes cuando quedaban
+  // en posiciones 6-10 (ej: Ley 32069 Art. 66.6 sobre prevalencia).
+  const oversample = Math.min(matchCount * 2, 20);
   const { data, error } = await admin.rpc('hybrid_search', {
     query_text: opts.query,
     query_embedding: embedding,
-    match_count: matchCount,
+    match_count: oversample,
     filter_type: filterType,
     filter_law: filterLaw,
   });
@@ -97,16 +101,8 @@ export async function searchNormativa(
     return [];
   }
 
-  interface HybridRow {
-    document_id: string;
-    content: string;
-    doc_title: string;
-    doc_type: string;
-    doc_number: string | null;
-    similarity: number;
-  }
-
-  const rows = (data || []) as HybridRow[];
+  const rawRows = (data || []) as HybridRow[];
+  const rows = rerankAndDedupe(rawRows, opts.query, matchCount);
   return rows.map((r) => {
     const numberPart = r.doc_number ? ` ${r.doc_number}` : '';
     const typeLabel = formatTypeLabel(r.doc_type);
@@ -186,6 +182,70 @@ FRAGMENTOS:
 ═══════════════════════════════════════════════════════
 
 ${items}`;
+}
+
+/**
+ * Rerank + dedupe de los chunks devueltos por hybrid_search.
+ *
+ * Problemas que resuelve:
+ * 1. DUPLICADOS: la BD tiene varios documentos con el mismo contenido
+ *    ingerido con distintos títulos (ej: "Pronunciamiento 298", "298",
+ *    "8174689-pronunciamiento-n-298"). Sin dedup, el top-3 puede ser
+ *    3 copias idénticas del mismo chunk y perdemos diversidad.
+ *
+ * 2. LEY vs PRONUNCIAMIENTOS: cuando la pregunta cita un concepto base
+ *    del Reglamento (ej: "prevalencia entre pliego y bases integradas"),
+ *    los pronunciamientos que aplican la regla a un caso concreto suelen
+ *    ganar en similarity porque repiten el vocabulario. Pero la fuente
+ *    primaria es la Ley/Reglamento. Damos un boost a los chunks de type
+ *    'ley' o 'reglamento' cuando la query menciona palabras técnicas
+ *    que sugieren consulta a fuente primaria.
+ */
+interface HybridRow {
+  document_id: string;
+  content: string;
+  doc_title: string;
+  doc_type: string;
+  doc_number: string | null;
+  similarity: number;
+}
+
+function rerankAndDedupe(
+  rows: HybridRow[],
+  query: string,
+  keepCount: number,
+): HybridRow[] {
+  const q = query.toLowerCase();
+
+  // ¿La query pide una regla base? Términos que sugieren fuente primaria.
+  const wantsBaseRule =
+    /(?:prevalece|prevalecen|artículo|numeral|inciso|plazo|obliga|est[aá]blece|determina|dispone|regula)/i.test(
+      q,
+    );
+
+  // Score compuesto: similarity + boost por tipo + penalización por duplicado
+  const seen = new Set<string>();
+  const scored = rows
+    .map((r) => {
+      let score = r.similarity;
+      // Boost fuente primaria si aplica
+      if (wantsBaseRule && (r.doc_type === 'ley' || r.doc_type === 'reglamento')) {
+        score += 0.08;
+      }
+      return { row: r, score };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  const out: HybridRow[] = [];
+  for (const { row } of scored) {
+    // Dedup: primeros 200 chars como firma
+    const sig = row.content.slice(0, 200).replace(/\s+/g, ' ').trim();
+    if (seen.has(sig)) continue;
+    seen.add(sig);
+    out.push(row);
+    if (out.length >= keepCount) break;
+  }
+  return out;
 }
 
 function formatTypeLabel(type: string): string {
