@@ -257,8 +257,9 @@ function collapseKerning(text: string): string {
           ) {
             j++;
           }
-          if (j - i >= 5) {
-            // Colapsar la racha
+          if (j - i >= 4) {
+            // Colapsar la racha (umbral bajado de 5 a 4 para atrapar
+            // secuencias más cortas del TUPA como "N ° 3 2 0")
             result.push(parts.slice(i, j).join(''));
             i = j;
             continue;
@@ -448,6 +449,54 @@ export function formatNormativaText(
 
   // 4) "Que," al inicio de considerandos → salto (típico en resoluciones)
   text = text.replace(/([.;])\s+(Que,\s+)/g, '$1\n\n$2');
+
+  // Los siguientes fixes solo se aplican en modo 'display' (biblioteca).
+  // En modo 'strip' (chunk-sheet / RAG) mantenemos el texto compacto para
+  // no diluir el fragmento con listas expandidas.
+  if (mode === 'display') {
+    // 4b) ÍNDICE CON PUNTOS DE RELLENO — patrón muy común en Bases Estándar,
+    //     Manuales SEACE y textos íntegros consolidados:
+    //         "Introducción............ 6 2.1. Ingreso...... 8 3. Requerimiento... 12"
+    //     Convertimos a lista de índice con formato "- Nombre … p. N°"
+    //     Solo si detectamos 3+ ocurrencias de "..... digit" (evita falsos
+    //     positivos donde alguien escribe "... 5" como cita).
+    const indexHits = (text.match(/\.{4,}\s*\d+/g) || []).length;
+    if (indexHits >= 3) {
+      text = text.replace(
+        /([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ0-9 ,.:()"“”'`°/–\-]{3,120}?)\s*\.{4,}\s*(\d{1,4})\s+/g,
+        '\n- $1 … **p. $2**',
+      );
+    }
+
+    // 4c) LISTA DE DIRECTIVAS/RESOLUCIONES — Tablero Normativo OECE tiene
+    //     todo pegado: "Directiva N° 0004-2025-EF/54.01 - Foo Resolución
+    //     Directoral N° 0013-2025... Directiva N° 0003-2025..." Insertar
+    //     salto ANTES de cada instrumento normativo referenciado.
+    const NORM_INSTRUMENTS =
+      /\b(Directiva\s+N[°º.]?\s*\d{3,4}-\d{4}-EF\/\d+(?:\.\d+)?|Resoluci[óo]n\s+Directoral\s+N[°º.]?\s*\d{3,4}-\d{4}-EF\/\d+(?:\.\d+)?|Ley\s+N[°º.]?\s*\d{4,5}|Decreto\s+Supremo\s+N[°º.]?\s*\d{3}-\d{4}-EF)/gi;
+    const instrumentHits = (text.match(NORM_INSTRUMENTS) || []).length;
+    if (instrumentHits >= 4) {
+      text = text.replace(NORM_INSTRUMENTS, (m) => `\n- **${m}**`);
+    }
+
+    // 4d) TABLA MASIVA DE ENTIDADES CON RUC — común en ANEXOs de compras
+    //     corporativas. Detectamos 15+ RUCs (11 dígitos, empiezan con 20)
+    //     y separamos cada renglón por RUC.
+    const rucHits = (text.match(/\b20\d{9}\b/g) || []).length;
+    if (rucHits >= 15) {
+      text = text.replace(/\s+(20\d{9})\s+/g, '\n- **RUC $1** — ');
+    }
+
+    // 4e) TUPA — cada procedimiento empieza con "N° {num}" (N° 4, N° 5...)
+    //     Detectamos ≥8 ocurrencias de "N° \d " y las convertimos en items.
+    //     Solo aplicar cuando el número tiene 1-3 dígitos (evita romper leyes
+    //     como "N° 32069", "N° 27444" y "N° 009-2025-EF" que ya se separan
+    //     con instrumentos).
+    const tupaHits = (text.match(/\bN[°º.]\s*\d{1,3}(?=\s+[A-ZÁÉÍÓÚÑ])/g) || []).length;
+    if (tupaHits >= 8) {
+      text = text.replace(/\s+(N[°º.]\s*\d{1,3})\s+(?=[A-ZÁÉÍÓÚÑ])/g, '\n\n**$1** ');
+    }
+  }
 
   // 5) Insertar salto ANTES de bullets Unicode inline
   text = text.replace(/([^\n])\s+([●○◦•▪]\s)/g, '$1\n$2');
