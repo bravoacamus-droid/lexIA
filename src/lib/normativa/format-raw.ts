@@ -473,13 +473,31 @@ export function formatNormativaText(
   );
 
   // 4a-ter) Sub-numerales inline "4.1", "5.1.", "6.2 El árbitro..."
-  //         Cualquier char anterior + espacio + \d.\d[.]? + espacio +
-  //         Mayúscula (inicio de párrafo). Distingue de "artículo 30.1
-  //         del artículo 30" porque ahí no viene Mayúscula después.
-  //         Emite como "**N.M** Contenido" (negrita como sub-heading).
+  //         Capturamos la última PALABRA antes del sub-numeral. Si esa
+  //         palabra es "artículo/numeral/literal/inciso/..." (contexto
+  //         de cita cruzada), NO transformamos.
+  //         Emitimos "**N.M** Contenido" (negrita como sub-heading) solo
+  //         para inicios de sección legítimos.
+  const CITE_WORDS = new Set([
+    'artículo', 'articulo', 'art', 'art.',
+    'numeral', 'numeral.',
+    'literal', 'lit', 'lit.',
+    'inciso', 'apartado',
+    'párrafo', 'parrafo', 'párrafo.',
+    'acápite', 'acapite',
+    'subnumeral', 'subart', 'subart.',
+    'subartículo', 'subarticulo',
+    'ley', 'reglamento',
+  ]);
   text = text.replace(
-    /([a-záéíóúñA-ZÁÉÍÓÚÑ0-9)."])\s+(\d{1,3}\.\d{1,3}[.)]?)\s+([A-ZÁÉÍÓÚ][a-záéíóúñ])/g,
-    '$1\n\n**$2** $3',
+    /(\S+)(\s+)(\d{1,3}\.\d{1,3}[.)]?)\s+([A-ZÁÉÍÓÚ][a-záéíóúñ])/g,
+    (_full, prevWord: string, spc: string, num: string, after: string) => {
+      const lowerPrev = prevWord.toLowerCase().replace(/[,;:"'()\[\]]/g, '');
+      if (CITE_WORDS.has(lowerPrev)) return _full; // no tocar citas
+      // Si prevWord es también un número (ej: "22 22.2"), tampoco tocar
+      if (/^\d+$/.test(prevWord)) return _full;
+      return `${prevWord}\n\n**${num}** ${after}`;
+    },
   );
 
   // Los siguientes fixes solo se aplican en modo 'display' (biblioteca).
