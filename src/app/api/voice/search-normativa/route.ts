@@ -77,6 +77,16 @@ export async function POST(req: Request) {
       filter_law: lawFilter,
       match_count: 5,
     });
+    // Log para diagnóstico: si el modelo Gemini luego dice "no tengo",
+    // podemos verificar en logs si SÍ hubo búsqueda y qué se devolvió.
+    console.log('[voice/search-normativa]', {
+      call_id: parsed.data.call_id,
+      query: parsed.data.query,
+      filter_type: parsed.data.filter_type,
+      filter_law: lawFilter,
+      results_count: results.length,
+      top_citations: results.slice(0, 3).map((r) => `${r.citation}(sim=${r.similarity.toFixed(3)})`),
+    });
     const formatted = formatResultsForLLM(results);
 
     // Acumular en la llamada (rag_queries_count + cited_documents)
