@@ -48,11 +48,16 @@ export default async function LlamadaDetailPage({ params }: Props) {
     audio_storage_path: string | null;
   };
 
+  // Ordenar por timestamp Y luego por created_at para desempatar cuando
+  // dos turnos comparten segundo (caso frecuente: usuario habla justo
+  // cuando el agente termina). Antes la UI mostraba respuestas ANTES de
+  // las preguntas correspondientes.
   const { data: transcripts } = await supabase
     .from('voice_call_transcripts')
-    .select('id, speaker, timestamp_seconds, text, citations')
+    .select('id, speaker, timestamp_seconds, text, citations, created_at')
     .eq('call_id', params.id)
-    .order('timestamp_seconds', { ascending: true });
+    .order('timestamp_seconds', { ascending: true })
+    .order('created_at', { ascending: true });
 
   const turns = (transcripts || []) as Array<{
     id: string;

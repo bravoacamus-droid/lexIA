@@ -177,6 +177,11 @@ REGLAS DE CITACIÓN — CRÍTICAS PARA NO ALUCINAR:
 
 2. **NUNCA inviertas relaciones de prevalencia, jerarquía o preferencia**. Ejemplo del error crítico a evitar: el Art. 66.6 de la Ley 32069 dice "cuando exista divergencia entre el pliego de absolución y las bases integradas, prevalece lo absuelto en el pliego" → responder "prevalecen las bases integradas" es INVERSO al texto legal y es una FALSIFICACIÓN.
 
+2-bis. **NO CONFUNDAS los DOS TIPOS de prevalencia en contrataciones**:
+   - **Ley 32069 Art. 66.6**: "cuando exista divergencia entre el PLIEGO ABSOLUTORIO y las BASES INTEGRADAS, prevalece lo absuelto en el PLIEGO". Aplica dentro de la Entidad, sin OECE de por medio.
+   - **Directiva 003-2025-OECECD numeral 8.7**: "cuando exista divergencia entre la INTEGRACIÓN DEFINITIVA de las bases y el PRONUNCIAMIENTO del OECE, prevalece lo resuelto en el PRONUNCIAMIENTO". Aplica solo cuando hubo elevación al OECE.
+   Si el usuario pregunta por la primera (pliego vs bases integradas), NO respondas con la segunda. Si dudas, REPREGUNTA: "¿Te refieres a la divergencia entre el pliego absolutorio y las bases integradas, o entre la integración definitiva y el pronunciamiento del OECE tras elevación?"
+
 3. **Si el fragmento cita un artículo o norma, usa ESE número. NO INVENTES otros números de decreto o resolución**. Ejemplo del error: si el chunk cita "Art. 304 del Reglamento (DS 009-2025-EF)" no digas "DS 072-2025-EF" — es una norma distinta.
 
 4. Fundamenta cada afirmación con los fragmentos que search_normativa te devuelve. Si el fragmento cita textualmente un plazo, un artículo, o un numeral, PUEDES citarlo.

@@ -132,6 +132,17 @@ export class LiveClient {
   private startedAt = 0;
   private accumulatedUserText = '';
   private accumulatedAgentText = '';
+  /**
+   * Timestamps de INICIO de cada turno acumulado. Se fijan cuando llega
+   * el primer chunk de inputTranscription/outputTranscription de ese
+   * turno. Antes usábamos elapsedSeconds() al final de cada turno, con
+   * lo que ambos turnos (usuario y agente) quedaban con el mismo tiempo
+   * y la UI los mostraba fuera de orden (bug reportado por César con la
+   * transcripción donde el asistente aparecía respondiendo antes de que
+   * el usuario preguntara).
+   */
+  private userTurnStartedAt: number | null = null;
+  private agentTurnStartedAt: number | null = null;
   private muted = false;
   private agentState: AgentState = 'idle';
   private mediaRecorder: MediaRecorder | null = null;
@@ -313,9 +324,15 @@ export class LiveClient {
     if (msg.serverContent) {
       const sc = msg.serverContent;
       if (sc.inputTranscription?.text) {
+        if (this.userTurnStartedAt === null) {
+          this.userTurnStartedAt = this.elapsedSeconds();
+        }
         this.accumulatedUserText += sc.inputTranscription.text;
       }
       if (sc.outputTranscription?.text) {
+        if (this.agentTurnStartedAt === null) {
+          this.agentTurnStartedAt = this.elapsedSeconds();
+        }
         this.accumulatedAgentText += sc.outputTranscription.text;
         this.setState('speaking');
       }
@@ -328,17 +345,25 @@ export class LiveClient {
         }
       }
       if (sc.turnComplete) {
+        // Emitir con el timestamp del INICIO de cada turno, no del final.
+        // Así la UI puede ordenar correctamente cuando el asistente termina
+        // de responder JUSTO cuando el usuario empieza la siguiente pregunta
+        // (los timestamps eran casi iguales al usar elapsedSeconds() al final).
         const userClean = sanitizeTranscript(this.accumulatedUserText);
         if (userClean && !isLikelyNoise(userClean)) {
-          this.cfg.onTranscript('user', userClean, this.elapsedSeconds());
+          const ts = this.userTurnStartedAt ?? this.elapsedSeconds();
+          this.cfg.onTranscript('user', userClean, ts);
         }
         this.accumulatedUserText = '';
+        this.userTurnStartedAt = null;
 
         const agentClean = sanitizeTranscript(this.accumulatedAgentText);
         if (agentClean && !isLikelyNoise(agentClean)) {
-          this.cfg.onTranscript('assistant', agentClean, this.elapsedSeconds());
+          const ts = this.agentTurnStartedAt ?? this.elapsedSeconds();
+          this.cfg.onTranscript('assistant', agentClean, ts);
         }
         this.accumulatedAgentText = '';
+        this.agentTurnStartedAt = null;
 
         this.setState('idle');
       }
@@ -520,22 +545,26 @@ export class LiveClient {
     const userClean = sanitizeTranscript(this.accumulatedUserText);
     if (userClean && !isLikelyNoise(userClean)) {
       try {
-        this.cfg.onTranscript('user', userClean, this.elapsedSeconds());
+        const ts = this.userTurnStartedAt ?? this.elapsedSeconds();
+        this.cfg.onTranscript('user', userClean, ts);
       } catch {
         /* ignore */
       }
     }
     this.accumulatedUserText = '';
+    this.userTurnStartedAt = null;
 
     const agentClean = sanitizeTranscript(this.accumulatedAgentText);
     if (agentClean && !isLikelyNoise(agentClean)) {
       try {
-        this.cfg.onTranscript('assistant', agentClean, this.elapsedSeconds());
+        const ts = this.agentTurnStartedAt ?? this.elapsedSeconds();
+        this.cfg.onTranscript('assistant', agentClean, ts);
       } catch {
         /* ignore */
       }
     }
     this.accumulatedAgentText = '';
+    this.agentTurnStartedAt = null;
   }
 
   private cleanup() {
