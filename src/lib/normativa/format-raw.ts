@@ -450,6 +450,38 @@ export function formatNormativaText(
   // 4) "Que," al inicio de considerandos → salto (típico en resoluciones)
   text = text.replace(/([.;])\s+(Que,\s+)/g, '$1\n\n$2');
 
+  // 4a) Insertar salto ANTES de "Artículo N.- ..." (con o sin guión) que
+  //     aparece INLINE en un blob. Común en Códigos (Ética), Directivas,
+  //     Leyes y Reglamentos donde el PDF viene todo pegado.
+  //     ARTICULO_RX (línea completa) ya lo detecta, pero solo si está al
+  //     INICIO de una línea propia — como el raw viene en 1 línea, nunca
+  //     activa. Insertamos \n\n antes de cada aparición inline.
+  //     El char anterior puede ser cualquier cosa (letra, punto, `)`, etc.)
+  //     menos newline, porque si ya hay salto no queremos duplicar.
+  text = text.replace(
+    /([^\n])\s+(Art[íi]culo\s+\d{1,3}(?:[.\-]|\s))/g,
+    '$1\n\n$2',
+  );
+
+  // 4a-bis) Insertar salto ANTES de "TÍTULO {romano} {Palabra Capitalizada}"
+  //         (patrón común: "TÍTULO II Principios Generales", "TÍTULO III
+  //         Revelación del Árbitro"). Los ya cubiertos por SECCION_NAMES
+  //         requieren nombres específicos; este cubre cualquier título.
+  text = text.replace(
+    /([^\n])\s+(T[ÍI]TULO\s+[IVXLCDM]+\s+[A-ZÁÉÍÓÚ][A-Za-zÁÉÍÓÚñáéíóú]+)/g,
+    '$1\n\n$2',
+  );
+
+  // 4a-ter) Sub-numerales inline "4.1", "5.1.", "6.2 El árbitro..."
+  //         Cualquier char anterior + espacio + \d.\d[.]? + espacio +
+  //         Mayúscula (inicio de párrafo). Distingue de "artículo 30.1
+  //         del artículo 30" porque ahí no viene Mayúscula después.
+  //         Emite como "**N.M** Contenido" (negrita como sub-heading).
+  text = text.replace(
+    /([a-záéíóúñA-ZÁÉÍÓÚÑ0-9)."])\s+(\d{1,3}\.\d{1,3}[.)]?)\s+([A-ZÁÉÍÓÚ][a-záéíóúñ])/g,
+    '$1\n\n**$2** $3',
+  );
+
   // Los siguientes fixes solo se aplican en modo 'display' (biblioteca).
   // En modo 'strip' (chunk-sheet / RAG) mantenemos el texto compacto para
   // no diluir el fragmento con listas expandidas.
@@ -457,14 +489,22 @@ export function formatNormativaText(
     // 4b) ÍNDICE CON PUNTOS DE RELLENO — patrón muy común en Bases Estándar,
     //     Manuales SEACE y textos íntegros consolidados:
     //         "Introducción............ 6 2.1. Ingreso...... 8 3. Requerimiento... 12"
-    //     Convertimos a lista de índice con formato "- Nombre … p. N°"
+    //     Convertimos a lista de índice con formato "- N°ref Nombre … p. N°"
     //     Solo si detectamos 3+ ocurrencias de "..... digit" (evita falsos
     //     positivos donde alguien escribe "... 5" como cita).
-    const indexHits = (text.match(/\.{4,}\s*\d+/g) || []).length;
+    //
+    //     El prefijo numérico opcional (2., 3.1., 3.1.1.) se consume dentro
+    //     del match — si no, quedaría colgado entre bullets y se pegaría al
+    //     "**" de cierre del anterior, produciendo "**p. 12****3.1." (bug
+    //     reportado por César en el Manual de Contratos Menores).
+    const indexHits = (text.match(/\.{3,}\s*\d+/g) || []).length;
     if (indexHits >= 3) {
+      // OJO: la clase de caracteres DEBE incluir tildes minúsculas
+      // (á, é, í, ó, ú, ñ) sino palabras como "Introducción", "difusión",
+      // "área" rompen el match a mitad y quedan sin bullet.
       text = text.replace(
-        /([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ0-9 ,.:()"“”'`°/–\-]{3,120}?)\s*\.{4,}\s*(\d{1,4})\s+/g,
-        '\n- $1 … **p. $2**',
+        /(?:\d+(?:\.\d+)*\.?\s+)?([A-ZÁÉÍÓÚÑ"“][A-Za-zÁÉÍÓÚÑáéíóúñ0-9 ,.:()"“”'`°/–\-]{3,120}?)\s*\.{3,}\s*(\d{1,4})(?=\s|$)/g,
+        '\n- $1 … **p. $2**\n',
       );
     }
 
