@@ -496,6 +496,38 @@ export function formatNormativaText(
     if (tupaHits >= 8) {
       text = text.replace(/\s+(N[°º.]\s*\d{1,3})\s+(?=[A-ZÁÉÍÓÚÑ])/g, '\n\n**$1** ');
     }
+
+    // 4f) FAQ — cada pregunta "¿...?" en su propia línea como H3.
+    //     Común en el FAQ SEACE (46 preguntas pegadas). Detectamos ≥4
+    //     preguntas para evitar falsos positivos en textos que citen una
+    //     pregunta ocasional.
+    const questionHits = (text.match(/¿[^?¿]{5,150}\?/g) || []).length;
+    if (questionHits >= 4) {
+      text = text.replace(/\s*(¿[^?¿]{5,150}\?)\s*/g, '\n\n### $1\n\n');
+    }
+
+    // 4g) ANEXO I, ANEXO II, ANEXO N° X → H2 (heading destacado).
+    //     Cubre inicio de texto o cualquier posición inline.
+    //     Se emite dos regex: uno para inicio (^ANEXO ...) y otro inline.
+    //     No sobrescribir si ya viene como "## ANEXO".
+    text = text.replace(
+      /(?<!##\s)\bANEXO\s+(?:N[°º.]?\s*)?([IVXLCDM]+|\d+)(?:\s*[:\-]\s*("[^"]{3,100}"|[A-ZÁÉÍÓÚÑ][^\n.:]{3,120}))?/g,
+      (match, num: string, title: string | undefined) => {
+        const cleanTitle = title ? ` — ${title.replace(/^"|"$/g, '')}` : '';
+        return `\n\n## ANEXO ${num}${cleanTitle}\n\n`;
+      },
+    );
+
+    // 4h) Corregir ":" sobrante al inicio de un párrafo tras un heading
+    //     que originalmente terminaba con ":". Ejemplo:
+    //       ## I. ANTECEDENTES:
+    //       : 1. De acuerdo a la información...
+    //     Debe quedar como:
+    //       ## I. ANTECEDENTES
+    //       1. De acuerdo a la información...
+    text = text.replace(/^:\s*/gm, '');
+    // También limpiar ":" al final de headings (## Titulo: → ## Titulo)
+    text = text.replace(/^(#{1,3}\s.+):\s*$/gm, '$1');
   }
 
   // 5) Insertar salto ANTES de bullets Unicode inline
