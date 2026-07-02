@@ -379,6 +379,70 @@ export function formatForDisplay(raw: string | null | undefined): string {
   return formatNormativaText(raw, { mode: 'display' });
 }
 
+/**
+ * Preposiciones/artículos comunes que legítimamente pueden iniciar un
+ * chunk en minúscula. Cualquier OTRA palabra minúscula al inicio es
+ * probablemente residuo de un corte a mitad de palabra por el chunker.
+ */
+const COMMON_LOWER_STARTS = new Set([
+  'a', 'ante', 'bajo', 'con', 'contra', 'de', 'desde', 'durante', 'en',
+  'entre', 'hacia', 'hasta', 'mediante', 'para', 'por', 'según', 'sin',
+  'sobre', 'tras', 'salvo', 'excepto',
+  'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas', 'del', 'al',
+  'y', 'e', 'o', 'u', 'ni', 'pero', 'sino', 'aunque', 'como', 'cuando',
+  'donde', 'que', 'quien', 'cual', 'cuyo', 'cuya',
+  'este', 'esta', 'esto', 'ese', 'esa', 'eso', 'aquel', 'aquella',
+  'no', 'sí', 'se', 'lo', 'le', 'les', 'me', 'te', 'nos', 'os',
+  'si', 'ya', 'aún', 'aun', 'muy', 'más', 'menos', 'tan', 'tanto',
+  'i.', 'ii.', 'iii.', 'iv.', 'v.', 'vi.', 'vii.', 'viii.', 'ix.', 'x.',
+]);
+
+/**
+ * Restaura los límites del chunk cuando el chunker cortó a mitad de
+ * palabra. Prefija/sufija "…" para indicar que es fragmento.
+ *
+ * Auditoría 01/07/2026 sobre 12,292 chunks:
+ *   · 4,616 (37.6%) empiezan mid-word con minúscula ("ecreto", "curso",
+ *     "l/los", "ontrataciones", etc.)
+ *   · 332 (2.7%) empiezan con símbolo/puntuación suelto (",", "-", ";")
+ * Sin este helper, en el chunk-sheet el usuario ve estos residuos como
+ * texto normal y confunde su lectura. Con "…" queda claro que es corte.
+ */
+function restoreChunkBoundaries(text: string): string {
+  if (!text) return text;
+  let out = text.replace(/^\s+|\s+$/g, '');
+  if (!out) return out;
+
+  // Inicio: si arranca con símbolo/puntuación, prefijar "…"
+  //   ", según correspondan..." → "… , según correspondan..."
+  //   "- Item..." se preserva (podría ser bullet legítimo)
+  const firstChar = out[0];
+  const isPunctStart = /^[,;:.)\]]/.test(firstChar);
+
+  // Inicio: primera palabra en minúscula que NO es preposición/artículo común
+  let isMidWordStart = false;
+  if (/^[a-záéíóúñ]/.test(firstChar)) {
+    const firstWord = out.split(/[\s.,;:!?)\]]/)[0].toLowerCase();
+    if (!COMMON_LOWER_STARTS.has(firstWord)) {
+      isMidWordStart = true;
+    }
+  }
+
+  if (isPunctStart || isMidWordStart) {
+    // Añadir "…" al inicio para señalar corte
+    out = '… ' + out;
+  }
+
+  // Final: si termina abrupto (última letra alfanumérica sin puntuación),
+  // sufijar "…" para señalar continuación.
+  const lastChar = out[out.length - 1];
+  if (/[a-záéíóúñA-ZÁÉÍÓÚÑ0-9)"]/.test(lastChar)) {
+    out = out + ' …';
+  }
+
+  return out;
+}
+
 export function formatNormativaText(
   raw: string | null | undefined,
   opts: FormatOptions = {},
@@ -387,6 +451,14 @@ export function formatNormativaText(
   if (!raw) return '';
 
   let text = raw;
+
+  // 0. Modo 'strip' (chunk-sheet): restaurar límites del chunk añadiendo "…"
+  //    cuando el chunker cortó a mitad de palabra o dejó un símbolo suelto
+  //    al inicio. Auditoría muestra que 37.6% de los chunks tienen ese bug.
+  //    Solo aplica en strip porque display siempre recibe el doc completo.
+  if (mode === 'strip') {
+    text = restoreChunkBoundaries(text);
+  }
 
   // 1. Re-unir guiones de salto al final de línea (artefacto PDF)
   text = text.replace(/-\n\s*(?=[a-záéíóúñü])/g, '');
