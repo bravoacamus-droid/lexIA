@@ -44,7 +44,35 @@ export const VOICE_DISCLAIMER_BANNER =
  * después de setupComplete.
  */
 export const VOICE_INITIAL_GREETING =
-  'Hola, soy tu asistente legal de inteligencia artificial. La información que te brinde es orientativa, basada en la Ley 32069. Para casos específicos consulta a un abogado colegiado. ¿En qué te ayudo?';
+  'Hola, soy tu asistente legal de inteligencia artificial. La información que te brinde es orientativa. Para casos específicos consulta a un abogado colegiado. ¿En qué te ayudo?';
+
+/**
+ * Construye el saludo inicial ajustado al régimen normativo elegido por
+ * el usuario (Ambas / Ley 32069 / Ley 30225). Se llama desde el cliente
+ * antes de enviar el primer clientContent a Gemini Live.
+ */
+export function buildVoiceInitialGreeting(lawFilter: string[] | null): string {
+  const scope = describeLawScope(lawFilter);
+  return `Hola, soy tu asistente legal de inteligencia artificial. La información que te brinde es orientativa y se basa en ${scope}. Para casos específicos consulta a un abogado colegiado. ¿En qué te ayudo?`;
+}
+
+/**
+ * Describe textualmente qué normativa está activa según el filter.
+ * Se usa tanto en el saludo como en el system prompt para que el modelo
+ * NO diga "solo Ley 32069" cuando el usuario eligió "Ambas".
+ */
+export function describeLawScope(lawFilter: string[] | null): string {
+  if (!lawFilter || lawFilter.length === 0 || lawFilter.length === 2) {
+    return 'ambos regímenes de contrataciones del Estado peruano: la Ley N° 32069 (vigente desde abril de 2025) y la Ley N° 30225 (régimen anterior, aplicable a procedimientos convocados antes de esa fecha)';
+  }
+  if (lawFilter.includes('ley_32069')) {
+    return 'la Ley N° 32069, Ley General de Contrataciones Públicas, y su Reglamento (DS N° 009-2025-EF, modificado por DS N° 001-2026-EF)';
+  }
+  if (lawFilter.includes('ley_30225')) {
+    return 'la Ley N° 30225, Ley de Contrataciones del Estado (régimen anterior), y su Reglamento (DS N° 344-2018-EF y modificatorias)';
+  }
+  return 'la normativa de contrataciones del Estado peruano';
+}
 
 /**
  * System prompt del Abogado Virtual — REESCRITO 30/06/2026.
@@ -67,9 +95,35 @@ export const VOICE_INITIAL_GREETING =
  * inyecta desde search_normativa como parte del context, no como regla
  * dominante del prompt.
  */
-export const VOICE_SYSTEM_PROMPT = `Eres el Abogado Virtual de LexIA, asistente especializado EXCLUSIVAMENTE en Contrataciones del Estado peruano bajo la Ley N° 32069 (Ley General de Contrataciones Públicas) y su Reglamento (DS N° 009-2025-EF, modificado por DS N° 001-2026-EF).
+/**
+ * @deprecated Usa buildVoiceSystemPrompt(lawFilter) para respetar el
+ * régimen seleccionado por el usuario. Se conserva solo por retro-
+ * compatibilidad con endpoints legacy.
+ */
+export const VOICE_SYSTEM_PROMPT = buildVoiceSystemPrompt(['ley_32069']);
 
-Tu base de conocimiento incluye: Ley 32069, Reglamento vigente, directivas del OECE / DGA / Perú Compras, lineamientos, opiniones DTN, pronunciamientos DSAT y resoluciones del Tribunal de Contrataciones.
+/**
+ * Construye el system prompt del Abogado Virtual ajustando el ámbito
+ * normativo al régimen que el usuario eligió en el LawSelector.
+ *
+ * Fix reportado por César 01/07/2026: el modelo respondía siempre "me
+ * baso únicamente en la Ley 32069" aunque el usuario hubiera marcado
+ * "Ambas". Causa: el prompt estaba hardcoded a "Ley 32069". Ahora el
+ * texto se genera con describeLawScope() según voice_calls.law_filter.
+ */
+export function buildVoiceSystemPrompt(lawFilter: string[] | null): string {
+  const scope = describeLawScope(lawFilter);
+  const includesBoth = !lawFilter || lawFilter.length === 0 || lawFilter.length === 2;
+  const includes30225 = includesBoth || (lawFilter?.includes('ley_30225') ?? false);
+  const legacyLine = includes30225
+    ? '\n\nCuando el usuario pregunte sobre procedimientos convocados antes de abril de 2025, aplica la Ley 30225 y su Reglamento (DS 344-2018-EF y modificatorias). Cuando pregunte por procedimientos posteriores, aplica la Ley 32069.'
+    : '';
+
+  return `Eres el Abogado Virtual de LexIA, asistente especializado EXCLUSIVAMENTE en Contrataciones del Estado peruano.
+
+Tu ámbito normativo activo en esta llamada es: ${scope}.${legacyLine}
+
+Tu base de conocimiento incluye: leyes de contrataciones del Estado (32069 y 30225), sus reglamentos, directivas del OECE / DGA / Perú Compras, lineamientos, opiniones DTN, pronunciamientos DSAT y resoluciones del Tribunal de Contrataciones.
 
 CONSULTA A LA BASE NORMATIVA (obligatorio antes de responder):
 Antes de responder CUALQUIER pregunta sobre normativa, plazos, procedimientos, artículos, numerales o citas legales, DEBES llamar a la función search_normativa(query). No hay excepciones.
@@ -147,6 +201,7 @@ PROHIBICIONES:
 - NO inventes plazos ni números que NO aparezcan en los fragmentos que consultaste.
 
 SI EL PRIMER MENSAJE PARECE UN EVENTO DEL SISTEMA (empieza con "[SISTEMA:"), NO respondas literalmente. Ese mensaje ya fue manejado externamente; espera la primera pregunta real del usuario y respóndela.`;
+}
 
 /**
  * Definición de la función search_normativa que el modelo puede llamar.

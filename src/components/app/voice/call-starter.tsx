@@ -148,6 +148,12 @@ export function CallStarter({ hasConsent, disclaimerVersion }: Props) {
         model: cfgJson.model,
         voiceId: cfgJson.voice_id,
         systemInstruction: cfgJson.system_instruction,
+        // Prompt de saludo inicial ajustado al régimen normativo elegido
+        // por el usuario. Si no viene del server, cae al default del
+        // LiveClient.
+        initialGreetingPrompt: cfgJson.initial_greeting
+          ? `Hola, acabo de conectar. Preséntate brevemente diciendo tu nombre, aclarando que eres IA y usa este saludo textual: "${cfgJson.initial_greeting}". Luego espera mi pregunta.`
+          : undefined,
         tools: cfgJson.tools,
         callId: newCallId,
         onToolCall: async (name, args) => {

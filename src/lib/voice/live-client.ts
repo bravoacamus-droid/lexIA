@@ -20,6 +20,14 @@ export interface LiveClientConfig {
   model: string;
   voiceId: string;
   systemInstruction: string;
+  /**
+   * Prompt textual con el que arrancar la conversación. Se envía al
+   * modelo como primer clientContent tras setupComplete. Debe describir
+   * el ámbito normativo activo (Ley 32069, 30225 o Ambas) para que el
+   * modelo NO diga siempre "basado en la Ley 32069" cuando el usuario
+   * eligió otra opción.
+   */
+  initialGreetingPrompt?: string;
   tools: unknown[];
   callId: string;
   /** Callback para cuando la API quiere ejecutar un tool. */
@@ -397,18 +405,16 @@ export class LiveClient {
    */
   private sendInitialGreeting() {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    const prompt =
+      this.cfg.initialGreetingPrompt ||
+      'Hola, acabo de conectar. Preséntate brevemente diciendo tu nombre, aclarando que eres IA y que tu información es orientativa, y pregúntame en qué te puedo consultar.';
     this.ws.send(
       JSON.stringify({
         clientContent: {
           turns: [
             {
               role: 'user',
-              parts: [
-                {
-                  text:
-                    'Hola, acabo de conectar. Preséntate brevemente diciendo tu nombre, aclarando que eres IA y que tu información es orientativa basada en la Ley 32069, y pregúntame en qué te puedo consultar.',
-                },
-              ],
+              parts: [{ text: prompt }],
             },
           ],
           turnComplete: true,

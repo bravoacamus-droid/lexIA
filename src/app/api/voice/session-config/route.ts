@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import {
   VOICE_MODEL_ID,
-  VOICE_SYSTEM_PROMPT,
+  buildVoiceSystemPrompt,
+  buildVoiceInitialGreeting,
   DISCLAIMER_VERSION,
 } from '@/lib/ai/voice-config';
 
@@ -56,7 +57,7 @@ export async function POST(req: Request) {
   // Validar que la llamada exista y sea del usuario
   const { data: call } = await supabase
     .from('voice_calls')
-    .select('id, status, voice_id')
+    .select('id, status, voice_id, law_filter')
     .eq('id', body.call_id)
     .maybeSingle();
   if (!call) return NextResponse.json({ error: 'call_not_found' }, { status: 404 });
@@ -69,11 +70,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'missing_api_key' }, { status: 500 });
   }
 
+  // Construir prompt y saludo según el régimen elegido por el usuario.
+  // Antes se enviaba siempre "Ley 32069" hardcoded, aunque el usuario
+  // hubiera marcado "Ambas" en el LawSelector.
+  const lawFilter = (call as { law_filter: string[] | null }).law_filter;
+
   return NextResponse.json({
     api_key: apiKey,
     model: VOICE_MODEL_ID,
     voice_id: (call as { voice_id: string }).voice_id,
-    system_instruction: VOICE_SYSTEM_PROMPT,
+    system_instruction: buildVoiceSystemPrompt(lawFilter),
+    initial_greeting: buildVoiceInitialGreeting(lawFilter),
     tools: [
       {
         functionDeclarations: [
