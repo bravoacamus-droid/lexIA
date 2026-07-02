@@ -483,6 +483,13 @@ export class LiveClient {
   }
 
   async stop() {
+    // CRÍTICO: flushear texto acumulado ANTES de cerrar. Si el usuario
+    // corta la llamada mientras Gemini está aún generando la respuesta,
+    // no llega `turnComplete` y se perdería el último turno (bug real
+    // detectado con la pregunta sobre Cuadro Multianual de Necesidades:
+    // rag_queries_count=2 pero solo 1 turno en la transcripción).
+    this.flushPendingTranscript();
+
     // Parar MediaRecorder antes de cleanup para no perder el último chunk
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       const stopped = new Promise<void>((resolve) => {
@@ -496,6 +503,33 @@ export class LiveClient {
       await Promise.race([stopped, new Promise((r) => setTimeout(r, 1500))]);
     }
     this.cleanup();
+  }
+
+  /**
+   * Emite lo acumulado en accumulatedUserText/AgentText aunque no haya
+   * llegado turnComplete. Se llama al cerrar la llamada para no perder
+   * el último turno.
+   */
+  private flushPendingTranscript() {
+    const userClean = sanitizeTranscript(this.accumulatedUserText);
+    if (userClean && !isLikelyNoise(userClean)) {
+      try {
+        this.cfg.onTranscript('user', userClean, this.elapsedSeconds());
+      } catch {
+        /* ignore */
+      }
+    }
+    this.accumulatedUserText = '';
+
+    const agentClean = sanitizeTranscript(this.accumulatedAgentText);
+    if (agentClean && !isLikelyNoise(agentClean)) {
+      try {
+        this.cfg.onTranscript('assistant', agentClean, this.elapsedSeconds());
+      } catch {
+        /* ignore */
+      }
+    }
+    this.accumulatedAgentText = '';
   }
 
   private cleanup() {

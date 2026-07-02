@@ -183,17 +183,36 @@ export function CallStarter({ hasConsent, disclaimerVersion }: Props) {
           }
         },
         onTranscript: (speaker, text, ts) => {
-          // Persistir transcripción (fire-and-forget)
-          void fetch('/api/voice/transcript', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              call_id: newCallId,
-              speaker,
-              timestamp_seconds: ts,
-              text,
-            }),
-          });
+          // Persistir transcripción con retry — antes era fire-and-forget
+          // sin manejo de error. En la llamada donde se perdió la 2ª
+          // pregunta del CMN el POST silenciosamente falló (probable race
+          // con el stop() cerrando el navegador). Usamos keepalive + retry.
+          const persist = async (attempt = 1): Promise<void> => {
+            try {
+              const r = await fetch('/api/voice/transcript', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  call_id: newCallId,
+                  speaker,
+                  timestamp_seconds: ts,
+                  text,
+                }),
+                // keepalive: el request sobrevive al cierre de página / stop()
+                keepalive: true,
+              });
+              if (!r.ok && attempt < 3) {
+                await new Promise((r) => setTimeout(r, 300 * attempt));
+                return persist(attempt + 1);
+              }
+            } catch {
+              if (attempt < 3) {
+                await new Promise((r) => setTimeout(r, 300 * attempt));
+                return persist(attempt + 1);
+              }
+            }
+          };
+          void persist();
         },
         onStateChange: (s) => setAgentState(s),
         onError: (msg) => toast.error(msg),
