@@ -35,10 +35,13 @@ export async function GET(_req: Request, ctx: { params: { id: string } }) {
     { auth: { autoRefreshToken: false, persistSession: false } },
   );
 
-  // Buscar via RPC para que pgvector use el índice
+  // Buscar via RPC para que pgvector use el índice.
+  // Feedback César 01/07/2026: la ref UI del cliente muestra "Ver más
+  // relaciones (12)" — subimos de 5 a 15 candidatos para que el usuario
+  // pueda expandir la lista y ver más docs relacionados.
   const { data, error } = await admin.rpc('find_related_documents', {
     p_document_id: ctx.params.id,
-    p_limit: 5,
+    p_limit: 15,
   });
 
   if (error) {

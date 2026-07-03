@@ -327,53 +327,85 @@ export function SummaryPanel({
 
       {/* Relacionados */}
       {related && related.length > 0 && (
-        <Card className="p-5 space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-accent text-foreground">
-              <Link2 className="h-3.5 w-3.5" />
-            </span>
-            <h3 className="font-semibold text-sm tracking-tight">
-              Documentos relacionados
-            </h3>
-          </div>
-          <div className="space-y-1.5">
-            {related.map((r) => {
-              const meta = getDocTypeMeta(r.doc_type);
-              return (
-                <Link
-                  key={r.document_id}
-                  href={`/biblioteca/documento/${r.document_id}`}
-                  className="group flex items-start gap-2 rounded-md px-2 py-1.5 hover:bg-secondary/60 transition-colors"
-                >
-                  <span
-                    className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded ${meta.bg} mt-0.5`}
-                  >
-                    <span className={`text-[9px] font-bold ${meta.color}`}>
-                      {meta.label[0]}
-                    </span>
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <Badge
-                      variant="outline"
-                      className={`text-[9px] px-1 py-0 mb-0.5 ${meta.color}`}
-                    >
-                      {meta.label}
-                    </Badge>
-                    <p className="text-xs leading-snug font-medium line-clamp-2 group-hover:text-brand-700 dark:group-hover:text-brand-400 transition-colors">
-                      {r.doc_number || r.doc_title}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-                      Similitud {(r.similarity * 100).toFixed(0)}%
-                    </p>
-                  </div>
-                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mt-0.5" />
-                </Link>
-              );
-            })}
-          </div>
-        </Card>
+        <RelatedCard related={related} />
       )}
     </div>
+  );
+}
+
+/**
+ * Sección de documentos relacionados con expansión.
+ * Feedback César 01/07/2026 (Ref UI cliente): mostrar solo N iniciales
+ * con botón "Ver más relaciones (X)" que expande al resto.
+ */
+function RelatedCard({ related }: { related: RelatedDoc[] }) {
+  const INITIAL_VISIBLE = 5;
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded ? related : related.slice(0, INITIAL_VISIBLE);
+  const remaining = related.length - INITIAL_VISIBLE;
+  return (
+    <Card className="p-5 space-y-3">
+      <div className="flex items-center gap-2">
+        <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-accent text-foreground">
+          <Link2 className="h-3.5 w-3.5" />
+        </span>
+        <h3 className="font-semibold text-sm tracking-tight">
+          Documentos relacionados
+        </h3>
+        <span className="ml-auto font-mono text-[10px] text-muted-foreground">
+          {related.length}
+        </span>
+      </div>
+      <div className="space-y-1.5">
+        {visible.map((r) => {
+          const meta = getDocTypeMeta(r.doc_type);
+          return (
+            <Link
+              key={r.document_id}
+              href={`/biblioteca/documento/${r.document_id}`}
+              className="group flex items-start gap-2 rounded-md px-2 py-1.5 hover:bg-secondary/60 transition-colors"
+            >
+              <span
+                className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded ${meta.bg} mt-0.5`}
+              >
+                <span className={`text-[9px] font-bold ${meta.color}`}>
+                  {meta.label[0]}
+                </span>
+              </span>
+              <div className="flex-1 min-w-0">
+                <Badge
+                  variant="outline"
+                  className={`text-[9px] px-1 py-0 mb-0.5 ${meta.color}`}
+                >
+                  {meta.label}
+                </Badge>
+                <p className="text-xs leading-snug font-medium line-clamp-2 group-hover:text-brand-700 dark:group-hover:text-brand-400 transition-colors">
+                  {r.doc_number || r.doc_title}
+                </p>
+                <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+                  Similitud {(r.similarity * 100).toFixed(0)}%
+                </p>
+              </div>
+              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mt-0.5" />
+            </Link>
+          );
+        })}
+      </div>
+      {remaining > 0 && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setExpanded(!expanded)}
+          className="w-full h-8 text-xs"
+        >
+          {expanded ? (
+            <>Ver menos</>
+          ) : (
+            <>Ver más relaciones ({remaining})</>
+          )}
+        </Button>
+      )}
+    </Card>
   );
 }
 
