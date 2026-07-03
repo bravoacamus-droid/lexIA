@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, BookmarkCheck, Inbox, Folder, BookOpen, Scale, TrendingUp, Bot } from 'lucide-react';
+import { Sparkles, X, BookmarkCheck, Inbox, Folder, BookOpen, Scale, TrendingUp, Bot, Star, Clock } from 'lucide-react';
 import { TypeFilter } from '@/components/app/library/type-filter';
 import { TagSearchInput } from '@/components/app/library/tag-search-input';
 import { LawSelector, type LawFilter } from '@/components/app/law-selector';
@@ -10,6 +10,7 @@ import { FoldersPanel } from '@/components/app/library/folders-panel';
 import { DocumentCard } from '@/components/app/library/document-card';
 import { SaveToFolderDialog } from '@/components/app/library/save-to-folder';
 import type { NormativeDocType } from '@/lib/supabase/types';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export interface FolderItem {
@@ -128,6 +129,10 @@ export function LibraryView({
   // Filtro de ley aplicable (null = ambas). Persiste solo durante la
   // navegación; al recargar Biblioteca vuelve a Ambas.
   const [lawFilter, setLawFilter] = useState<LawFilter>(null);
+  // Filtro rápido: 'favorites' = solo docs guardados por el usuario;
+  // 'recent' = últimos 30 días indexados en la base. null = sin filtro.
+  // Feedback César 01/07/2026 (ref UI cliente): agregar toggles visibles.
+  const [quickFilter, setQuickFilter] = useState<'favorites' | 'recent' | null>(null);
   const [selectedFolderId, setSelectedFolderId] = useState<
     string | null | 'unfiled' | 'all-saved'
   >(null);
@@ -158,14 +163,20 @@ export function LibraryView({
       setLoading(true);
       setExhausted(false);
       try {
+        // quickFilter='favorites' se implementa reutilizando la ruta de
+        // documentos guardados (todos los saved del usuario). Se activa
+        // aunque el usuario no haya elegido carpeta.
+        const effectiveFolderId =
+          quickFilter === 'favorites' ? 'all-saved' : selectedFolderId;
+
         // Si hay carpeta/saved seleccionado y NO hay query, traer documentos guardados.
         // Si hay query, ignorar la selección y buscar normalmente.
-        if (selectedFolderId && !debounced) {
+        if (effectiveFolderId && !debounced) {
           // 'all-saved' → todos los saved del usuario (sin filtro de folder)
           // 'unfiled'   → saved con folder_id null
           // <uuid>      → saved con ese folder_id
           const folderParam =
-            selectedFolderId === 'all-saved' ? 'all' : selectedFolderId;
+            effectiveFolderId === 'all-saved' ? 'all' : effectiveFolderId;
           const res = await fetch(`/api/saved-documents?folder=${folderParam}`);
           const json = await res.json();
           if (cancelled) return;
@@ -202,10 +213,24 @@ export function LibraryView({
           setExhausted(true); // los modos search no paginan (devuelve los top N)
         } else {
           setMode('browse');
-          const docs = (json.documents || []) as BrowseDoc[];
+          let docs = (json.documents || []) as BrowseDoc[];
+          // quickFilter='recent' — mostrar solo docs publicados en
+          // los últimos 30 días. Filtro post-fetch simple (el endpoint
+          // ya ordena por fecha desc, así que suelen estar entre los
+          // primeros).
+          if (quickFilter === 'recent') {
+            const cutoff = Date.now() - 30 * 86400_000;
+            docs = docs.filter((d) => {
+              if (!d.date) return false;
+              const t = new Date(d.date).getTime();
+              return !Number.isNaN(t) && t >= cutoff;
+            });
+            setExhausted(true); // no seguimos paginando si estamos filtrando
+          } else if (typeof json.total === 'number') {
+            setBrowseTotal(json.total);
+            setExhausted(json.hasMore === false);
+          }
           setBrowseDocs(docs);
-          if (typeof json.total === 'number') setBrowseTotal(json.total);
-          setExhausted(json.hasMore === false);
         }
       } catch {
         toast.error('Error al buscar. Intenta de nuevo.');
@@ -217,7 +242,7 @@ export function LibraryView({
     return () => {
       cancelled = true;
     };
-  }, [debounced, type, selectedFolderId, pageSize, lawFilter, tags]);
+  }, [debounced, type, selectedFolderId, pageSize, lawFilter, tags, quickFilter]);
 
   // Infinite scroll: cargar siguiente página al ver el sentinel
   useEffect(() => {
@@ -369,6 +394,11 @@ export function LibraryView({
             value={lawFilter}
             onChange={setLawFilter}
             ariaLabel="Filtrar biblioteca por ley aplicable"
+          />
+          <QuickFilters
+            value={quickFilter}
+            onChange={setQuickFilter}
+            favoritesCount={savedIds.size}
           />
         </div>
       </div>
@@ -782,6 +812,68 @@ function SuggestedQueries({ onPick }: { onPick: (q: string) => void }) {
           {s.label}
         </button>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Toggles rápidos: Favoritos y Recientes. Feedback César 01/07/2026
+ * inspirado en la ref UI del cliente que muestra filtros rápidos junto
+ * a los filtros por tipo. Se puede tener activo solo uno a la vez —
+ * clickear el mismo lo desactiva.
+ */
+function QuickFilters({
+  value,
+  onChange,
+  favoritesCount,
+}: {
+  value: 'favorites' | 'recent' | null;
+  onChange: (v: 'favorites' | 'recent' | null) => void;
+  favoritesCount: number;
+}) {
+  return (
+    <div className="inline-flex items-center gap-1 rounded-lg border border-border bg-background/60 p-0.5">
+      <button
+        type="button"
+        onClick={() => onChange(value === 'favorites' ? null : 'favorites')}
+        title="Mostrar solo documentos guardados"
+        className={cn(
+          'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
+          value === 'favorites'
+            ? 'bg-amber-500 text-white shadow-sm'
+            : 'text-muted-foreground hover:text-foreground hover:bg-secondary',
+        )}
+      >
+        <Star
+          className="h-3.5 w-3.5"
+          fill={value === 'favorites' ? 'currentColor' : 'none'}
+        />
+        Favoritos
+        {favoritesCount > 0 && (
+          <span
+            className={cn(
+              'ml-0.5 font-mono text-[10px] opacity-70',
+              value === 'favorites' ? 'text-white' : '',
+            )}
+          >
+            {favoritesCount}
+          </span>
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange(value === 'recent' ? null : 'recent')}
+        title="Documentos publicados en los últimos 30 días"
+        className={cn(
+          'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
+          value === 'recent'
+            ? 'bg-brand-600 text-white shadow-sm'
+            : 'text-muted-foreground hover:text-foreground hover:bg-secondary',
+        )}
+      >
+        <Clock className="h-3.5 w-3.5" />
+        Recientes
+      </button>
     </div>
   );
 }
