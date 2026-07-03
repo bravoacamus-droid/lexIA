@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   Sparkles,
   Tag,
+  MessageCircleQuestion,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -196,6 +197,21 @@ export function DocumentCard({
             </a>
           </Button>
         )}
+        {/* Botón "Preguntar" — pre-carga una pregunta con contexto del
+            documento y abre una conversación nueva en el chat. Feedback
+            César 01/07/2026: ref UI del cliente muestra este acceso
+            rápido para mover al usuario del hallazgo a la consulta. */}
+        <Button
+          asChild
+          size="sm"
+          variant="ghost"
+          className="text-brand-700 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/40"
+        >
+          <Link href={buildAskChatUrl(document)}>
+            <MessageCircleQuestion className="h-3.5 w-3.5" />
+            Preguntar
+          </Link>
+        </Button>
         <Button asChild size="sm" variant="subtle">
           <Link href={`/biblioteca/documento/${document.id}`}>
             Abrir
@@ -205,4 +221,18 @@ export function DocumentCard({
       </div>
     </motion.article>
   );
+}
+
+/**
+ * Construye la URL para abrir el chat con una pregunta pre-cargada
+ * sobre este documento. El endpoint /chat?new=1&q=... crea una
+ * conversación nueva y envía la pregunta como primer mensaje del usuario.
+ */
+function buildAskChatUrl(doc: DocumentMini): string {
+  const meta = getDocTypeMeta(doc.type);
+  const label = doc.number || doc.title.slice(0, 80);
+  // Pregunta redactada en 1ra persona para que el chat responda con
+  // contexto de este documento específico.
+  const q = `Explícame los puntos clave del ${meta.label} ${label}. ¿Qué establece y a quién afecta?`;
+  return `/chat?new=1&q=${encodeURIComponent(q)}`;
 }
