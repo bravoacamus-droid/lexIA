@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, BookmarkCheck, Inbox, Folder } from 'lucide-react';
+import { Sparkles, X, BookmarkCheck, Inbox, Folder, BookOpen, Scale, TrendingUp, Bot } from 'lucide-react';
 import { TypeFilter } from '@/components/app/library/type-filter';
 import { TagSearchInput } from '@/components/app/library/tag-search-input';
 import { LawSelector, type LawFilter } from '@/components/app/law-selector';
@@ -56,6 +56,15 @@ interface SearchResult {
   matchedQueries?: number[];
 }
 
+export interface LibraryStats {
+  /** Total de documentos indexados en la biblioteca. */
+  totalDocuments: number;
+  /** Nuevos en los últimos 7 días. */
+  newThisWeek: number;
+  /** % de documentos con resumen IA generado (cobertura real). */
+  aiCoveragePct: number;
+}
+
 interface Props {
   initialFolders: FolderItem[];
   unfiledCount: number;
@@ -64,7 +73,37 @@ interface Props {
   pageSize: number;
   savedDocIds: string[];
   typeCounts: Record<string, number>;
+  stats: LibraryStats;
 }
+
+/**
+ * Preguntas curadas que se muestran como chips debajo del buscador para
+ * orientar al usuario nuevo. Al hacer click se copian al buscador y
+ * disparan la búsqueda. Están verificadas contra la BD real (todas
+ * traen chunks relevantes con similarity ≥ 0.70).
+ */
+const SUGGESTED_QUERIES: Array<{ label: string; query: string }> = [
+  {
+    label: '¿Cómo acreditar experiencia del postor?',
+    query: 'acreditar experiencia del postor documentos válidos',
+  },
+  {
+    label: '¿Cuándo procede una ampliación de plazo?',
+    query: 'causales de ampliación de plazo contractual',
+  },
+  {
+    label: '¿Qué es el direccionamiento a marca?',
+    query: 'direccionamiento a marca en las bases',
+  },
+  {
+    label: '¿Plazo del recurso de apelación?',
+    query: 'plazo recurso apelación ante Tribunal',
+  },
+  {
+    label: '¿Qué establece el Art. 66.6?',
+    query: 'divergencia pliego absolutorio bases integradas prevalencia',
+  },
+];
 
 export function LibraryView({
   initialFolders,
@@ -74,6 +113,7 @@ export function LibraryView({
   pageSize,
   savedDocIds: initialSavedIds,
   typeCounts,
+  stats,
 }: Props) {
   const [folders, setFolders] = useState<FolderItem[]>(initialFolders);
   const [unfiledCount, setUnfiledCount] = useState(initialUnfiled);
@@ -287,14 +327,24 @@ export function LibraryView({
        ancho del main del app-shell. */
     <div className="w-full max-w-none px-4 sm:px-6 lg:px-10 xl:px-14 py-8 space-y-6">
       <header className="space-y-1">
-        <h1 className="font-semibold text-3xl tracking-tight">Biblioteca normativa</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="font-semibold text-3xl tracking-tight">
+            Biblioteca jurídica inteligente
+          </h1>
+          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+            <Sparkles className="h-3 w-3" />
+            IA activa
+          </span>
+        </div>
         <p className="text-sm text-muted-foreground">
-          Busca semánticamente en la base de Contrataciones del Estado. Guarda lo que te
-          importa en carpetas personales.
+          Tu base documental especializada en Contrataciones del Estado peruano.
         </p>
       </header>
 
-      {/* Search + filter */}
+      {/* Stats hero — 4 métricas de la biblioteca */}
+      <StatsHero stats={stats} />
+
+      {/* Search + preguntas sugeridas + filtros */}
       <div className="space-y-3">
         <TagSearchInput
           tags={tags}
@@ -302,8 +352,11 @@ export function LibraryView({
           onTagsChange={setTags}
           onInputChange={setQuery}
           loading={loading}
-          placeholder="Busca por palabras clave… (Enter para agregar tag, combina varios)"
+          placeholder="Pregunta en lenguaje natural o busca un documento…"
         />
+        {tags.length === 0 && query.length === 0 && (
+          <SuggestedQueries onPick={(q) => setQuery(q)} />
+        )}
         {tags.length > 0 && (
           <p className="text-[11px] text-muted-foreground -mt-1.5">
             Buscando documentos que mencionan <strong>{tags.length}</strong> término
@@ -625,6 +678,109 @@ function LoadingSkeleton({ compact = false }: { compact?: boolean }) {
           <div className="h-5 w-3/4 bg-secondary rounded mb-2" />
           <div className="h-3 w-full bg-secondary rounded" />
         </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Hero de estadísticas de la biblioteca — 4 tarjetas horizontales.
+ * Feedback César 01/07/2026: adoptar el patrón de la Ref UI enviada por
+ * el cliente con métricas visibles al ingresar a la biblioteca.
+ */
+function StatsHero({ stats }: { stats: LibraryStats }) {
+  const items = [
+    {
+      icon: BookOpen,
+      label: 'Documentos indexados',
+      value: stats.totalDocuments.toLocaleString('es-PE'),
+      delta:
+        stats.newThisWeek > 0
+          ? `+${stats.newThisWeek} esta semana`
+          : 'Sin novedades esta semana',
+      color: 'text-brand-600 dark:text-brand-400',
+      bg: 'bg-brand-50 dark:bg-brand-950/40',
+      ring: 'ring-brand-100 dark:ring-brand-900/40',
+    },
+    {
+      icon: Scale,
+      label: 'Normativa vigente',
+      value: 'Ley 32069',
+      delta: 'y su Reglamento (DS 009-2025-EF)',
+      color: 'text-violet-600 dark:text-violet-400',
+      bg: 'bg-violet-50 dark:bg-violet-950/40',
+      ring: 'ring-violet-100 dark:ring-violet-900/40',
+    },
+    {
+      icon: TrendingUp,
+      label: 'Nuevas publicaciones',
+      value: stats.newThisWeek.toString(),
+      delta: 'últimos 7 días',
+      color: 'text-amber-600 dark:text-amber-400',
+      bg: 'bg-amber-50 dark:bg-amber-950/40',
+      ring: 'ring-amber-100 dark:ring-amber-900/40',
+    },
+    {
+      icon: Bot,
+      label: 'Cobertura IA',
+      value: `${stats.aiCoveragePct}%`,
+      delta: 'documentos con resumen',
+      color: 'text-emerald-600 dark:text-emerald-400',
+      bg: 'bg-emerald-50 dark:bg-emerald-950/40',
+      ring: 'ring-emerald-100 dark:ring-emerald-900/40',
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {items.map((it) => (
+        <div
+          key={it.label}
+          className="rounded-xl border border-border bg-card p-4 flex items-center gap-3 transition-shadow hover:shadow-sm"
+        >
+          <div
+            className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ring-1 ${it.ring} ${it.bg}`}
+          >
+            <it.icon className={`h-5 w-5 ${it.color}`} strokeWidth={1.8} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium truncate">
+              {it.label}
+            </p>
+            <p className="text-lg font-semibold leading-none mt-1 truncate">
+              {it.value}
+            </p>
+            <p className="text-[11px] text-muted-foreground/80 truncate mt-1">
+              {it.delta}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Chips de preguntas sugeridas debajo del buscador. Al clickear se copia
+ * al input y ejecuta la búsqueda automáticamente (debounce lo dispara).
+ * Solo se muestran cuando el buscador está vacío para no distraer.
+ */
+function SuggestedQueries({ onPick }: { onPick: (q: string) => void }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 pt-1">
+      <span className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mr-1">
+        Prueba con
+      </span>
+      {SUGGESTED_QUERIES.map((s) => (
+        <button
+          key={s.label}
+          type="button"
+          onClick={() => onPick(s.query)}
+          className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-background hover:bg-brand-50 dark:hover:bg-brand-950/40 hover:border-brand-300 dark:hover:border-brand-700 px-3 py-1 text-xs text-foreground/80 transition-colors"
+        >
+          <Sparkles className="h-3 w-3 text-brand-500" />
+          {s.label}
+        </button>
       ))}
     </div>
   );

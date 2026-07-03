@@ -14,7 +14,16 @@ export default async function LibraryPage() {
 
   // Cargamos en paralelo todo lo que necesita la vista inicial
   const INITIAL_PAGE_SIZE = 30;
-  const [foldersRes, savedRes, recentDocsRes, typeCountsRes] = await Promise.all([
+  // Últimos 7 días — para el badge "+N esta semana" en las stats
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400_000).toISOString();
+  const [
+    foldersRes,
+    savedRes,
+    recentDocsRes,
+    typeCountsRes,
+    newThisWeekRes,
+    aiSummaryCountRes,
+  ] = await Promise.all([
     supabase
       .from('user_folders')
       .select('id, name, color, icon, created_at')
@@ -32,6 +41,16 @@ export default async function LibraryPage() {
       .order('date', { ascending: false, nullsFirst: false })
       .range(0, INITIAL_PAGE_SIZE - 1),
     supabase.from('normative_documents').select('type'),
+    // Documentos ingresados en los últimos 7 días
+    supabase
+      .from('normative_documents')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', sevenDaysAgo),
+    // Cuántos docs tienen resumen IA generado (indicador de cobertura)
+    supabase
+      .from('normative_documents')
+      .select('id', { count: 'exact', head: true })
+      .not('ai_summary', 'is', null),
   ]);
 
   // Conteos por carpeta
@@ -64,6 +83,13 @@ export default async function LibraryPage() {
   const initialDocuments = (recentDocsRes.data || []) as never[];
   const totalDocuments = (recentDocsRes.count ?? initialDocuments.length) as number;
 
+  const newThisWeek = (newThisWeekRes.count ?? 0) as number;
+  const aiSummaryCount = (aiSummaryCountRes.count ?? 0) as number;
+  // "Precisión IA" en biblioteca: % de docs con resumen IA generado.
+  // Es una métrica real de cobertura del sistema, no un placeholder.
+  const aiCoveragePct =
+    totalDocuments > 0 ? Math.round((aiSummaryCount / totalDocuments) * 100) : 0;
+
   return (
     <LibraryView
       initialFolders={folders}
@@ -73,6 +99,11 @@ export default async function LibraryPage() {
       pageSize={INITIAL_PAGE_SIZE}
       savedDocIds={Array.from(savedDocIds)}
       typeCounts={typeCounts}
+      stats={{
+        totalDocuments,
+        newThisWeek,
+        aiCoveragePct,
+      }}
     />
   );
 }
