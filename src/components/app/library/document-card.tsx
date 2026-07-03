@@ -138,15 +138,19 @@ export function DocumentCard({
       {/* Resumen IA — reemplaza al summary genérico si existe.
           Es el fix visible al feedback de César: "no se muestran los
           resúmenes". Diseño discreto con ícono ✨ para diferenciarlo
-          del contenido puro del documento. */}
+          del contenido puro del documento.
+          Fix 01/07/2026: line-clamp-3 en vez de line-clamp-2 y
+          maxLength=380 para que se vea la oración COMPLETA en la mayoría
+          de casos (el generador produce 180-280 chars). Los "..." que
+          César veía eran del clamp CSS, no del texto real. */}
       {document.ai_summary?.de_que_trata && !excerpt && (
         <div className="mt-2.5 flex items-start gap-1.5">
           <Sparkles className="h-3.5 w-3.5 text-brand-500 shrink-0 mt-0.5" />
-          <p className="text-sm text-foreground/80 leading-relaxed line-clamp-2">
+          <p className="text-sm text-foreground/80 leading-relaxed line-clamp-3">
             <HighlightedText
               text={document.ai_summary.de_que_trata}
               terms={highlightTerms}
-              maxLength={220}
+              maxLength={380}
             />
           </p>
         </div>
@@ -169,11 +173,11 @@ export function DocumentCard({
 
       {/* Fallback al summary del extractor si NO hay ai_summary */}
       {document.summary && !document.ai_summary?.de_que_trata && !excerpt && (
-        <p className="mt-2 text-sm text-muted-foreground leading-relaxed line-clamp-2">
+        <p className="mt-2 text-sm text-muted-foreground leading-relaxed line-clamp-3">
           <HighlightedText
             text={document.summary}
             terms={highlightTerms}
-            maxLength={220}
+            maxLength={380}
           />
         </p>
       )}

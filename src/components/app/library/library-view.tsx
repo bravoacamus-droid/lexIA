@@ -10,7 +10,7 @@ import { FoldersPanel } from '@/components/app/library/folders-panel';
 import { DocumentCard } from '@/components/app/library/document-card';
 import { SaveToFolderDialog } from '@/components/app/library/save-to-folder';
 import type { NormativeDocType } from '@/lib/supabase/types';
-import { cn } from '@/lib/utils';
+import { cn, DOC_TYPE_META } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export interface FolderItem {
@@ -526,18 +526,36 @@ function SearchResultsList({
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-2 mb-3">
-        <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
-          {results.length} resultado{results.length !== 1 ? 's' : ''}
+      {/* Breakdown prominente por tipo — feedback César 01/07/2026 (ref UI):
+          la ref del cliente muestra "Resoluciones del TCP (334) · Pronunciamientos
+          (17)" como chips destacados encima de los resultados para orientar
+          al usuario sobre qué tipos de fuente matchearon su búsqueda. */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mr-1">
+          {results.length} resultado{results.length !== 1 ? 's' : ''} en
         </p>
-        {typeBreakdown.map(([t, n]) => (
-          <span
-            key={t}
-            className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground/80 px-1.5 py-0.5 rounded bg-secondary/60"
-          >
-            {t} {n}
-          </span>
-        ))}
+        {typeBreakdown.map(([t, n]) => {
+          const meta = DOC_TYPE_META[t as NormativeDocType];
+          if (!meta) return null;
+          return (
+            <span
+              key={t}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium',
+                meta.bg,
+                meta.color,
+                'border-transparent',
+              )}
+            >
+              <span
+                className="inline-block h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: meta.tagColor }}
+              />
+              {meta.label}
+              <span className="font-mono text-[10px] opacity-70">({n})</span>
+            </span>
+          );
+        })}
       </div>
       <div className="space-y-3">
         <AnimatePresence initial={false}>
