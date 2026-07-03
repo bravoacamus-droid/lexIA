@@ -506,6 +506,8 @@ export function DocumentViewer({
               initialSummary={initialSummary}
               initialGeneratedAt={initialSummaryGeneratedAt}
               initialModel={initialSummaryModel}
+              rawText={doc.raw_text || undefined}
+              savedAt={saved ? new Date().toISOString() : null}
             />
             {/* Mis resaltados */}
           <Card className="p-4">
