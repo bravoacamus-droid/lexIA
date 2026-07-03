@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, BookmarkCheck, Inbox, Folder, BookOpen, Scale, TrendingUp, Bot, Star, Clock } from 'lucide-react';
 import { TypeFilter } from '@/components/app/library/type-filter';
 import { TagSearchInput } from '@/components/app/library/tag-search-input';
-import { LawSelector, type LawFilter } from '@/components/app/law-selector';
+import { LawSelectorCard, type LawFilter } from '@/components/app/law-selector';
 import { FoldersPanel } from '@/components/app/library/folders-panel';
 import { DocumentCard } from '@/components/app/library/document-card';
 import { SaveToFolderDialog } from '@/components/app/library/save-to-folder';
@@ -369,6 +369,12 @@ export function LibraryView({
       {/* Stats hero — 4 métricas de la biblioteca */}
       <StatsHero stats={stats} />
 
+      {/* Selector de Régimen Normativo — apartado independiente, prominente.
+          Feedback César 01/07/2026: "debe tener un apartado independiente,
+          ser más visible y más grande". Se elige ANTES de filtrar por tipo
+          o buscar, para no mezclar jurisprudencia de ambas leyes. */}
+      <LawSelectorCard value={lawFilter} onChange={setLawFilter} />
+
       {/* Search + preguntas sugeridas + filtros */}
       <div className="space-y-3">
         <TagSearchInput
@@ -390,11 +396,6 @@ export function LibraryView({
         )}
         <div className="flex flex-wrap items-center gap-3">
           <TypeFilter value={type} onChange={setType} counts={typeCounts} />
-          <LawSelector
-            value={lawFilter}
-            onChange={setLawFilter}
-            ariaLabel="Filtrar biblioteca por ley aplicable"
-          />
           <QuickFilters
             value={quickFilter}
             onChange={setQuickFilter}

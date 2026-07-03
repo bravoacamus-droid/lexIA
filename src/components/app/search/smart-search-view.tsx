@@ -18,7 +18,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TagSearchInput } from '@/components/app/library/tag-search-input';
 import { TypeFilter } from '@/components/app/library/type-filter';
-import { LawSelector, type LawFilter } from '@/components/app/law-selector';
+import { LawSelectorCard, type LawFilter } from '@/components/app/law-selector';
 import { DocumentCard } from '@/components/app/library/document-card';
 import { getRoleTheme } from '@/lib/navigation/role-theme';
 import { toast } from 'sonner';
@@ -189,6 +189,11 @@ export function SmartSearchView({ role }: Props) {
         </div>
       </motion.section>
 
+      {/* Selector de Régimen Normativo — apartado independiente, prominente.
+          Feedback César 01/07/2026: sacado del panel de filtros expandible
+          para que el usuario elija el régimen ANTES de buscar. */}
+      <LawSelectorCard value={lawFilter} onChange={setLawFilter} />
+
       {/* Input multi-tag prominente */}
       <div className="space-y-3">
         <TagSearchInput
@@ -246,19 +251,14 @@ export function SmartSearchView({ role }: Props) {
               exit={{ opacity: 0, height: 0 }}
               className="overflow-hidden"
             >
-              <Card className="p-4 space-y-3">
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-2">
-                    Tipo de documento
-                  </p>
-                  <TypeFilter value={type} onChange={setType} counts={{}} />
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-2">
-                    Régimen normativo
-                  </p>
-                  <LawSelector value={lawFilter} onChange={setLawFilter} />
-                </div>
+              <Card className="p-4">
+                {/* Régimen normativo movido al banner LawSelectorCard
+                    arriba del hero. En este panel solo queda el filtro
+                    por tipo de documento. */}
+                <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-2">
+                  Tipo de documento
+                </p>
+                <TypeFilter value={type} onChange={setType} counts={{}} />
               </Card>
             </motion.div>
           )}
