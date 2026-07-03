@@ -163,11 +163,14 @@ export function SmartSearchView({ role }: Props) {
           aria-hidden
         />
         <div className="relative flex items-start gap-4">
-          <div
-            className={`hidden sm:inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${
-              theme?.classes.solidBg || 'bg-brand-600'
-            } shadow-lg`}
-          >
+          {/* Ícono cuadrado del hero — feedback César 01/07/2026:
+              "veo un badge blanco vacío al costado del título".
+              Causa: el theme.classes.solidBg con opacidad/tonalidad muy
+              tenue no destacaba sobre el gradient del hero. Fijamos el
+              color al brand-600 (azul LexIA) + gradient para que se vea
+              siempre nítido independiente del rol activo. Añadimos
+              ring interno para reforzar el borde. */}
+          <div className="hidden sm:inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-lg ring-1 ring-inset ring-white/20">
             <SearchCode className="h-7 w-7 text-white" strokeWidth={2} />
           </div>
           <div className="min-w-0 flex-1">

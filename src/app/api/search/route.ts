@@ -133,25 +133,39 @@ export async function POST(req: Request) {
     );
   }
 
-  // Hybrid search por query en paralelo (saltamos queries cuyo embedding falló)
-  const perQueryRows = await Promise.all(
-    activeQueries.map(async (q, i) => {
-      const emb = queryEmbeddings[i];
-      if (!emb) return [] as HybridRow[];
-      const { data, error } = await supabase.rpc('hybrid_search', {
-        query_text: q,
-        query_embedding: emb,
-        match_count: limit * 2,
-        filter_type: type || null,
-        filter_law: law ? [law] : null,
-      });
-      if (error) {
-        console.error('[search] hybrid_search error para query', q, ':', error.message);
-        return [] as HybridRow[];
-      }
-      return ((data || []) as HybridRow[]).map((r) => ({ ...r, _q: i }));
-    }),
-  );
+  // Hybrid search por query — SECUENCIAL con AbortController.
+  //
+  // Bug reportado por César 01/07/2026: "Subsanación de ofertas" con
+  // tags [subsanación, omisión, anexo] mostraba "Sin resultados".
+  //
+  // Causa: hybrid_search tarda 6-8s por query en el corpus de 12k chunks.
+  // Con Promise.all las 3 queries paralelas excedían el statement_timeout
+  // de Postgres (canceling statement due to statement timeout) y las 3
+  // devolvían vacío. Además paralelo no ayuda si el DB ya está saturado.
+  //
+  // Fix: correr secuencialmente. Cada query respeta su tiempo. El total
+  // es lineal (3 tags × 7s ≈ 21s) pero devuelve resultados reales.
+  const perQueryRows: Array<Array<HybridRow & { _q: number }>> = [];
+  for (let i = 0; i < activeQueries.length; i++) {
+    const emb = queryEmbeddings[i];
+    if (!emb) {
+      perQueryRows.push([]);
+      continue;
+    }
+    const { data, error } = await supabase.rpc('hybrid_search', {
+      query_text: activeQueries[i],
+      query_embedding: emb,
+      match_count: 8,
+      filter_type: type || null,
+      filter_law: law ? [law] : null,
+    });
+    if (error) {
+      console.error('[search] hybrid_search error para query', activeQueries[i], ':', error.message);
+      perQueryRows.push([]);
+      continue;
+    }
+    perQueryRows.push(((data || []) as HybridRow[]).map((r) => ({ ...r, _q: i })));
+  }
 
   // Agrupar chunks por documento. Para cada doc anotamos en qué
   // queries apareció (set) para calcular bonus multi-tag.
