@@ -52,6 +52,7 @@ REGLAS ESTRICTAS:
 4. NO inventes información que no esté en el documento.
 5. Si una sección no aplica (ej. el doc no establece un criterio claro), devuelve un string corto explicando que el documento no aborda ese aspecto.
 6. IMPORTANTE (feedback César 30/06/2026): "de_que_trata" debe tener entre 2 y 3 oraciones (aprox 180-280 caracteres), con contexto sustantivo. NO una línea genérica de 60 caracteres. Debe transmitir el objeto del documento, su alcance principal, y el ámbito de aplicación.
+7. CIERRE DE IDEA (feedback César 01/07/2026): CADA campo string DEBE terminar con punto final (.) o signo de cierre (?, !). PROHIBIDO terminar con puntos suspensivos ("..." o "…"), guiones, comas o coma+espacio. Si tu redacción llegaría al límite de caracteres sin cerrar la idea, ACORTA la oración para cerrarla correctamente antes de llegar al límite. Cada campo debe leerse como una idea COMPLETA, no como un fragmento cortado.
 
 ESQUEMA DEL JSON:
 {
@@ -132,12 +133,66 @@ function validate(obj: unknown): DocumentSummary | null {
     ? o.temas.filter(isString).slice(0, 8)
     : [];
   return {
-    de_que_trata: o.de_que_trata.slice(0, 350),
-    que_establece: o.que_establece.slice(0, 500),
-    a_quien_afecta: o.a_quien_afecta.slice(0, 300),
-    que_criterio_establece: o.que_criterio_establece.slice(0, 500),
+    de_que_trata: truncateAtSentence(o.de_que_trata, 350),
+    que_establece: truncateAtSentence(o.que_establece, 500),
+    a_quien_afecta: truncateAtSentence(o.a_quien_afecta, 300),
+    que_criterio_establece: truncateAtSentence(o.que_criterio_establece, 500),
     temas,
   };
+}
+
+/**
+ * Trunca un texto al último final de oración (. ? !) dentro del límite.
+ * Si no encuentra ninguno, corta en el último espacio y añade punto final.
+ *
+ * Fix reportado por César 01/07/2026: los resúmenes IA terminaban en "..."
+ * o mid-palabra porque el sanitize hacía slice(0, N) sin respetar
+ * puntuación. Ahora garantizamos que TODOS los campos cierren con "."
+ * o el signo de cierre correspondiente.
+ */
+function truncateAtSentence(raw: string, maxLen: number): string {
+  let text = raw.trim();
+  // Normalizar puntos suspensivos comunes que el modelo podría emitir
+  // aunque el prompt lo prohíba: ... … . .. — al final los sustituimos
+  // por punto simple para no dejar "..." en la UI.
+  text = text.replace(/[…]+\s*$/g, '.').replace(/\.{2,}\s*$/g, '.');
+  // También al inicio (residuos "… texto")
+  text = text.replace(/^[…]+\s*/g, '').replace(/^\.{2,}\s*/g, '');
+  text = text.trim();
+
+  if (text.length <= maxLen) {
+    // Aún así aseguramos que termine en puntuación
+    if (!/[.?!]$/.test(text)) text = text + '.';
+    return text;
+  }
+
+  // Buscar el último . ? ! dentro del límite
+  const slice = text.slice(0, maxLen);
+  const lastSentenceEnd = Math.max(
+    slice.lastIndexOf('. '),
+    slice.lastIndexOf('.\n'),
+    slice.lastIndexOf('? '),
+    slice.lastIndexOf('! '),
+  );
+
+  if (lastSentenceEnd > maxLen * 0.55) {
+    // Cortar justo después del signo de cierre encontrado
+    return slice.slice(0, lastSentenceEnd + 1).trim();
+  }
+
+  // Fallback: cortar en el último espacio y agregar punto final
+  const lastSpace = slice.lastIndexOf(' ');
+  const cut = lastSpace > 40 ? slice.slice(0, lastSpace) : slice;
+  // Quitar puntuación y espacios sobrantes antes de añadir el punto final.
+  // Regex atrapa: comas, punto y coma, dos puntos, guiones, comillas
+  // sueltas, "y", "e", "o" al final (conectivos que quedaron colgados).
+  return (
+    cut
+      .trim()
+      .replace(/[,;:—\-"'"]+$/, '')
+      .replace(/\s+(?:y|e|o|u|que|de|del|la|el|los|las|para|con|sin|por)\s*$/i, '')
+      .trim() + '.'
+  );
 }
 
 /**
