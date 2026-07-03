@@ -176,12 +176,51 @@ export function ChatPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const messagesWithSources: MessageWithSources[] = messages.map((m) => ({
-    id: m.id,
-    role: m.role as 'user' | 'assistant',
-    content: m.content,
-    sources: sourcesById[m.id] || [],
-  }));
+  // Sincronizar sourcesById con initialMessages cada vez que este cambie.
+  //
+  // Bug reportado por César 01/07/2026: al abrir una fuente del chat,
+  // luego navegar al documento completo, y volver al chat → las fuentes
+  // desaparecen. Causa: cuando el usuario regresa, Next.js re-renderiza
+  // el chat y el useChat de Vercel AI SDK trae los mensajes desde
+  // initialMessages, pero el sourcesById ya no tenía la información
+  // (se mantenía solo con IDs de mensajes agregados en la sesión).
+  // Fix: cada vez que initialMessages cambia, incorporamos sus sources
+  // al sourcesById (sin borrar los que ya se acumularon en la sesión).
+  useEffect(() => {
+    const fromInitial: Record<string, ChatSource[]> = {};
+    for (const m of initialMessages) {
+      if (m.role === 'assistant' && m.sources && m.sources.length > 0) {
+        fromInitial[m.id] = m.sources as ChatSource[];
+      }
+    }
+    if (Object.keys(fromInitial).length > 0) {
+      setSourcesById((prev) => ({ ...fromInitial, ...prev }));
+    }
+  }, [initialMessages]);
+
+  // Fallback: si sourcesById[id] no tiene sources pero el mensaje es
+  // assistant, buscamos por posición en initialMessages. Cubre el caso
+  // donde useChat regenera algún ID (raro pero visto en producción).
+  const assistantInitialByIndex = initialMessages.filter((m) => m.role === 'assistant');
+  let assistantIdx = -1;
+  const messagesWithSources: MessageWithSources[] = messages.map((m) => {
+    let sources: ChatSource[] = sourcesById[m.id] || [];
+    if (m.role === 'assistant') {
+      assistantIdx += 1;
+      if (sources.length === 0) {
+        const initMsg = assistantInitialByIndex[assistantIdx];
+        if (initMsg?.sources && initMsg.sources.length > 0) {
+          sources = initMsg.sources as ChatSource[];
+        }
+      }
+    }
+    return {
+      id: m.id,
+      role: m.role as 'user' | 'assistant',
+      content: m.content,
+      sources,
+    };
+  });
 
   function onSuggest(s: string) {
     setSuggestions([]);

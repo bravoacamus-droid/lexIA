@@ -20,6 +20,7 @@ import { TagSearchInput } from '@/components/app/library/tag-search-input';
 import { TypeFilter } from '@/components/app/library/type-filter';
 import { LawSelectorCard, type LawFilter } from '@/components/app/law-selector';
 import { DocumentCard } from '@/components/app/library/document-card';
+import { SearchLottieLoader } from '@/components/app/search/search-lottie-loader';
 import { getRoleTheme } from '@/lib/navigation/role-theme';
 import { toast } from 'sonner';
 import type { NormativeDocType } from '@/lib/supabase/types';
@@ -202,6 +203,7 @@ export function SmartSearchView({ role }: Props) {
           onTagsChange={setTags}
           onInputChange={setInput}
           loading={loading}
+          hideBuiltInLoader
           placeholder="Escribe un término y presiona Enter para agregarlo como chip…"
         />
         {tags.length > 0 && (
@@ -361,11 +363,9 @@ export function SmartSearchView({ role }: Props) {
       {hasSearch && (
         <section className="space-y-3">
           {loading && results.length === 0 ? (
-            <Card className="p-10 text-center">
-              <div className="animate-pulse text-sm text-muted-foreground">
-                Buscando en 371 documentos…
-              </div>
-            </Card>
+            /* Loader animado (dotLottie) centrado debajo del buscador
+               — reemplaza al spinner tenue interno del input. */
+            <SearchLottieLoader />
           ) : results.length === 0 ? (
             <Card className="p-10 text-center border-dashed">
               <Sparkles className="mx-auto h-6 w-6 text-muted-foreground mb-2" />

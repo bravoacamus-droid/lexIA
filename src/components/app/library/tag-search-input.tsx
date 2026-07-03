@@ -15,6 +15,12 @@ interface Props {
   placeholder?: string;
   /** Máximo de tags. */
   maxTags?: number;
+  /**
+   * Si true, NO muestra el spinner interno a la derecha del input.
+   * Útil cuando el consumidor renderiza su propio loader (ej: lottie
+   * animado centrado debajo del buscador — feedback César 01/07/2026).
+   */
+  hideBuiltInLoader?: boolean;
   /** Color del chip — usamos los mismos colores del resaltado para coherencia. */
 }
 
@@ -41,6 +47,7 @@ export function TagSearchInput({
   loading = false,
   placeholder = 'Busca por palabras clave… (Enter para agregar tag)',
   maxTags = 8,
+  hideBuiltInLoader = false,
 }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [focused, setFocused] = useState(false);
@@ -111,7 +118,7 @@ export function TagSearchInput({
         aria-label="Buscar por palabras clave"
       />
 
-      {loading && (
+      {loading && !hideBuiltInLoader && (
         <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
       )}
     </div>
