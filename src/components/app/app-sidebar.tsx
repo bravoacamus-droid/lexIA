@@ -72,15 +72,16 @@ export function AppSidebar({ user, mobileOpen, onMobileClose }: Props) {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-              className="fixed inset-y-0 left-0 z-50 w-[280px] flex flex-col border-r border-border bg-card shadow-2xl md:hidden"
+              className="dark fixed inset-y-0 left-0 z-50 w-[280px] flex flex-col border-r border-white/10 bg-[hsl(218_95%_13%)] text-white shadow-2xl md:hidden"
             >
-              <div className="flex h-14 items-center justify-between border-b border-border px-4">
+              <div className="flex h-14 items-center justify-between border-b border-white/10 px-4 [&_img]:brightness-0 [&_img]:invert [&_img]:opacity-95">
                 <Logo href="/app" size="md" />
                 <Button
                   variant="ghost"
                   size="icon-sm"
                   onClick={onMobileClose}
                   aria-label="Cerrar"
+                  className="text-white/70 hover:text-white hover:bg-white/10"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -108,14 +109,26 @@ function DesktopSidebar({
   return (
     <aside
       className={cn(
-        'hidden md:flex fixed inset-y-0 left-0 z-30 flex-col border-r border-border bg-secondary/30 backdrop-blur-sm transition-[width] duration-200',
+        // Fondo azul oscuro brand LexIA (#021D40) — feedback César
+        // 01/07/2026: "el slider debería mejorar con un fondo azul oscuro
+        // para que se vea mejor". Aplicamos tema oscuro fijo al sidebar
+        // independiente del tema global (dark/light) usando la clase
+        // 'dark' de Tailwind para que los componentes hijos usen sus
+        // variantes dark automáticamente.
+        'dark hidden md:flex fixed inset-y-0 left-0 z-30 flex-col border-r transition-[width] duration-200',
+        'bg-[hsl(218_95%_13%)] border-white/10 text-white',
         collapsed ? 'w-16' : 'w-[264px]',
       )}
     >
       <div
         className={cn(
-          'flex h-14 items-center border-b border-border',
+          'flex h-14 items-center border-b border-white/10',
           collapsed ? 'justify-center px-2' : 'justify-between px-4',
+          // Los logos actuales son PNG con letras oscuras diseñados para
+          // fondo claro. Filtro CSS los convierte a blanco puro para que
+          // se vean sobre el nuevo fondo azul oscuro. La opacidad 0.95
+          // mantiene un poco de suavidad para que no compita con el texto.
+          '[&_img]:brightness-0 [&_img]:invert [&_img]:opacity-95',
         )}
       >
         {collapsed ? (
@@ -129,7 +142,7 @@ function DesktopSidebar({
           variant="ghost"
           size="icon-sm"
           onClick={onToggle}
-          className={cn(collapsed && 'hidden')}
+          className={cn('text-white/70 hover:text-white hover:bg-white/10', collapsed && 'hidden')}
           aria-label="Colapsar sidebar"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -185,7 +198,7 @@ function SidebarBody({
           <div key={section.label}>
             <div
               className={cn(
-                'mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground',
+                'mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-wider text-white/50',
                 collapsed && 'hidden',
               )}
             >
@@ -212,17 +225,17 @@ function SidebarBody({
                       'group flex items-center gap-3 rounded-lg px-2 py-2 text-sm font-medium transition-colors',
                       collapsed && 'justify-center px-0',
                       disabled
-                        ? 'text-muted-foreground/60 cursor-not-allowed'
+                        ? 'text-white/40 cursor-not-allowed'
                         : active
-                          ? 'bg-brand-100/60 text-brand-900 dark:bg-brand-950/60 dark:text-brand-200'
-                          : 'text-foreground/70 hover:bg-secondary/80 hover:text-foreground',
+                          ? 'bg-white/10 text-white shadow-sm ring-1 ring-white/10'
+                          : 'text-white/75 hover:bg-white/10 hover:text-white',
                     )}
                   >
                     {/* Ícono en cuadrado de color por sección */}
                     <span
                       className={cn(
                         'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-transform',
-                        disabled ? 'bg-secondary text-muted-foreground/60' : colors.bg,
+                        disabled ? 'bg-white/10 text-white/40' : colors.bg,
                         !disabled && 'group-hover:scale-105',
                       )}
                     >
@@ -236,7 +249,7 @@ function SidebarBody({
                       <span className={cn('ml-auto h-1.5 w-1.5 rounded-full', colors.dot)} />
                     )}
                     {!collapsed && disabled && (
-                      <span className="ml-auto rounded-full bg-secondary px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      <span className="ml-auto rounded-full bg-white/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/60">
                         Pronto
                       </span>
                     )}
@@ -260,11 +273,11 @@ function SidebarBody({
         ))}
       </nav>
 
-      <div className={cn('border-t border-border p-3 space-y-1', collapsed && 'px-2')}>
+      <div className={cn('border-t border-white/10 p-3 space-y-1', collapsed && 'px-2')}>
         {collapsed ? (
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button asChild variant="ghost" size="icon" className="w-full">
+              <Button asChild variant="ghost" size="icon" className="w-full text-white/70 hover:text-white hover:bg-white/10">
                 <Link href="/ajustes">
                   <Settings className="h-4 w-4" />
                 </Link>
@@ -273,7 +286,7 @@ function SidebarBody({
             <TooltipContent side="right">Ajustes</TooltipContent>
           </Tooltip>
         ) : (
-          <Button asChild variant="ghost" className="w-full justify-start text-muted-foreground">
+          <Button asChild variant="ghost" className="w-full justify-start text-white/70 hover:text-white hover:bg-white/10">
             <Link href="/ajustes">
               <Settings className="h-4 w-4" />
               Ajustes
@@ -287,7 +300,7 @@ function SidebarBody({
                 variant="ghost"
                 size="icon"
                 onClick={onToggle}
-                className="w-full"
+                className="w-full text-white/70 hover:text-white hover:bg-white/10"
                 aria-label="Expandir sidebar"
               >
                 <ChevronRight className="h-4 w-4" />
