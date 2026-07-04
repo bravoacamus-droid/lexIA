@@ -44,34 +44,41 @@ export const VOICE_DISCLAIMER_BANNER =
  * después de setupComplete.
  */
 export const VOICE_INITIAL_GREETING =
-  'Hola, soy tu asistente legal de inteligencia artificial. La información que te brinde es orientativa. Para casos específicos consulta a un abogado colegiado. ¿En qué te ayudo?';
+  'Hola, soy tu asistente legal con IA. ¿En qué te ayudo?';
 
 /**
  * Construye el saludo inicial ajustado al régimen normativo elegido por
  * el usuario (Ambas / Ley 32069 / Ley 30225). Se llama desde el cliente
  * antes de enviar el primer clientContent a Gemini Live.
+ *
+ * Feedback César 01/07/2026: "la introducción es muy larga, que diga
+ * solo con qué ley pero sin tanta especificación y puntual". Antes el
+ * saludo mencionaba número de decreto, modificatorias y disclaimer de
+ * abogado colegiado. Ahora se limita a la mención mínima de la ley.
  */
 export function buildVoiceInitialGreeting(lawFilter: string[] | null): string {
   const scope = describeLawScope(lawFilter);
-  return `Hola, soy tu asistente legal de inteligencia artificial. La información que te brinde es orientativa y se basa en ${scope}. Para casos específicos consulta a un abogado colegiado. ¿En qué te ayudo?`;
+  return `Hola, soy tu asistente legal con IA basado en ${scope}. ¿En qué te ayudo?`;
 }
 
 /**
  * Describe textualmente qué normativa está activa según el filter.
  * Se usa tanto en el saludo como en el system prompt para que el modelo
  * NO diga "solo Ley 32069" cuando el usuario eligió "Ambas".
+ *
+ * Versión corta para el saludo (feedback César 01/07/2026 "más puntual").
  */
 export function describeLawScope(lawFilter: string[] | null): string {
   if (!lawFilter || lawFilter.length === 0 || lawFilter.length === 2) {
-    return 'ambos regímenes de contrataciones del Estado peruano: la Ley N° 32069 (vigente desde abril de 2025) y la Ley N° 30225 (régimen anterior, aplicable a procedimientos convocados antes de esa fecha)';
+    return 'las Leyes 30225 y 32069 de contrataciones del Estado';
   }
   if (lawFilter.includes('ley_32069')) {
-    return 'la Ley N° 32069, Ley General de Contrataciones Públicas, y su Reglamento (DS N° 009-2025-EF, modificado por DS N° 001-2026-EF)';
+    return 'la Ley 32069 de contrataciones del Estado';
   }
   if (lawFilter.includes('ley_30225')) {
-    return 'la Ley N° 30225, Ley de Contrataciones del Estado (régimen anterior), y su Reglamento (DS N° 344-2018-EF y modificatorias)';
+    return 'la Ley 30225 de contrataciones del Estado';
   }
-  return 'la normativa de contrataciones del Estado peruano';
+  return 'la normativa de contrataciones del Estado';
 }
 
 /**
