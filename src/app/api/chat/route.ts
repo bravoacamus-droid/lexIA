@@ -45,6 +45,82 @@ const MAX_CHUNKS = 15;
 const MAX_HISTORY = 8;
 
 /**
+ * Query expansion — detecta patrones legales comunes en la pregunta del
+ * usuario y agrega términos técnicos que suelen aparecer en los artículos
+ * relevantes del Reglamento. La query original se mantiene; los términos
+ * extra ayudan a que el embedding matchee chunks con vocabulario numérico
+ * específico (ej: "50% utilidad", "8 días hábiles").
+ *
+ * Retorna una string vacía si no aplica expansión — el caller debe evitar
+ * hacer la segunda búsqueda en ese caso.
+ */
+function expandLegalQuery(query: string): string {
+  const q = query.toLowerCase();
+  const additions: string[] = [];
+
+  // Resolución de contrato por Entidad → 50% utilidad Art. 123.5
+  if (
+    /(?:resoluci[óo]n|resolver).*(?:contrat|imputable|atribuible).*(?:entidad|contratante)/i.test(q) ||
+    (/derecho.*contratista/i.test(q) && /resoluci[óo]n/i.test(q))
+  ) {
+    additions.push(
+      'artículo 123 reglamento 50% utilidad prevista saldo obra fórmulas reajuste liquidación',
+    );
+  }
+
+  // Suspensión de plazo por Entidad → Art. 107.5 AGA
+  if (/suspensi[óo]n.*plazo/i.test(q) && /entidad|contratante/i.test(q)) {
+    additions.push(
+      'artículo 107 numeral 107.5 autoridad gestión administrativa AGA autorización previa',
+    );
+  }
+
+  // Falta de pago valorizaciones → Art. 202.3
+  if (/(?:falta|no)\s+pago.*valorizaci[óo]n|dos\s+valorizaciones/i.test(q)) {
+    additions.push(
+      'artículo 202 numeral 202.3 costos directos mayores gastos generales vinculados acreditados',
+    );
+  }
+
+  // Sistemas de entrega bienes/servicios → Art. 129
+  if (/sistema.*entrega|llave en mano|comodato|gesti[óo]n de instalaciones/i.test(q)) {
+    additions.push(
+      'artículo 129 sistemas entrega bienes servicios llave en mano mantenimiento suministro comodato',
+    );
+  }
+
+  // Ampliación de plazo → Art. 198
+  if (/ampliaci[óo]n.*plazo/i.test(q) && !/preguntas/i.test(q)) {
+    additions.push('artículo 198 numeral 198.1 causales ampliación plazo ruta crítica');
+  }
+
+  // Difusión del requerimiento → Art. 51
+  if (/difusi[óo]n.*requerimiento/i.test(q)) {
+    additions.push(
+      'artículo 51 numeral 51.2 51.3 51.4 51.5 cinco días hábiles seis días absolución acta',
+    );
+  }
+
+  // Recurso de apelación → Art. 304
+  if (/apelaci[óo]n.*tribunal|recurso.*apelaci[óo]n/i.test(q)) {
+    additions.push('artículo 304 ocho días hábiles Tribunal Contrataciones Públicas');
+  }
+
+  // Prevalencia pliego vs bases integradas → Art. 66.6
+  if (
+    /prevalece|divergencia/i.test(q) &&
+    /(?:pliego|bases integradas|integraci[óo]n)/i.test(q)
+  ) {
+    additions.push(
+      'artículo 66 numeral 66.6 prevalece lo absuelto pliego absolución consultas',
+    );
+  }
+
+  if (additions.length === 0) return '';
+  return `${query} ${additions.join(' ')}`;
+}
+
+/**
  * Rerank + dedupe de chunks tras hybrid_search.
  * Espejo del rerankAndDedupe en voice-search.ts. Ambos endpoints (chat y
  * voz) usan la MISMA lógica de recuperación para mantener consistencia.
@@ -158,12 +234,28 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'no_user_message' }, { status: 400 });
   }
 
-  // 1. Embed user query
+  // 1. Embed user query + variantes expandidas
+  //
+  // Query expansion (01/07/2026): la pregunta natural del usuario a veces
+  // usa vocabulario común mientras que el chunk correcto de la Ley usa
+  // vocabulario numérico específico. Ejemplo real reportado por César:
+  //   Query: "¿qué derecho tiene el contratista si la Entidad resuelve el contrato?"
+  //   Chunk Art. 123.5: "50% de la utilidad prevista, calculada sobre saldo..."
+  //   → sim baja porque no comparten palabras clave.
+  //
+  // Fix: detectamos patrones legales comunes y agregamos términos técnicos
+  // adjuntos a la query original antes de embedear. La query original se
+  // conserva para el FTS que usa hybrid_search internamente.
   let queryEmbedding: number[] | null = null;
+  let expandedEmbedding: number[] | null = null;
+  const expandedQuery = expandLegalQuery(lastUser.content);
   let sources: ChatSource[] = [];
 
   try {
     queryEmbedding = await embedOne(lastUser.content, 'RETRIEVAL_QUERY');
+    if (expandedQuery && expandedQuery !== lastUser.content) {
+      expandedEmbedding = await embedOne(expandedQuery, 'RETRIEVAL_QUERY');
+    }
   } catch (err) {
     console.error('Voyage embedding error:', err);
   }
@@ -194,8 +286,30 @@ export async function POST(req: Request) {
     if (searchError) {
       console.error('Hybrid search error:', searchError);
     } else if (chunks) {
-      const raw = chunks as HybridSearchRow[];
-      const reranked = rerankChunks(raw, lastUser.content, MAX_CHUNKS);
+      let combined = chunks as HybridSearchRow[];
+
+      // 2b. Segunda búsqueda con la query expandida — mergea chunks
+      //     técnicos que la query natural no traía.
+      if (expandedEmbedding) {
+        const { data: extraChunks } = await supabase.rpc('hybrid_search', {
+          query_text: expandedQuery,
+          query_embedding: expandedEmbedding,
+          match_count: 10,
+          filter_type: null,
+          filter_law: lawFilter,
+        });
+        if (extraChunks) {
+          const seenIds = new Set(combined.map((c) => c.chunk_id));
+          for (const c of extraChunks as HybridSearchRow[]) {
+            if (!seenIds.has(c.chunk_id)) {
+              combined.push(c);
+              seenIds.add(c.chunk_id);
+            }
+          }
+        }
+      }
+
+      const reranked = rerankChunks(combined, lastUser.content, MAX_CHUNKS);
       sources = reranked.map((c) => ({
         chunk_id: c.chunk_id,
         doc_id: c.document_id,
