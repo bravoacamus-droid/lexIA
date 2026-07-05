@@ -176,7 +176,13 @@ export async function POST(req: Request) {
   //    Art. 66.6 sobre prevalencia NO aparecía en top-6 mientras el
   //    Pronunciamiento 298 y Directiva 003 dominaban).
   if (queryEmbedding) {
-    const oversample = Math.min(MAX_CHUNKS * 2, 30);
+    // Oversample capado a 15 (era 30). Feedback César 01/07/2026 tras
+    // audit de 4 preguntas fallidas: match_count > 15 causa timeout en
+    // hybrid_search sobre el corpus de 12k chunks (statement_timeout
+    // Postgres). Cuando timeout, devuelve 0 filas → "no encontré info".
+    // Con 15 el rerank sigue teniendo margen y el chat ya trae los
+    // chunks correctos.
+    const oversample = Math.min(MAX_CHUNKS + 3, 15);
     const { data: chunks, error: searchError } = await supabase.rpc('hybrid_search', {
       query_text: lastUser.content,
       query_embedding: queryEmbedding,
