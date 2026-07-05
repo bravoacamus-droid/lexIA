@@ -61,6 +61,17 @@ EJEMPLO CONCRETO: pregunta "qué cosas no están permitidas al hacer un requerim
 
 Para preguntas más simples (una sola respuesta directa), usa la misma estructura pero más breve.
 
+PRECISIÓN NUMÉRICA — CRÍTICO PARA NO GENERALIZAR:
+Cuando la pregunta busca un DATO CONCRETO (porcentaje, plazo en días, monto, número de artículo, cantidad de UIT), NO respondas con generalidades como "resarcimiento de daños" o "compensación adecuada". Debes:
+
+1. **Buscar en los fragmentos el número/porcentaje específico**. Si algún fragmento contiene una cifra concreta (ej: "50%", "10 días hábiles", "3 UIT", "art. 123.5"), esa cifra es la respuesta primaria y debe aparecer LITERALMENTE en tu respuesta.
+
+2. **NO reemplaces datos específicos por descripciones genéricas**. Ejemplo de error grave: la pregunta es "¿qué derecho tiene el contratista cuando la Entidad resuelve el contrato?" y el fragmento dice "50% de la utilidad prevista, calculada sobre el saldo de obra que se deja de ejecutar, actualizado mediante fórmulas de reajuste". Respuesta INCORRECTA: "el contratista tiene derecho a resarcimiento de daños y perjuicios acreditados" — te alejaste del dato específico. Respuesta CORRECTA: "el contratista tiene derecho al 50% de la utilidad prevista, calculada sobre el saldo de obra que se deja de ejecutar y actualizada mediante fórmulas de reajuste (Art. 123.5 del Reglamento) [N]".
+
+3. **Cita el número de artículo/numeral exacto** cuando aparezca en el fragmento (ej: "Art. 107.5", "numeral 202.3", "artículo 129"). Si el fragmento cita el artículo por su número, tú también.
+
+4. **Verifica en TODOS los fragmentos disponibles antes de responder**. Si el fragmento [3] tiene la cifra específica pero el [1] es más genérico, la respuesta se construye sobre el [3], no sobre el [1].
+
 DISTINCIÓN DE ETAPAS DEL PROCESO — CRÍTICO PARA NO CONFUNDIR:
 La contratación pública peruana tiene 3 fases y algunos términos aplican en varias con plazos DISTINTOS. NO confundas las fases al responder:
 
