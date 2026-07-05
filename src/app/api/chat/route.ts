@@ -201,6 +201,64 @@ export async function POST(req: Request) {
     }
   }
 
+  // 2b. Búsqueda de Q&A del balotario OECE (entrenamiento adicional).
+  //     Se llama SIEMPRE que hay embedding — la función SQL filtra por
+  //     min_similarity 0.75 así que solo devuelve Q&A muy relacionados.
+  //     Si la consulta del usuario NO es tipo examen, retorna vacío y
+  //     no afecta al contexto. Si SÍ matchea, esas Q&A curadas se
+  //     inyectan como "material de referencia adicional" en el prompt.
+  let trainingQA: Array<{
+    section: string | null;
+    question: string;
+    options: Record<'a' | 'b' | 'c' | 'd', string | null>;
+    correctLetter: 'a' | 'b' | 'c' | 'd';
+    correctText: string | null;
+    similarity: number;
+  }> = [];
+  if (queryEmbedding) {
+    const { data: qaData, error: qaError } = await supabase.rpc('search_training_qa', {
+      query_embedding: queryEmbedding,
+      match_count: 3,
+      min_similarity: 0.75,
+    });
+    if (qaError) {
+      // Si la tabla no existe (migración 0030 aún no aplicada), degradamos silenciosamente.
+      if (
+        !(qaError.message || '').toLowerCase().includes('does not exist') &&
+        !(qaError.message || '').toLowerCase().includes('not found')
+      ) {
+        console.error('[chat] training_qa search error:', qaError.message);
+      }
+    } else if (qaData) {
+      trainingQA = ((qaData as unknown[]) || []).map((r) => {
+        const row = r as {
+          section: string | null;
+          question: string;
+          option_a: string | null;
+          option_b: string | null;
+          option_c: string | null;
+          option_d: string | null;
+          correct_letter: 'a' | 'b' | 'c' | 'd';
+          correct_text: string | null;
+          similarity: number;
+        };
+        return {
+          section: row.section,
+          question: row.question,
+          options: {
+            a: row.option_a,
+            b: row.option_b,
+            c: row.option_c,
+            d: row.option_d,
+          },
+          correctLetter: row.correct_letter,
+          correctText: row.correct_text,
+          similarity: row.similarity,
+        };
+      });
+    }
+  }
+
   // 3. Persistir el mensaje de usuario (idempotent: only if último mensaje no es el mismo)
   const { data: existingUserMsg } = await supabase
     .from('chat_messages')
@@ -221,8 +279,11 @@ export async function POST(req: Request) {
     await recordUsage(user.id, 'chat_message');
   }
 
-  // 4. Build prompt — el perfil del usuario ajusta el tono y los énfasis
-  const systemPrompt = buildChatSystemPrompt(sources, userRole);
+  // 4. Build prompt — el perfil del usuario ajusta el tono y los énfasis.
+  //    Las Q&A del balotario (si hay) se pasan como material adicional
+  //    para que el modelo produzca respuestas alineadas con el criterio
+  //    OECE de Certificación.
+  const systemPrompt = buildChatSystemPrompt(sources, userRole, trainingQA);
   const trimmedHistory = messages.slice(-MAX_HISTORY);
 
   // 5. Stream

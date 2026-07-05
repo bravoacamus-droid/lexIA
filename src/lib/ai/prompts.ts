@@ -104,19 +104,61 @@ REGLAS ADICIONALES
 8. Sé completo antes que conciso. Prefiere respuestas de 300-600 palabras con desglose claro sobre respuestas de 100 palabras sin detalle. NO caigas en relleno vacío tampoco.
 `;
 
+/**
+ * Q&A del balotario OECE de Certificación — se pasan como material
+ * adicional de entrenamiento cuando search_training_qa devuelve matches
+ * relevantes (similarity >= 0.75). El modelo lo usa como REFERENCIA
+ * DE CRITERIO OECE, no como cita para el usuario.
+ */
+export interface TrainingQAContext {
+  section: string | null;
+  question: string;
+  options: Record<'a' | 'b' | 'c' | 'd', string | null>;
+  correctLetter: 'a' | 'b' | 'c' | 'd';
+  correctText: string | null;
+  similarity: number;
+}
+
+function buildTrainingQABlock(qa: TrainingQAContext[]): string {
+  if (qa.length === 0) return '';
+  const items = qa
+    .map((q, i) => {
+      const opts = (['a', 'b', 'c', 'd'] as const)
+        .map((l) => {
+          const marker = l === q.correctLetter ? ' ✅ CORRECTA' : '';
+          return `   ${l}) ${q.options[l] || ''}${marker}`;
+        })
+        .join('\n');
+      const sec = q.section ? ` [${q.section}]` : '';
+      return `Q${i + 1}${sec}: ${q.question}\n${opts}\n   → Respuesta correcta según OECE: ${q.correctLetter}) ${q.correctText || ''}`;
+    })
+    .join('\n\n');
+  return `
+
+═══════════════════════════════════════════════════════
+CRITERIO OECE — Q&A DEL BALOTARIO DE CERTIFICACIÓN
+═══════════════════════════════════════════════════════
+Estas preguntas del examen oficial OECE de Certificación de Compradores Públicos están vinculadas semánticamente a la consulta del usuario. Úsalas COMO REFERENCIA DE CRITERIO INSTITUCIONAL (qué respuesta esperaría el OECE), pero NO las cites como fuente al usuario — son material interno de entrenamiento. Si el usuario pregunta algo cuyo criterio esté aquí, alinea tu respuesta con la opción marcada como correcta.
+
+${items}
+`;
+}
+
 export function buildChatSystemPrompt(
   chunks: ChatSource[],
   role: ProfileRole | null = null,
+  trainingQA: TrainingQAContext[] = [],
 ): string {
   const rolePrefix = role ? `\n${ROLE_CONTEXT[role]}\n` : '';
+  const qaBlock = buildTrainingQABlock(trainingQA);
 
   if (chunks.length === 0) {
     return `${SYSTEM_PROMPT_BASE}${rolePrefix}
 
 CONTEXTO NORMATIVO RECUPERADO:
 (No se encontraron fragmentos relevantes en la base normativa para esta consulta.)
-
-Indica al usuario que no encuentras sustento normativo específico para esta consulta y sugiere reformularla.`;
+${qaBlock}
+${qaBlock ? 'Aunque no hay fragmentos normativos directos, tienes el criterio OECE del balotario arriba — puedes basar tu respuesta en él, aclarando que se basa en el criterio institucional del OECE.' : 'Indica al usuario que no encuentras sustento normativo específico para esta consulta y sugiere reformularla.'}`;
   }
 
   const context = chunks
@@ -149,7 +191,7 @@ CONTEXTO NORMATIVO RECUPERADO:
 ═══════════════════════════════════════════════════════
 
 ${context}
-
+${qaBlock}
 Cita cada fragmento por su número entre corchetes [N]. Si los fragmentos no responden la pregunta, dilo honestamente y sugiere verificar en el portal del OECE.`;
 }
 
