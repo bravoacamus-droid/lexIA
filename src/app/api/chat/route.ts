@@ -257,17 +257,30 @@ export async function POST(req: Request) {
       expandedEmbedding = await embedOne(expandedQuery, 'RETRIEVAL_QUERY');
     }
   } catch (err) {
-    console.error('Voyage embedding error:', err);
+    // Bug reportado 08/07/2026: cuando Gemini embed fallaba (rate limit,
+    // 5xx, timeout), el catch silencioso dejaba `queryEmbedding=null` y
+    // el chat respondía SIN citas. Logueamos con contexto y hacemos
+    // fallback a FTS-only (hybrid_search acepta vector de zeros y usa
+    // solo el text search de Postgres).
+    console.error('[chat] embed_failed', {
+      err: (err as Error).message,
+      query_len: lastUser.content.length,
+    });
   }
 
-  // 2. Hybrid search + rerank (only if we have an embedding).
+  // 2. Hybrid search + rerank.
   //    Sobre-recuperamos 2x para que el rerank tenga margen. Sin esto,
   //    el chunk correcto de Ley/Reglamento puede quedar fuera del top
   //    cuando pronunciamientos aplicando el mismo concepto ganan la
   //    similaridad por repetir vocabulario (bug reportado 01/07/2026:
   //    Art. 66.6 sobre prevalencia NO aparecía en top-6 mientras el
   //    Pronunciamiento 298 y Directiva 003 dominaban).
-  if (queryEmbedding) {
+  //
+  //    Fallback FTS-only: si el embedding falló arriba, usamos vector
+  //    de zeros para que hybrid_search igual devuelva resultados por
+  //    text search. Es peor calidad pero MEJOR que 0 fuentes.
+  const searchEmbedding = queryEmbedding ?? new Array(1024).fill(0);
+  {
     // Oversample capado a 15 (era 30). Feedback César 01/07/2026 tras
     // audit de 4 preguntas fallidas: match_count > 15 causa timeout en
     // hybrid_search sobre el corpus de 12k chunks (statement_timeout
@@ -277,14 +290,18 @@ export async function POST(req: Request) {
     const oversample = Math.min(MAX_CHUNKS + 3, 15);
     const { data: chunks, error: searchError } = await supabase.rpc('hybrid_search', {
       query_text: lastUser.content,
-      query_embedding: queryEmbedding,
+      query_embedding: searchEmbedding,
       match_count: oversample,
       filter_type: null,
       filter_law: lawFilter,
     });
 
     if (searchError) {
-      console.error('Hybrid search error:', searchError);
+      console.error('[chat] hybrid_search_failed', {
+        error: searchError.message,
+        code: searchError.code,
+        fts_only: !queryEmbedding,
+      });
     } else if (chunks) {
       let combined = chunks as HybridSearchRow[];
 
@@ -319,6 +336,15 @@ export async function POST(req: Request) {
         snippet: c.content,
       }));
     }
+    // Log diagnóstico: registra el resultado del retrieval por request.
+    // Útil cuando el usuario reporta "no vienen fuentes" — permite
+    // distinguir 0 chunks (retrieval vacío) vs. chunks OK pero header
+    // truncado por Vercel edge.
+    console.log('[chat] retrieval', {
+      fts_only: !queryEmbedding,
+      chunks_returned: (chunks as HybridSearchRow[] | null)?.length ?? 0,
+      sources_final: sources.length,
+    });
   }
 
   // 2b. Búsqueda de Q&A del balotario OECE (entrenamiento adicional).
