@@ -10,7 +10,7 @@ import { getCurrentUserWithRole } from '@/lib/auth/session';
 import { getTier } from '@/lib/billing/tiers';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Llamadas con el Abogado Virtual' };
+export const metadata = { title: 'Hablar con LexIA' };
 
 export default async function LlamadasPage() {
   const supabase = createClient();
@@ -67,7 +67,7 @@ export default async function LlamadasPage() {
             </Badge>
           </div>
           <h1 className="font-semibold text-3xl tracking-tight">
-            Llamadas con el Abogado Virtual
+            Hablar con LexIA
           </h1>
           <p className="mt-1 text-sm text-muted-foreground max-w-xl">
             Conversa por voz con LexIA y obtén respuestas inmediatas con sustento
@@ -122,7 +122,7 @@ export default async function LlamadasPage() {
             <Crown className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
             <div className="min-w-0">
               <p className="font-semibold text-sm text-amber-900 dark:text-amber-100">
-                Llamadas con el Abogado Virtual no está disponible en tu plan {tier.label}
+                Hablar con LexIA no está disponible en tu plan {tier.label}
               </p>
               <p className="text-xs text-amber-900/80 dark:text-amber-100/80 mt-1 leading-relaxed">
                 Actualiza a <strong>Pro</strong> para incluir 30 minutos al mes, o a{' '}
@@ -144,7 +144,7 @@ export default async function LlamadasPage() {
           </span>
           <h2 className="font-semibold text-xl mb-1">Aún no tienes llamadas</h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            Tu primera llamada con el Abogado Virtual. Antes de iniciarla, debes
+            Tu primera conversación por voz con LexIA. Antes de iniciarla, debes
             aceptar el aviso de privacidad (solo la primera vez).
           </p>
           <Button asChild className="mt-5" variant="glow">

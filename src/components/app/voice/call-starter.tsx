@@ -152,7 +152,7 @@ export function CallStarter({ hasConsent, disclaimerVersion }: Props) {
         // por el usuario. Si no viene del server, cae al default del
         // LiveClient.
         initialGreetingPrompt: cfgJson.initial_greeting
-          ? `Hola, acabo de conectar. Preséntate brevemente diciendo tu nombre, aclarando que eres IA y usa este saludo textual: "${cfgJson.initial_greeting}". Luego espera mi pregunta.`
+          ? `Hola, acabo de conectar. Usa EXACTAMENTE este saludo textual sin modificarlo ni parafrasearlo: "${cfgJson.initial_greeting}". Luego espera mi pregunta en silencio.`
           : undefined,
         tools: cfgJson.tools,
         callId: newCallId,
@@ -404,7 +404,7 @@ export function CallStarter({ hasConsent, disclaimerVersion }: Props) {
         <Card className="p-7 space-y-6">
           <div>
             <h1 className="font-semibold text-2xl tracking-tight mb-1">
-              Llamar al Abogado Virtual
+              Hablar con LexIA
             </h1>
             <p className="text-sm text-muted-foreground">
               Antes de iniciar, elige la voz preferida y permite el micrófono cuando te lo pida el navegador.
@@ -464,7 +464,7 @@ export function CallStarter({ hasConsent, disclaimerVersion }: Props) {
             loading={stage === 'connecting'}
           >
             <Phone className="h-4 w-4" />
-            {stage === 'connecting' ? 'Conectando…' : 'Iniciar llamada'}
+            {stage === 'connecting' ? 'Conectando…' : 'Hablar con LexIA'}
           </Button>
         </Card>
       </div>

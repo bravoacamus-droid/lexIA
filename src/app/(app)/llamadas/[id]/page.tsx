@@ -105,7 +105,7 @@ export default async function LlamadaDetailPage({ params }: Props) {
               )}
             </div>
             <h1 className="font-semibold text-2xl tracking-tight">
-              Llamada con el Abogado Virtual
+              Conversación por voz con LexIA
             </h1>
           </div>
           <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-brand-100 dark:bg-brand-950 text-brand-700 dark:text-brand-400 shrink-0">

@@ -165,10 +165,10 @@ function getWorkSections(role: ProfileRole, data: Props['data']): WorkSection[] 
   };
 
   const commonCall: WorkSection = {
-    title: 'Llamar al Abogado Virtual',
-    desc: 'Consulta por voz con respuestas sustentadas.',
+    title: 'Hablar con LexIA',
+    desc: 'Cuéntanos tu consulta en lenguaje natural y responderemos con normativa citada.',
     href: '/llamadas/nueva',
-    cta: 'Iniciar llamada',
+    cta: 'Hablar con LexIA',
     icon: PhoneCall,
     count: data.voiceCallsCount,
   };

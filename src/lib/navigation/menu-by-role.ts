@@ -143,7 +143,7 @@ export const MENU_SECTIONS: MenuSection[] = [
         color: 'emerald',
       },
       {
-        label: 'Llamadas con el Abogado Virtual',
+        label: 'Asistente de Voz',
         href: '/llamadas',
         icon: PhoneCall,
         description:

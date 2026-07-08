@@ -47,18 +47,55 @@ export const VOICE_INITIAL_GREETING =
   'Hola, soy tu asistente legal con IA. ¿En qué te ayudo?';
 
 /**
+ * 3 saludos iniciales alternados aleatoriamente para que la conversación
+ * se sienta más natural (feedback César 02/07/2026).
+ *
+ * Cada saludo mantiene: (1) identificación como LexIA, (2) especialidad
+ * en contrataciones públicas, (3) invitación a consultar. La variación
+ * evita que llamadas consecutivas suenen exactamente iguales.
+ */
+const VOICE_GREETING_TEMPLATES = [
+  '¡Hola! Bienvenido a LexIA Contrataciones. Soy tu asistente inteligente especializado en contrataciones públicas. Estoy listo para ayudarte con respuestas claras y sustentadas. ¿En qué puedo ayudarte hoy?',
+  '¡Hola! Soy LexIA, tu asistente inteligente en contrataciones públicas. Estoy aquí para ayudarte a resolver tus consultas con información clara y sustentada. ¿Cuál es tu consulta?',
+  '¡Hola! Bienvenido a LexIA Contrataciones. Soy tu asistente especializado en contrataciones públicas. Cuéntame tu consulta y con gusto te ayudaré.',
+];
+
+/**
+ * 10 despedidas / frases de cierre alternadas aleatoriamente (feedback
+ * César 02/07/2026). El modelo las usa como sugerencia para cerrar la
+ * respuesta actual invitando a continuar, sin sonar repetitivo.
+ * Se inyectan como opciones en el system prompt.
+ */
+const VOICE_FAREWELL_TEMPLATES = [
+  'Si deseas profundizar en este tema, con gusto continuamos.',
+  'Estoy listo para ayudarte con cualquier otra consulta.',
+  'Si algo no quedó claro, puedo explicarlo de otra manera.',
+  'También puedo mostrarte la normativa relacionada.',
+  'Si deseas un ejemplo práctico, solo indícalo.',
+  'Puedo ayudarte a aplicar este criterio a un caso concreto.',
+  'Si tienes otra consulta, estaré encantado de ayudarte.',
+  '¿Quieres que revisemos otro aspecto de este tema?',
+  'Si necesitas elaborar un documento relacionado, también puedo ayudarte.',
+  'Seguimos cuando lo necesites.',
+];
+
+/**
  * Construye el saludo inicial ajustado al régimen normativo elegido por
  * el usuario (Ambas / Ley 32069 / Ley 30225). Se llama desde el cliente
  * antes de enviar el primer clientContent a Gemini Live.
  *
  * Feedback César 01/07/2026: "la introducción es muy larga, que diga
  * solo con qué ley pero sin tanta especificación y puntual". Antes el
- * saludo mencionaba número de decreto, modificatorias y disclaimer de
- * abogado colegiado. Ahora se limita a la mención mínima de la ley.
+ * saludo mencionaba número de decreto, modificatorias y disclaimer.
+ *
+ * Feedback César 02/07/2026: alternar entre 3 bienvenidas para que la
+ * conversación se sienta más natural. Se elige una aleatoriamente cada
+ * vez que se genera una sesión de voz.
  */
-export function buildVoiceInitialGreeting(lawFilter: string[] | null): string {
-  const scope = describeLawScope(lawFilter);
-  return `Hola, soy tu asistente legal con IA basado en ${scope}. ¿En qué te ayudo?`;
+export function buildVoiceInitialGreeting(_lawFilter: string[] | null): string {
+  const template =
+    VOICE_GREETING_TEMPLATES[Math.floor(Math.random() * VOICE_GREETING_TEMPLATES.length)];
+  return template;
 }
 
 /**
@@ -212,7 +249,17 @@ ESTILO DE RESPUESTA HABLADA — MANTÉN CORTO:
 - Frases cortas. El usuario oye, no lee. Evita listas de más de 3 items.
 - Cita números de artículo y plazos en palabras: "ocho días hábiles", "artículo cincuenta y uno punto dos". No leas símbolos.
 - Ante ambigüedad, pide aclaración con UNA repregunta específica.
-- Al terminar, pregunta: "¿Te responde eso o quieres profundizar en algún punto?"
+- Al terminar tu respuesta, cierra con UNA de estas frases (ALTÉRNALAS aleatoriamente en cada turno para no sonar repetitivo — nunca uses la misma frase dos veces seguidas):
+  1) "Si deseas profundizar en este tema, con gusto continuamos."
+  2) "Estoy listo para ayudarte con cualquier otra consulta."
+  3) "Si algo no quedó claro, puedo explicarlo de otra manera."
+  4) "También puedo mostrarte la normativa relacionada."
+  5) "Si deseas un ejemplo práctico, solo indícalo."
+  6) "Puedo ayudarte a aplicar este criterio a un caso concreto."
+  7) "Si tienes otra consulta, estaré encantado de ayudarte."
+  8) "¿Quieres que revisemos otro aspecto de este tema?"
+  9) "Si necesitas elaborar un documento relacionado, también puedo ayudarte."
+  10) "Seguimos cuando lo necesites."
 
 PROHIBICIONES ABSOLUTAS:
 - NO ofrezcas asesoría legal definitiva.
