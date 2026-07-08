@@ -7,6 +7,7 @@ import { ContinueLeftOff } from '@/components/app/dashboard/continue-left-off';
 import { RoleWidget } from '@/components/app/dashboard/role-widget';
 import { RecentLibrary } from '@/components/app/dashboard/recent-library';
 import { TrialBanner } from '@/components/app/dashboard/trial-banner';
+import { VoiceCTA } from '@/components/app/dashboard/voice-cta';
 import type { ProfileRole, SubscriptionRow } from '@/lib/auth/session';
 import type { NormativeDocType } from '@/lib/supabase/types';
 
@@ -214,6 +215,11 @@ export default async function DashboardPage() {
         savedTrend={savedTrend}
         voiceTrend={voiceTrend}
       />
+
+      {/* Card promocional "Habla con LexIA BETA" (ref UI cliente 02/07/2026).
+          Se coloca temprano en el dashboard para dar visibilidad a la
+          feature de voz que los usuarios suelen no descubrir. */}
+      <VoiceCTA />
 
       <ContinueLeftOff
         lastConversation={

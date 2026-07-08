@@ -24,14 +24,13 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { cn, getDocTypeMeta } from '@/lib/utils';
 import type { NormativeDocType } from '@/lib/supabase/types';
+import { normalizeSummaryQuestions, type DocumentSummary as ApiDocumentSummary } from '@/lib/ai/document-summary';
 
-export interface DocumentSummary {
-  de_que_trata: string;
-  que_establece: string;
-  a_quien_afecta: string;
-  que_criterio_establece: string;
-  temas: string[];
-}
+/**
+ * Alias local reexportado para no cambiar el import en el resto del código.
+ * La estructura real de la BD y del generador está en @/lib/ai/document-summary.
+ */
+export type DocumentSummary = ApiDocumentSummary;
 
 interface RelatedDoc {
   document_id: string;
@@ -43,6 +42,8 @@ interface RelatedDoc {
 
 interface Props {
   documentId: string;
+  /** Tipo del documento — determina qué preguntas mostrar en el resumen. */
+  docType: NormativeDocType;
   initialSummary: DocumentSummary | null;
   initialGeneratedAt: string | null;
   initialModel: string | null;
@@ -74,6 +75,7 @@ type TabKey = 'summary' | 'content' | 'citations' | 'history';
  */
 export function SummaryPanel({
   documentId,
+  docType,
   initialSummary,
   initialGeneratedAt,
   initialModel,
@@ -267,26 +269,17 @@ export function SummaryPanel({
               exit={{ opacity: 0 }}
               className="space-y-3"
             >
-              <SummarySection
-                icon={<Lightbulb className="h-3.5 w-3.5" />}
-                label="¿De qué trata?"
-                text={summary.de_que_trata}
-              />
-              <SummarySection
-                icon={<Sparkles className="h-3.5 w-3.5" />}
-                label="¿Qué establece?"
-                text={summary.que_establece}
-              />
-              <SummarySection
-                icon={<Users className="h-3.5 w-3.5" />}
-                label="¿A quién afecta?"
-                text={summary.a_quien_afecta}
-              />
-              <SummarySection
-                icon={<Scale className="h-3.5 w-3.5" />}
-                label="¿Qué criterio establece?"
-                text={summary.que_criterio_establece}
-              />
+              {/* Render dinámico de las preguntas según el tipo de documento.
+                  normalizeSummaryQuestions gestiona la retrocompat con los
+                  resúmenes v1 ya guardados en BD. */}
+              {normalizeSummaryQuestions(summary, docType).map((q, i) => (
+                <SummarySection
+                  key={q.key}
+                  icon={<QuestionIcon index={i} />}
+                  label={q.label}
+                  text={q.answer}
+                />
+              ))}
 
               {summary.temas.length > 0 && (
                 <div className="pt-2 border-t border-border">
@@ -649,4 +642,17 @@ function extractCitations(text: string): ExtractedCitation[] {
   return Array.from(counts.entries())
     .map(([text, count]) => ({ text, count }))
     .sort((a, b) => b.count - a.count);
+}
+
+/**
+ * Ícono rotativo para cada pregunta del resumen. Los 6 primeros índices
+ * usan íconos distintos (Lightbulb, Sparkles, Users, Scale, ...) para dar
+ * variedad visual. Del índice 7 en adelante rota. Feedback César 02/07/2026:
+ * cada tipo de documento tiene N preguntas variables (5-6), necesitamos
+ * íconos consistentes por posición.
+ */
+function QuestionIcon({ index }: { index: number }) {
+  const icons = [Lightbulb, Sparkles, Users, Scale, Quote, History];
+  const Icon = icons[index % icons.length];
+  return <Icon className="h-3.5 w-3.5" />;
 }

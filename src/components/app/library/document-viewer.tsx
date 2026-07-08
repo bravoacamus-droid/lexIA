@@ -503,6 +503,7 @@ export function DocumentViewer({
           <div className="sticky top-32 space-y-5">
             <SummaryPanel
               documentId={doc.id}
+              docType={doc.type}
               initialSummary={initialSummary}
               initialGeneratedAt={initialSummaryGeneratedAt}
               initialModel={initialSummaryModel}
