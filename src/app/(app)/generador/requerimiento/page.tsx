@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { ClipboardList, Plus, ArrowRight, Building2 } from 'lucide-react';
 import { RoleGateBlocked, isRoleAllowed } from '@/components/app/role-gate';
 import { OBJETO_LABELS } from '@/lib/requerimientos/catalog';
+import { SUBTIPO_META, type SubtipoRequerimiento } from '@/lib/requerimientos/subtipos';
 import { formatRelative } from '@/lib/utils';
 import type { ProfileRole } from '@/lib/auth/session';
 
@@ -40,7 +41,7 @@ export default async function RequerimientosListPage() {
   const { data } = await supabase
     .from('entity_requirements')
     .select(
-      'id, nro, anio, objeto, area_usuaria, denominacion, status, created_at, updated_at',
+      'id, nro, anio, objeto, subtipo, area_usuaria, denominacion, status, created_at, updated_at',
     )
     .eq('user_id', user.id)
     .order('updated_at', { ascending: false })
@@ -51,6 +52,7 @@ export default async function RequerimientosListPage() {
     nro: string | null;
     anio: number;
     objeto: 'bien' | 'servicio' | 'obra' | 'consultoria_obra';
+    subtipo: SubtipoRequerimiento | null;
     area_usuaria: string | null;
     denominacion: string;
     status: 'draft' | 'review' | 'final' | 'archived';
@@ -112,9 +114,11 @@ export default async function RequerimientosListPage() {
                       <Building2 className="h-4 w-4" />
                     </span>
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
+                      <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
                         <Badge variant="outline" className="text-[10px]">
-                          {OBJETO_LABELS[r.objeto]}
+                          {r.subtipo
+                            ? SUBTIPO_META[r.subtipo].label
+                            : OBJETO_LABELS[r.objeto]}
                         </Badge>
                         {r.area_usuaria && (
                           <span className="text-[11px] text-muted-foreground truncate">

@@ -10,6 +10,11 @@ import {
   OBJETO_ANEXO_TITULOS,
   type ObjectoContractual,
 } from '@/lib/requerimientos/catalog';
+import {
+  getAiFocus,
+  SUBTIPO_META,
+  type SubtipoRequerimiento,
+} from '@/lib/requerimientos/subtipos';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -78,16 +83,17 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
   }
   const { clause_id, user_input } = parsed.data;
 
-  // Cargar el requirement para conocer el contexto (objeto + denominación)
+  // Cargar el requirement para conocer el contexto (objeto + denominación + subtipo)
   const { data: req_data } = await supabase
     .from('entity_requirements')
-    .select('user_id, objeto, denominacion, area_usuaria, organo_unidad_organica')
+    .select('user_id, objeto, subtipo, denominacion, area_usuaria, organo_unidad_organica')
     .eq('id', ctx.params.id)
     .maybeSingle();
   if (!req_data) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const r = req_data as {
     user_id: string;
     objeto: ObjectoContractual;
+    subtipo: SubtipoRequerimiento | null;
     denominacion: string;
     area_usuaria: string | null;
     organo_unidad_organica: string | null;
@@ -110,6 +116,13 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
   const ragQuery = `${clauseDef.label} ${r.denominacion} ${OBJETO_ANEXO_TITULOS[r.objeto]}`;
   const rag = await buildRagContext(ragQuery);
 
+  // El subtipo aporta contexto CRÍTICO (RNP sí/no, ficha técnica de Perú
+  // Compras, Gestión de Instalaciones, Diseño y Construcción, etc.).
+  // Cuando existe, se antepone al system prompt.
+  const subtipoBlock = r.subtipo
+    ? `\nSUBTIPO ESPECÍFICO DE CONTRATACIÓN: ${SUBTIPO_META[r.subtipo].label}\nParticularidad del subtipo: ${getAiFocus(r.subtipo)}\n`
+    : '';
+
   const systemPrompt = `Eres LexIA, asistente jurídico especializado en Contrataciones del Estado peruano (Ley N° 32069 + DS N° 009-2025-EF).
 
 Tu tarea es escribir UNA cláusula específica de un Anexo (${OBJETO_ANEXO_TITULOS[r.objeto]}) para una contratación de la Entidad. NO escribas el documento completo — solo el texto que va dentro de la cláusula indicada.
@@ -118,7 +131,7 @@ CLÁUSULA A REDACTAR: "${clauseDef.label}"
 
 INSTRUCCIONES DE ESTA CLÁUSULA:
 ${clauseDef.aiHint}
-
+${subtipoBlock}
 CONTEXTO DEL REQUERIMIENTO:
 - Denominación: ${r.denominacion}
 - Objeto contractual: ${OBJETO_ANEXO_TITULOS[r.objeto]}

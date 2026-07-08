@@ -9,18 +9,36 @@ import {
   applyTemplate,
   getTemplateById,
 } from '@/lib/requerimientos/templates';
+import {
+  getBaseObjeto,
+  SUBTIPO_META,
+  type SubtipoRequerimiento,
+} from '@/lib/requerimientos/subtipos';
 import { ensureCanUse } from '@/lib/billing/feature-gate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const CreateSchema = z.object({
-  anio: z.number().int().min(2024).max(2100),
-  objeto: z.enum(['bien', 'servicio', 'obra', 'consultoria_obra']),
-  area_usuaria: z.string().max(160).optional(),
-  denominacion: z.string().min(2).max(500),
-  template_id: z.string().max(80).optional(),
-});
+// Se acepta `subtipo` (nuevo modelo jerárquico) O `objeto` (legacy).
+// Si viene subtipo, derivamos objeto y regimen automáticamente.
+const CreateSchema = z
+  .object({
+    anio: z.number().int().min(2024).max(2100),
+    regimen: z.enum(['menor_8uit', 'seleccion']).optional(),
+    subtipo: z
+      .enum(
+        Object.keys(SUBTIPO_META) as [SubtipoRequerimiento, ...SubtipoRequerimiento[]],
+      )
+      .optional(),
+    objeto: z.enum(['bien', 'servicio', 'obra', 'consultoria_obra']).optional(),
+    area_usuaria: z.string().max(160).optional(),
+    denominacion: z.string().min(2).max(500),
+    template_id: z.string().max(80).optional(),
+  })
+  .refine((d) => d.subtipo || d.objeto, {
+    message: 'Debe proveerse subtipo o objeto',
+    path: ['subtipo'],
+  });
 
 /** POST /api/requerimientos — crear nuevo requerimiento (paso 1) */
 export async function POST(req: Request) {
@@ -42,11 +60,22 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
-  const { anio, objeto, area_usuaria, denominacion, template_id } = parsed.data;
+  const { anio, subtipo, area_usuaria, denominacion, template_id } = parsed.data;
+
+  // Derivamos objeto base + régimen a partir del subtipo cuando venga.
+  // Legacy: si sólo mandan objeto, el subtipo queda null y régimen 'seleccion'.
+  const objeto: ObjectoContractual = subtipo
+    ? getBaseObjeto(subtipo)
+    : (parsed.data.objeto as ObjectoContractual);
+  const regimen = subtipo
+    ? SUBTIPO_META[subtipo].key.startsWith('menor_')
+      ? 'menor_8uit'
+      : 'seleccion'
+    : parsed.data.regimen || 'seleccion';
 
   // Si se eligió una plantilla y aplica al objeto seleccionado, la aplicamos.
   // Esto pre-rellena las cláusulas típicas.
-  let clauses: unknown = getInitialClauses(objeto as ObjectoContractual);
+  let clauses: unknown = getInitialClauses(objeto);
   const denominacionFinal = denominacion;
   let areaUsuariaFinal = area_usuaria || null;
 
@@ -55,10 +84,7 @@ export async function POST(req: Request) {
     if (tpl && tpl.objeto === objeto) {
       const applied = applyTemplate(tpl);
       clauses = applied.clauses;
-      // Solo sobrescribir denominación/área si el usuario dejó los defaults
-      // de la plantilla intactos (lo cual es el caso típico).
       if (!area_usuaria) areaUsuariaFinal = applied.area_usuaria;
-      // La denominación del form siempre prevalece para no perder lo que tipeó.
     }
   }
 
@@ -67,6 +93,8 @@ export async function POST(req: Request) {
     .insert({
       user_id: user.id,
       anio,
+      regimen,
+      subtipo: subtipo || null,
       objeto,
       area_usuaria: areaUsuariaFinal,
       denominacion: denominacionFinal,
