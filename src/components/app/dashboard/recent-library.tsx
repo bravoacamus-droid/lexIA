@@ -6,6 +6,7 @@ import { Sparkles, ArrowRight, BookOpen, Calendar } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { getDocTypeMeta, formatDate } from '@/lib/utils';
+import { getSummarySnippet } from '@/lib/ai/document-summary';
 import type { NormativeDocType } from '@/lib/supabase/types';
 
 interface RecentDoc {
@@ -14,7 +15,11 @@ interface RecentDoc {
   number: string | null;
   title: string;
   date: string | null;
-  ai_summary: { de_que_trata?: string; temas?: string[] } | null;
+  ai_summary: {
+    de_que_trata?: string;
+    temas?: string[];
+    questions?: Array<{ key: string; label: string; answer: string }>;
+  } | null;
 }
 
 interface Props {
@@ -59,6 +64,7 @@ export function RecentLibrary({ docs }: Props) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         {docs.map((doc, i) => {
           const meta = getDocTypeMeta(doc.type);
+          const snippet = getSummarySnippet(doc.ai_summary);
           return (
             <motion.div
               key={doc.id}
@@ -91,10 +97,10 @@ export function RecentLibrary({ docs }: Props) {
                     {doc.number || doc.title}
                   </h3>
 
-                  {doc.ai_summary?.de_que_trata && (
+                  {snippet && (
                     <p className="mt-2 text-xs text-muted-foreground leading-relaxed line-clamp-3 flex-1">
                       <Sparkles className="h-3 w-3 text-brand-500 inline mr-1 -mt-0.5" />
-                      {doc.ai_summary.de_que_trata}
+                      {snippet}
                     </p>
                   )}
 

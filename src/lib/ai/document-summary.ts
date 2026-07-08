@@ -490,3 +490,34 @@ export function normalizeSummaryQuestions(
 
   return questions;
 }
+
+/**
+ * Devuelve el mejor snippet corto disponible del resumen para renderizar
+ * en tarjetas de listado (biblioteca, dashboard, buscador). Contempla
+ * ambos formatos de `ai_summary`:
+ *
+ *   - v1: usa `de_que_trata` directamente.
+ *   - v2 (opinion/pronunciamiento/resolucion_tce/directiva): usa la
+ *     PRIMERA respuesta del array `questions` (que por convención es la
+ *     más panorámica — sumilla/asunto/cuestionamientos/de_que_trata).
+ *
+ * Devuelve null si no hay ningún texto legible.
+ */
+export function getSummarySnippet(
+  summary:
+    | {
+        de_que_trata?: string;
+        questions?: Array<{ key?: string; answer?: string }>;
+      }
+    | null
+    | undefined,
+): string | null {
+  if (!summary) return null;
+  if (summary.de_que_trata && summary.de_que_trata.trim().length > 0) {
+    return summary.de_que_trata;
+  }
+  const first = summary.questions?.find(
+    (q) => q.answer && q.answer.trim().length > 0,
+  );
+  return first?.answer ?? null;
+}

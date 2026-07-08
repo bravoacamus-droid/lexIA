@@ -33,6 +33,7 @@ interface Props {
 interface AiSummaryMini {
   de_que_trata?: string;
   temas?: string[];
+  questions?: Array<{ key: string; label: string; answer: string }>;
 }
 
 interface SearchResult {

@@ -266,7 +266,11 @@ export default async function DashboardPage() {
             number: string | null;
             title: string;
             date: string | null;
-            ai_summary: { de_que_trata?: string; temas?: string[] } | null;
+            ai_summary: {
+              de_que_trata?: string;
+              temas?: string[];
+              questions?: Array<{ key: string; label: string; answer: string }>;
+            } | null;
           }>) || []).map((d) => ({
             id: d.id,
             type: d.type,

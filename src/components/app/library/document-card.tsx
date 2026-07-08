@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn, getDocTypeMeta, formatDate } from '@/lib/utils';
 import { HighlightedText } from '@/components/app/library/highlighted-text';
+import { getSummarySnippet } from '@/lib/ai/document-summary';
 import type { NormativeDocType } from '@/lib/supabase/types';
 
 interface DocumentMini {
@@ -25,10 +26,13 @@ interface DocumentMini {
   summary: string | null;
   date: string | null;
   source_url: string | null;
-  /** Resumen IA generado (si existe). */
+  /** Resumen IA generado (si existe). Puede venir en formato v1
+   * (`de_que_trata`) o v2 (`questions[]` con preguntas específicas por
+   * tipo de documento — opinion/pronunciamiento/resolucion_tce/directiva). */
   ai_summary?: {
     de_que_trata?: string;
     temas?: string[];
+    questions?: Array<{ key: string; label: string; answer: string }>;
   } | null;
 }
 
@@ -57,6 +61,8 @@ export function DocumentCard({
   onUnsave,
 }: Props) {
   const meta = getDocTypeMeta(document.type);
+  // Snippet unificado: `de_que_trata` (v1) o primer `questions[].answer` (v2).
+  const summarySnippet = getSummarySnippet(document.ai_summary);
   return (
     <motion.article
       whileHover={{ y: -2 }}
@@ -143,12 +149,12 @@ export function DocumentCard({
           maxLength=380 para que se vea la oración COMPLETA en la mayoría
           de casos (el generador produce 180-280 chars). Los "..." que
           César veía eran del clamp CSS, no del texto real. */}
-      {document.ai_summary?.de_que_trata && !excerpt && (
+      {summarySnippet && !excerpt && (
         <div className="mt-2.5 flex items-start gap-1.5">
           <Sparkles className="h-3.5 w-3.5 text-brand-500 shrink-0 mt-0.5" />
           <p className="text-sm text-foreground/80 leading-relaxed line-clamp-3">
             <HighlightedText
-              text={document.ai_summary.de_que_trata}
+              text={summarySnippet}
               terms={highlightTerms}
               maxLength={380}
             />
@@ -172,7 +178,7 @@ export function DocumentCard({
       )}
 
       {/* Fallback al summary del extractor si NO hay ai_summary */}
-      {document.summary && !document.ai_summary?.de_que_trata && !excerpt && (
+      {document.summary && !summarySnippet && !excerpt && (
         <p className="mt-2 text-sm text-muted-foreground leading-relaxed line-clamp-3">
           <HighlightedText
             text={document.summary}

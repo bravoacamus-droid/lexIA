@@ -22,10 +22,13 @@ export interface FolderItem {
   count: number;
 }
 
-/** Resumen IA — subset que necesitamos para las cards. */
+/** Resumen IA — subset que necesitamos para las cards.
+ * Soporta ambos formatos: v1 (`de_que_trata`) y v2 (`questions[]`). El
+ * renderer usa `getSummarySnippet()` que unifica ambos. */
 interface AiSummaryMini {
   de_que_trata?: string;
   temas?: string[];
+  questions?: Array<{ key: string; label: string; answer: string }>;
 }
 
 interface BrowseDoc {

@@ -213,7 +213,11 @@ export async function POST(req: Request) {
       date: string | null;
       summary: string | null;
       source_url: string | null;
-      ai_summary: { de_que_trata?: string; temas?: string[] } | null;
+      ai_summary: {
+        de_que_trata?: string;
+        temas?: string[];
+        questions?: Array<{ key: string; label: string; answer: string }>;
+      } | null;
     }
   >();
   if (docIds.length > 0) {
@@ -227,7 +231,11 @@ export async function POST(req: Request) {
         date: string | null;
         summary: string | null;
         source_url: string | null;
-        ai_summary: { de_que_trata?: string; temas?: string[] } | null;
+        ai_summary: {
+        de_que_trata?: string;
+        temas?: string[];
+        questions?: Array<{ key: string; label: string; answer: string }>;
+      } | null;
       }>) {
         docMetaMap.set(m.id, m);
       }
