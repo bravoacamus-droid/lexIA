@@ -53,19 +53,9 @@ export default function CuentaLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="container max-w-6xl py-8 space-y-6">
-      <header className="space-y-1">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-600">
-          Cuenta
-        </p>
-        <h1 className="font-semibold text-3xl tracking-tight">Tu espacio personal</h1>
-        <p className="text-sm text-muted-foreground max-w-2xl">
-          Administra tu perfil, tu plan y tus preferencias en un solo lugar.
-        </p>
-      </header>
-
-      <div className="grid lg:grid-cols-[260px_1fr] gap-6">
-        <aside>
+    <div className="container max-w-7xl py-6">
+      <div className="grid lg:grid-cols-[240px_1fr] gap-6">
+        <aside className="lg:sticky lg:top-6 lg:self-start">
           <nav className="space-y-1.5">
             {NAV.map((item) => {
               const Icon = item.icon;
