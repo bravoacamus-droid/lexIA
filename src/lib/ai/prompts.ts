@@ -169,7 +169,9 @@ export function buildChatSystemPrompt(
 CONTEXTO NORMATIVO RECUPERADO:
 (No se encontraron fragmentos relevantes en la base normativa para esta consulta.)
 ${qaBlock}
-${qaBlock ? 'Aunque no hay fragmentos normativos directos, tienes el criterio OECE del balotario arriba — puedes basar tu respuesta en él, aclarando que se basa en el criterio institucional del OECE.' : 'Indica al usuario que no encuentras sustento normativo específico para esta consulta y sugiere reformularla.'}`;
+REGLA CRÍTICA (bug 08/07/2026): NO USES la sintaxis de cita [N] en tu respuesta cuando no hay whitelist arriba — el frontend renderiza cada [N] como un chip clicable y sin sources se mostrará "Cita no disponible" al usuario, lo cual da la falsa impresión de que hay fuentes. Redacta en prosa fluida sin corchetes numerados.
+
+${qaBlock ? 'Aunque no hay fragmentos normativos directos, tienes el criterio OECE del balotario arriba — puedes basar tu respuesta en él, aclarando que se basa en el criterio institucional del OECE.' : 'Indica al usuario que no encuentras sustento normativo específico para esta consulta y sugiere reformularla o verificar en el portal del OECE.'}`;
   }
 
   const context = chunks

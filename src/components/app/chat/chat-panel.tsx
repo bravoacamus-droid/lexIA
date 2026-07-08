@@ -29,6 +29,35 @@ interface MessageWithSources {
   sources: ChatSource[];
 }
 
+/**
+ * Consulta las sources del último assistant message desde BD con
+ * reintentos, para cubrir la race condition entre el fin del stream
+ * (lado cliente) y el insert en BD (lado servidor, ocurre en el
+ * `onFinish` del backend). Backoff: 300ms, 800ms, 1500ms.
+ */
+async function fetchLastSourcesWithRetry(
+  conversationId: string,
+): Promise<ChatSource[]> {
+  const delays = [300, 800, 1500];
+  for (const delay of delays) {
+    await new Promise((r) => setTimeout(r, delay));
+    try {
+      const res = await fetch(
+        `/api/conversations/${conversationId}/last-sources`,
+        { cache: 'no-store' },
+      );
+      if (!res.ok) continue;
+      const json = (await res.json()) as { sources: ChatSource[] };
+      if (Array.isArray(json.sources) && json.sources.length > 0) {
+        return json.sources;
+      }
+    } catch {
+      /* siguiente intento */
+    }
+  }
+  return [];
+}
+
 export function ChatPanel({
   conversationId,
   title,
@@ -104,8 +133,19 @@ export function ChatPanel({
     },
     onFinish: (message) => {
       const last = (window as Window & { __lexia_last_sources?: ChatSource[] }).__lexia_last_sources;
-      if (last && message.role === 'assistant') {
+      if (last && last.length > 0 && message.role === 'assistant') {
         setSourcesById((prev) => ({ ...prev, [message.id]: last }));
+      } else if (message.role === 'assistant') {
+        // Fallback: el header x-lexia-sources fue truncado por Vercel
+        // (limit ~16KB) porque 8-15 chunks con snippets pesan 40-50KB.
+        // Consultamos las sources del último assistant message desde BD.
+        // Reintentamos con backoff porque hay race condition — el
+        // stream termina antes que el insert del backend.
+        void fetchLastSourcesWithRetry(conversationId).then((sources) => {
+          if (sources.length > 0) {
+            setSourcesById((prev) => ({ ...prev, [message.id]: sources }));
+          }
+        });
       }
       touch(conversationId);
       // Refresh suggestions after each turn
