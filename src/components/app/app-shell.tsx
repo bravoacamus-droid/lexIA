@@ -65,7 +65,16 @@ export function AppShell({ user, children }: Props) {
           onOpenPalette={() => setPaletteOpen(true)}
           onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
         />
-        <main className="flex-1 min-w-0 overflow-x-hidden">{children}</main>
+        {/* IMPORTANTE (bug reportado por César 08/07/2026):
+            Antes teníamos `overflow-x-hidden` para contener elementos
+            anchos que provocaban scroll horizontal. Pero cualquier
+            `overflow` (incluido `overflow-x`) rompe `position: sticky`
+            de TODOS los descendientes — por eso el TOC "Contenido" de
+            la biblioteca no quedaba pegado al hacer scroll.
+            Reemplazamos por `overflow-x-clip`: recorta el desborde
+            horizontal SIN crear un contexto de scroll, así los sticky
+            de hijos siguen funcionando. */}
+        <main className="flex-1 min-w-0 overflow-x-clip">{children}</main>
       </div>
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
     </div>
