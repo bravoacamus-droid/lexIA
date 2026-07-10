@@ -12,6 +12,7 @@
  */
 import { createAdminClient } from '@/lib/supabase/server';
 import { embedOne } from '@/lib/ai/embeddings';
+import { expandLegalQuery } from '@/lib/ai/query-expansion';
 
 export interface NormativaSearchResult {
   /** Tipo del documento (ley, reglamento, directiva, opinion, etc.). */
@@ -82,13 +83,29 @@ export async function searchNormativa(
     return [];
   }
 
+  // Query expansion — feedback César 08/07/2026: cuando el usuario
+  // preguntó por "gestión de riesgos en contrato menor", el embedding
+  // pesó más "gestión de riesgos" y no trajo el Art. 226. La expansion
+  // agrega términos técnicos y focalQueries cortas (una por patrón
+  // detectado) que se usan para búsquedas dedicadas con filter_type='ley'.
+  const { expanded: expandedQuery, focalQueries } = expandLegalQuery(opts.query);
+  let expandedEmbedding: number[] | null = null;
+  if (expandedQuery && expandedQuery !== opts.query) {
+    try {
+      const v = await embedOne(expandedQuery, 'RETRIEVAL_QUERY');
+      expandedEmbedding = v as unknown as number[];
+    } catch (e) {
+      console.error('[voice-search] expanded embed error:', (e as Error).message);
+    }
+  }
+
   const admin = createAdminClient();
   const filterLaw =
     opts.filter_law && opts.filter_law.length > 0 ? opts.filter_law : null;
   // Sobre-recuperamos (2x) para tener margen al rerankear. Antes traíamos
   // exactamente matchCount y perdíamos chunks importantes cuando quedaban
   // en posiciones 6-10 (ej: Ley 32069 Art. 66.6 sobre prevalencia).
-  const oversample = Math.min(matchCount * 2, 20);
+  const oversample = Math.min(matchCount * 2, 15);
   const { data, error } = await admin.rpc('hybrid_search', {
     query_text: opts.query,
     query_embedding: embedding,
@@ -101,8 +118,75 @@ export async function searchNormativa(
     return [];
   }
 
-  const rawRows = (data || []) as HybridRow[];
-  const rows = rerankAndDedupe(rawRows, opts.query, matchCount);
+  let combined = (data || []) as HybridRow[];
+
+  // Segunda búsqueda con la query expandida — merge por document_id +
+  // primeros 100 chars del content (misma firma que rerankAndDedupe).
+  if (expandedEmbedding) {
+    const seen = new Set(
+      combined.map((c) => `${c.document_id}:${c.content.slice(0, 60)}`),
+    );
+
+    const { data: extraData } = await admin.rpc('hybrid_search', {
+      query_text: expandedQuery,
+      query_embedding: expandedEmbedding,
+      match_count: 8,
+      filter_type: filterType,
+      filter_law: filterLaw,
+    });
+    if (extraData) {
+      for (const r of extraData as HybridRow[]) {
+        const k = `${r.document_id}:${r.content.slice(0, 60)}`;
+        if (!seen.has(k)) {
+          combined.push(r);
+          seen.add(k);
+        }
+      }
+    }
+
+  }
+
+  // Búsquedas FOCALIZADAS por artículo, una por focalQuery detectada.
+  // La focal es corta y concentrada ("artículo 226 contrato menor 8 UIT"),
+  // así el embedding no se diluye como con la expansión grande. Se
+  // filtra por filter_type='ley' para garantizar que el texto base de
+  // la Ley 32069 entre al pool aunque quede debajo en similarity global.
+  //
+  // Feedback César 08/07/2026: "gestión de riesgos en contrato menor"
+  // traía pronunciamientos genéricos pero NO el Art. 226 de la Ley
+  // que sí trata contratos menores. La focal query lo rescata.
+  if (!filterType && focalQueries.length > 0) {
+    const seen = new Set(
+      combined.map((c) => `${c.document_id}:${c.content.slice(0, 60)}`),
+    );
+    for (const focal of focalQueries) {
+      let focalEmb: number[];
+      try {
+        focalEmb = (await embedOne(focal, 'RETRIEVAL_QUERY')) as unknown as number[];
+      } catch (e) {
+        console.error('[voice-search] focal embed error:', (e as Error).message);
+        continue;
+      }
+      const { data: lawData } = await admin.rpc('hybrid_search', {
+        query_text: focal,
+        query_embedding: focalEmb,
+        match_count: 3,
+        filter_type: 'ley',
+        filter_law: filterLaw,
+      });
+      if (lawData) {
+        for (const r of lawData as HybridRow[]) {
+          const k = `${r.document_id}:${r.content.slice(0, 60)}`;
+          if (!seen.has(k)) {
+            combined.push(r);
+            seen.add(k);
+          }
+        }
+      }
+    }
+  }
+
+  const rows = rerankAndDedupe(combined, opts.query, matchCount);
   return rows.map((r) => {
     const numberPart = r.doc_number ? ` ${r.doc_number}` : '';
     const typeLabel = formatTypeLabel(r.doc_type);
