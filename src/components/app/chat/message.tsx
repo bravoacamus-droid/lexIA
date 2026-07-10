@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { detectTextCitations, type TextCitationMatch } from '@/lib/citations/detect';
+import { detectFocusHint } from '@/lib/citations/focus';
 import { motion } from 'framer-motion';
 import {
   Copy,
@@ -29,7 +30,10 @@ interface MsgProps {
     sources: ChatSource[];
   };
   isStreaming?: boolean;
-  onCitationClick: (src: ChatSource) => void;
+  /** El segundo argumento es el numeral/artículo detectado en el texto
+   *  circundante al chip [N] — se usa para hacer highlight + auto-scroll
+   *  al fragmento exacto dentro del sheet de la fuente. */
+  onCitationClick: (src: ChatSource, focus?: string | null) => void;
   onRegenerate?: () => void;
 }
 
@@ -162,7 +166,7 @@ interface AssistantMdProps {
   content: string;
   sources: ChatSource[];
   isStreaming?: boolean;
-  onCitationClick: (src: ChatSource) => void;
+  onCitationClick: (src: ChatSource, focus?: string | null) => void;
 }
 
 function AssistantMarkdown({
@@ -171,10 +175,28 @@ function AssistantMarkdown({
   isStreaming,
   onCitationClick,
 }: AssistantMdProps) {
-  // Reemplazamos [N] por un placeholder reconocible que luego renderizamos como chip
+  // Reemplazamos [N] por un placeholder reconocible que luego renderizamos
+  // como chip. Guardamos también la POSICIÓN original de cada [N] en el
+  // texto crudo para poder detectar el artículo circundante (ej. "125.2")
+  // cuando el usuario haga click y llevar el modal DIRECTAMENTE al
+  // fragmento citado — bug reportado por César 08/07/2026: el modal
+  // mostraba el chunk completo y daba la impresión de que la respuesta
+  // ("125.2") y la fuente (con 125.1 + 125.2 + 125.3) se contradecían.
   const sentinel = '⟨LEXC⟩';
-  const transformed = useMemo(() => {
-    return content.replace(/\[(\d+)\]/g, `${sentinel}$1${sentinel}`);
+  const { transformed, focusByN } = useMemo(() => {
+    const focusByN: Record<number, string | null> = {};
+    const re = /\[(\d+)\]/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(content)) !== null) {
+      const n = parseInt(m[1], 10);
+      if (!Number.isFinite(n) || focusByN[n] !== undefined) continue;
+      const hint = detectFocusHint(content, m.index);
+      focusByN[n] = hint?.value ?? null;
+    }
+    return {
+      transformed: content.replace(/\[(\d+)\]/g, `${sentinel}$1${sentinel}`),
+      focusByN,
+    };
   }, [content]);
 
   return (
@@ -183,21 +205,21 @@ function AssistantMarkdown({
       components={{
         // Custom text component to inject citation chips
         p: ({ children }) => (
-          <p>{renderWithCitations(children, sources, sentinel, onCitationClick)}</p>
+          <p>{renderWithCitations(children, sources, sentinel, onCitationClick, focusByN)}</p>
         ),
         li: ({ children }) => (
-          <li>{renderWithCitations(children, sources, sentinel, onCitationClick)}</li>
+          <li>{renderWithCitations(children, sources, sentinel, onCitationClick, focusByN)}</li>
         ),
         h1: ({ children }) => (
           <h1 className="font-semibold">
-            {renderWithCitations(children, sources, sentinel, onCitationClick)}
+            {renderWithCitations(children, sources, sentinel, onCitationClick, focusByN)}
           </h1>
         ),
         h2: ({ children }) => (
-          <h2>{renderWithCitations(children, sources, sentinel, onCitationClick)}</h2>
+          <h2>{renderWithCitations(children, sources, sentinel, onCitationClick, focusByN)}</h2>
         ),
         h3: ({ children }) => (
-          <h3>{renderWithCitations(children, sources, sentinel, onCitationClick)}</h3>
+          <h3>{renderWithCitations(children, sources, sentinel, onCitationClick, focusByN)}</h3>
         ),
         blockquote: ({ children }) => (
           <blockquote className="border-l-4 border-brand-500 bg-brand-50/40 dark:bg-brand-950/30 pl-4 py-1 my-3 italic">
@@ -220,7 +242,8 @@ function renderWithCitations(
   children: React.ReactNode,
   sources: ChatSource[],
   sentinel: string,
-  onClick: (src: ChatSource) => void,
+  onClick: (src: ChatSource, focus?: string | null) => void,
+  focusByN: Record<number, string | null> = {},
 ): React.ReactNode {
   // Procesa un string nodo: primero busca el sentinel ⟨LEXC⟩N⟨LEXC⟩ que
   // representa el chip [N] del modelo, luego dentro de los fragmentos
@@ -248,19 +271,27 @@ function renderWithCitations(
               </span>
             );
           }
+          const focus = focusByN[n] ?? null;
           return (
             <Tooltip key={key}>
               <TooltipTrigger asChild>
                 <button
-                  onClick={() => onClick(src)}
+                  onClick={() => onClick(src, focus)}
                   className="citation-chip"
-                  aria-label={`Cita ${n}`}
+                  aria-label={`Cita ${n}${focus ? ` — ${focus}` : ''}`}
                 >
                   {n}
                 </button>
               </TooltipTrigger>
               <TooltipContent side="top" className="max-w-xs">
-                <p className="font-semibold mb-1">{shortLabel(src)}</p>
+                <p className="font-semibold mb-1">
+                  {shortLabel(src)}
+                  {focus && (
+                    <span className="ml-1 text-brand-500 dark:text-brand-400">
+                      · {focus}
+                    </span>
+                  )}
+                </p>
                 <p className="line-clamp-3 opacity-80 text-[11px]">
                   {src.snippet}
                 </p>

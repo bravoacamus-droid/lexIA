@@ -92,7 +92,10 @@ export function ChatPanel({
           .map((m) => [m.id, (m.sources || []) as ChatSource[]]),
       ),
   );
-  const [openChunk, setOpenChunk] = useState<ChatSource | null>(null);
+  const [openChunk, setOpenChunk] = useState<{
+    src: ChatSource;
+    focus: string | null;
+  } | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const prefillFiredRef = useRef(false);
@@ -325,7 +328,9 @@ export function ChatPanel({
                     key={m.id}
                     message={m}
                     isStreaming={isLast && m.role === 'assistant' && isLoading}
-                    onCitationClick={(src) => setOpenChunk(src)}
+                    onCitationClick={(src, focus) =>
+                      setOpenChunk({ src, focus: focus ?? null })
+                    }
                     onRegenerate={isLast && m.role === 'assistant' && !isLoading ? onRegenerate : undefined}
                   />
                 );
@@ -380,7 +385,12 @@ export function ChatPanel({
         </div>
       </div>
 
-      <ChunkSheet open={!!openChunk} onClose={() => setOpenChunk(null)} chunk={openChunk} />
+      <ChunkSheet
+        open={!!openChunk}
+        onClose={() => setOpenChunk(null)}
+        chunk={openChunk?.src ?? null}
+        focus={openChunk?.focus ?? null}
+      />
     </>
   );
 }
