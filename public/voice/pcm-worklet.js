@@ -40,13 +40,29 @@ class PCMProcessor extends AudioWorkletProcessor {
   }
 
   flush() {
+    // Calcular RMS del buffer (energía normalizada) para VAD del lado
+    // cliente. La UI lo usa para pasar a "Pensando…" cuando el usuario
+    // termina de hablar, sin esperar al primer audio del modelo — feedback
+    // César 08/07/2026: "Te escucho…" se quedaba pegado mientras el
+    // modelo procesaba, dando la sensación de que no había escuchado.
+    let sumSq = 0;
+    for (let i = 0; i < this.bufferIndex; i++) {
+      sumSq += this.buffer[i] * this.buffer[i];
+    }
+    const rms = this.bufferIndex > 0 ? Math.sqrt(sumSq / this.bufferIndex) : 0;
+
     // Convertir Float32 [-1, 1] a Int16 PCM
     const int16 = new Int16Array(this.bufferIndex);
     for (let i = 0; i < this.bufferIndex; i++) {
       const s = Math.max(-1, Math.min(1, this.buffer[i]));
       int16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
     }
-    this.port.postMessage(int16.buffer, [int16.buffer]);
+    // Enviamos también el rms como metadata. Solo el ArrayBuffer del
+    // PCM es transferible; el rms viaja como número plano.
+    this.port.postMessage(
+      { buffer: int16.buffer, rms },
+      [int16.buffer],
+    );
     this.bufferIndex = 0;
   }
 }

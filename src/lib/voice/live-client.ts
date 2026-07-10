@@ -145,6 +145,24 @@ export class LiveClient {
   private agentTurnStartedAt: number | null = null;
   private muted = false;
   private agentState: AgentState = 'idle';
+
+  /**
+   * VAD del lado cliente. El worklet nos envía el RMS de cada chunk
+   * (~120ms). Cuando el rms supera un threshold marcamos que el usuario
+   * está hablando y arrancamos un timer de silencio. Si pasan
+   * VAD_SILENCE_MS sin habla, transicionamos a `thinking` (asumimos
+   * que el modelo está procesando la respuesta). Cuando llega el primer
+   * audio del modelo pasamos a `speaking`.
+   *
+   * Feedback César 08/07/2026: "Te escucho…" quedaba pegado durante el
+   * procesado del modelo — la UX daba la sensación de que no había
+   * escuchado. Con este VAD ahora aparece "Consultando normativa…"
+   * inmediatamente después de terminar de hablar.
+   */
+  private static readonly VAD_RMS_THRESHOLD = 0.02;
+  private static readonly VAD_SILENCE_MS = 700;
+  private userSpeaking = false;
+  private vadSilenceTimer: ReturnType<typeof setTimeout> | null = null;
   private mediaRecorder: MediaRecorder | null = null;
   private recordedChunks: Blob[] = [];
   /** Tokens acumulados durante la sesión (último usageMetadata recibido). */
@@ -214,6 +232,54 @@ export class LiveClient {
     this.setupPlayback();
   }
 
+  /**
+   * VAD del lado cliente. Se llama para cada chunk (~120ms) que el
+   * worklet envía. Si el rms supera el threshold, marcamos speaking del
+   * usuario y ponemos estado `listening` (cancelando el timer previo).
+   * Cuando termina el habla, un timer de VAD_SILENCE_MS pasa a
+   * `thinking` — el modelo está procesando la respuesta.
+   *
+   * No pisa el estado `speaking` (audio del modelo saliendo) ni
+   * `thinking` disparado por toolCall — priorizamos las señales
+   * server-side por encima del VAD cliente cuando existen.
+   */
+  private handleUserAudioRms(rms: number) {
+    const speaking = rms > LiveClient.VAD_RMS_THRESHOLD;
+
+    if (speaking) {
+      // Usuario hablando — el modelo no puede estar generando audio al
+      // mismo tiempo (Gemini interrumpe automáticamente en ese caso),
+      // así que es seguro poner `listening`.
+      this.userSpeaking = true;
+      if (this.vadSilenceTimer) {
+        clearTimeout(this.vadSilenceTimer);
+        this.vadSilenceTimer = null;
+      }
+      // Solo forzamos listening si NO estamos en speaking (el modelo
+      // acaba de empezar y su primer chunk RMS bajo se cruzaría con el
+      // último RMS alto del usuario en el buffer).
+      if (this.agentState !== 'speaking') {
+        this.setState('listening');
+      }
+      return;
+    }
+
+    // Silencio. Si el usuario venía hablando, arrancamos el timer que
+    // transiciona a `thinking`.
+    if (this.userSpeaking && !this.vadSilenceTimer) {
+      this.vadSilenceTimer = setTimeout(() => {
+        this.vadSilenceTimer = null;
+        this.userSpeaking = false;
+        // Solo pasar a thinking si el modelo aún NO empezó a hablar.
+        // El estado real cambiará a speaking en cuanto llegue el primer
+        // audio del modelo (ver serverContent handler).
+        if (this.agentState === 'listening') {
+          this.setState('thinking');
+        }
+      }, LiveClient.VAD_SILENCE_MS);
+    }
+  }
+
   private async setupAudioCapture() {
     this.mediaStream = await navigator.mediaDevices.getUserMedia({
       audio: {
@@ -226,10 +292,13 @@ export class LiveClient {
     await this.audioContext.audioWorklet.addModule('/voice/pcm-worklet.js');
     this.sourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
     this.workletNode = new AudioWorkletNode(this.audioContext, 'pcm-processor');
-    this.workletNode.port.onmessage = (e: MessageEvent<ArrayBuffer>) => {
+    this.workletNode.port.onmessage = (
+      e: MessageEvent<{ buffer: ArrayBuffer; rms: number }>,
+    ) => {
       if (this.muted) return;
-      this.sendAudioChunk(e.data);
-      this.setState('listening');
+      const { buffer, rms } = e.data;
+      this.sendAudioChunk(buffer);
+      this.handleUserAudioRms(rms);
     };
     this.sourceNode.connect(this.workletNode);
 
@@ -339,6 +408,14 @@ export class LiveClient {
       if (sc.modelTurn?.parts) {
         for (const part of sc.modelTurn.parts) {
           if (part.inlineData?.mimeType?.includes('audio')) {
+            // El modelo empezó a responder — cancelar cualquier timer
+            // VAD pendiente (ya no importa si transiciona a `thinking`,
+            // vamos directo a `speaking`).
+            if (this.vadSilenceTimer) {
+              clearTimeout(this.vadSilenceTimer);
+              this.vadSilenceTimer = null;
+            }
+            this.userSpeaking = false;
             this.queueAudioPlayback(part.inlineData.data);
             this.setState('speaking');
           }
@@ -514,6 +591,13 @@ export class LiveClient {
   }
 
   async stop() {
+    // Cancelar el timer de VAD para no disparar setState después de
+    // cerrar la sesión.
+    if (this.vadSilenceTimer) {
+      clearTimeout(this.vadSilenceTimer);
+      this.vadSilenceTimer = null;
+    }
+
     // CRÍTICO: flushear texto acumulado ANTES de cerrar. Si el usuario
     // corta la llamada mientras Gemini está aún generando la respuesta,
     // no llega `turnComplete` y se perdería el último turno (bug real

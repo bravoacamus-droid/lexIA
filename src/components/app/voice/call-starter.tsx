@@ -532,14 +532,14 @@ export function CallStarter({ hasConsent, disclaimerVersion }: Props) {
             )}
           </div>
           <p className="mt-5 text-sm font-semibold">
-            {agentState === 'speaking' && 'Abogada Virtual está hablando…'}
+            {agentState === 'speaking' && 'LexIA está hablando…'}
             {agentState === 'listening' && 'Te escucho…'}
-            {agentState === 'thinking' && 'Consultando normativa…'}
+            {agentState === 'thinking' && 'Procesando tu consulta…'}
             {agentState === 'idle' && 'Tu turno'}
           </p>
           {agentState === 'thinking' && (
             <p className="text-xs text-muted-foreground mt-1">
-              📚 Buscando en la Ley 32069 y pronunciamientos del OECE
+              📚 Analizando la Ley 32069 y pronunciamientos del OECE
             </p>
           )}
         </div>
