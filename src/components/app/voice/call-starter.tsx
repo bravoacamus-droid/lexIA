@@ -506,6 +506,8 @@ export function CallStarter({ hasConsent, disclaimerVersion }: Props) {
                 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/40',
               agentState === 'thinking' &&
                 'bg-amber-500 text-white shadow-lg shadow-amber-500/40',
+              agentState === 'searching' &&
+                'bg-violet-500 text-white shadow-lg shadow-violet-500/40',
               agentState === 'idle' && 'bg-secondary text-muted-foreground',
             )}
           >
@@ -525,8 +527,10 @@ export function CallStarter({ hasConsent, disclaimerVersion }: Props) {
                 />
               </>
             )}
-            {agentState === 'thinking' ? (
+            {agentState === 'searching' ? (
               <BookOpen className="h-10 w-10 relative animate-pulse" />
+            ) : agentState === 'thinking' ? (
+              <Sparkles className="h-10 w-10 relative animate-pulse" />
             ) : (
               <Sparkles className="h-10 w-10 relative" />
             )}
@@ -534,12 +538,13 @@ export function CallStarter({ hasConsent, disclaimerVersion }: Props) {
           <p className="mt-5 text-sm font-semibold">
             {agentState === 'speaking' && 'LexIA está hablando…'}
             {agentState === 'listening' && 'Te escucho…'}
-            {agentState === 'thinking' && 'Procesando tu consulta…'}
+            {agentState === 'thinking' && 'Preparando respuesta…'}
+            {agentState === 'searching' && 'Consultando normativa…'}
             {agentState === 'idle' && 'Tu turno'}
           </p>
-          {agentState === 'thinking' && (
+          {agentState === 'searching' && (
             <p className="text-xs text-muted-foreground mt-1">
-              📚 Analizando la Ley 32069 y pronunciamientos del OECE
+              📚 Buscando en la Ley 32069 y pronunciamientos del OECE
             </p>
           )}
         </div>

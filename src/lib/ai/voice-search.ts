@@ -74,30 +74,36 @@ export async function searchNormativa(
       ? opts.filter_type
       : null;
 
-  let embedding: number[];
-  try {
-    const v = await embedOne(opts.query, 'RETRIEVAL_QUERY');
-    embedding = v as unknown as number[];
-  } catch (e) {
-    console.error('[voice-search] embed error:', (e as Error).message);
-    return [];
-  }
-
   // Query expansion — feedback César 08/07/2026: cuando el usuario
   // preguntó por "gestión de riesgos en contrato menor", el embedding
   // pesó más "gestión de riesgos" y no trajo el Art. 226. La expansion
   // agrega términos técnicos y focalQueries cortas (una por patrón
   // detectado) que se usan para búsquedas dedicadas con filter_type='ley'.
   const { expanded: expandedQuery, focalQueries } = expandLegalQuery(opts.query);
-  let expandedEmbedding: number[] | null = null;
-  if (expandedQuery && expandedQuery !== opts.query) {
-    try {
-      const v = await embedOne(expandedQuery, 'RETRIEVAL_QUERY');
-      expandedEmbedding = v as unknown as number[];
-    } catch (e) {
-      console.error('[voice-search] expanded embed error:', (e as Error).message);
-    }
-  }
+
+  // Todos los embeds (query + expanded + N focales) son independientes.
+  // Se lanzan en paralelo con Promise.all para reducir la latencia de
+  // 3-4 embeds secuenciales (1.5-3s) a un solo round-trip (~500ms).
+  const safeEmbed = (text: string) =>
+    embedOne(text, 'RETRIEVAL_QUERY').catch((err: Error) => {
+      console.error('[voice-search] embed_failed', {
+        text_preview: text.slice(0, 60),
+        err: err.message,
+      });
+      return null as number[] | null;
+    });
+
+  const embedPromises: Promise<number[] | null>[] = [safeEmbed(opts.query)];
+  const doExpanded = !!expandedQuery && expandedQuery !== opts.query;
+  if (doExpanded) embedPromises.push(safeEmbed(expandedQuery));
+  const focalStartIdx = embedPromises.length;
+  for (const focal of focalQueries) embedPromises.push(safeEmbed(focal));
+
+  const allEmbeds = await Promise.all(embedPromises);
+  const embedding = allEmbeds[0];
+  if (!embedding) return []; // sin embedding principal no hay retrieval
+  const expandedEmbedding = doExpanded ? allEmbeds[1] : null;
+  const focalEmbeddings = allEmbeds.slice(focalStartIdx);
 
   const admin = createAdminClient();
   const filterLaw =
@@ -159,28 +165,29 @@ export async function searchNormativa(
     const seen = new Set(
       combined.map((c) => `${c.document_id}:${c.content.slice(0, 60)}`),
     );
-    for (const focal of focalQueries) {
-      let focalEmb: number[];
-      try {
-        focalEmb = (await embedOne(focal, 'RETRIEVAL_QUERY')) as unknown as number[];
-      } catch (e) {
-        console.error('[voice-search] focal embed error:', (e as Error).message);
-        continue;
-      }
-      const { data: lawData } = await admin.rpc('hybrid_search', {
-        query_text: focal,
-        query_embedding: focalEmb,
-        match_count: 3,
-        filter_type: 'ley',
-        filter_law: filterLaw,
-      });
-      if (lawData) {
-        for (const r of lawData as HybridRow[]) {
-          const k = `${r.document_id}:${r.content.slice(0, 60)}`;
-          if (!seen.has(k)) {
-            combined.push(r);
-            seen.add(k);
-          }
+    // Paralelizamos las N focal RPCs — antes iban en secuencia sumando
+    // 200-400ms cada una. Los embeds ya están precomputados arriba.
+    const focalResults = await Promise.all(
+      focalQueries.map(async (focal, i) => {
+        const focalEmb = focalEmbeddings[i];
+        if (!focalEmb) return null;
+        const { data } = await admin.rpc('hybrid_search', {
+          query_text: focal,
+          query_embedding: focalEmb,
+          match_count: 3,
+          filter_type: 'ley',
+          filter_law: filterLaw,
+        });
+        return data as HybridRow[] | null;
+      }),
+    );
+    for (const rows of focalResults) {
+      if (!rows) continue;
+      for (const r of rows) {
+        const k = `${r.document_id}:${r.content.slice(0, 60)}`;
+        if (!seen.has(k)) {
+          combined.push(r);
+          seen.add(k);
         }
       }
     }

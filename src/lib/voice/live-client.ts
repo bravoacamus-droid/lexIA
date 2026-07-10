@@ -13,7 +13,12 @@
  *    speaking / idle).
  */
 
-export type AgentState = 'idle' | 'listening' | 'thinking' | 'speaking';
+export type AgentState =
+  | 'idle'
+  | 'listening'
+  | 'thinking'   // usuario terminó de hablar (VAD detectó silencio) — el modelo está preparando la respuesta pero AÚN no consultó la BD.
+  | 'searching' // el modelo pidió toolCall a search_normativa — consulta real a la Ley/Reglamento.
+  | 'speaking';
 
 export interface LiveClientConfig {
   apiKey: string;
@@ -258,7 +263,10 @@ export class LiveClient {
       // Solo forzamos listening si NO estamos en speaking (el modelo
       // acaba de empezar y su primer chunk RMS bajo se cruzaría con el
       // último RMS alto del usuario en el buffer).
-      if (this.agentState !== 'speaking') {
+      // Tampoco pisamos 'searching' — si el modelo está en tool call y
+      // el usuario mete ruido, dejamos el estado como está hasta que
+      // termine la búsqueda o llegue audio del modelo.
+      if (this.agentState !== 'speaking' && this.agentState !== 'searching') {
         this.setState('listening');
       }
       return;
@@ -457,7 +465,11 @@ export class LiveClient {
     }
 
     if (msg.toolCall) {
-      this.setState('thinking');
+      // 'searching' — el modelo hizo un tool call REAL a search_normativa.
+      // Distinto de 'thinking' (que solo indica que VAD detectó silencio
+      // del usuario). La UI usa esta diferencia para NO mentir con
+      // "Analizando la Ley 32069" cuando el modelo aún no consultó nada.
+      this.setState('searching');
       for (const fc of msg.toolCall.functionCalls) {
         // Cinturón de seguridad: incluso si la implementación del
         // onToolCall ya tiene timeout interno, garantizamos aquí un

@@ -180,22 +180,33 @@ export async function POST(req: Request) {
   const { expanded: expandedQuery, focalQueries } = expandLegalQuery(lastUser.content);
   let sources: ChatSource[] = [];
 
-  try {
-    queryEmbedding = await embedOne(lastUser.content, 'RETRIEVAL_QUERY');
-    if (expandedQuery && expandedQuery !== lastUser.content) {
-      expandedEmbedding = await embedOne(expandedQuery, 'RETRIEVAL_QUERY');
-    }
-  } catch (err) {
-    // Bug reportado 08/07/2026: cuando Gemini embed fallaba (rate limit,
-    // 5xx, timeout), el catch silencioso dejaba `queryEmbedding=null` y
-    // el chat respondía SIN citas. Logueamos con contexto y hacemos
-    // fallback a FTS-only (hybrid_search acepta vector de zeros y usa
-    // solo el text search de Postgres).
-    console.error('[chat] embed_failed', {
-      err: (err as Error).message,
-      query_len: lastUser.content.length,
+  // Optimización 08/07/2026: los 2-5 embeds (query + expanded + N focales)
+  // NO tienen dependencia entre sí — antes se hacían secuencialmente y
+  // sumaban 1.5-3s de latencia antes del primer token. Ahora se lanzan
+  // TODOS en paralelo con Promise.all. Cada embed sigue individualmente
+  // resiliente a fallo (se retorna null y el pipeline sigue).
+  //
+  // `embedOne` puede throw; envolvemos en un allSettled-style para que
+  // un fallo aislado no aborte todo el retrieval.
+  const safeEmbed = (text: string) =>
+    embedOne(text, 'RETRIEVAL_QUERY').catch((err: Error) => {
+      console.error('[chat] embed_failed', {
+        text_preview: text.slice(0, 60),
+        err: err.message,
+      });
+      return null as number[] | null;
     });
-  }
+
+  const embedPromises: Promise<number[] | null>[] = [safeEmbed(lastUser.content)];
+  const doExpanded = !!expandedQuery && expandedQuery !== lastUser.content;
+  if (doExpanded) embedPromises.push(safeEmbed(expandedQuery));
+  const focalStartIdx = embedPromises.length;
+  for (const focal of focalQueries) embedPromises.push(safeEmbed(focal));
+
+  const allEmbeds = await Promise.all(embedPromises);
+  queryEmbedding = allEmbeds[0];
+  expandedEmbedding = doExpanded ? allEmbeds[1] : null;
+  const focalEmbeddings = allEmbeds.slice(focalStartIdx);
 
   // 2. Hybrid search + rerank.
   //    Sobre-recuperamos 2x para que el rerank tenga margen. Sin esto,
@@ -264,26 +275,30 @@ export async function POST(req: Request) {
       //     voice-search.ts para el diagnóstico completo.
       if (queryEmbedding && focalQueries.length > 0) {
         const seenIds = new Set(combined.map((c) => c.chunk_id));
-        for (const focal of focalQueries) {
-          let focalEmb: number[];
-          try {
-            focalEmb = (await embedOne(focal, 'RETRIEVAL_QUERY')) as unknown as number[];
-          } catch {
-            continue;
-          }
-          const { data: lawChunks } = await supabase.rpc('hybrid_search', {
-            query_text: focal,
-            query_embedding: focalEmb,
-            match_count: 3,
-            filter_type: 'ley',
-            filter_law: lawFilter,
-          });
-          if (lawChunks) {
-            for (const c of lawChunks as HybridSearchRow[]) {
-              if (!seenIds.has(c.chunk_id)) {
-                combined.push(c);
-                seenIds.add(c.chunk_id);
-              }
+        // Los N focal RPCs son independientes — Promise.all para
+        // paralelizarlos (antes se iban en secuencia sumando 200-400ms
+        // por focal). Los embeds YA se calcularon en paralelo arriba;
+        // aquí solo hacemos hybrid_search.
+        const focalResults = await Promise.all(
+          focalQueries.map(async (focal, i) => {
+            const focalEmb = focalEmbeddings[i];
+            if (!focalEmb) return null;
+            const { data } = await supabase.rpc('hybrid_search', {
+              query_text: focal,
+              query_embedding: focalEmb,
+              match_count: 3,
+              filter_type: 'ley',
+              filter_law: lawFilter,
+            });
+            return data as HybridSearchRow[] | null;
+          }),
+        );
+        for (const rows of focalResults) {
+          if (!rows) continue;
+          for (const c of rows) {
+            if (!seenIds.has(c.chunk_id)) {
+              combined.push(c);
+              seenIds.add(c.chunk_id);
             }
           }
         }

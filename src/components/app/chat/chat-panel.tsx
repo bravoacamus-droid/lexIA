@@ -123,19 +123,27 @@ export function ChatPanel({
     body: { conversationId },
     streamProtocol: 'data',
     onResponse: (response) => {
+      // Cada respuesta llega con un turno NUEVO — hay que resetear el
+      // buffer de sources del turno anterior. Bug 08/07/2026 detectado
+      // en auditoría: cuando el header del msg N+1 fallaba (truncado
+      // o timeout), `onFinish` leía el valor STALE del msg N y le
+      // atribuía esas fuentes al mensaje equivocado.
+      const w = window as Window & { __lexia_last_sources?: ChatSource[] | null };
+      w.__lexia_last_sources = null;
+
       const raw = response.headers.get('x-lexia-sources');
       if (raw) {
         try {
           const decoded = decodeURIComponent(raw);
           const parsed = JSON.parse(decoded) as ChatSource[];
-          (window as Window & { __lexia_last_sources?: ChatSource[] }).__lexia_last_sources = parsed;
+          w.__lexia_last_sources = parsed;
         } catch {
-          /* ignore */
+          /* header inválido — se cae al fallback fetch */
         }
       }
     },
     onFinish: (message) => {
-      const last = (window as Window & { __lexia_last_sources?: ChatSource[] }).__lexia_last_sources;
+      const last = (window as Window & { __lexia_last_sources?: ChatSource[] | null }).__lexia_last_sources;
       if (last && last.length > 0 && message.role === 'assistant') {
         setSourcesById((prev) => ({ ...prev, [message.id]: last }));
       } else if (message.role === 'assistant') {
