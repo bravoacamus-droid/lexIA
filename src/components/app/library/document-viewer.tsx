@@ -209,10 +209,24 @@ export function DocumentViewer({
   // Generate TOC from headings in raw_text
   const toc = useMemo(() => extractToc(text), [text]);
 
-  // Build a text with highlight overlays
+  // Mapa question.key → anchor id, para que el SummaryPanel pueda hacer
+  // scroll a la sección cuando se clickea una pregunta.
+  const sectionAnchors = useMemo(
+    () =>
+      mapQuestionKeysToAnchors(
+        Object.keys(QUESTION_KEY_TO_SECTION_HINTS),
+        toc,
+      ),
+    [toc],
+  );
+
+  // Build a text with highlight overlays + anclas invisibles en las
+  // secciones detectadas por la TOC (útil para pronunciamientos y
+  // opiniones cuyos "CUESTIONAMIENTO N° 1" son texto plano, no headings
+  // markdown).
   const renderedContent = useMemo(
-    () => renderWithHighlights(text, annotations),
-    [text, annotations],
+    () => renderWithHighlights(injectSectionAnchors(text, toc), annotations),
+    [text, toc, annotations],
   );
 
   // Trackear qué heading está actualmente en el viewport para mostrar
@@ -509,6 +523,7 @@ export function DocumentViewer({
               initialModel={initialSummaryModel}
               rawText={doc.raw_text || undefined}
               savedAt={saved ? new Date().toISOString() : null}
+              sectionAnchors={sectionAnchors}
             />
             {/* Mis resaltados */}
           <Card className="p-4">
@@ -593,6 +608,76 @@ interface TocItem {
   id: string;
   level: number;
   text: string;
+  /** Índice de arranque del match dentro del markdown crudo, útil para
+   *  inyectar anclas antes de secciones detectadas en texto plano
+   *  (no headings markdown). */
+  offset?: number;
+}
+
+/**
+ * Mapea el `key` de cada pregunta del SummaryPanel al anchor id de la
+ * sección del documento que responde esa pregunta. Se usa para hacer
+ * las questions del sidebar clickeables — César 08/07/2026: pedía un
+ * índice sticky que acompañe siempre en pronunciamientos, para poder
+ * saltar de cuestionamientos a conclusiones sin scrollear.
+ *
+ * Cada question key tiene una lista de patrones (regex sobre el texto
+ * del heading) por orden de preferencia. Se elige el PRIMER TocItem
+ * que matchee alguno de los patrones.
+ */
+const QUESTION_KEY_TO_SECTION_HINTS: Record<string, RegExp[]> = {
+  sumilla: [/sumilla/i, /materia/i],
+  de_que_trata: [/sumilla/i, /materia/i, /asunto/i, /antecedente/i],
+  asunto: [/asunto/i, /materia/i, /sumilla/i],
+  antecedentes: [/antecedente/i, /hechos/i],
+  cuestionamientos: [/cuestionamiento/i, /consulta/i, /petitorio/i, /materia/i],
+  consultas_formuladas: [/consulta/i, /cuestionamiento/i, /materia/i],
+  normativa_aplicada: [
+    /normativa/i,
+    /marco\s+normativo/i,
+    /fundamento/i,
+    /base\s+legal/i,
+    /an[áa]lisis/i,
+  ],
+  normativa_desarrolla: [/normativa/i, /marco\s+normativo/i, /fundamento/i],
+  puntos_controvertidos: [/controvertid/i, /puntos/i, /an[áa]lisis/i],
+  criterio: [/criterio/i, /an[áa]lisis/i, /fundamento/i],
+  que_criterio_establece: [/criterio/i, /an[áa]lisis/i, /fundamento/i],
+  decisiones: [/decisi/i, /resuelve/i, /pronunciamiento/i],
+  resolucion: [/resuelve/i, /decisi/i, /parte\s+resolutiva/i],
+  inconsistencias: [/inconsisten/i, /observa/i, /omisi/i],
+  modificaciones: [/modifica/i, /reformul/i, /disposi/i],
+  disposiciones: [/disposi/i, /regla/i, /norma/i],
+  obligaciones: [/obligaci/i, /disposi/i],
+  conclusion: [/conclusi/i, /parte\s+final/i],
+  conclusiones: [/conclusi/i, /parte\s+final/i],
+  que_establece: [/establece/i, /disposi/i, /norma/i],
+  a_quien_afecta: [/afecta/i, /alcance/i, /aplicaci/i],
+};
+
+/**
+ * Devuelve `{ questionKey → anchorId }` recorriendo los patrones para
+ * cada key y eligiendo el primer TocItem que matchea. Si no hay match
+ * queda ausente y la question no será clickeable.
+ */
+export function mapQuestionKeysToAnchors(
+  questionKeys: string[],
+  toc: TocItem[],
+): Record<string, string> {
+  const map: Record<string, string> = {};
+  if (toc.length === 0) return map;
+  for (const key of questionKeys) {
+    const hints = QUESTION_KEY_TO_SECTION_HINTS[key];
+    if (!hints) continue;
+    for (const re of hints) {
+      const item = toc.find((t) => re.test(t.text));
+      if (item) {
+        map[key] = item.id;
+        break;
+      }
+    }
+  }
+  return map;
 }
 
 function extractToc(markdown: string): TocItem[] {
@@ -627,7 +712,7 @@ function extractToc(markdown: string): TocItem[] {
     const id = slugify(text);
     if (!seen.has(id)) {
       seen.add(id);
-      items.push({ id, level, text });
+      items.push({ id, level, text, offset: m.index });
     }
   }
 
@@ -636,13 +721,21 @@ function extractToc(markdown: string): TocItem[] {
   //    - Numerados: "1. ANTECEDENTES", "2. ANÁLISIS"
   //    - Mayúsculas: "CUESTIONAMIENTO N° 1", "PETITORIO"
   if (items.length === 0) {
+    // Los pronunciamientos y opiniones vienen usualmente sin saltos de
+    // línea claros (todo en un solo párrafo). Por eso los patrones NO
+    // usan ^/$/m — buscamos inline con un lookbehind sencillo (borde
+    // de palabra + espacio) para no matchear en medio de una palabra.
+    const KEYWORDS = 'CUESTIONAMIENTOS?|ANTECEDENTES|AN[ÁA]LISIS|CONCLUSIONES?|PETITORIO|FUNDAMENTOS?|FUNDAMENTACI[ÓO]N|RESUELVE|SUMILLA|MATERIA|HECHOS|DECISI[ÓO]N|PARTE\\s+RESOLUTIVA|MARCO\\s+NORMATIVO|NORMATIVA\\s+APLICABLE';
     const patterns: Array<{ re: RegExp; level: number }> = [
-      // Romano + título mayúsculas en su propia línea
+      // Con línea propia (formato ideal, poco frecuente en pronunciamientos)
       { re: /^\s*(I{1,4}|IV|V|VI{1,3}|IX|X)\.\s+([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s,:\-]{3,80})$/gm, level: 1 },
-      // Numérico simple + título mayúsculas
       { re: /^\s*(\d{1,2})\.\s+([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s,:\-]{3,80})$/gm, level: 2 },
-      // Cuestionamiento, Petitorio, Antecedentes, Conclusiones, Análisis (palabras clave comunes)
-      { re: /^\s*(CUESTIONAMIENTO N\.?°?\s*\d+|ANTECEDENTES|ANÁLISIS|CONCLUSIONES?|PETITORIO|FUNDAMENTOS|RESUELVE|SUMILLA|MATERIA|HECHOS|FUNDAMENTACIÓN)\s*:?\s*$/gm, level: 1 },
+      // Inline: "1. ANTECEDENTES", "2. CUESTIONAMIENTOS", "4. CONCLUSIONES"
+      // — matchea en medio de párrafo continuo que es como vienen los
+      // pronunciamientos OECE extraídos de PDF.
+      { re: new RegExp(`\\s(\\d{1,2})\\.\\s+(${KEYWORDS})\\b`, 'g'), level: 2 },
+      // Inline sin numeración: "CUESTIONAMIENTO N° 1", "PETITORIO", etc.
+      { re: new RegExp(`\\s(${KEYWORDS}|CUESTIONAMIENTO\\s+N[\\.°º]?\\s*\\d+)\\b`, 'g'), level: 1 },
     ];
 
     for (const { re, level } of patterns) {
@@ -653,13 +746,62 @@ function extractToc(markdown: string): TocItem[] {
         if (id.length < 3) continue;
         if (seen.has(id)) continue;
         seen.add(id);
-        items.push({ id, level, text });
+        items.push({ id, level, text, offset: mm.index });
       }
     }
   }
 
+  // Ordenamos por posición en el documento — los patrones no-markdown
+  // no vienen en orden porque ejecutamos regex separados.
+  items.sort((a, b) => (a.offset ?? 0) - (b.offset ?? 0));
+
+  // Dedup de secciones muy próximas (mismo bloque capturado por 2
+  // patrones distintos, ej: "1. ANTECEDENTES" por patrón numerado +
+  // "ANTECEDENTES" por patrón keyword). Nos quedamos con el primero.
+  const deduped: TocItem[] = [];
+  let lastOffset = -100;
+  for (const it of items) {
+    const off = it.offset ?? 0;
+    if (off - lastOffset < 30) continue;
+    deduped.push(it);
+    lastOffset = off;
+  }
+
   // Limit a 30 items para no saturar
-  return items.slice(0, 30);
+  return deduped.slice(0, 30);
+}
+
+/**
+ * Inyecta anclas invisibles `<span id="..."></span>` antes de cada
+ * TocItem cuyo offset se conoce. Sirve para secciones detectadas en
+ * texto plano (ej: "CUESTIONAMIENTO N° 1") que NO son headings
+ * markdown y por lo tanto no tienen un elemento con id en el DOM.
+ *
+ * Sin esto, la TOC izquierda muestra el ítem pero al clickear el hash
+ * no lleva a ningún lado. Con esto, las anclas quedan disponibles para
+ * navegación por hash y para el auto-scroll desde el SummaryPanel
+ * (feedback César 08/07/2026).
+ */
+function injectSectionAnchors(text: string, toc: TocItem[]): string {
+  if (toc.length === 0) return text;
+  // Insertamos de atrás hacia adelante para no descuadrar los offsets.
+  const withOffsets = toc
+    .filter((t) => typeof t.offset === 'number')
+    .sort((a, b) => (b.offset ?? 0) - (a.offset ?? 0));
+  let out = text;
+  for (const item of withOffsets) {
+    // Si el ancla ya está en el markdown (heading con id automático)
+    // no necesitamos inyectar nada. Detectamos heurísticamente si el
+    // texto en el offset comienza con "#": entonces el ReactMarkdown
+    // components.h* ya asigna el id.
+    const chunk = out.slice(item.offset!, item.offset! + 4);
+    if (/^#{1,3}\s/.test(chunk)) continue;
+    // Inyectar un span invisible con id + una línea en blanco para no
+    // romper el flujo del markdown.
+    const anchor = `\n<span id="${item.id}" class="scroll-mt-32" aria-hidden="true"></span>\n\n`;
+    out = out.slice(0, item.offset!) + anchor + out.slice(item.offset!);
+  }
+  return out;
 }
 
 /**

@@ -54,6 +54,15 @@ interface Props {
   rawText?: string;
   /** Fecha (ISO) en que el usuario guardó este doc. Null si no está guardado. */
   savedAt?: string | null;
+  /**
+   * Mapa `question.key → anchorId` — cuando una pregunta tiene su
+   * sección correspondiente en el documento, se convierte en un botón
+   * clickeable que hace scroll a esa sección. Feedback César 08/07/2026:
+   * pedía un índice sticky para saltar de cuestionamientos a
+   * conclusiones sin scrollear. Al pasarlo vacío o undefined, las
+   * secciones se renderizan como texto plano.
+   */
+  sectionAnchors?: Record<string, string>;
 }
 
 type TabKey = 'summary' | 'content' | 'citations' | 'history';
@@ -81,6 +90,7 @@ export function SummaryPanel({
   initialModel,
   rawText,
   savedAt,
+  sectionAnchors,
 }: Props) {
   const [summary, setSummary] = useState<DocumentSummary | null>(initialSummary);
   const [generatedAt, setGeneratedAt] = useState<string | null>(initialGeneratedAt);
@@ -278,6 +288,7 @@ export function SummaryPanel({
                   icon={<QuestionIcon index={i} />}
                   label={q.label}
                   text={q.answer}
+                  anchorId={sectionAnchors?.[q.key]}
                 />
               ))}
 
@@ -406,19 +417,51 @@ function SummarySection({
   icon,
   label,
   text,
+  anchorId,
 }: {
   icon: React.ReactNode;
   label: string;
   text: string;
+  /** Si viene, el label se vuelve un botón que hace scroll a la sección
+   *  del documento identificada por ese id. */
+  anchorId?: string;
 }) {
+  const handleClick = () => {
+    if (!anchorId) return;
+    const el = document.getElementById(anchorId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Update hash sin recargar
+      history.replaceState(null, '', `#${anchorId}`);
+    }
+  };
+
   return (
     <div>
-      <div className="flex items-center gap-1.5 mb-1 text-brand-700 dark:text-brand-400">
-        {icon}
-        <p className="text-[10px] uppercase tracking-wider font-semibold">
-          {label}
-        </p>
-      </div>
+      {anchorId ? (
+        <button
+          type="button"
+          onClick={handleClick}
+          className="group w-full flex items-center gap-1.5 mb-1 text-brand-700 dark:text-brand-400 hover:text-brand-800 dark:hover:text-brand-300 transition-colors"
+          title={`Ir a "${label}" en el documento`}
+        >
+          {icon}
+          <p className="text-[10px] uppercase tracking-wider font-semibold text-left flex-1">
+            {label}
+          </p>
+          <ChevronRight
+            className="h-3 w-3 opacity-0 group-hover:opacity-70 -translate-x-1 group-hover:translate-x-0 transition-all"
+            aria-hidden
+          />
+        </button>
+      ) : (
+        <div className="flex items-center gap-1.5 mb-1 text-brand-700 dark:text-brand-400">
+          {icon}
+          <p className="text-[10px] uppercase tracking-wider font-semibold">
+            {label}
+          </p>
+        </div>
+      )}
       <p className="text-sm leading-relaxed text-foreground/90">{text}</p>
     </div>
   );
