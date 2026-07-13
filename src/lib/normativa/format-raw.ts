@@ -626,6 +626,68 @@ export function formatNormativaText(
     '$1\n\n  - **$2.$3)** $4',
   );
 
+  // 4a-septies) Considerandos numerados inline "12.", "13.", "14."
+  //             típicos de Resoluciones TCE y actos administrativos.
+  //             Feedback César 08/07/2026 captura Resolución 4951:
+  //             "12. A su turno... 13. Atendiendo... 14. En concordancia..."
+  //             quedaban pegados en el mismo párrafo.
+  //             Patrón: `. NNN.` (puntuación fuerte + espacio + N + .
+  //             + espacio + Mayúscula). Evitamos falsos positivos
+  //             usando lookbehind negativo para citas normativas
+  //             ("art. 123.", "numeral 45.", "Ley 32069.", "N° 2026.").
+  const CONSIDERANDO_CITE_WORDS = new Set([
+    'artículo', 'articulo', 'art', 'art.',
+    'numeral', 'ley', 'reglamento', 'decreto',
+    'inciso', 'literal', 'párrafo', 'parrafo',
+    'n', 'n°', 'nº', 'nro', 'nro.',
+    'expediente', 'oficio', 'formulario',
+    'página', 'pagina', 'pág', 'p',
+    // Meses (contexto "12. mayo" no es considerando)
+    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'setiembre', 'septiembre', 'octubre',
+    'noviembre', 'diciembre',
+  ]);
+  text = text.replace(
+    /(\S+)([.;])\s+(\d{1,3})\.\s+([A-ZÁÉÍÓÚ][a-záéíóúñ])/g,
+    (_full, prevWord: string, punct: string, num: string, after: string) => {
+      const lowerPrev = prevWord.toLowerCase().replace(/[,;:"'()\[\]]/g, '');
+      if (CONSIDERANDO_CITE_WORDS.has(lowerPrev)) return _full;
+      // Si el prevWord es un dígito solo Y el número siguiente es
+      // consecutivo (24. 25. — fecha mal parseada, pero raro), skip.
+      // Si son distantes (1 → 13), es que el "1" era una nota al pie
+      // huérfana y el "13" un considerando legítimo — SÍ transformar.
+      if (/^\d+$/.test(prevWord)) {
+        const p = parseInt(prevWord, 10);
+        const n = parseInt(num, 10);
+        if (Math.abs(n - p) <= 1) return _full;
+      }
+      return `${prevWord}${punct}\n\n**${num}.** ${after}`;
+    },
+  );
+
+  // 4a-octies) Sub-items alfabéticos inline "a) Que exista...",
+  //            "b) El árbitro..." — común en tablas de infracciones
+  //            (Código de Ética) y en artículos con enumeraciones
+  //            de supuestos. La regla ALPHA_ITEM_RX ya existe pero
+  //            requiere que el "a)" esté al INICIO de línea. Aquí
+  //            capturamos las siguientes letras del abecedario cuando
+  //            vienen inline dentro del mismo párrafo.
+  //            El primer "a)" viene tras ":" (introducción de lista),
+  //            los "b)", "c)", "d)" siguientes vienen tras `.` o
+  //            palabras finalizadoras típicas de tabla ("No Aplica",
+  //            "Muy grave", "Inhabilitación") sin puntuación.
+  text = text.replace(
+    /([.:;])\s+([a-hj-z])\)\s+([A-ZÁÉÍÓÚ][a-záéíóúñ])/g,
+    '$1\n- **$2)** $3',
+  );
+  // Variante sin puntuación previa: cuando el separador es un token
+  // de tabla ("Aplica", "grave", "Inhabilitación", "Reprimenda", etc.)
+  // seguido de "b) ...", igual introducimos salto de línea.
+  text = text.replace(
+    /\s+(No\s+Aplica|Muy\s+grave|Grave|Leve|Inhabilitaci[óo]n|Reprimenda|Suspensi[óo]n\s+(?:menor|de\s+m[áa]s\s+de[^)]*a\s+\d+\s+a[ñn]os))\s+([a-hj-z])\)\s+([A-ZÁÉÍÓÚ][a-záéíóúñ])/g,
+    ' $1\n- **$2)** $3',
+  );
+
   // Los siguientes fixes solo se aplican en modo 'display' (biblioteca).
   // En modo 'strip' (chunk-sheet / RAG) mantenemos el texto compacto para
   // no diluir el fragmento con listas expandidas.
