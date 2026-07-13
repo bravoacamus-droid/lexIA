@@ -665,6 +665,26 @@ export function formatNormativaText(
     },
   );
 
+  // 4a-septies-bis) ROMANOS EN MINÚSCULA inline (i., ii., iii., iv., v.,
+  //                 vi., vii., viii., ix., x., xi., xii., xiii., xiv., xv.,
+  //                 xvi.) — patrón muy típico de pronunciamientos OECE
+  //                 donde cada consulta se enumera "i. Respecto de la
+  //                 consulta u observación N.° 8: ... ii. Respecto de la
+  //                 consulta u observación N.° 11: ..." y quedaba TODO
+  //                 en un párrafo enorme. Feedback César 08/07/2026
+  //                 captura Pronunciamiento 345-2026 con 13+ literales.
+  //
+  //                 Patrón: puntuación fuerte (`. `, `: `) + romano
+  //                 minúscula + `.` + espacio + Mayúscula.
+  //                 El romano debe ir de 1 a 4 chars y matchear el
+  //                 conjunto válido (evita falsos positivos con "y."
+  //                 al final de una palabra).
+  //                 Boundary acepta puntuación fuerte O comillas de
+  //                 cierre (los items suelen terminar en "...” vi.").
+  const ROMANO_MIN_RX =
+    /([.:;""”'])\s+((?:i{1,3}|iv|v|vi{0,3}|ix|x|xi{0,3}|xiv|xv|xvi{0,3}))\.\s+([A-ZÁÉÍÓÚ][a-záéíóúñ])/g;
+  text = text.replace(ROMANO_MIN_RX, '$1\n\n- **$2.** $3');
+
   // 4a-octies) Sub-items alfabéticos inline "a) Que exista...",
   //            "b) El árbitro..." — común en tablas de infracciones
   //            (Código de Ética) y en artículos con enumeraciones
