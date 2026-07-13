@@ -568,15 +568,62 @@ export function formatNormativaText(
     'subartículo', 'subarticulo',
     'ley', 'reglamento',
   ]);
+  // Ampliado 08/07/2026 (feedback César): antes solo capturaba 2
+  // segmentos (`\d.\d`). Las Directivas usan sub-numerales de 3-4
+  // niveles como "11.2.1.2", "11.2.1.3", "11.2.1.5" — no matcheaban
+  // y quedaban inline dentro del muro de texto. Ahora `\d.\d(.\d){0,2}`
+  // captura hasta 4 segmentos (11.2.1.2 sí, pero también 11.2 y 11.2.1).
   text = text.replace(
-    /(\S+)(\s+)(\d{1,3}\.\d{1,3}[.)]?)\s+([A-ZÁÉÍÓÚ][a-záéíóúñ])/g,
+    /(\S+)(\s+)(\d{1,3}(?:\.\d{1,3}){1,3}[.)]?)\s+([A-ZÁÉÍÓÚ][a-záéíóúñ])/g,
     (_full, prevWord: string, spc: string, num: string, after: string) => {
-      const lowerPrev = prevWord.toLowerCase().replace(/[,;:"'()\[\]]/g, '');
-      if (CITE_WORDS.has(lowerPrev)) return _full; // no tocar citas
-      // Si prevWord es también un número (ej: "22 22.2"), tampoco tocar
-      if (/^\d+$/.test(prevWord)) return _full;
+      // Cuenta de puntos en el numeral: 11.2.1.2 tiene 3 puntos
+      // (4 segmentos). Un numeral con 3+ puntos es UN sub-numeral
+      // real, no una cita (nadie cita "art. 11.2.1.2 del..."), así
+      // que forzamos la transformación aunque el prevWord sea una
+      // palabra de cita.
+      const dotsCount = (num.match(/\./g) || []).length;
+      const isDeepNumeral = dotsCount >= 3;
+
+      if (!isDeepNumeral) {
+        const lowerPrev = prevWord.toLowerCase().replace(/[,;:"'()\[\]]/g, '');
+        if (CITE_WORDS.has(lowerPrev)) return _full; // no tocar citas
+        // Si prevWord es también un número (ej: "22 22.2"), tampoco tocar
+        if (/^\d+$/.test(prevWord)) return _full;
+      }
       return `${prevWord}\n\n**${num}** ${after}`;
     },
+  );
+
+  // 4a-quater) SUBCAPÍTULO N / SUBSECCIÓN N — cuando estos aparecen
+  //            inline dentro del título de otro artículo (común en
+  //            el Reglamento donde el índice se pegó a los headings)
+  //            los separamos como H3 en línea propia.
+  //            Ej: "Artículo 187. Funciones ... SUBCAPÍTULO 7
+  //            Desarrollo y modificaciones contractuales"
+  //            → ...Funciones ...  \n\n### SUBCAPÍTULO 7 Desarrollo...
+  text = text.replace(
+    /\s+(SUB(?:CAP[ÍI]TULO|SECCI[ÓO]N)\s+[IVXLCDM\d]+(?:\s+[A-ZÁÉÍÓÚ][A-Za-zÁÉÍÓÚñáéíóú][^\n.]{2,80})?)/g,
+    '\n\n### $1\n\n',
+  );
+
+  // 4a-quinquies) "Equipo de Mejora de Procesos Subdirección de
+  //               Normatividad Dirección Técnico Normativa Ir al Inicio"
+  //               es un pie de página del Reglamento OECE que se repite
+  //               entre artículos. Lo eliminamos porque satura el visual.
+  text = text.replace(
+    /\s*Equipo\s+de\s+Mejora\s+de\s+Procesos\s+Subdirecci[óo]n\s+de\s+Normatividad\s+Direcci[óo]n\s+T[ée]cnico\s+Normativa\s+Ir\s+al\s+Inicio\s*/gi,
+    '\n\n',
+  );
+
+  // 4a-sexties) Sub-literales tipo "c.1)", "c.2)", "a.1)" inline que
+  //             actúan como sub-items numerados dentro de un literal.
+  //             Común en Decretos Supremos y Directivas. El regex
+  //             requiere un `.` o `;` previo para no romper "arte" o
+  //             palabras que terminen en letra. Emitimos un salto y
+  //             el prefijo en negrita.
+  text = text.replace(
+    /([.;])\s+([a-z])\.(\d{1,2})\)\s+([A-ZÁÉÍÓÚ][a-záéíóúñ])/g,
+    '$1\n\n  - **$2.$3)** $4',
   );
 
   // Los siguientes fixes solo se aplican en modo 'display' (biblioteca).
