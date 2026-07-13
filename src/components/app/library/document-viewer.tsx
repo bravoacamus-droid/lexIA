@@ -513,8 +513,15 @@ export function DocumentViewer({
 
         {/* Sidebar derecho: Resumen IA + Relacionados + Mis resaltados */}
         <aside className="hidden lg:block col-span-3 space-y-5">
-          {/* Resumen IA generado + Documentos relacionados */}
-          <div className="sticky top-32 space-y-5">
+          {/* Resumen IA generado + Documentos relacionados.
+              Bug reportado César 08/07/2026: cuando el panel derecho es
+              más alto que el viewport visible, la parte inferior queda
+              inaccesible (sticky no scrollea internamente). Fix:
+              max-h + overflow-y-auto en el propio sticky. Ahora se
+              puede scrollear dentro del panel para ver todas las
+              preguntas + relacionados + mis resaltados sin perder la
+              vista fija al hacer scroll del documento principal. */}
+          <div className="sticky top-32 space-y-5 max-h-[calc(100vh-8rem)] overflow-y-auto scrollbar-thin pr-1">
             <SummaryPanel
               documentId={doc.id}
               docType={doc.type}

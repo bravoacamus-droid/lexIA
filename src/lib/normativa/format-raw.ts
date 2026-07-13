@@ -731,11 +731,20 @@ export function formatNormativaText(
   //     seguida por ":" y el extractor duplicó el separador.
   text = text.replace(/(Cuestionamiento\s+N\.?°?\s*\d+)\s*:\s*:\s*/gi, '$1: ');
 
-  // 7d) "Cuestionamiento N.° N:" inline → convertir a heading H3 con
-  //     salto propio para que se vea como sub-sección de "2. CUESTIONAMIENTOS".
+  // 7d) "Cuestionamiento N.° N:" o "Cuestionamiento Único" inline →
+  //     convertir a heading H3 con salto propio para que se vea como
+  //     sub-sección de "2. CUESTIONAMIENTOS". Cubre variantes:
+  //       - "Cuestionamiento N.° 1:"
+  //       - "Cuestionamiento Único Respecto a..."
+  //       - "Cuestionamiento Primero"
+  //     Cuando la variante NO trae ":" al final, dejamos que el
+  //     próximo blob quede como párrafo (no consumimos el ":").
   text = text.replace(
-    /([^\n])\s+(Cuestionamiento\s+N\.?°?\s*\d+)\s*:/gi,
-    '$1\n\n### $2\n',
+    /([^\n])\s+(Cuestionamiento\s+(?:N\.?°?\s*\d+|[ÚU]nico|Primero|Segundo|Tercero|Cuarto|Quinto))(\s*:|\s+(?=[A-ZÁÉÍÓÚ]))/gi,
+    (_full, prev, header, terminator) => {
+      const cleanTerminator = terminator.trim() === ':' ? '' : ' ';
+      return `${prev}\n\n### ${header}\n${cleanTerminator}`;
+    },
   );
 
   // 7e) Bullets Unicode (●, •, ○, etc.) huérfanos al final de línea
@@ -746,6 +755,98 @@ export function formatNormativaText(
   text = text.replace(/\s+[●○◦•▪]\s*(?=\n)/g, '');
   // También bullets al final del texto sin nada después.
   text = text.replace(/\s+[●○◦•▪]\s*$/g, '');
+
+  // 7f) Bullets guión medio inline dentro del texto (típico en
+  //     pronunciamientos): "señalar que: - Este Organismo... - De
+  //     conformidad... - Corresponderá...". El PDF usa "- " como
+  //     separador de items pero queda todo en una línea.
+  //     Detectamos ": -" o ". -" seguido de espacio + Mayúscula.
+  //     La `<` del regex requiere que sean bullets reales, no
+  //     rangos numéricos ("5-10 unidades") ni fechas ("2026-05").
+  text = text.replace(
+    /([.:;])\s+-\s+([A-ZÁÉÍÓÚ][a-záéíóúñ])/g,
+    '$1\n\n- $2',
+  );
+  // Bullets guión medio siguientes en la misma serie: cuando ya hay
+  // "- Item1. - Item2" (después del primer split), buscamos "- " que
+  // NO esté al inicio de línea y viene tras un `.` de item previo.
+  text = text.replace(
+    /(\.)\s+-\s+([A-ZÁÉÍÓÚ][a-záéíóúñ])/g,
+    '$1\n- $2',
+  );
+
+  // 7g) Notas al pie residuales tipo "(nota N - Expediente N.° YYYY-XXXX."
+  //     que quedaron del extractor sin cerrar el paréntesis. Las
+  //     movemos igual a un blockquote con superíndice. Loop hasta
+  //     convergencia.
+  const NOTA_RESIDUAL_RX =
+    /\s*\(?\s*nota\s+(\d{1,2})\s*[-–]\s*(Expediente|Oficio|Formulario|N\.?°?)\b((?:[^.]|\.(?=\d|°))*\.\)?)/gi;
+  for (let pass = 0; pass < 4; pass++) {
+    const before = text;
+    text = text.replace(NOTA_RESIDUAL_RX, (_full, num, doc, rest) => {
+      // Cerrar paréntesis si quedó abierto
+      const cleanRest = rest.endsWith(')') ? rest.slice(0, -1) : rest;
+      return `\n\n> ⁽${num}⁾ ${doc}${cleanRest}\n\n`;
+    });
+    if (text === before) break;
+  }
+
+  // 7h) Conectores discursivos comunes en pronunciamientos y opiniones
+  //     — son los que naturalmente inician un párrafo nuevo. Los
+  //     pronunciamientos vienen del PDF como un único blob; separar
+  //     por conectores le da respiración visual sin romper la
+  //     coherencia (el conector siempre marca cambio de argumento).
+  //
+  //     Fix César 08/07/2026: aún después de las mejoras estructurales
+  //     (headings, notas al pie), los párrafos entre secciones seguían
+  //     siendo bloques de 2000+ chars sin puntos de respiro.
+  const CONECTORES = [
+    'Al\\s+respecto',
+    'Por\\s+su\\s+parte',
+    'En\\s+ese\\s+sentido',
+    'De\\s+otro\\s+lado',
+    'Ahora\\s+bien',
+    'Asimismo',
+    'Adicionalmente',
+    'Cabe\\s+(?:se[ñn]alar|precisar|indicar|a[nñ]adir|mencionar|resaltar|destacar)',
+    'En\\s+atenci[óo]n\\s+a\\s+lo\\s+(?:precisado|expuesto|indicado|se[ñn]alado)',
+    'Sobre\\s+el\\s+particular',
+    'Por\\s+(?:tanto|lo\\s+tanto)',
+    'En\\s+virtud\\s+de',
+    'De\\s+conformidad\\s+con',
+    'En\\s+consecuencia',
+    'En\\s+efecto',
+    'Por\\s+consiguiente',
+    'No\\s+obstante',
+    'Sin\\s+embargo',
+    'En\\s+tal\\s+sentido',
+    'A\\s+mayor\\s+abundamiento',
+    'De\\s+la\\s+revisi[óo]n',
+  ].join('|');
+  text = text.replace(
+    new RegExp(`([.!?])\\s+(${CONECTORES})[,\\s]`, 'g'),
+    (_full, punct, conn) => `${punct}\n\n${conn}${_full.endsWith(',') ? ',' : ' '}`,
+  );
+
+  // 7i) "Pronunciamiento" al inicio de una nueva sección analítica
+  //     (después de la posición del participante). Común en
+  //     pronunciamientos OECE: "el ítem 2. Pronunciamiento De la
+  //     revisión..." → separar como sub-heading H3.
+  text = text.replace(
+    /([.!?])\s+(Pronunciamiento)\s+(De\s+la\s+revisi[óo]n)/g,
+    '$1\n\n### $2\n\n$3',
+  );
+
+  // 7j) Sub-numerales inline "3.1. Título", "3.2. Título" (frecuente en
+  //     Bases Integradas / Sección Específica). Si NO están precedidos
+  //     por palabras de cita (artículo, numeral, literal...) y la
+  //     próxima palabra empieza con mayúscula, los ponemos como bold
+  //     sub-heading en su propia línea.
+  //     La regla 4a-ter existente cubre esto pero solo el patrón exacto
+  //     "\\S+(\\s+)(\\d\\.\\d)"; aquí ampliamos para "3.1." (con punto)
+  //     y "3.1)" (con paréntesis) e igual capturamos.
+  //     No aplicamos si es referencia interna ("del numeral 2.3", "el
+  //     artículo 46.1"), controlado por el guard de palabras clave.
 
   // 3. Colapsar 3+ saltos a doble salto
   text = text.replace(/\n{3,}/g, '\n\n');
