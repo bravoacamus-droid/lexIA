@@ -35,7 +35,8 @@ const TITULO_RX = /^(T[ÍI]TULO\s+[IVXLCDM]+|CAP[ÍI]TULO\s+[IVXLCDM]+|SECCI[ÓO
 
 // Nombres de secciones frecuentes en pronunciamientos/opiniones que
 // deberían actuar como headings (H2) para dar estructura.
-const SECCION_MAYUSCULA_RX = /^(ANTECEDENTES|CUESTIONAMIENTO|AN[ÁA]LISIS|CONCLUSI[ÓO]N|VISTO|RESULTA|CONSIDERANDO|SE\s+RESUELVE|POR\s+TANTO|EL\s+TRIBUNAL|MOTIVO\s+DE\s+LA\s+ELEVACI[ÓO]N|MATERIA|POSICI[ÓO]N|OPINI[ÓO]N|BASE\s+LEGAL|CONCLUSIONES|RECOMENDACIONES|MARCO\s+NORMATIVO)(\s|:|$)/i;
+// Fix 08/07/2026: CUESTIONAMIENTO → CUESTIONAMIENTOS? (plural).
+const SECCION_MAYUSCULA_RX = /^(ANTECEDENTES|CUESTIONAMIENTOS?|AN[ÁA]LISIS|CONCLUSI[ÓO]N|VISTO|RESULTA|CONSIDERANDO|SE\s+RESUELVE|POR\s+TANTO|EL\s+TRIBUNAL|MOTIVO\s+DE\s+LA\s+ELEVACI[ÓO]N|MATERIA|POSICI[ÓO]N|OPINI[ÓO]N|BASE\s+LEGAL|CONCLUSIONES|RECOMENDACIONES|MARCO\s+NORMATIVO)(\s|:|$)/i;
 
 // Marcadores de callout — inicio de párrafo con palabra en mayúscula
 // que debe resaltarse con caja destacada (feedback César 30/06/2026).
@@ -486,9 +487,15 @@ export function formatNormativaText(
   //       RESOLUCIONES: "VISTOS:", "CONSIDERANDO:", "SE RESUELVE:"
   //       OPINIONES: "MATERIA", "BASE LEGAL", "OPINIÓN"
 
-  // Nombres de secciones (para prefijo numérico o romano opcional)
+  // Nombres de secciones (para prefijo numérico o romano opcional).
+  // Fix César 08/07/2026: agregado plural `CUESTIONAMIENTOS?` — antes
+  // `CUESTIONAMIENTO\b` no matcheaba "CUESTIONAMIENTOS" (con S) porque
+  // el `\b` requería fin de palabra justo después de "O". Como los
+  // pronunciamientos usan indistintamente singular/plural en el título
+  // de sección, la sección "2. CUESTIONAMIENTOS" quedaba inline sin
+  // convertirse en heading.
   const SECCION_NAMES =
-    'ANTECEDENTES|CUESTIONAMIENTO|CUESTIONAMIENTO\\s+[ÚU]NICO|AN[ÁA]LISIS|POSICI[ÓO]N|OPINI[ÓO]N|CONCLUSI[ÓO]N|CONCLUSIONES|RECOMENDACIONES|BASE\\s+LEGAL|MARCO\\s+NORMATIVO|MATERIA';
+    'ANTECEDENTES|CUESTIONAMIENTOS?|CUESTIONAMIENTOS?\\s+[ÚU]NICO|AN[ÁA]LISIS|POSICI[ÓO]N|OPINI[ÓO]N|CONCLUSI[ÓO]N|CONCLUSIONES|RECOMENDACIONES|BASE\\s+LEGAL|MARCO\\s+NORMATIVO|MATERIA|PRONUNCIAMIENTO';
 
   // Nombres típicos de secciones de DIRECTIVAS (con romano)
   const DIRECTIVA_SECCIONES =
@@ -684,6 +691,61 @@ export function formatNormativaText(
 
   // 7) Insertar salto ANTES de "Artículo N." inline
   text = text.replace(/([^\n.])\s+(Art[íi]culo\s+\d+)/g, '$1\n\n$2');
+
+  // 7b) NOTAS AL PIE embebidas en el texto — los pronunciamientos y
+  //     opiniones traen las notas al pie del PDF pegadas inline en
+  //     medio del párrafo, con formato "N Mediante el Expediente ..."
+  //     (donde N es el número de la nota). Feedback César 08/07/2026:
+  //     se ven horrible mezcladas con el texto legal. Las separamos a
+  //     un blockquote con formato de nota al pie.
+  //     Patrón: puntuación fuerte + espacio + número 1-2 dígitos +
+  //     espacio + palabra típica de nota ("Mediante", "Cabe", "El",
+  //     seguida de "Expediente" u "Oficio" en los próximos 200 chars).
+  //     El fin de la nota es el primer `.` que NO esté seguido de
+  //     dígito o `°` (evita cortar "N.°" o "N.° 2026-..." que son
+  //     abreviaciones legítimas dentro de la propia nota).
+  //     Loopeamos hasta que no haya más cambios: cuando hay 3 notas
+  //     consecutivas (nota3, nota2, nota1) el primer replace consume
+  //     la nota3 y avanza el cursor DESPUÉS de su punto final, dejando
+  //     " 2 Mediante..." (con espacio, no puntuación) que no matchea.
+  //     Re-iterar con el output del pass anterior sí las captura.
+  const NOTA_RX =
+    /(^|[.;\n])\s*(\d{1,2})\s+(Mediante|Cabe\s+precisar|El\s+part[íi]cipe)\s+(el\s+|la\s+|los\s+|las\s+)?(Expediente|Oficio|Formulario|N\.?°?)\b((?:[^.]|\.(?=\d|°))*\.)/gi;
+  for (let pass = 0; pass < 4; pass++) {
+    const before = text;
+    text = text.replace(NOTA_RX, (_full, boundary, num, verb, art, doc, rest) => {
+      const prefix = boundary && boundary !== '\n' && boundary !== '' ? `${boundary}\n\n` : '\n\n';
+      return `${prefix}> ⁽${num}⁾ ${verb} ${art || ''}${doc}${rest}\n\n`;
+    });
+    if (text === before) break;
+  }
+
+  // 7b-bis) Después de mover notas al pie, pueden quedar dígitos
+  // sueltos huérfanos (el "1" residual que aparece entre paréntesis
+  // en el input tras "2026-0069318. 1 2. CUESTIONAMIENTOS").
+  // Los eliminamos si están en línea propia.
+  text = text.replace(/\n\s*\d{1,2}\s*\n/g, '\n');
+
+  // 7c) Doble ":" seguido en "Cuestionamiento N.° 1: :" ("Cuestionamiento N.° X: :")
+  //     — bug de extracción cuando el PDF tenía la cita en negrita
+  //     seguida por ":" y el extractor duplicó el separador.
+  text = text.replace(/(Cuestionamiento\s+N\.?°?\s*\d+)\s*:\s*:\s*/gi, '$1: ');
+
+  // 7d) "Cuestionamiento N.° N:" inline → convertir a heading H3 con
+  //     salto propio para que se vea como sub-sección de "2. CUESTIONAMIENTOS".
+  text = text.replace(
+    /([^\n])\s+(Cuestionamiento\s+N\.?°?\s*\d+)\s*:/gi,
+    '$1\n\n### $2\n',
+  );
+
+  // 7e) Bullets Unicode (●, •, ○, etc.) huérfanos al final de línea
+  //     — quedan pegados al párrafo anterior porque la regla 5
+  //     inserta \n ANTES del bullet, pero si el contenido siguiente
+  //     ya recibió otro salto (por regla 7d, headings, etc.), el
+  //     bullet queda vagando sin item. Los eliminamos.
+  text = text.replace(/\s+[●○◦•▪]\s*(?=\n)/g, '');
+  // También bullets al final del texto sin nada después.
+  text = text.replace(/\s+[●○◦•▪]\s*$/g, '');
 
   // 3. Colapsar 3+ saltos a doble salto
   text = text.replace(/\n{3,}/g, '\n\n');
