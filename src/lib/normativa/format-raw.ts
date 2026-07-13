@@ -776,6 +776,141 @@ export function formatNormativaText(
     text = text.replace(/^(#{1,3}\s.+):\s*$/gm, '$1');
   }
 
+  // 4a-nonies) Notas al pie con verbo AMPLIADO — no solo "Mediante"
+  //            sino "según el pliego absolutorio", "vía Trámite
+  //            Documentario", "por Oficio", "por escrito", etc.
+  //            Ampliación del patrón 7b tras auditoría de 253 docs.
+  //            Terminador ampliado a `[.:;]` para notas cuya frase
+  //            termina en `:` (ej "3 Mediante el pliego absolutorio
+  //            se advierte lo siguiente:").
+  const NOTA_AMPLIA_RX =
+    /(^|[.;:\n])\s*(\d{1,2})\s+(Mediante|Seg[úu]n|V[íi]a|Por|Cabe|El|La|Los|Las)\s+(el\s+|la\s+|los\s+|las\s+|un\s+|una\s+)?(Expediente|Oficio|Formulario|Tr[áa]mite\s+Documentario|pliego\s+absolutorio|escrito|informe|INFORME|N\.?°?)\b((?:[^.:]|\.(?=\d|°))*[.:])/gi;
+  for (let pass = 0; pass < 4; pass++) {
+    const before = text;
+    text = text.replace(NOTA_AMPLIA_RX, (_full, boundary, num, verb, art, doc, rest) => {
+      const prefix = boundary && boundary !== '\n' && boundary !== '' ? `${boundary}\n\n` : '\n\n';
+      return `${prefix}> ⁽${num}⁾ ${verb} ${art || ''}${doc}${rest}\n\n`;
+    });
+    if (text === before) break;
+  }
+
+  // 4a-nonies-bis) CAPÍTULO/TÍTULO/SECCIÓN inline en medio del texto
+  //                de la Ley — cambios de capítulo dentro del cuerpo
+  //                de la ley que venían pegados al final del artículo
+  //                anterior. Ej: "obras. CAPÍTULO III DISPOSICIONES
+  //                ESPECÍFICAS..." → salto + heading H1.
+  //                Aplicar SOLO si NO viene precedido por letra + `.`
+  //                (que sería índice — la regla siguiente 4a-decies lo
+  //                cubre con `- **a)** CAPÍTULO`).
+  // Lookbehind `(?<!\s[a-z]\.)` requiere que ANTES del `[a-z]\.` haya
+  // un espacio, distinguiendo un índice (" a. TÍTULO") de una palabra
+  // normal ("obras. CAPÍTULO"). Los índices son cubiertos por la regla
+  // 4a-decies siguiente.
+  text = text.replace(
+    /(?<!\s[a-z]\.)\s+(CAP[ÍI]TULO|T[ÍI]TULO|SECCI[ÓO]N)\s+([IVXLCDM]+)((?:\s+[A-ZÁÉÍÓÚ][A-ZÁÉÍÓÚa-záéíóú]+){1,15}?)(?=\s+(?:CAP[ÍI]TULO|T[ÍI]TULO|SECCI[ÓO]N|Art[íi]culo|SUBCAP|SUBSEC|\d+\.|\d{4}|$))/g,
+    '\n\n# $1 $2$3\n\n',
+  );
+
+  // 4a-decies) Índice tipo "a. CAPÍTULO I / b. CAPÍTULO II / c. CAPÍTULO III"
+  //            que aparece pegado como una lista continua al inicio de
+  //            leyes/reglamentos. La letra + `.` + CAPÍTULO/SECCIÓN/TÍTULO
+  //            + romano es sub-item del índice. Lo separamos como bullet.
+  //            Aparece 17x en la Ley 32069.
+  //            El tail se detiene antes de la siguiente letra-punto de
+  //            índice ("... GENERALES b. TÍTULO II" → detiene en " b.")
+  //            para no fusionar dos items en uno.
+  text = text.replace(
+    /\s+([a-z])\.\s+(T[ÍI]TULO|CAP[ÍI]TULO|SECCI[ÓO]N|SUBSECCI[ÓO]N|SUBCAP[ÍI]TULO)\s+([IVXLCDM]+)((?:(?!\s+[a-z]\.\s+(?:T[ÍI]TULO|CAP[ÍI]TULO|SECCI[ÓO]N|SUBSECCI[ÓO]N|SUBCAP[ÍI]TULO))[^\n.]){0,120})?/g,
+    (_full, letter, kind, roman, tail) => {
+      const cleanTail = (tail || '').trim();
+      return `\n- **${letter})** ${kind} ${roman}${cleanTail ? ' ' + cleanTail : ''}`;
+    },
+  );
+
+  // 4a-undecies) Keywords de sección inline ("PETITORIO ESPECÍFICO:",
+  //              "PETITORIO:", etc.) que no están al inicio de línea.
+  //              Amplía el SECCION_MAYUSCULA_RX (que requería ^) para
+  //              cubrir inline tras `.` o `;`.
+  const SECCION_INLINE_KEYWORDS =
+    'PETITORIO(?:\\s+ESPEC[ÍI]FICO)?|RESUELVE|POR\\s+TANTO|SE\\s+RESUELVE|SUMILLA|MATERIA|BASE\\s+LEGAL|MARCO\\s+NORMATIVO|POSICI[ÓO]N\\s+DEL\\s+(?:CONTRATISTA|IMPUGNANTE|POSTOR|PARTICIPANTE)';
+  text = text.replace(
+    new RegExp(`([a-záéíóúñ][.;])\\s+(${SECCION_INLINE_KEYWORDS})\\s*:`, 'g'),
+    (_full, prev, section) => `${prev}\n\n### ${section}:\n\n`,
+  );
+
+  // 4a-duodecies) MURO DE TEXTO — el fix más impactante según auditoría:
+  //               59x párrafos > 1800 chars sin salto (Ley 32069 sobre
+  //               todo). Cortar en el ". " más central que produzca dos
+  //               mitades > 300 chars cada una. Es fallback: si ninguno
+  //               de los patrones anteriores cortó lo suficiente, este
+  //               garantiza que ningún párrafo sea un muro ilegible.
+  //
+  //               Aplicado hasta 3 pasadas hasta que ningún párrafo
+  //               supere el umbral. Se preserva SIEMPRE el ". " (no se
+  //               inventa puntuación).
+  const MAX_PARA_CHARS = 1200;
+  for (let pass = 0; pass < 8; pass++) {
+    const paragraphs = text.split(/\n\n+/);
+    let changed = false;
+    for (let i = 0; i < paragraphs.length; i++) {
+      const p = paragraphs[i];
+      if (p.length <= MAX_PARA_CHARS) continue;
+      // Si el párrafo EMPIEZA con marcador (heading, bullet, sub-numeral
+      // en negrita), la primera línea es el header y el resto es el
+      // cuerpo. Solo trabajamos sobre el cuerpo, dejando el header
+      // intacto. Si el cuerpo también supera MAX_PARA_CHARS, se corta.
+      let bodyStart = 0;
+      if (/^(#|>|\||\*\*|-\s|[0-9]+\.)/.test(p)) {
+        const nl = p.indexOf('\n');
+        if (nl === -1) continue;
+        bodyStart = nl + 1;
+        if (p.length - bodyStart <= MAX_PARA_CHARS) continue;
+      }
+      // Trabajamos sobre `body` pero preservamos el header al reconstruir.
+      const header = p.slice(0, bodyStart);
+      const body = p.slice(bodyStart);
+      // Buscar todos los "fin de oración" con prioridad:
+      //   1. `. ` + Mayúscula (más seguro — inicio real de nueva oración)
+      //   2. `; ` (fin de cláusula)
+      //   3. `. ` sin Mayúscula (dentro de citas continuadas)
+      // Tomamos los del primer nivel que exista.
+      const findEnds = (rx: RegExp): number[] => {
+        const out: number[] = [];
+        let m: RegExpExecArray | null;
+        rx.lastIndex = 0;
+        while ((m = rx.exec(body)) !== null) out.push(m.index + m[0].length);
+        return out;
+      };
+      let sentenceEnds = findEnds(/\.\s+(?=[A-ZÁÉÍÓÚ])/g);
+      if (sentenceEnds.length === 0) sentenceEnds = findEnds(/;\s+/g);
+      if (sentenceEnds.length === 0) sentenceEnds = findEnds(/\.\s+/g);
+      if (sentenceEnds.length === 0) continue;
+      // Encontrar el corte más cercano al centro que deje dos mitades
+      // razonables (> 200 chars cada una).
+      const center = body.length / 2;
+      let bestCut = -1;
+      let bestDist = Infinity;
+      for (const end of sentenceEnds) {
+        if (end < 200 || body.length - end < 200) continue;
+        const d = Math.abs(end - center);
+        if (d < bestDist) {
+          bestDist = d;
+          bestCut = end;
+        }
+      }
+      if (bestCut < 0) continue;
+      // Cortar y meter salto doble, preservando el header original
+      paragraphs[i] =
+        header +
+        body.slice(0, bestCut).trimEnd() +
+        '\n\n' +
+        body.slice(bestCut).trimStart();
+      changed = true;
+    }
+    if (!changed) break;
+    text = paragraphs.join('\n\n');
+  }
+
   // 5) Insertar salto ANTES de bullets Unicode inline
   text = text.replace(/([^\n])\s+([●○◦•▪]\s)/g, '$1\n$2');
 
