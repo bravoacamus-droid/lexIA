@@ -204,6 +204,14 @@ otro documento por número, ese documento puede existir en la base
 normativa pero no está en el pool actual; menciónalo como "según se
 hace referencia" sin transcribir contenido que no tienes.
 
+REGLA ANTI-RECITACIÓN: los fragmentos son SOLO REFERENCIA para tus
+citas [N]. NO copies párrafos textualmente ni encadenes varias
+oraciones idénticas a un fragmento — PARAFRASEA con tus propias
+palabras. Solo pueden ir entre comillas ("...") las frases legales
+CORTAS que sea imprescindible citar literalmente (ej: definiciones,
+literales de un artículo puntual). Esto previene bloqueos del filter
+de copyright de Gemini.
+
 CONTENIDO DE LOS FRAGMENTOS:
 ${ragContext}
 `
@@ -220,13 +228,17 @@ ${ragContext}
     }
     // Último mensaje del user con files adjuntos: usar formato de parts
     // que el AI SDK entiende (multimodal).
+    // IMPORTANTE: el data DEBE ser instancia de URL (no string) para
+    // que el converter de @ai-sdk/google emita `fileData.fileUri` en
+    // lugar de intentar `inlineData` con base64. Verificado en el
+    // source del SDK: /dist/*.js `part.data instanceof URL ? {...}`.
     return {
       role: m.role,
       content: [
         { type: 'text' as const, text: m.content },
         ...files.map((f) => ({
           type: 'file' as const,
-          data: f.gemini_file_uri,
+          data: new URL(f.gemini_file_uri),
           mimeType: f.mime_type,
         })),
       ],

@@ -74,6 +74,16 @@ export function GeneratorChatView({
     content: m.content,
   }));
 
+  // Mapa `local useChat id → UUID BD` para que el botón "Descargar
+  // Word" pueda armar el endpoint correcto justo después del streaming
+  // (sin esperar refresh). Se popula en `onFinish` haciendo polling
+  // al endpoint /messages/last-assistant.
+  const [idMap, setIdMap] = useState<Record<string, string>>(() => {
+    const seed: Record<string, string> = {};
+    for (const m of initialMessages) seed[m.id] = m.id;
+    return seed;
+  });
+
   const {
     messages,
     input,
@@ -92,6 +102,30 @@ export function GeneratorChatView({
       toast.error('Error generando la respuesta', {
         description: (err as Error).message?.slice(0, 200),
       });
+    },
+    onFinish: async (message) => {
+      if (message.role !== 'assistant') return;
+      // Polling con backoff: el backend inserta el mensaje en su
+      // onFinish, que puede terminar después que el streaming del
+      // cliente. Reintentamos hasta 3 veces con 300ms/800ms/1500ms.
+      const delays = [300, 800, 1500];
+      for (const d of delays) {
+        await new Promise((r) => setTimeout(r, d));
+        try {
+          const res = await fetch(
+            `/api/generator-chat/conversations/${conversationId}/messages/last-assistant`,
+            { cache: 'no-store' },
+          );
+          if (!res.ok) continue;
+          const j = (await res.json()) as { messageId: string | null };
+          if (j.messageId) {
+            setIdMap((prev) => ({ ...prev, [message.id]: j.messageId! }));
+            break;
+          }
+        } catch {
+          /* siguiente intento */
+        }
+      }
     },
   });
 
@@ -215,7 +249,7 @@ export function GeneratorChatView({
                   role={m.role as 'user' | 'assistant'}
                   content={m.content}
                   conversationId={conversationId}
-                  messageId={m.id}
+                  messageId={idMap[m.id] || m.id}
                 />
               ))}
               {isLoading && (
@@ -451,7 +485,12 @@ function ChatBubble({
     );
   }
 
-  const isTempId = !messageId || messageId.length < 30;
+  // Solo permitimos descarga si el messageId es un UUID válido de BD.
+  // Los IDs locales de useChat no son UUIDs — hay un idMap arriba que
+  // los reemplaza tras polling en onFinish. Regex UUID v4-ish.
+  const isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    messageId || '',
+  );
 
   return (
     <div className="group">
@@ -474,7 +513,7 @@ function ChatBubble({
           )}
           Copiar
         </Button>
-        {!isTempId && (
+        {isValidUuid && (
           <Button
             asChild
             size="sm"

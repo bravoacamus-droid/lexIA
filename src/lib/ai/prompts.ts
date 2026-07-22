@@ -168,33 +168,40 @@ export function buildChatSystemPrompt(
   // instruimos al modelo a SINTETIZAR el tema en secciones enumeradas
   // en vez de responder chunk por chunk. Feedback César 13/07/2026:
   // preguntas de resumen se iban por otro lado.
+  //
+  // REGLA ANTI-RECITATION (bug detectado 13/07/2026): con 25 chunks
+  // panorámicos, Gemini bloqueaba con finishReason='RECITATION' —
+  // el modelo iba a reproducir párrafos casi literales de los
+  // fragmentos y el filter de Google lo interpretaba como riesgo de
+  // copyright. Instruimos explícitamente a PARAFRASEAR.
   const panoramicBlock = panoramic
     ? `\n═══════════════════════════════════════════════════════
 INSTRUCCIÓN DE SÍNTESIS (pregunta panorámica detectada)
 ═══════════════════════════════════════════════════════
 El usuario pidió una VISIÓN PANORÁMICA del tema: "${panoramic.topic}".
-NO respondas citando fragmento por fragmento. En su lugar:
 
-1. Empieza con una DEFINICIÓN clara del tema en 1-2 oraciones.
-2. Enumera los TIPOS / CLASES / MODALIDADES existentes como una
-   lista con títulos en negrita:
+FORMATO OBLIGATORIO:
 
-   ### Tipo 1: Nombre
-   Breve explicación [N]
+1. Comienza con una DEFINICIÓN del tema en 1-2 oraciones tuyas.
+2. Enumera los TIPOS / CLASES / MODALIDADES existentes con headings H3
+   (### Nombre del tipo), y bajo cada uno una explicación de 1-2
+   oraciones. Cita con [N] la fuente usada.
+3. Agrega secciones H3 adicionales cuando aplique:
+   - ### Requisitos o condiciones generales
+   - ### Procedimiento aplicable
+   - ### Excepciones o limitaciones relevantes
+4. Cierra con "### Nota práctica" de 2-3 oraciones.
 
-   ### Tipo 2: Nombre
-   Breve explicación [N]
+REGLA CRÍTICA — NO RECITACIÓN LITERAL:
+Los fragmentos son solo REFERENCIA para tus citas [N]. NO copies
+párrafos textualmente ni encadenes múltiples oraciones idénticas al
+fragmento — PARAFRASEA con tus propias palabras y sintetiza en
+lenguaje propio. Si necesitas citar textualmente una frase corta,
+usa comillas ("..."). El objetivo es que tu respuesta SEA una síntesis
+original apoyada en los fragmentos, no un pegado de ellos.
 
-3. Si aplica, agrega secciones separadas para:
-   - REQUISITOS o CONDICIONES generales
-   - PROCEDIMIENTO aplicable
-   - EXCEPCIONES o LIMITACIONES relevantes
-4. Cierra con una NOTA PRÁCTICA de 2-3 oraciones.
-
-Usa TODOS los fragmentos relevantes de la whitelist para armar la
-panorámica completa. Si un tipo/faceta no aparece en los fragmentos,
-NO lo inventes — dilo honestamente ("los fragmentos disponibles no
-cubren el subtema X").
+Si un tipo/faceta no aparece en los fragmentos, dilo honestamente
+("los fragmentos disponibles no cubren el subtema X") — NO inventes.
 `
     : '';
 
@@ -209,10 +216,19 @@ REGLA CRÍTICA (bug 08/07/2026): NO USES la sintaxis de cita [N] en tu respuesta
 ${qaBlock ? 'Aunque no hay fragmentos normativos directos, tienes el criterio OECE del balotario arriba — puedes basar tu respuesta en él, aclarando que se basa en el criterio institucional del OECE.' : 'Indica al usuario que no encuentras sustento normativo específico para esta consulta y sugiere reformularla o verificar en el portal del OECE.'}`;
   }
 
+  // Cuando es panorámica, truncamos cada snippet a 1200 chars para
+  // reducir la "tentación" del modelo de recitar y para bajar el
+  // riesgo de finishReason='RECITATION' del filter de Google.
+  // Snippet completo cuando es respuesta puntual (mejor recall).
+  const snippetLimit = panoramic ? 1200 : Infinity;
   const context = chunks
     .map((c, i) => {
       const header = `[${i + 1}] ${formatDocLabel(c)}`;
-      return `${header}\n${c.snippet}`;
+      const body =
+        c.snippet.length > snippetLimit
+          ? c.snippet.slice(0, snippetLimit) + '\n[…]'
+          : c.snippet;
+      return `${header}\n${body}`;
     })
     .join('\n\n---\n\n');
 

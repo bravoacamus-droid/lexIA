@@ -39,6 +39,38 @@ export const FAST_MODEL_ID = 'gemini-3.5-flash-lite';
  */
 export const GENERATOR_MODEL_ID = 'gemini-3.6-flash';
 
-export const chatModel = google(CHAT_MODEL_ID);
-export const fastModel = google(FAST_MODEL_ID);
-export const generatorModel = google(GENERATOR_MODEL_ID);
+/**
+ * Safety settings permisivos para contenido legal profesional.
+ *
+ * Bug detectado 13/07/2026 en test end-to-end: la pregunta
+ * "resúmeme todo respecto a la modalidad de contratación pública
+ * eficiente" era bloqueada consistentemente por Gemini con
+ * finishReason='content-filter'. Los safety filters de Google son
+ * muy sensibles con vocabulario gubernamental/contrataciones porque
+ * los asocian con corrupción, sobornos, etc.
+ *
+ * Como LexIA es un asistente jurídico para funcionarios y proveedores
+ * del Estado peruano, TODO el contenido es legítimo — nunca
+ * pediremos redactar contenido dañino. Ajustamos a BLOCK_NONE
+ * (bloquea solo casos evidentes: instrucciones de armas, abuso, etc.),
+ * NO BLOCK_MEDIUM_AND_ABOVE que es el default.
+ *
+ * Docs: https://ai.google.dev/gemini-api/docs/safety-settings
+ */
+const LEGAL_SAFETY_SETTINGS = [
+  { category: 'HARM_CATEGORY_HARASSMENT' as const, threshold: 'BLOCK_NONE' as const },
+  { category: 'HARM_CATEGORY_HATE_SPEECH' as const, threshold: 'BLOCK_NONE' as const },
+  { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT' as const, threshold: 'BLOCK_NONE' as const },
+  { category: 'HARM_CATEGORY_DANGEROUS_CONTENT' as const, threshold: 'BLOCK_NONE' as const },
+  { category: 'HARM_CATEGORY_CIVIC_INTEGRITY' as const, threshold: 'BLOCK_NONE' as const },
+];
+
+export const chatModel = google(CHAT_MODEL_ID, {
+  safetySettings: LEGAL_SAFETY_SETTINGS,
+});
+export const fastModel = google(FAST_MODEL_ID, {
+  safetySettings: LEGAL_SAFETY_SETTINGS,
+});
+export const generatorModel = google(GENERATOR_MODEL_ID, {
+  safetySettings: LEGAL_SAFETY_SETTINGS,
+});
