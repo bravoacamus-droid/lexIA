@@ -226,17 +226,19 @@ export async function searchNormativa(
  * respuesta de la function call. Texto legible para que el modelo lo
  * use en su respuesta hablada.
  *
- * Defensa anti-alucinación (28/06/2026): además de los fragmentos,
+ * Defensa contra citas SIN CONTEXTO: además de los fragmentos,
  * inyectamos una whitelist EXPLÍCITA de los identificadores de
- * documento primario que sí están en BD ("citation" field). El modelo
- * recibe instrucción de citar SOLO esos identificadores. Otros
- * números/referencias que aparezcan dentro del texto de los fragmentos
- * son citas internas y NO documentos disponibles en LexIA.
+ * documento primario CARGADOS EN ESTA BÚSQUEDA. El modelo debe citar
+ * como fuente [N] SOLO estos, no números mencionados dentro del texto
+ * de otros documentos (esos son citas internas — el documento sí
+ * puede existir en la base, pero no está en el pool actual y por lo
+ * tanto no tenemos su texto para transcribir).
  *
- * Bug que esto previene: en la llamada d54603a1 el modelo citó
- * "Directiva 007-2025-OECE-CD" y "Pronunciamiento 335-2026/OECE-DSAT"
- * que NO existen — probablemente porque otros documentos en los
- * chunks los mencionaban internamente.
+ * Corrección 13/07/2026: los ejemplos previos ("Directiva 007-2025-OECE-CD",
+ * "Pronunciamiento 335-2026/OECE-DSAT") eran falso positivo — esos
+ * documentos SÍ existen en BD, solo que no siempre están en el pool
+ * de la consulta específica. La regla ahora se explica sin afirmar
+ * inexistencia de documentos reales.
  */
 export function formatResultsForLLM(
   results: NormativaSearchResult[],
@@ -264,9 +266,9 @@ DOCUMENTOS DISPONIBLES PARA CITAR (whitelist estricta):
 ═══════════════════════════════════════════════════════
 ${whitelistLines}
 
-REGLA CRÍTICA: Solo puedes citar como documento primario los que están en esa lista. Si el texto de un fragmento menciona otra directiva, opinión, pronunciamiento o resolución por número, ese número es una cita interna de ese documento — NO está disponible en mi base, NO lo cites como fuente. Si necesitas referirte a algo que solo aparece mencionado pero no está en la whitelist, di: "según se hace referencia en el [documento de la whitelist]" — sin afirmar que tienes ese otro documento.
+REGLA: cita como documento primario únicamente los que están en la lista de arriba — son los fragmentos que efectivamente traje en esta búsqueda. Si el texto de un fragmento menciona OTRA directiva, opinión, pronunciamiento o resolución por número, esa es una cita interna: el documento referenciado puede existir en la base normativa pero no está cargado en este pool, así que no tienes su contenido para transcribir. Menciónalo como "según se hace referencia en la [documento cargado arriba]" o llama de nuevo a search_normativa con ese número específico para traerlo.
 
-Cuando cites artículos de la Ley o el Reglamento, di el número del artículo solo si aparece textualmente en algún fragmento. Si no aparece, di: "según los pronunciamientos disponibles" sin inventar el número del artículo.
+Cuando cites un artículo de la Ley o el Reglamento por número, transcribe su texto solo si aparece en algún fragmento cargado. Si el fragmento solo lo menciona sin transcribirlo, di "el fragmento hace referencia al artículo X" sin inventar su contenido.
 
 ═══════════════════════════════════════════════════════
 FRAGMENTOS:
