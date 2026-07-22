@@ -159,9 +159,44 @@ export function buildChatSystemPrompt(
   chunks: ChatSource[],
   role: ProfileRole | null = null,
   trainingQA: TrainingQAContext[] = [],
+  panoramic: { topic: string } | null = null,
 ): string {
   const rolePrefix = role ? `\n${ROLE_CONTEXT[role]}\n` : '';
   const qaBlock = buildTrainingQABlock(trainingQA);
+
+  // Cuando la pregunta es panorámica ("resúmeme todo sobre X"),
+  // instruimos al modelo a SINTETIZAR el tema en secciones enumeradas
+  // en vez de responder chunk por chunk. Feedback César 13/07/2026:
+  // preguntas de resumen se iban por otro lado.
+  const panoramicBlock = panoramic
+    ? `\n═══════════════════════════════════════════════════════
+INSTRUCCIÓN DE SÍNTESIS (pregunta panorámica detectada)
+═══════════════════════════════════════════════════════
+El usuario pidió una VISIÓN PANORÁMICA del tema: "${panoramic.topic}".
+NO respondas citando fragmento por fragmento. En su lugar:
+
+1. Empieza con una DEFINICIÓN clara del tema en 1-2 oraciones.
+2. Enumera los TIPOS / CLASES / MODALIDADES existentes como una
+   lista con títulos en negrita:
+
+   ### Tipo 1: Nombre
+   Breve explicación [N]
+
+   ### Tipo 2: Nombre
+   Breve explicación [N]
+
+3. Si aplica, agrega secciones separadas para:
+   - REQUISITOS o CONDICIONES generales
+   - PROCEDIMIENTO aplicable
+   - EXCEPCIONES o LIMITACIONES relevantes
+4. Cierra con una NOTA PRÁCTICA de 2-3 oraciones.
+
+Usa TODOS los fragmentos relevantes de la whitelist para armar la
+panorámica completa. Si un tipo/faceta no aparece en los fragmentos,
+NO lo inventes — dilo honestamente ("los fragmentos disponibles no
+cubren el subtema X").
+`
+    : '';
 
   if (chunks.length === 0) {
     return `${SYSTEM_PROMPT_BASE}${rolePrefix}
@@ -198,7 +233,7 @@ REGLA CRÍTICA — alucinación detectada el 28/06/2026 cuando el modelo invent�
 2. Si dentro del texto de un fragmento aparece OTRA directiva, opinión, pronunciamiento o resolución por número, ese número es una cita interna — NO está disponible como documento propio, NO lo cites como si lo tuvieras.
 3. Si necesitas referirte a algo que solo se menciona internamente, di: "según se hace referencia en la [Fuente N de la whitelist]" sin afirmar que tienes acceso al documento referenciado.
 4. Cuando cites artículos de Ley o Reglamento, solo cita el número si el texto del artículo aparece dentro del fragmento. Si el fragmento solo lo menciona, di: "el pronunciamiento hace referencia al artículo X" sin transcribir contenido que no tienes.
-
+${panoramicBlock}
 ═══════════════════════════════════════════════════════
 CONTEXTO NORMATIVO RECUPERADO:
 ═══════════════════════════════════════════════════════

@@ -10,6 +10,11 @@ import type { ProfileRole } from '@/lib/auth/session';
 import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
 import { recordAiUsage } from '@/lib/ai/usage-log';
 import { expandLegalQuery } from '@/lib/ai/query-expansion';
+import {
+  isPanoramicQuery,
+  extractCentralTopic,
+  buildPanoramicFacets,
+} from '@/lib/ai/panoramic-query';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -178,6 +183,16 @@ export async function POST(req: Request) {
   let queryEmbedding: number[] | null = null;
   let expandedEmbedding: number[] | null = null;
   const { expanded: expandedQuery, focalQueries } = expandLegalQuery(lastUser.content);
+
+  // Detección de preguntas PANORÁMICAS (feedback César 13/07/2026).
+  // Cuando el usuario pide un resumen/panorámica de un tema, hacemos
+  // sub-búsquedas por facetas (tipos, definición, requisitos,
+  // procedimiento, excepciones, alcance) para no perder cobertura
+  // temática. Ver src/lib/ai/panoramic-query.ts.
+  const panoramic = isPanoramicQuery(lastUser.content);
+  const panoramicTopic = panoramic ? extractCentralTopic(lastUser.content) : '';
+  const panoramicFacets = panoramic ? buildPanoramicFacets(panoramicTopic) : [];
+
   let sources: ChatSource[] = [];
 
   // Optimización 08/07/2026: los 2-5 embeds (query + expanded + N focales)
@@ -202,11 +217,14 @@ export async function POST(req: Request) {
   if (doExpanded) embedPromises.push(safeEmbed(expandedQuery));
   const focalStartIdx = embedPromises.length;
   for (const focal of focalQueries) embedPromises.push(safeEmbed(focal));
+  const panoramicStartIdx = embedPromises.length;
+  for (const facet of panoramicFacets) embedPromises.push(safeEmbed(facet));
 
   const allEmbeds = await Promise.all(embedPromises);
   queryEmbedding = allEmbeds[0];
   expandedEmbedding = doExpanded ? allEmbeds[1] : null;
-  const focalEmbeddings = allEmbeds.slice(focalStartIdx);
+  const focalEmbeddings = allEmbeds.slice(focalStartIdx, panoramicStartIdx);
+  const panoramicEmbeddings = allEmbeds.slice(panoramicStartIdx);
 
   // 2. Hybrid search + rerank.
   //    Sobre-recuperamos 2x para que el rerank tenga margen. Sin esto,
@@ -304,7 +322,45 @@ export async function POST(req: Request) {
         }
       }
 
-      const reranked = rerankChunks(combined, lastUser.content, MAX_CHUNKS);
+      // 2d. Búsquedas PANORÁMICAS por facetas — cuando el usuario pide
+      //     un resumen/panorámica de un tema ("resúmeme todo sobre X"),
+      //     ejecutamos 4-6 sub-búsquedas por facetas típicas (tipos,
+      //     definición, requisitos, procedimiento, excepciones, alcance)
+      //     para no perder cobertura temática. Feedback César 13/07/2026:
+      //     LexIA se iba por otro lado en preguntas transversales.
+      if (panoramicFacets.length > 0 && panoramicEmbeddings.length > 0) {
+        const seenIds = new Set(combined.map((c) => c.chunk_id));
+        const panoramicResults = await Promise.all(
+          panoramicFacets.map(async (facet, i) => {
+            const emb = panoramicEmbeddings[i];
+            if (!emb) return null;
+            const { data } = await supabase.rpc('hybrid_search', {
+              query_text: facet,
+              query_embedding: emb,
+              match_count: 5,
+              filter_type: null,
+              filter_law: lawFilter,
+            });
+            return data as HybridSearchRow[] | null;
+          }),
+        );
+        for (const rows of panoramicResults) {
+          if (!rows) continue;
+          for (const c of rows) {
+            if (!seenIds.has(c.chunk_id)) {
+              combined.push(c);
+              seenIds.add(c.chunk_id);
+            }
+          }
+        }
+      }
+
+      // Cuando es panorámica, mantenemos MÁS chunks en el pool final
+      // (25 vs 15) para que el LLM tenga cobertura completa del tema
+      // al sintetizar. El system prompt condicional le indica que
+      // agrupe en secciones enumeradas.
+      const finalMaxChunks = panoramic ? Math.min(MAX_CHUNKS + 10, 25) : MAX_CHUNKS;
+      const reranked = rerankChunks(combined, lastUser.content, finalMaxChunks);
       sources = reranked.map((c) => ({
         chunk_id: c.chunk_id,
         doc_id: c.document_id,
@@ -407,7 +463,12 @@ export async function POST(req: Request) {
   //    Las Q&A del balotario (si hay) se pasan como material adicional
   //    para que el modelo produzca respuestas alineadas con el criterio
   //    OECE de Certificación.
-  const systemPrompt = buildChatSystemPrompt(sources, userRole, trainingQA);
+  const systemPrompt = buildChatSystemPrompt(
+    sources,
+    userRole,
+    trainingQA,
+    panoramic ? { topic: panoramicTopic } : null,
+  );
   const trimmedHistory = messages.slice(-MAX_HISTORY);
 
   // 5. Stream
