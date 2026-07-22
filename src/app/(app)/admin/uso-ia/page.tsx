@@ -463,10 +463,9 @@ export default async function AdminAiUsagePage() {
         <p className="mb-1.5">
           <TrendingUp className="h-3.5 w-3.5 inline -mt-0.5 mr-1 text-brand-600" />
           <span className="font-semibold text-slate-900">Modelos en uso:</span>{' '}
-          <code className="text-[10px]">gemini-flash-latest</code> (chat + generadores), {' '}
-          <code className="text-[10px]">gemini-flash-lite-latest</code> (titulación rápida),{' '}
-          <code className="text-[10px]">gemini-embedding-001</code> /{' '}
-          <code className="text-[10px]">voyage-3</code> (embeddings RAG).
+          <code className="text-[10px]">gemini-3.5-flash-lite</code> (chat + titulación),{' '}
+          <code className="text-[10px]">gemini-3.6-flash</code> (generador con PDF nativo),{' '}
+          <code className="text-[10px]">gemini-embedding-001</code> (embeddings RAG).
         </p>
         <p>
           Tabla de precios en <code className="text-[10px]">src/lib/ai/usage-log.ts</code>{' '}

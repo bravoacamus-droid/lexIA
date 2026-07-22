@@ -50,6 +50,25 @@ export const MODEL_PRICING: Record<
     outputPerMillion: 0.15,
     provider: 'google',
   },
+  // Nueva generación 3.5 y 3.6 (julio 2026 — feedback César).
+  // 3.5-flash-lite: mismo precio que 2.5-lite pero mejor calidad.
+  // 3.6-flash: reemplaza flash-latest con precio ligeramente menor y
+  // thinking obligatorio (los tokens de thought se cobran como output).
+  'gemini-3.5-flash-lite': {
+    inputPerMillion: 0.038,
+    outputPerMillion: 0.15,
+    provider: 'google',
+  },
+  'gemini-3.5-flash': {
+    inputPerMillion: 0.075,
+    outputPerMillion: 0.3,
+    provider: 'google',
+  },
+  'gemini-3.6-flash': {
+    inputPerMillion: 0.075,
+    outputPerMillion: 0.3,
+    provider: 'google',
+  },
   // Gemini Pro
   'gemini-2.5-pro': {
     inputPerMillion: 1.25,

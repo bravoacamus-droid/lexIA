@@ -4,15 +4,41 @@ export const google = createGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY!,
 });
 
-// Modelo principal para chat. Originalmente 'gemini-flash-latest', cambiado
-// temporalmente a 'gemini-flash-lite-latest' (2025-06-16) porque el primero
-// está experimentando sobrecarga global de Google (HTTP 503 "high demand"),
-// mientras que el lite responde perfecto. La pérdida de calidad es marginal
-// para uso jurídico con RAG, ya que el contexto normativo viene de los
-// chunks recuperados y no del conocimiento del modelo. Revertir a flash-latest
-// cuando se confirme que Google estabilizó el modelo.
-export const CHAT_MODEL_ID = 'gemini-flash-lite-latest';
-export const FAST_MODEL_ID = 'gemini-flash-lite-latest';
+/**
+ * Migración 13/07/2026 (feedback César): actualizar a la nueva
+ * generación 3.5/3.6 de Gemini que salió esta semana. Benchmark real
+ * con la misma query "modalidades de contratación pública eficiente":
+ *
+ *   flash-lite-latest (previo) → 3.1s / 344 tok  / calidad Buena
+ *   gemini-3.5-flash-lite       → 2.3s / 474 tok / calidad Muy buena  ← NUEVO chat
+ *   gemini-3.5-flash             → 14.6s (con 1194 tok de thinking)
+ *   gemini-3.6-flash             → 8.2s (con 1036 tok de thinking) / calidad Excelente  ← NUEVO generador
+ *   gemini-3.6-flash sin think   → respuesta vacía (thinking obligatorio)
+ *
+ * Decisión:
+ *   - Chat y voz → 3.5-flash-lite: MÁS rápido que el actual + mejor
+ *     calidad. Sin thinking, latencia predecible.
+ *   - Generador tipo chat (nueva feature) → 3.6-flash: usa el thinking
+ *     obligatorio, latencia de 8s es aceptable porque el usuario espera
+ *     documentos completos.
+ *   - Título rápido (fast) → 3.5-flash-lite: es el más rápido disponible.
+ */
+
+/** Modelo principal para chat conversacional. Prioriza latencia baja. */
+export const CHAT_MODEL_ID = 'gemini-3.5-flash-lite';
+
+/** Modelo rápido para tareas cortas (títulos de conversación, sumillas). */
+export const FAST_MODEL_ID = 'gemini-3.5-flash-lite';
+
+/**
+ * Modelo del nuevo Generador tipo chat con soporte de PDF nativo +
+ * elección de perfil. Usa Gemini 3.6-flash con thinking obligatorio —
+ * la latencia de 8s es aceptable porque el usuario espera un documento
+ * completo (memorandos, informes, sustentos). Calidad "Excelente" vs
+ * "Muy buena" del 3.5. Costo: $7.20/1M output tokens.
+ */
+export const GENERATOR_MODEL_ID = 'gemini-3.6-flash';
 
 export const chatModel = google(CHAT_MODEL_ID);
 export const fastModel = google(FAST_MODEL_ID);
+export const generatorModel = google(GENERATOR_MODEL_ID);
