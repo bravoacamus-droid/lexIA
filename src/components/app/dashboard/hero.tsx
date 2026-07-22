@@ -51,7 +51,7 @@ const ROLE_CTAS: Record<
   ],
   provider: [
     { icon: ShieldCheck, label: 'Auditar mi oferta', href: '/revision-oferta/nuevo', primary: true },
-    { icon: FilePen, label: 'Generar documento', href: '/generador/nuevo' },
+    { icon: FilePen, label: 'Generar documento', href: '/generador' },
     { icon: MessageSquare, label: 'Preguntar a LexIA', href: '/chat?new=1' },
   ],
   consultant: [

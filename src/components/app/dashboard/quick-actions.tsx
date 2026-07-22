@@ -69,7 +69,7 @@ const ACTIONS_BY_ROLE: Record<ProfileRole, ActionItem[]> = {
       icon: FilePen,
       title: 'Generar documento',
       desc: 'TDR, Estrategia, Pliego de Absolución y más.',
-      href: '/generador/nuevo',
+      href: '/generador',
       accent: 'from-amber-500/15 to-orange-500/10',
       iconBg:
         'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400',
@@ -90,7 +90,7 @@ const ACTIONS_BY_ROLE: Record<ProfileRole, ActionItem[]> = {
       icon: FilePen,
       title: 'Generar documento',
       desc: 'Consultas, observaciones, apelaciones, ampliación de plazo.',
-      href: '/generador/nuevo',
+      href: '/generador',
       accent: 'from-amber-500/15 to-orange-500/10',
       iconBg:
         'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400',

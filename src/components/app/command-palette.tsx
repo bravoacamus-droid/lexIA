@@ -56,7 +56,7 @@ export function CommandPalette({ open, onOpenChange }: Props) {
             <FileSearch />
             Nueva evaluación de ofertas
           </CommandItem>
-          <CommandItem onSelect={() => go('/generador/nuevo')}>
+          <CommandItem onSelect={() => go('/generador')}>
             <FilePen />
             Generar nuevo documento
           </CommandItem>

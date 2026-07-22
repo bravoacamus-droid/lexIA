@@ -171,7 +171,7 @@ export function EvaluatorWizard({
                       value="consultas"
                       title="Consultas y observaciones"
                       desc="Formula consultas y observaciones a las Bases de un proceso."
-                      href="/generador/consultas-observaciones"
+                      href="/generador"
                     />
                   </RadioGroup>
                 </div>
