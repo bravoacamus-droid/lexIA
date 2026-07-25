@@ -253,6 +253,11 @@ export const GENERATOR_QUICK_ACTIONS: Record<
   ],
   dec: [
     {
+      label: 'Informe de observación / devolución de requerimiento',
+      prompt:
+        'Proyecta un informe como especialista de abastecimiento dirigido al jefe de la unidad de administración, evaluando el requerimiento adjunto. Verifica: (1) si cumple el plazo de anticipación de las disposiciones internas de contratos menores, (2) si el plazo de ejecución es racional frente a la necesidad real, (3) recomienda ajustes o mecanismos alternativos si corresponde. Adjunta el requerimiento/memorándum, el TDR y las disposiciones internas de tu entidad.',
+    },
+    {
       label: 'Absolver consulta',
       prompt:
         'Absuelve la siguiente consulta de un participante, sustentando la respuesta en el Reglamento y las bases del procedimiento. Consulta:',
