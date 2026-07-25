@@ -95,6 +95,7 @@ export function extractCentralTopic(query: string): string {
     /^en\s+qu[ée]\s+consiste(?:n)?\s+(?:el|la|los|las)?\s*/i,
     /^qu[ée]\s+establece\s+la\s+ley\s+(?:sobre|acerca\s+de|respecto\s+(?:a|al|de))\s+/i,
     /^todo\s+(?:sobre|acerca|respecto\s+(?:a|al|de))\s+/i,
+    /^det[aá]lla(?:me)?\s+(?:paso\s+a\s+paso\s+)?(?:el\s+|la\s+|los\s+|las\s+)?/i,
     /^en\s+qu[ée]\s+(?:casos|supuestos|situaciones|circunstancias)\s+/i,
     /^(?:respecto\s+(?:a|al|de)|sobre|acerca\s+de|de)\s+(?:la\s+|el\s+|los\s+|las\s+)?/i,
   ];

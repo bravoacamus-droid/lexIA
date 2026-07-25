@@ -15,6 +15,73 @@ export type GeneratorPerfil =
   | 'aga'
   | 'fiscalizacion';
 
+/**
+ * FORMATO ESTÁNDAR de documento administrativo peruano — transversal a
+ * todos los perfiles. Derivado del ejemplo real que César entregó el
+ * 24/07/2026 (PROMPT.docx: informe de especialista de abastecimiento).
+ *
+ * El ejemplo original era de SUNARP; aquí está PARAMETRIZADO con
+ * placeholders para que el modelo NUNCA copie datos de la entidad del
+ * ejemplo (nombres, siglas, cargos) en documentos de otros usuarios.
+ */
+export const FORMATO_DOCUMENTO_ADMINISTRATIVO = `
+═══════════════════════════════════════════════════════
+FORMATO ESTÁNDAR DE DOCUMENTOS ADMINISTRATIVOS PERUANOS
+═══════════════════════════════════════════════════════
+Cuando el usuario pida un INFORME, MEMORANDO, OFICIO o CARTA formal,
+usa SIEMPRE esta estructura de encabezado (estilo administración
+pública peruana):
+
+# [TIPO DE DOCUMENTO] N° [Número]-[Año]-[SIGLAS ENTIDAD]/[SIGLAS ÁREA]
+
+**PARA:** [Cargo y nombre del destinatario — usa placeholder si el usuario no lo dio]
+
+**DE:** [Cargo y nombre del remitente]
+
+**ASUNTO:** [Síntesis en una línea del contenido]
+
+**REFERENCIA:** a) [Documento previo] b) [Norma o disposición aplicable]
+
+**FECHA:** [Ciudad], [fecha]
+
+---
+
+Párrafo de apertura: "Tengo a bien dirigirme a usted en relación con
+el documento de la referencia..., mediante el cual... Al respecto,
+informo lo siguiente:"
+
+## I. [PRIMERA SECCIÓN — p. ej. ANTECEDENTES o SOBRE EL PLAZO...]
+1.1. [Primer punto, con cita de la norma interna o legal aplicable]
+1.2. [Segundo punto, aplicando la norma al caso concreto]
+
+## II. [ANÁLISIS — racionalidad, eficiencia, valor por dinero]
+2.1. ...
+2.2. ...
+
+## III. [RECOMENDACIONES / CONCLUSIONES]
+3.1. **[Título de la recomendación]:** [desarrollo]
+3.2. **[Título]:** [desarrollo]
+
+Cierre: "Atentamente," + [Nombre completo] + [Cargo] + [Órgano/Unidad]
+
+REGLAS DE ESTILO (del ejemplo modelo aprobado por el cliente):
+- Numeración decimal X.Y dentro de cada sección romana.
+- Cita las normas INTERNAS de la entidad si el usuario adjuntó
+  directivas/disposiciones propias (ej: "de acuerdo con el numeral
+  8.2 de las Disposiciones que regulan los Contratos Menores de
+  [ENTIDAD]") — combínalas con la Ley 32069 y su Reglamento.
+- Cuantifica siempre que puedas: días de anticipación, plazos,
+  fechas concretas, montos.
+- Cuando adviertas un incumplimiento, di QUÉ norma se contraviene y
+  QUÉ consecuencia práctica tiene (gestión inoportuna, gasto
+  ineficiente, contravención del valor por dinero).
+- Las recomendaciones deben ser ACCIONABLES: ajuste del requerimiento,
+  mecanismos alternativos (caja chica, fondo por encargo), optimización
+  de cronogramas — no genéricas.
+- Si el usuario da nombres/cargos/siglas reales, úsalos. Si no, deja
+  placeholders entre corchetes: [Nombre], [Cargo], [Entidad].
+`;
+
 interface PerfilMeta {
   key: GeneratorPerfil;
   label: string;

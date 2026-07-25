@@ -193,7 +193,13 @@ export async function searchNormativa(
     }
   }
 
-  const rows = rerankAndDedupe(combined, opts.query, matchCount);
+  // La penalización de "ley vieja" (30225) solo aplica si el usuario NO
+  // filtró explícitamente por la Ley 30225. Si eligió la 30225 en el
+  // LawSelector, esos chunks son EXACTAMENTE lo que quiere.
+  const userWantsOldLaw = (filterLaw || []).includes('ley_30225');
+  const rows = rerankAndDedupe(combined, opts.query, matchCount, {
+    penalizeOldLaw: !userWantsOldLaw,
+  });
   return rows.map((r) => {
     const numberPart = r.doc_number ? ` ${r.doc_number}` : '';
     const typeLabel = formatTypeLabel(r.doc_type);
@@ -307,7 +313,9 @@ function rerankAndDedupe(
   rows: HybridRow[],
   query: string,
   keepCount: number,
+  opts: { penalizeOldLaw?: boolean } = {},
 ): HybridRow[] {
+  const penalizeOldLaw = opts.penalizeOldLaw ?? true;
   const q = query.toLowerCase();
 
   // ¿La query pide una regla base? Términos que sugieren fuente primaria.
@@ -337,10 +345,12 @@ function rerankAndDedupe(
       // menciona la 32069, restamos score para que la fuente vigente
       // gane. La resolución sigue disponible como jurisprudencia si
       // no hay nada mejor.
-      const mentions30225 = /30225|344-2018/.test(r.content);
-      const mentions32069 = /32069|009-2025/.test(r.content);
-      if (mentions30225 && !mentions32069) {
-        score -= 0.06;
+      if (penalizeOldLaw) {
+        const mentions30225 = /30225|344-2018/.test(r.content);
+        const mentions32069 = /32069|009-2025/.test(r.content);
+        if (mentions30225 && !mentions32069) {
+          score -= 0.06;
+        }
       }
       return { row: r, score };
     })

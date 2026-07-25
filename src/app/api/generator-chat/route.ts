@@ -9,6 +9,7 @@ import {
 } from '@/lib/ai/gemini';
 import {
   GENERATOR_PERFILES,
+  FORMATO_DOCUMENTO_ADMINISTRATIVO,
   type GeneratorPerfil,
 } from '@/lib/ai/generator-perfiles';
 import { recordAiUsage } from '@/lib/ai/usage-log';
@@ -176,7 +177,7 @@ copiar. Usa:
 Cuando el usuario haga una consulta puntual (no un documento), responde
 en prosa fluida pero manteniendo la estructura visual con encabezados
 y listas.
-
+${FORMATO_DOCUMENTO_ADMINISTRATIVO}
 ${
   files.length > 0
     ? `═══════════════════════════════════════════════════════
