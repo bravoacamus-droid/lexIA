@@ -54,6 +54,13 @@ export function isPanoramicQuery(query: string): boolean {
     /\bvisi[óo]n general\b/,
     /\ben qu[ée] consiste\b/,
     /\bqu[ée] establece la ley (?:sobre|acerca)\b/,
+    // "en qué casos/supuestos..." — pregunta de enumeración de causales
+    // (Q3 de César: "En qué casos el comité debe evaluar...")
+    /\ben qu[ée] (?:casos|supuestos|situaciones|circunstancias)\b/,
+    // "detalla(me) paso a paso..." — pide una guía completa del proceso
+    // (Q6 de César: "detalles paso a paso cuando una entidad debe...")
+    /\bpaso\s+a\s+paso\b/,
+    /\bdet[aá]lla(?:me)?\b/,
   ];
 
   return PANORAMIC_PATTERNS.some((rx) => rx.test(q));
@@ -88,6 +95,7 @@ export function extractCentralTopic(query: string): string {
     /^en\s+qu[ée]\s+consiste(?:n)?\s+(?:el|la|los|las)?\s*/i,
     /^qu[ée]\s+establece\s+la\s+ley\s+(?:sobre|acerca\s+de|respecto\s+(?:a|al|de))\s+/i,
     /^todo\s+(?:sobre|acerca|respecto\s+(?:a|al|de))\s+/i,
+    /^en\s+qu[ée]\s+(?:casos|supuestos|situaciones|circunstancias)\s+/i,
     /^(?:respecto\s+(?:a|al|de)|sobre|acerca\s+de|de)\s+(?:la\s+|el\s+|los\s+|las\s+)?/i,
   ];
   for (let pass = 0; pass < 4; pass++) {
@@ -121,11 +129,84 @@ export function extractCentralTopic(query: string): string {
  *       "modalidad de contratación pública eficiente excepciones",
  *     ]
  */
+/**
+ * Facetas ESPECÍFICAS para temas legales conocidos del dominio. Cuando
+ * el tópico matchea, se usan estas en vez de las genéricas — mejoran
+ * dramáticamente el recall porque usan el VOCABULARIO REAL del corpus.
+ *
+ * Agregado 24/07/2026 tras test contra las Q&A de César: la pregunta de
+ * impedimentos scoreaba 50% con facetas genéricas ("impedimentos
+ * requisitos", "impedimentos procedimiento") porque el Art. 30 usa
+ * tipología propia ("Tipo 1.A", "parientes", "capital social").
+ */
+const KNOWN_TOPIC_FACETS: Array<{ match: RegExp; facets: string[] }> = [
+  {
+    match: /impedimento/i,
+    facets: [
+      'artículo 30 impedimentos personas naturales cargo funcionarios alcance nacional',
+      'impedimentos parientes cónyuge conviviente segundo grado consanguinidad afinidad',
+      'impedimentos personas jurídicas capital social participación órganos de administración',
+      'impedimentos sanción inhabilitación REDAM REDERECI registro deudores',
+      'impedimentos seis meses después de dejar el cargo ámbito de competencia',
+      'verificación impedimentos Ficha Única del Proveedor declaración jurada',
+    ],
+  },
+  {
+    match: /modalidad(?:es)?\s+de\s+(?:la\s+)?contrataci[óo]n|contrataci[óo]n\s+p[úu]blica\s+eficiente/i,
+    facets: [
+      'contratos menores 8 UIT disposiciones generales',
+      'compra por encargo entidad organismo internacional convenio',
+      'compra centralizada Perú Compras importancia estratégica',
+      'compra corporativa obligatoria facultativa agregación demanda',
+      'compra pública de innovación precomercial asociación',
+      'acuerdo marco catálogos electrónicos',
+    ],
+  },
+  {
+    match: /discrecional|valor\s+por\s+dinero/i,
+    facets: [
+      'artículo 132 negociación oferta supera cuantía procedimiento',
+      'rechazo ofertas sustancialmente por debajo composición detallada',
+      'diálogo competitivo soluciones modalidades diferenciadas',
+      'jurado concurso proyectos arquitectónicos calificación no apelable',
+      'facultad discrecional rigor técnico decisión sustentada',
+    ],
+  },
+  {
+    match: /emergencia|desastre/i,
+    facets: [
+      'contrataciones prevención atención emergencias contratación directa',
+      'contratos de contingencia evento futuro pago disponibilidad activación',
+      'regularización veinte días hábiles informe técnico legal',
+      'cuadro multianual necesidades gestión riesgos acuerdos marco emergencia',
+      'entidad contratante definición poderes del estado ministerios gobiernos regionales locales empresas',
+      'garantía fiel cumplimiento contratación directa emergencia',
+    ],
+  },
+  {
+    match: /[áa]rea\s+usuaria/i,
+    facets: [
+      'área usuaria formula requerimiento especificaciones técnicas términos referencia',
+      'área usuaria cuadro multianual necesidades programación',
+      'área usuaria conformidad prestación verificación obligaciones',
+      'área usuaria gestión de riesgos identificación',
+      'área técnica estratégica rol responsabilidades',
+    ],
+  },
+];
+
 export function buildPanoramicFacets(topic: string): string[] {
   const t = topic.trim();
   if (t.length === 0) return [];
 
-  // Facetas base — se ajusta orden según pistas del topic
+  // 1. Temas conocidos → facetas específicas con vocabulario del corpus
+  for (const known of KNOWN_TOPIC_FACETS) {
+    if (known.match.test(t)) {
+      return known.facets.slice(0, 6);
+    }
+  }
+
+  // 2. Fallback genérico para temas no mapeados
   const facets = [
     `tipos de ${t}`,
     `${t} definición`,
@@ -136,7 +217,7 @@ export function buildPanoramicFacets(topic: string): string[] {
 
   // Facetas condicionales según pistas
   const tLower = t.toLowerCase();
-  if (/impedimento|inhabilitaci[óo]n|sanci[óo]n/.test(tLower)) {
+  if (/inhabilitaci[óo]n|sanci[óo]n/.test(tLower)) {
     facets.push(`${t} alcance y aplicación`);
   }
   if (/plazo|t[ée]rmino|d[íi]a/.test(tLower)) {

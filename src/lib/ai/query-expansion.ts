@@ -133,6 +133,60 @@ export function expandLegalQuery(query: string): LegalExpansion {
     );
   }
 
+  // ══ Patrones agregados 24/07/2026 tras test contra las 9 Q&A modelo
+  //    de César. Los 3 temas de abajo scoreaban 0-50% porque el
+  //    retrieval no traía los artículos específicos. ══
+
+  // No suscribir/perfeccionar contrato + multa → Art. 87 infracciones
+  // (lista), Art. 364 (tabla de multas % por infracción), retención con
+  // compromiso de pago, ejecución coactiva.
+  // Q8 de César scoreó 0%: pregunta narrativa larga ("Antes con la
+  // 30225... ahora con la norma actual...") cuyo embedding difuso no
+  // matcheaba los chunks técnicos del procedimiento sancionador.
+  // Vocabulario real del corpus verificado en BD: la tabla de multas
+  // está en Art. 364.6 ("Porcentaje de oferta económica... 3 - 6%...
+  // MYPES... 5% - 8%").
+  if (
+    /no\s+suscrib|no\s+perfeccion|no\s+firm[ae].*contrato|neg[aá]\w*\s+a\s+(?:suscribir|firmar)/i.test(q) ||
+    (/multa/i.test(q) && /(?:suscrib|perfeccion|contrato|tribunal|sanci[óo]n)/i.test(q))
+  ) {
+    add(
+      'artículo 87 infracciones administrativas participantes postores proveedores perfeccionar contrato injustificadamente artículo 364 multa porcentaje oferta económica MYPES Tribunal Contrataciones Públicas',
+      'artículo 364 multa porcentaje oferta económica infracciones',
+    );
+    focalQueries.push('artículo 87 infracciones perfeccionar el contrato injustificadamente');
+    focalQueries.push('compromiso de pago retención multa nuevos contratos');
+  }
+
+  // Impedimentos → Art. 30 con sus categorías completas.
+  // Q2 de César scoreó 50%: las facetas genéricas no traían personas
+  // jurídicas (30% capital), 6 meses post-cargo ni REDAM/REDERECI.
+  if (/impedimento/i.test(q)) {
+    add(
+      'artículo 30 impedimentos contratar personas naturales jurídicas cónyuge parientes segundo grado consanguinidad afinidad capital social 30% seis meses',
+      'artículo 30 impedimentos personas jurídicas capital social',
+    );
+    focalQueries.push('impedimentos seis meses después de dejar el cargo funcionarios');
+    focalQueries.push('impedimentos REDAM REDERECI deudores sanciones inhabilitación');
+  }
+
+  // Discrecionalidad del evaluador / valor por dinero en evaluación →
+  // Art. 132 (negociación por exceso, rechazo por bajo costo), 76-77
+  // (diálogo competitivo, negociación), 135 (jurado arquitectónico).
+  // Q3 de César scoreó 42%: faltaban rechazo por bajo costo, diálogo
+  // competitivo y jurado no apelable.
+  if (
+    /discrecional/i.test(q) ||
+    (/valor\s+por\s+dinero/i.test(q) && /(?:evalua|comit[eé]|oferta|decisi[óo]n)/i.test(q))
+  ) {
+    add(
+      'artículo 132 negociación oferta supera cuantía rechazo ofertas sustancialmente por debajo composición detallada evaluadores',
+      'artículo 132 rechazo ofertas bajo costo negociación',
+    );
+    focalQueries.push('diálogo competitivo negociación modalidades diferenciadas artículo 76 77');
+    focalQueries.push('jurado concurso proyectos arquitectónicos calificación no apelable');
+  }
+
   const expanded = additions.length === 0 ? '' : `${query} ${additions.join(' ')}`;
   return { expanded, focalQueries };
 }

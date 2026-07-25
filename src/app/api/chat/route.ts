@@ -328,6 +328,11 @@ export async function POST(req: Request) {
       //     definición, requisitos, procedimiento, excepciones, alcance)
       //     para no perder cobertura temática. Feedback César 13/07/2026:
       //     LexIA se iba por otro lado en preguntas transversales.
+      // Guardamos el TOP-1 de cada faceta para garantizar cobertura tras
+      // el rerank final — sin esto, el corte a 25 por similarity global
+      // eliminaba facetas enteras (test 24/07/2026: "contratos menores"
+      // y "CPI" desaparecían de la síntesis de modalidades).
+      const facetTopChunks: HybridSearchRow[] = [];
       if (panoramicFacets.length > 0 && panoramicEmbeddings.length > 0) {
         const seenIds = new Set(combined.map((c) => c.chunk_id));
         const panoramicResults = await Promise.all(
@@ -346,6 +351,7 @@ export async function POST(req: Request) {
         );
         for (const rows of panoramicResults) {
           if (!rows) continue;
+          if (rows.length > 0) facetTopChunks.push(rows[0]);
           for (const c of rows) {
             if (!seenIds.has(c.chunk_id)) {
               combined.push(c);
@@ -360,7 +366,21 @@ export async function POST(req: Request) {
       // al sintetizar. El system prompt condicional le indica que
       // agrupe en secciones enumeradas.
       const finalMaxChunks = panoramic ? Math.min(MAX_CHUNKS + 10, 25) : MAX_CHUNKS;
-      const reranked = rerankChunks(combined, lastUser.content, finalMaxChunks);
+      let reranked = rerankChunks(combined, lastUser.content, finalMaxChunks);
+
+      // COBERTURA POR FACETA: garantizar que el top-1 de cada faceta
+      // sobreviva el corte. Si el rerank lo dejó fuera, lo re-inyectamos
+      // (reemplazando los últimos del ranking para no exceder el límite).
+      if (facetTopChunks.length > 0) {
+        const inFinal = new Set(reranked.map((c) => c.chunk_id));
+        const missing = facetTopChunks.filter((c) => !inFinal.has(c.chunk_id));
+        // Dedup dentro de missing (2 facetas pueden compartir top-1)
+        const uniqueMissing = [...new Map(missing.map((c) => [c.chunk_id, c])).values()];
+        if (uniqueMissing.length > 0) {
+          const keep = Math.max(reranked.length - uniqueMissing.length, 0);
+          reranked = [...reranked.slice(0, keep), ...uniqueMissing];
+        }
+      }
       sources = reranked.map((c) => ({
         chunk_id: c.chunk_id,
         doc_id: c.document_id,

@@ -311,8 +311,14 @@ function rerankAndDedupe(
   const q = query.toLowerCase();
 
   // ¿La query pide una regla base? Términos que sugieren fuente primaria.
+  // Ampliado 24/07/2026 tras test V2 (impedimentos): la pregunta "¿qué
+  // tipos de impedimentos existen?" no matcheaba el patrón y el top-5
+  // quedaba dominado por resoluciones TCE que citan la LEY VIEJA
+  // (Art. 11 de la 30225) — la voz respondía con norma derogada.
+  // Preguntas de definición/enumeración ("qué es", "qué tipos",
+  // "cuáles son") también necesitan la fuente primaria vigente.
   const wantsBaseRule =
-    /(?:prevalece|prevalecen|artículo|numeral|inciso|plazo|obliga|est[aá]blece|determina|dispone|regula)/i.test(
+    /(?:prevalece|prevalecen|artículo|numeral|inciso|plazo|obliga|est[aá]blece|determina|dispone|regula|qu[ée]\s+(?:es|son|tipos)|cu[áa]les|tipos\s+de|impedimento|modalidad|requisito|procedimiento)/i.test(
       q,
     );
 
@@ -324,6 +330,17 @@ function rerankAndDedupe(
       // Boost fuente primaria si aplica
       if (wantsBaseRule && (r.doc_type === 'ley' || r.doc_type === 'reglamento')) {
         score += 0.08;
+      }
+      // Penalización LEY VIEJA: resoluciones TCE y pronunciamientos
+      // antiguos citan la Ley 30225 (derogada). Si el chunk cita
+      // explícitamente la 30225 o su reglamento (DS 344-2018) y NO
+      // menciona la 32069, restamos score para que la fuente vigente
+      // gane. La resolución sigue disponible como jurisprudencia si
+      // no hay nada mejor.
+      const mentions30225 = /30225|344-2018/.test(r.content);
+      const mentions32069 = /32069|009-2025/.test(r.content);
+      if (mentions30225 && !mentions32069) {
+        score -= 0.06;
       }
       return { row: r, score };
     })
