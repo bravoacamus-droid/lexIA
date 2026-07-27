@@ -14,6 +14,7 @@ const CreateSchema = z.object({
     'titular_entidad',
     'aga',
     'fiscalizacion',
+    'postor',
   ]),
   law_filter: z.array(z.enum(['ley_32069', 'ley_30225'])).optional(),
 });

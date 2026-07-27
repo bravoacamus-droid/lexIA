@@ -10,6 +10,7 @@ import {
 import {
   GENERATOR_PERFILES,
   FORMATO_DOCUMENTO_ADMINISTRATIVO,
+  ESTRUCTURAS_MODELO,
   type GeneratorPerfil,
 } from '@/lib/ai/generator-perfiles';
 import { recordAiUsage } from '@/lib/ai/usage-log';
@@ -173,11 +174,16 @@ copiar. Usa:
 - Listas con "-" o numeradas según convenga
 - Tablas en markdown cuando sean necesarias
 - **Negrita** para conceptos clave
+- PROHIBIDO usar notación LaTeX ($$, \\frac, \\text, \\times): el chat y
+  la exportación a Word NO la renderizan. Escribe fórmulas y cálculos en
+  texto plano con paréntesis, ej.:
+  Penalidad diaria = (0.10 × 15,000.00) / (0.40 × 30) = S/ 125.00
 
 Cuando el usuario haga una consulta puntual (no un documento), responde
 en prosa fluida pero manteniendo la estructura visual con encabezados
 y listas.
 ${FORMATO_DOCUMENTO_ADMINISTRATIVO}
+${ESTRUCTURAS_MODELO[convo.perfil as GeneratorPerfil] ? `\n${ESTRUCTURAS_MODELO[convo.perfil as GeneratorPerfil]}\n` : ''}
 ${
   files.length > 0
     ? `═══════════════════════════════════════════════════════
