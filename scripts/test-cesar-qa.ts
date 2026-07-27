@@ -287,9 +287,21 @@ async function main() {
     console.log('  ', tc.question.slice(0, 100));
     console.log('═'.repeat(72));
     try {
-      const { text, nChunks, panoramic } = await runPipeline(tc.question);
+      // Espejo del cliente real (chat-panel.tsx): ante respuesta vacía
+      // (filtro RECITATION intermitente) se reintenta hasta 2 veces.
+      let text = '';
+      let nChunks = 0;
+      let panoramic = false;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        const r = await runPipeline(tc.question);
+        text = r.text;
+        nChunks = r.nChunks;
+        panoramic = r.panoramic;
+        if (text && text.length > 0) break;
+        console.log(`   ⚠️ respuesta vacía (intento ${attempt}/3, reintentando como el cliente)...`);
+      }
       if (!text || text.length === 0) {
-        console.log('❌ RESPUESTA VACÍA (content filter?)');
+        console.log('❌ RESPUESTA VACÍA (content filter?) tras 3 intentos');
         results.push({ id: tc.id, pct: 0, misses: ['RESPUESTA VACÍA'], empty: true });
         continue;
       }

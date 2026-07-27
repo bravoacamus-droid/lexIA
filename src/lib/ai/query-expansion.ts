@@ -156,17 +156,40 @@ export function expandLegalQuery(query: string): LegalExpansion {
     );
     focalQueries.push('artículo 87 infracciones perfeccionar el contrato injustificadamente');
     focalQueries.push('compromiso de pago retención multa nuevos contratos');
+    // Art. 89.5 verificado en BD: "En caso de no pagarse la multa
+    // impuesta en el plazo establecido, el OECE puede iniciar los actos
+    // de ejecución coactiva" + reincidencia. Detectado 27/07/2026: los
+    // puntos "coactiva/reincidencia" faltaban de forma recurrente.
+    focalQueries.push('artículo 89 multa no pagada ejecución coactiva reincidencia inhabilitación');
+  }
+
+  // Modalidades de la contratación pública eficiente → enumeración
+  // completa en los Arts. 34-39 de la Ley (Título VI): contratos
+  // menores, compra por encargo, centralizada, corporativa, CPI y
+  // acuerdos marco. Detectado 27/07/2026: V1 de voz caía a 40% porque
+  // el top-5 traía la Guía de estrategia (sim 0.86) pero no el chunk
+  // que enumera las 6 modalidades. Vocabulario verificado en BD.
+  if (/modalidad/i.test(q) && /(?:contrataci[óo]n|eficiente|compra)/i.test(q)) {
+    add(
+      'modalidades de la contratación pública eficiente artículo 34 contratos menores artículo 35 compra por encargo artículo 36 compra centralizada artículo 37 compra corporativa artículo 38 compra pública de innovación artículo 39 acuerdos marco',
+      'modalidades contratación pública eficiente contratos menores compra encargo centralizada corporativa innovación acuerdos marco',
+    );
   }
 
   // Impedimentos → Art. 30 con sus categorías completas.
   // Q2 de César scoreó 50%: las facetas genéricas no traían personas
   // jurídicas (30% capital), 6 meses post-cargo ni REDAM/REDERECI.
-  if (/impedimento/i.test(q)) {
+  if (/impedimento/i.test(q) || (/impedid/i.test(q) && /contrat|proveedor|postor/i.test(q))) {
     add(
       'artículo 30 impedimentos contratar personas naturales jurídicas cónyuge parientes segundo grado consanguinidad afinidad capital social 30% seis meses',
       'artículo 30 impedimentos personas jurídicas capital social',
     );
     focalQueries.push('impedimentos seis meses después de dejar el cargo funcionarios');
+    // Consecuencia de contratar con impedido → nulidad (Art. 70 Ley,
+    // "70.2. La nulidad puede ser declarada por..."). Detectado
+    // 27/07/2026 en test de coherencia: ni chat ni voz mencionaban la
+    // nulidad al preguntar "¿qué pasa si se contrata con un impedido?".
+    focalQueries.push('artículo 70 nulidad contratos celebrados con proveedores impedidos');
     focalQueries.push('impedimentos REDAM REDERECI deudores sanciones inhabilitación');
   }
 

@@ -99,6 +99,9 @@ export function ChatPanel({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const prefillFiredRef = useRef(false);
+  /** Contador de reintentos automáticos ante respuesta vacía (filtro
+   *  RECITATION de Gemini en preguntas panorámicas). */
+  const emptyRetriesRef = useRef(0);
 
   const seedMessages = initialMessages.map((m) => ({
     id: m.id,
@@ -143,6 +146,25 @@ export function ChatPanel({
       }
     },
     onFinish: (message) => {
+      // Filtro RECITATION de Gemini (intermitente en preguntas
+      // panorámicas): el stream termina con 0 caracteres. Reintentamos
+      // automáticamente hasta 2 veces — el filtro no es determinista y
+      // el segundo intento casi siempre pasa. Detectado 27/07/2026 en
+      // los tests de coherencia (Q1-modalidades 0%).
+      if (message.role === 'assistant' && message.content.trim().length === 0) {
+        if (emptyRetriesRef.current < 2) {
+          emptyRetriesRef.current += 1;
+          setMessages((prev) => prev.filter((m) => m.id !== message.id));
+          void reload();
+          return;
+        }
+        toast.error('LexIA no pudo generar esta respuesta', {
+          description: 'Vuelve a intentarlo o reformula la pregunta.',
+          duration: 6000,
+        });
+        return;
+      }
+      emptyRetriesRef.current = 0;
       const last = (window as Window & { __lexia_last_sources?: ChatSource[] | null }).__lexia_last_sources;
       if (last && last.length > 0 && message.role === 'assistant') {
         setSourcesById((prev) => ({ ...prev, [message.id]: last }));
