@@ -6,18 +6,24 @@ import {
   TextRun,
   AlignmentType,
   BorderStyle,
+  LevelFormat,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
+  ShadingType,
 } from 'docx';
 
 /**
- * Convierte un subset de markdown (h1, h2, h3, párrafos, negrita, itálica, hr, listas)
- * a un Document de docx listo para empaquetar y enviar.
+ * Convierte un subset de markdown (h1, h2, h3, párrafos, negrita, itálica,
+ * hr, listas, tablas) a un Document de docx listo para empaquetar y enviar.
  */
 export async function markdownToDocxBuffer(
   markdown: string,
   meta: { title: string; subtitle?: string },
 ): Promise<Buffer> {
   const lines = markdown.split('\n');
-  const children: Paragraph[] = [];
+  const children: Array<Paragraph | Table> = [];
 
   // Title page header
   children.push(
@@ -99,6 +105,66 @@ export async function markdownToDocxBuffer(
       continue;
     }
 
+    // Tabla markdown: bloque de líneas consecutivas que empiezan con |
+    if (/^\s*\|.*\|\s*$/.test(line)) {
+      const tableLines: string[] = [];
+      let j = i;
+      while (j < lines.length && /^\s*\|.*\|\s*$/.test(lines[j].trimEnd())) {
+        tableLines.push(lines[j].trim());
+        j++;
+      }
+      i = j - 1;
+      const parsed = tableLines
+        .filter((l) => !/^\s*\|[\s:|-]+\|\s*$/.test(l)) // quitar separador |---|---|
+        .map((l) =>
+          l
+            .replace(/^\|/, '')
+            .replace(/\|$/, '')
+            .split('|')
+            .map((c) => c.trim()),
+        );
+      if (parsed.length > 0) {
+        const cols = Math.max(...parsed.map((r) => r.length));
+        const rows = parsed.map((cells, rowIdx) => {
+          const isHeader = rowIdx === 0 && tableLines.length > 1;
+          return new TableRow({
+            tableHeader: isHeader,
+            children: Array.from({ length: cols }, (_, c) => {
+              const cellText = cells[c] ?? '';
+              return new TableCell({
+                shading: isHeader
+                  ? { type: ShadingType.CLEAR, fill: 'EEF2FF' }
+                  : undefined,
+                margins: { top: 80, bottom: 80, left: 120, right: 120 },
+                children: [
+                  new Paragraph({
+                    alignment: isHeader ? AlignmentType.CENTER : AlignmentType.LEFT,
+                    children: parseInlineRuns(cellText, isHeader ? { bold: true } : {}),
+                  }),
+                ],
+              });
+            }),
+          });
+        });
+        children.push(
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            borders: {
+              top: { style: BorderStyle.SINGLE, size: 4, color: 'CBD5E1' },
+              bottom: { style: BorderStyle.SINGLE, size: 4, color: 'CBD5E1' },
+              left: { style: BorderStyle.SINGLE, size: 4, color: 'CBD5E1' },
+              right: { style: BorderStyle.SINGLE, size: 4, color: 'CBD5E1' },
+              insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: 'CBD5E1' },
+              insideVertical: { style: BorderStyle.SINGLE, size: 4, color: 'CBD5E1' },
+            },
+            rows,
+          }),
+        );
+        children.push(new Paragraph({ spacing: { after: 120 }, children: [] }));
+      }
+      continue;
+    }
+
     // List item (only unordered for now)
     const li = /^\s*[-*]\s+(.*)$/.exec(line);
     if (li) {
@@ -139,6 +205,24 @@ export async function markdownToDocxBuffer(
     creator: 'LexIA',
     title: meta.title,
     description: meta.subtitle || 'Documento generado por LexIA Contrataciones',
+    numbering: {
+      config: [
+        {
+          reference: 'ordered',
+          levels: [
+            {
+              level: 0,
+              format: LevelFormat.DECIMAL,
+              text: '%1.',
+              alignment: AlignmentType.START,
+              style: {
+                paragraph: { indent: { left: 720, hanging: 360 } },
+              },
+            },
+          ],
+        },
+      ],
+    },
     styles: {
       default: {
         document: {
