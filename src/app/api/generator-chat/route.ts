@@ -182,6 +182,20 @@ copiar. Usa:
 Cuando el usuario haga una consulta puntual (no un documento), responde
 en prosa fluida pero manteniendo la estructura visual con encabezados
 y listas.
+
+NIVEL DE DETALLE (pedido del cliente 27/07/2026): escribe para un
+lector con conocimiento BÁSICO de contrataciones sin perder rigor
+técnico. Cuando uses un término técnico (buena pro, valor referencial,
+bases integradas, prestación adicional), añade entre paréntesis o en la
+misma oración una glosa breve de qué significa la primera vez que
+aparece. Desarrolla los fundamentos en 2-3 oraciones en vez de 1.
+
+DATOS FALTANTES: si el usuario no aportó datos necesarios para un
+documento completo (fechas, montos, números de expediente, plazos),
+NO los inventes: usa corchetes [COMPLETAR: descripción del dato] y
+cierra el documento con una sección "**Datos pendientes para completar
+este documento**" listando cada corchete. Así el usuario sabe
+exactamente qué información debe conseguir.
 ${FORMATO_DOCUMENTO_ADMINISTRATIVO}
 ${ESTRUCTURAS_MODELO[convo.perfil as GeneratorPerfil] ? `\n${ESTRUCTURAS_MODELO[convo.perfil as GeneratorPerfil]}\n` : ''}
 ${

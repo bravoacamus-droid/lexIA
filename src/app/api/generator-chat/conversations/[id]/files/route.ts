@@ -78,8 +78,36 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
     );
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const uploaded = await uploadFileToGemini(buffer, mimeType, file.name);
+  let buffer = Buffer.from(await file.arrayBuffer());
+  let uploadMime = mimeType;
+  // Word: Gemini no procesa .docx nativamente. Extraemos el texto con
+  // mammoth (mismo extractor que la ingesta) y lo subimos como
+  // text/plain — para el modelo es equivalente y para el usuario es
+  // transparente (pedido César 27/07/2026).
+  if (
+    mimeType ===
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ) {
+    try {
+      const mammoth = (await import('mammoth')).default;
+      const { value } = await mammoth.extractRawText({ buffer });
+      const text = (value || '').trim();
+      if (!text) {
+        return NextResponse.json(
+          { error: 'empty_docx', detail: 'El Word no contiene texto extraíble.' },
+          { status: 422 },
+        );
+      }
+      buffer = Buffer.from(`[Contenido extraído de ${file.name}]\n\n${text}`, 'utf8');
+      uploadMime = 'text/plain';
+    } catch (e) {
+      return NextResponse.json(
+        { error: 'docx_parse_failed', detail: (e as Error).message.slice(0, 200) },
+        { status: 422 },
+      );
+    }
+  }
+  const uploaded = await uploadFileToGemini(buffer, uploadMime, file.name);
 
   const { data: row, error } = await supabase
     .from('generator_files')

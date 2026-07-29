@@ -183,5 +183,10 @@ export const GENERATOR_FILE_LIMITS = {
     'application/pdf',
     'text/plain',
     'text/markdown',
+    // Word (pedido César 27/07/2026). OJO: Gemini NO procesa .docx
+    // nativamente — el route extrae el texto con mammoth y sube
+    // text/plain a la Files API. Este mime solo pasa la validación
+    // de entrada.
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   ] as const,
 };

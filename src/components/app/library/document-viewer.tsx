@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -83,6 +84,36 @@ export function DocumentViewer({
   } | null>(null);
 
   const contentRef = useRef<HTMLDivElement | null>(null);
+
+  // Parámetros de navegación desde una cita del chat (César 27/07/2026):
+  // `volver` = ruta de la conversación de origen (el botón Volver regresa
+  // ahí, no a la biblioteca); `resaltar` = texto del fragmento citado
+  // (se hace scroll y se marca temporalmente).
+  const searchParams = useSearchParams();
+  const volverParam = searchParams.get('volver');
+  // Solo rutas internas — nunca URLs absolutas (evita open redirect).
+  const volverHref =
+    volverParam && volverParam.startsWith('/') && !volverParam.startsWith('//')
+      ? volverParam
+      : '/biblioteca';
+  const resaltar = searchParams.get('resaltar');
+
+  useEffect(() => {
+    if (!resaltar || !contentRef.current) return;
+    const norm = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase();
+    const needle = norm(resaltar).slice(0, 60);
+    if (needle.length < 8) return;
+    // Buscar el primer bloque cuyo texto contenga el fragmento citado.
+    const blocks = contentRef.current.querySelectorAll('p, li, td, h1, h2, h3, h4, blockquote');
+    for (const el of blocks) {
+      if (norm(el.textContent || '').includes(needle)) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('cita-resaltada');
+        const t = setTimeout(() => el.classList.remove('cita-resaltada'), 6000);
+        return () => clearTimeout(t);
+      }
+    }
+  }, [resaltar]);
   // Formatear el texto plano del PDF a markdown estructurado antes de
   // renderizar. El extractor de PDF deja headings y artículos como
   // texto plano; formatForDisplay convierte tablas del PDF en tablas
@@ -293,9 +324,9 @@ export function DocumentViewer({
             Full width con padding responsivo, mismo que library-view. */}
         <div className="w-full max-w-none px-4 sm:px-6 lg:px-10 xl:px-14 flex items-center justify-between gap-4 py-3">
           <Button asChild variant="ghost" size="sm">
-            <Link href="/biblioteca">
+            <Link href={volverHref}>
               <ArrowLeft className="h-4 w-4" />
-              Volver
+              {volverHref === '/biblioteca' ? 'Volver' : 'Volver a la conversación'}
             </Link>
           </Button>
           <div className="flex-1 min-w-0">

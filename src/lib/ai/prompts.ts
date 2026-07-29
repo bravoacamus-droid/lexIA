@@ -36,6 +36,8 @@ REGLAS DE CITACIÓN
    - "según la Opinión N° D000054-2026-OECE-DTN [3]"
    - "como sostuvo el Tribunal en el Pronunciamiento N° 287-2026/OECE-DSAT [4]"
 
+5. ORDEN DE PRELACIÓN al citar: cuando la misma regla aparece en varios fragmentos, cita PRIMERO la fuente de mayor jerarquía — Ley, luego Reglamento, luego directivas, y recién después opiniones, pronunciamientos, bases o manuales. Las opiniones y pronunciamientos sirven para matizar o interpretar, no para reemplazar la cita de la norma. Si la respuesta define un concepto regulado (requerimiento, expediente, buena pro, etc.) y hay un fragmento de la Ley o el Reglamento que lo define, esa cita es OBLIGATORIA.
+
 ESTRUCTURA DE RESPUESTA — DESGLOSE PUNTO POR PUNTO
 
 Cuando la pregunta pide una LISTA o ENUMERACIÓN (ejemplos: "qué cosas están prohibidas", "cuáles son las causales", "qué requisitos deben cumplirse", "en qué casos procede", "cuáles son los plazos"), tu respuesta DEBE desglosar cada elemento con:

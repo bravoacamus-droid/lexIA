@@ -1,14 +1,14 @@
-import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
 import { Plus, Sparkles } from 'lucide-react';
-import { formatRelative } from '@/lib/utils';
 import {
   GENERATOR_PERFILES,
-  GENERATOR_PERFILES_LIST,
+  PERFILES_POR_ROL,
   type GeneratorPerfil,
+  type GeneratorUserRole,
 } from '@/lib/ai/generator-perfiles';
 import { GeneratorPerfilPicker } from '@/components/app/generator-chat/perfil-picker';
+import { GeneratorHistoryTabs } from '@/components/app/generator-chat/history-tabs';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Generador de Documentos' };
@@ -20,20 +20,46 @@ export default async function GeneradorListPage() {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data } = await supabase
-    .from('generator_conversations')
-    .select('id, title, perfil, created_at, updated_at')
-    .eq('user_id', user.id)
-    .order('updated_at', { ascending: false })
-    .limit(30);
+  const [{ data }, { data: profile }] = await Promise.all([
+    supabase
+      .from('generator_conversations')
+      .select('id, title, perfil, created_at, updated_at, generator_messages(count)')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false })
+      .limit(30),
+    supabase
+      .from('profiles')
+      .select('profile_role')
+      .eq('id', user.id)
+      .maybeSingle(),
+  ]);
 
-  const convos = (data || []) as Array<{
+  const rawConvos = (data || []) as Array<{
     id: string;
     title: string | null;
     perfil: GeneratorPerfil;
     created_at: string;
     updated_at: string;
+    generator_messages: Array<{ count: number }>;
   }>;
+  // Ocultar conversaciones vacías (creadas al elegir perfil y abandonadas)
+  // salvo las de los últimos 5 minutos — misma regla que el chat.
+  const cutoff = Date.now() - 5 * 60 * 1000;
+  const convos = rawConvos.filter((c) => {
+    const n = c.generator_messages?.[0]?.count ?? 0;
+    return n > 0 || new Date(c.created_at).getTime() > cutoff;
+  });
+
+  // Filtro por rol (observación César 27/07/2026): en modo entidad solo
+  // los perfiles de entidad; en modo proveedor solo el postor; el
+  // consultor ve todos. Sin rol definido → todos (no bloquear).
+  const role = ((profile as { profile_role: string | null } | null)?.profile_role ||
+    'consultant') as GeneratorUserRole;
+  const allowed = PERFILES_POR_ROL[role] ?? PERFILES_POR_ROL.consultant;
+  // El historial solo muestra conversaciones de perfiles conocidos
+  // (defensivo ante datos viejos), pero NO se filtra por rol: si el
+  // usuario creó documentos antes del filtro, debe poder abrirlos.
+  const convosValidas = convos.filter((c) => GENERATOR_PERFILES[c.perfil]);
 
   return (
     <div className="container max-w-5xl py-8 space-y-6">
@@ -47,8 +73,8 @@ export default async function GeneradorListPage() {
         </h1>
         <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
           Redacta memorandos, informes, resoluciones, descargos, TDR y más.
-          Elige el perfil que firma, adjunta tus fuentes (PDFs) y describe
-          qué necesitas. LexIA combina la normativa cargada + tus
+          Elige el perfil que firma, adjunta tus fuentes (PDF o Word) y
+          describe qué necesitas. LexIA combina la normativa cargada + tus
           documentos y arma el borrador que puedes descargar a Word.
         </p>
       </header>
@@ -63,62 +89,18 @@ export default async function GeneradorListPage() {
           El perfil define el tono, la estructura y el sustento jurídico
           del documento que se generará.
         </p>
-        <GeneratorPerfilPicker />
+        <GeneratorPerfilPicker allowed={allowed} />
       </Card>
 
-      {/* Historial de conversaciones */}
-      {convos.length > 0 && (
-        <section>
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-            Conversaciones recientes ({convos.length})
-          </h2>
-          <div className="space-y-2">
-            {convos.map((c) => {
-              const perfil = GENERATOR_PERFILES[c.perfil];
-              return (
-                <Link key={c.id} href={`/generador/chat/${c.id}`}>
-                  <Card className="p-4 hover:border-brand-400 hover:shadow-sm transition-all">
-                    <div className="flex items-start gap-3">
-                      <span className="text-2xl shrink-0">{perfil.emoji}</span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
-                            {perfil.shortLabel}
-                          </span>
-                        </div>
-                        <h3 className="font-medium text-sm truncate">
-                          {c.title || 'Nueva conversación'}
-                        </h3>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          Actualizada {formatRelative(c.updated_at)}
-                        </p>
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-      )}
+      {/* Historial clasificado en pestañas por perfil */}
+      <GeneratorHistoryTabs convos={convosValidas} />
 
-      {convos.length === 0 && (
+      {convosValidas.length === 0 && (
         <Card className="p-8 text-center bg-brand-50/40 dark:bg-brand-950/20 border-dashed">
           <p className="text-sm text-muted-foreground">
             Aún no tienes documentos generados. Elige un perfil arriba
             para empezar.
           </p>
-          <div className="mt-3 flex flex-wrap gap-2 justify-center text-xs">
-            {GENERATOR_PERFILES_LIST.slice(0, 3).map((p) => (
-              <span
-                key={p.key}
-                className="inline-flex items-center gap-1 rounded-full bg-white dark:bg-secondary/30 border border-border px-2.5 py-1"
-              >
-                <span>{p.emoji}</span>
-                <span className="font-medium">{p.shortLabel}</span>
-              </span>
-            ))}
-          </div>
         </Card>
       )}
     </div>

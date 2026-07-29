@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { detectTextCitations, type TextCitationMatch } from '@/lib/citations/detect';
 import { detectFocusHint } from '@/lib/citations/focus';
+import { extractSnippetRef } from '@/lib/citation-ref';
 import { motion } from 'framer-motion';
 import {
   Copy,
@@ -395,8 +396,11 @@ function TextCitationLink({
 
 function shortLabel(src: ChatSource): string {
   const meta = getDocTypeMeta(src.doc_type);
-  if (src.doc_number) return `${meta.label} ${src.doc_number}`;
-  return `${meta.label} — ${src.doc_title.slice(0, 40)}`;
+  const ref = extractSnippetRef(src.snippet);
+  const base = src.doc_number
+    ? `${meta.label} ${src.doc_number}`
+    : `${meta.label} — ${src.doc_title.slice(0, 40)}`;
+  return ref ? `${base} · ${ref}` : base;
 }
 
 function SourcesPanel({
@@ -414,6 +418,7 @@ function SourcesPanel({
       <div className="flex flex-wrap gap-1.5">
         {sources.map((src, i) => {
           const meta = getDocTypeMeta(src.doc_type);
+          const ref = extractSnippetRef(src.snippet);
           return (
             <button
               key={`${src.chunk_id}-${i}`}
@@ -428,6 +433,9 @@ function SourcesPanel({
               <span className="truncate max-w-[200px]">
                 {src.doc_number || src.doc_title}
               </span>
+              {ref && (
+                <span className="shrink-0 font-semibold opacity-70">· {ref}</span>
+              )}
             </button>
           );
         })}

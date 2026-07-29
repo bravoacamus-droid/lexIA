@@ -166,7 +166,19 @@ function ChunkSheetContent({
           Cerrar
         </Button>
         <Button asChild>
-          <Link href={`/biblioteca/documento/${chunk.doc_id}`} onClick={onClose}>
+          <Link
+            // `volver`: el visor regresa a esta conversación, no a la
+            // biblioteca (observación César 27/07/2026). `resaltar`: el
+            // visor hace scroll y marca el fragmento citado.
+            href={`/biblioteca/documento/${chunk.doc_id}?volver=${encodeURIComponent(
+              typeof window !== 'undefined'
+                ? window.location.pathname
+                : '/chat',
+            )}&resaltar=${encodeURIComponent(
+              (focus || chunk.snippet.replace(/\s+/g, ' ').trim().slice(0, 80)),
+            )}`}
+            onClick={onClose}
+          >
             <ExternalLink className="h-4 w-4" />
             Abrir documento completo
           </Link>

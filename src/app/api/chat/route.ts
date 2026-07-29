@@ -168,6 +168,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'no_user_message' }, { status: 400 });
   }
 
+  // Título PROVISIONAL inmediato (observación César 27/07/2026: lista
+  // llena de "Nueva conversación"). Si el usuario abandona antes de que
+  // termine el stream, la conversación igual queda identificable. El
+  // título definitivo generado por el LLM en onFinish lo sobreescribe.
+  if (!convo.title) {
+    const provisional = String(lastUser.content || '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 60);
+    if (provisional) {
+      void supabase
+        .from('chat_conversations')
+        .update({ title: provisional } as never)
+        .eq('id', conversationId)
+        .then(() => {});
+    }
+  }
+
   // 1. Embed user query + variantes expandidas
   //
   // Query expansion (01/07/2026): la pregunta natural del usuario a veces
@@ -381,6 +399,27 @@ export async function POST(req: Request) {
           reranked = [...reranked.slice(0, keep), ...uniqueMissing];
         }
       }
+      // Orden de PRELACIÓN NORMATIVA (observación César 27/07/2026):
+      // "primero la ley, el reglamento y luego los demás documentos".
+      // Sort estable: dentro de cada nivel se mantiene el orden por
+      // relevancia del rerank. Esto define la numeración [N] del prompt
+      // y el orden en que el usuario ve las fuentes.
+      const PRELACION: Record<string, number> = {
+        ley: 0,
+        reglamento: 1,
+        directiva: 2,
+        opinion: 3,
+        pronunciamiento: 4,
+        resolucion: 5,
+        resolucion_tce: 5,
+        guia: 6,
+        bases_estandar: 7,
+        manual_seace: 8,
+        tupa: 9,
+      };
+      reranked = [...reranked].sort(
+        (a, b) => (PRELACION[a.doc_type] ?? 10) - (PRELACION[b.doc_type] ?? 10),
+      );
       sources = reranked.map((c) => ({
         chunk_id: c.chunk_id,
         doc_id: c.document_id,

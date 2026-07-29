@@ -15,7 +15,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('chat_conversations')
-    .select('id, title, pinned, created_at, updated_at')
+    .select('id, title, pinned, created_at, updated_at, chat_messages(count)')
     .eq('user_id', user.id)
     .order('pinned', { ascending: false })
     .order('updated_at', { ascending: false })
@@ -24,7 +24,29 @@ export async function GET() {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  return NextResponse.json({ conversations: data || [] });
+
+  // Ocultar conversaciones VACÍAS (sin mensajes) salvo la más reciente
+  // de los últimos 5 minutos (puede ser la que el usuario acaba de
+  // abrir). Observación César 27/07/2026: la lista se llenaba de
+  // "Nueva conversación" duplicadas al entrar y salir sin preguntar.
+  const rows = (data || []) as Array<{
+    id: string;
+    title: string | null;
+    pinned: boolean;
+    created_at: string;
+    updated_at: string;
+    chat_messages: Array<{ count: number }>;
+  }>;
+  const cutoff = Date.now() - 5 * 60 * 1000;
+  const conversations = rows
+    .filter((r) => {
+      const n = r.chat_messages?.[0]?.count ?? 0;
+      if (n > 0) return true;
+      return new Date(r.created_at).getTime() > cutoff;
+    })
+    .map(({ chat_messages: _drop, ...rest }) => rest);
+
+  return NextResponse.json({ conversations });
 }
 
 export async function POST(req: Request) {

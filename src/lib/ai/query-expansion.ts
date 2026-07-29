@@ -210,6 +210,22 @@ export function expandLegalQuery(query: string): LegalExpansion {
     focalQueries.push('jurado concurso proyectos arquitectónicos calificación no apelable');
   }
 
+  // Preguntas de DEFINICIÓN ("¿qué es el requerimiento?", "definición
+  // de expediente de contratación") → focal contra la Ley para que la
+  // fuente primaria entre al pool. Observación César 27/07/2026: "cuando
+  // le consulté qué es el requerimiento no hay fuente [de la ley]".
+  const defMatch = q.match(
+    /(?:qu[ée]\s+(?:es|son)\s+(?:el|la|los|las|un|una)?|definici[óo]n\s+de|concepto\s+de)\s+([a-záéíóúñ\s]{3,50})/i,
+  );
+  if (defMatch) {
+    const topic = defMatch[1].trim().split(/\s+/).slice(0, 5).join(' ');
+    // Dos focales: los artículos que DEFINEN un concepto suelen titularse
+    // "Artículo N. <Concepto>" (ej. "Artículo 44. Requerimiento") — el
+    // FTS pesa fuerte ese encabezado con "artículo <concepto>".
+    focalQueries.push(`artículo ${topic}`);
+    focalQueries.push(`${topic} definición contenido mínimo`);
+  }
+
   const expanded = additions.length === 0 ? '' : `${query} ${additions.join(' ')}`;
   return { expanded, focalQueries };
 }

@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 import {
   GENERATOR_PERFILES,
   GENERATOR_QUICK_ACTIONS,
+  DATOS_CLAVE_POR_PERFIL,
   type GeneratorPerfil,
 } from '@/lib/ai/generator-perfiles';
 import { GENERATOR_FILE_LIMITS } from '@/lib/ai/gemini-files';
@@ -297,7 +298,7 @@ export function GeneratorChatView({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown"
+                  accept=".pdf,.txt,.md,.docx,application/pdf,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                   className="hidden"
                   onChange={handleFileSelect}
                 />
@@ -402,6 +403,31 @@ export function GeneratorChatView({
                 </div>
               </div>
             )}
+
+            {/* Checklist de datos para una generación completa (acordado
+                con César 27/07/2026 — reemplaza los campos del formulario
+                del generador anterior) */}
+            <div>
+              <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-2">
+                Datos para un documento completo
+              </p>
+              <ul className="space-y-1">
+                {(DATOS_CLAVE_POR_PERFIL[perfil] || []).map((d) => (
+                  <li
+                    key={d}
+                    className="flex items-start gap-1.5 text-[11px] text-muted-foreground leading-snug"
+                  >
+                    <span className="text-brand-500 mt-px shrink-0">✓</span>
+                    <span>{d}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-[10px] text-muted-foreground/80 leading-relaxed">
+                Puedes escribirlos en el mensaje o adjuntarlos en un PDF/Word.
+                Si falta alguno, LexIA lo dejará marcado como
+                [COMPLETAR] en el documento.
+              </p>
+            </div>
 
             <div className="pt-3 border-t border-border/60">
               <p className="text-[10px] text-muted-foreground leading-relaxed">

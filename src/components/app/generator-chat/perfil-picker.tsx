@@ -7,12 +7,22 @@ import { cn } from '@/lib/utils';
 import { Loader2, ArrowRight } from 'lucide-react';
 import {
   GENERATOR_PERFILES_LIST,
+  PERFIL_COLORS,
   type GeneratorPerfil,
 } from '@/lib/ai/generator-perfiles';
 
-export function GeneratorPerfilPicker() {
+export function GeneratorPerfilPicker({
+  allowed,
+}: {
+  /** Perfiles visibles según el rol del usuario (entity/provider/consultant).
+   *  Si no se pasa, se muestran todos (fallback para consultores). */
+  allowed?: GeneratorPerfil[];
+}) {
   const router = useRouter();
   const [creating, setCreating] = useState<GeneratorPerfil | null>(null);
+  const visible = allowed
+    ? GENERATOR_PERFILES_LIST.filter((p) => allowed.includes(p.key))
+    : GENERATOR_PERFILES_LIST;
 
   async function start(perfil: GeneratorPerfil) {
     setCreating(perfil);
@@ -33,7 +43,7 @@ export function GeneratorPerfilPicker() {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-      {GENERATOR_PERFILES_LIST.map((p) => {
+      {visible.map((p) => {
         const isCreating = creating === p.key;
         return (
           <button
@@ -42,7 +52,8 @@ export function GeneratorPerfilPicker() {
             disabled={creating !== null}
             onClick={() => start(p.key)}
             className={cn(
-              'group text-left rounded-xl border-2 border-border/60 bg-card p-4 transition-all',
+              'group text-left rounded-xl border-2 border-border/60 border-l-4 bg-card p-4 transition-all',
+              PERFIL_COLORS[p.key].border,
               'hover:border-brand-400 hover:bg-brand-50/40 dark:hover:bg-brand-950/30 hover:shadow-md hover:-translate-y-0.5',
               'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none',
               isCreating && 'border-brand-500 bg-brand-50 dark:bg-brand-950/50',

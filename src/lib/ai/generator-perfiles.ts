@@ -16,6 +16,63 @@ export type GeneratorPerfil =
   | 'fiscalizacion'
   | 'postor';
 
+/** Rol del usuario en su perfil de onboarding (profiles.profile_role). */
+export type GeneratorUserRole = 'entity' | 'provider' | 'consultant';
+
+/** Qué perfiles del generador ve cada rol. Observación de César
+ *  (reunión 27/07/2026): "si en uno de los enfoques nada más tiene todo,
+ *  ya no habría sentido del enfoque de consultor, proveedor o entidad".
+ *  - entity: solo perfiles del lado de la entidad contratante.
+ *  - provider: solo el postor (apelaciones, subsanaciones, descargos).
+ *  - consultant: todos (asesora a ambos lados).
+ */
+export const PERFILES_POR_ROL: Record<GeneratorUserRole, GeneratorPerfil[]> = {
+  entity: ['area_usuaria', 'dec', 'area_legal', 'titular_entidad', 'aga', 'fiscalizacion'],
+  provider: ['postor'],
+  consultant: [
+    'area_usuaria',
+    'dec',
+    'area_legal',
+    'titular_entidad',
+    'aga',
+    'fiscalizacion',
+    'postor',
+  ],
+};
+
+/** Acento visual por perfil (pedido de César: "hay que distinguir los
+ *  colores para que sea más visible"). Clases Tailwind estáticas. */
+export const PERFIL_COLORS: Record<GeneratorPerfil, { chip: string; border: string }> = {
+  area_usuaria: {
+    chip: 'bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300',
+    border: 'border-l-sky-400',
+  },
+  dec: {
+    chip: 'bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-300',
+    border: 'border-l-violet-400',
+  },
+  area_legal: {
+    chip: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300',
+    border: 'border-l-emerald-400',
+  },
+  titular_entidad: {
+    chip: 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300',
+    border: 'border-l-amber-400',
+  },
+  aga: {
+    chip: 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300',
+    border: 'border-l-rose-400',
+  },
+  fiscalizacion: {
+    chip: 'bg-slate-200 text-slate-800 dark:bg-slate-800/80 dark:text-slate-300',
+    border: 'border-l-slate-400',
+  },
+  postor: {
+    chip: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300',
+    border: 'border-l-indigo-400',
+  },
+};
+
 /**
  * FORMATO ESTÁNDAR de documento administrativo peruano — transversal a
  * todos los perfiles. Derivado del ejemplo real que César entregó el
@@ -403,6 +460,54 @@ export const GENERATOR_QUICK_ACTIONS: Record<
       prompt:
         'Soy el adjudicatario de la buena pro y otro postor ha apelado. Redacta la absolución del traslado defendiendo la validez del otorgamiento. Adjunta el recurso del impugnante y describe el caso:',
     },
+  ],
+};
+
+/** Datos que el usuario debería aportar (en el prompt o adjuntos) para
+ *  una generación completa por perfil. Se muestran como recordatorio
+ *  sobre el input y el modelo pide los faltantes (acordado con César
+ *  27/07/2026: reemplaza los formularios de campos del generador viejo). */
+export const DATOS_CLAVE_POR_PERFIL: Record<GeneratorPerfil, string[]> = {
+  area_usuaria: [
+    'Objeto de la contratación (bien/servicio)',
+    'Finalidad pública y necesidad concreta',
+    'Plazo de ejecución',
+    'Monto estimado si se conoce',
+  ],
+  dec: [
+    'N° de orden/contrato y objeto',
+    'Fechas exactas (notificación, entregas, vencimientos)',
+    'Numerales del TDR aplicables',
+    'Montos (total y mensual si aplica)',
+  ],
+  area_legal: [
+    'Asunto o decisión a sustentar',
+    'Antecedentes con fechas',
+    'Documentos del expediente relevantes',
+  ],
+  titular_entidad: [
+    'Acto a aprobar/resolver',
+    'Informes previos que lo sustentan (N° y fecha)',
+    'Funcionario delegado si aplica',
+  ],
+  aga: [
+    'Contrato/orden y su objeto',
+    'Causal invocada (suspensión, ampliación, resolución)',
+    'Fechas y plazos del caso',
+    'Carta o informe del contratista si existe',
+  ],
+  fiscalizacion: [
+    'N° de oficio/pliego y entidad que lo emite',
+    'Cargos imputados (texto exacto si es posible)',
+    'Documentos de descargo disponibles',
+    'Plazo para responder',
+  ],
+  postor: [
+    'Nomenclatura del procedimiento (tipo, N°, entidad)',
+    'Acto impugnado y fecha de notificación en el SEACE',
+    'Valor referencial/estimado',
+    'Datos del postor (RUC, representante, poder)',
+    'Agravios con referencia a las bases integradas',
   ],
 };
 

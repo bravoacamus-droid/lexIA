@@ -237,3 +237,19 @@
   pointer-events: none;
   height: 0;
 }
+
+/* Resaltado temporal del fragmento citado al llegar desde una cita del
+   chat (?resaltar=...). Se retira solo a los 6s (document-viewer). */
+.cita-resaltada {
+  animation: cita-pulso 1.2s ease-in-out 2;
+  background: hsl(48 96% 76% / 0.55);
+  border-radius: 4px;
+  transition: background 1.5s ease;
+}
+.dark .cita-resaltada {
+  background: hsl(45 80% 40% / 0.4);
+}
+@keyframes cita-pulso {
+  0%, 100% { outline: 2px solid transparent; }
+  50% { outline: 2px solid hsl(45 90% 50% / 0.8); outline-offset: 2px; }
+}
