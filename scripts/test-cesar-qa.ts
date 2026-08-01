@@ -293,7 +293,7 @@ async function runPipeline(question: string): Promise<{ text: string; nChunks: n
     snippet: c.content,
   }));
 
-  const systemPrompt = buildChatSystemPrompt(sources, null, [], panoramic ? { topic } : null);
+  const systemPrompt = buildChatSystemPrompt(sources, null, [], panoramic ? { topic, facets } : null);
   const result = await generateText({
     model: chatModel,
     system: systemPrompt,

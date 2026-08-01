@@ -667,7 +667,7 @@ export async function POST(req: Request) {
     sources,
     userRole,
     trainingQA,
-    panoramic ? { topic: panoramicTopic } : null,
+    panoramic ? { topic: panoramicTopic, facets: panoramicFacets } : null,
   );
   const trimmedHistory = messages.slice(-MAX_HISTORY);
 

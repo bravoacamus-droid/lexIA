@@ -170,7 +170,7 @@ export function buildChatSystemPrompt(
   chunks: ChatSource[],
   role: ProfileRole | null = null,
   trainingQA: TrainingQAContext[] = [],
-  panoramic: { topic: string } | null = null,
+  panoramic: { topic: string; facets?: string[] } | null = null,
 ): string {
   const rolePrefix = role ? `\n${ROLE_CONTEXT[role]}\n` : '';
   const qaBlock = buildTrainingQABlock(trainingQA);
@@ -202,6 +202,21 @@ FORMATO OBLIGATORIO:
    - ### Procedimiento aplicable
    - ### Excepciones o limitaciones relevantes
 4. Cierra con "### Nota práctica" de 2-3 oraciones.
+${
+  panoramic.facets && panoramic.facets.length > 0
+    ? `
+SUBTEMAS QUE SE BUSCARON PARA ESTA CONSULTA — revísalos uno por uno
+antes de cerrar la respuesta y cubre TODOS los que tengan respaldo en
+los fragmentos, cada uno con su heading H3:
+${panoramic.facets.map((f, i) => `  ${i + 1}. ${f}`).join('\n')}
+
+Estos subtemas guiaron la búsqueda, así que es probable que el
+contexto los sustente. Si alguno NO tiene respaldo en los fragmentos,
+simplemente OMÍTELO (no lo menciones ni inventes contenido). Cubrir un
+subtema con dos oraciones bien citadas vale más que profundizar solo
+en el primero.`
+    : ''
+}
 
 REGLA CRÍTICA — NO RECITACIÓN LITERAL:
 Los fragmentos son solo REFERENCIA para tus citas [N]. NO copies

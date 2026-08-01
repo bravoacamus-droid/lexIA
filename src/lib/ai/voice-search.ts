@@ -70,7 +70,13 @@ const VALID_TYPES = new Set([
 export async function searchNormativa(
   opts: SearchOptions,
 ): Promise<NormativaSearchResult[]> {
-  const matchCount = Math.min(opts.match_count ?? 5, 10);
+  // Piso de 8 fragmentos (antes 5, sin piso). Tras el re-troceado del
+  // 01/08/2026 cada fragmento es más granular —empieza en su numeral y
+  // no arrastra el contenido vecino—, así que 5 cubren menos terreno que
+  // antes. Medido: la voz cayó de 76-82% a 63-71% al mantener 5. El
+  // límite de longitud de la respuesta lo fija el prompt, no el número
+  // de fragmentos, así que más contexto no alarga lo que se escucha.
+  const matchCount = Math.min(Math.max(opts.match_count ?? 8, 8), 12);
   const filterType =
     opts.filter_type && VALID_TYPES.has(opts.filter_type)
       ? opts.filter_type
