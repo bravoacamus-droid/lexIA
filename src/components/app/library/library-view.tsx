@@ -447,8 +447,15 @@ export function LibraryView({
           o buscar, para no mezclar jurisprudencia de ambas leyes. */}
       <LawSelectorCard value={lawFilter} onChange={setLawFilter} />
 
-      {/* Search + preguntas sugeridas + filtros */}
-      <div className="space-y-3">
+      {/* Search + preguntas sugeridas + filtros.
+          STICKY (pedido de César 01/08/2026: "al descender, esta parte no
+          debería ocultarse, debe mantenerse visualizando"). Se ancla bajo
+          el header del app-shell (top-14). El fondo opaco + blur evita que
+          las tarjetas se vean por debajo al hacer scroll.
+          OJO: si algún ancestro tiene `overflow-x-hidden`, position:sticky
+          deja de funcionar en TODOS sus descendientes — en el app-shell se
+          usa `overflow-x-clip` justamente por eso. */}
+      <div className="sticky top-14 z-20 -mx-4 sm:-mx-6 lg:-mx-10 xl:-mx-14 px-4 sm:px-6 lg:px-10 xl:px-14 py-3 bg-background/95 backdrop-blur-sm border-b border-border/60 space-y-3">
         <TagSearchInput
           tags={tags}
           input={query}
