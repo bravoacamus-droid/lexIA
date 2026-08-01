@@ -10,6 +10,7 @@ import { FoldersPanel } from '@/components/app/library/folders-panel';
 import { DocumentCard } from '@/components/app/library/document-card';
 import { SaveToFolderDialog } from '@/components/app/library/save-to-folder';
 import type { NormativeDocType } from '@/lib/supabase/types';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { cn, DOC_TYPE_META } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -191,14 +192,25 @@ export function LibraryView({
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [tags, setTags] = useState<string[]>([]);
-  const [type, setType] = useState<NormativeDocType | null>(null);
+  // Los filtros viven en la URL para que "Volver" desde el visor
+  // restaure exactamente la vista (César 01/08/2026: "al hacer clic en
+  // volver no retorna a la ubicación anterior... debiendo volver a la
+  // carpeta de opiniones dado que estoy en opiniones"). De paso, la vista
+  // filtrada se puede compartir y el botón atrás del navegador funciona.
+  const router = useRouter();
+  const urlParams = useSearchParams();
+  const [type, setType] = useState<NormativeDocType | null>(
+    (urlParams.get('tipo') as NormativeDocType | null) || null,
+  );
   /** Entidad emisora — solo aplica a Directivas y Lineamientos, que son
    *  los tipos que emiten OECE, Perú Compras y la DGA (pedido de César
    *  01/08/2026). Se limpia al cambiar de tipo. */
-  const [entidad, setEntidad] = useState<string | null>(null);
+  const [entidad, setEntidad] = useState<string | null>(urlParams.get('entidad'));
   // Filtro de ley aplicable (null = ambas). Persiste solo durante la
   // navegación; al recargar Biblioteca vuelve a Ambas.
-  const [lawFilter, setLawFilter] = useState<LawFilter>(null);
+  const [lawFilter, setLawFilter] = useState<LawFilter>(
+    urlParams.get('ley') ? ([urlParams.get('ley')] as LawFilter) : null,
+  );
   // Filtro rápido: 'favorites' = solo docs guardados por el usuario;
   // 'recent' = últimos 30 días indexados en la base. null = sin filtro.
   // Feedback César 01/07/2026 (ref UI cliente): agregar toggles visibles.
@@ -413,6 +425,24 @@ export function LibraryView({
     }
   }
 
+  /** Ruta actual de la biblioteca con sus filtros — se pasa al visor. */
+  const volverHref = (() => {
+    const p = new URLSearchParams();
+    if (type) p.set('tipo', type);
+    if (entidad) p.set('entidad', entidad);
+    if (lawFilter && lawFilter.length === 1) p.set('ley', lawFilter[0]);
+    if (debounced) p.set('q', debounced);
+    const qs = p.toString();
+    return qs ? `/biblioteca?${qs}` : '/biblioteca';
+  })();
+
+  // Reflejar los filtros en la barra de direcciones (sin recargar ni
+  // ensuciar el historial: replace, no push).
+  useEffect(() => {
+    const actual = `${window.location.pathname}${window.location.search}`;
+    if (actual !== volverHref) router.replace(volverHref, { scroll: false });
+  }, [volverHref, router]);
+
   function onFolderCreated(folder: FolderItem) {
     setFolders((prev) => [...prev, folder]);
   }
@@ -523,6 +553,7 @@ export function LibraryView({
 
           {mode === 'search' ? (
             <SearchResultsList
+              volverHref={volverHref}
               results={results}
               loading={loading}
               savedIds={savedIds}
@@ -533,6 +564,7 @@ export function LibraryView({
             />
           ) : (
             <BrowseList
+              volverHref={volverHref}
               filtrosActivos={{
                 tipo: type,
                 entidad,
@@ -589,6 +621,8 @@ interface ResultsProps {
   query: string;
   /** Términos para resaltar en title/excerpt. Si vacío, sin highlight. */
   highlightTerms: string[];
+  /** Biblioteca con sus filtros — a donde debe volver el visor. */
+  volverHref?: string;
 }
 
 function SearchResultsList({
@@ -599,6 +633,7 @@ function SearchResultsList({
   onUnsave,
   query,
   highlightTerms,
+  volverHref,
 }: ResultsProps) {
   if (loading && results.length === 0) {
     return <LoadingSkeleton />;
@@ -678,6 +713,7 @@ function SearchResultsList({
                   source_url: r.source_url,
                   ai_summary: r.ai_summary,
                 }}
+                volverHref={volverHref}
                 excerpt={r.topChunkContent}
                 highlightTerms={highlightTerms}
                 matchedCount={r.matchedCount}
@@ -705,6 +741,8 @@ interface BrowseProps {
   onSave: (id: string) => void;
   onUnsave: (id: string) => void;
   folderName?: string | null;
+  /** Biblioteca con sus filtros — a donde debe volver el visor. */
+  volverHref?: string;
   /** Filtros activos — para explicar por qué la lista salió vacía. */
   filtrosActivos?: { tipo?: string | null; entidad?: string | null; ley?: string | null };
   onLimpiarFiltros?: () => void;
@@ -723,6 +761,7 @@ function BrowseList({
   folderName,
   filtrosActivos,
   onLimpiarFiltros,
+  volverHref,
 }: BrowseProps) {
   if (loading && docs.length === 0) return <LoadingSkeleton />;
   if (docs.length === 0) {
@@ -798,6 +837,7 @@ function BrowseList({
               <DocumentCard
                 key={d.id}
                 document={d}
+                volverHref={volverHref}
                 isSaved={savedIds.has(d.id)}
                 onSave={() => onSave(d.id)}
                 onUnsave={() => onUnsave(d.id)}

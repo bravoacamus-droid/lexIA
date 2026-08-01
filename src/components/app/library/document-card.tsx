@@ -42,6 +42,11 @@ interface Props {
   /** Términos a resaltar en title/excerpt (búsqueda multi-tag). */
   highlightTerms?: string[];
   /** Cuántos de los terms matchearon en este doc. */
+  /** Ruta a la que debe regresar el botón "Volver" del visor: la
+   *  biblioteca CON los filtros activos. Sin esto el usuario volvía a la
+   *  biblioteca en general y perdía el tipo, la entidad y la búsqueda
+   *  (reportado por César 01/08/2026; la ruta desde el chat ya lo hacía). */
+  volverHref?: string;
   matchedCount?: number;
   /** Total de queries activos. */
   totalQueries?: number;
@@ -76,7 +81,14 @@ function etiquetaParte(numero: string): string {
   return limpio.charAt(0).toUpperCase() + limpio.slice(1);
 }
 
+/** Enlace al visor, arrastrando a dónde debe volver. */
+function hrefDocumento(id: string, volver?: string): string {
+  const base = `/biblioteca/documento/${id}`;
+  return volver ? `${base}?volver=${encodeURIComponent(volver)}` : base;
+}
+
 export function DocumentCard({
+  volverHref,
   document,
   excerpt,
   highlightTerms = [],
@@ -157,7 +169,7 @@ export function DocumentCard({
         </div>
       </div>
 
-      <Link href={`/biblioteca/documento/${document.id}`} className="block group/title">
+      <Link href={hrefDocumento(document.id, volverHref)} className="block group/title">
         <h3 className="text-base font-semibold leading-snug tracking-tight group-hover/title:text-brand-700 dark:group-hover/title:text-brand-400 transition-colors">
           <HighlightedText
             text={document.title}
@@ -249,7 +261,7 @@ export function DocumentCard({
           </Link>
         </Button>
         <Button asChild size="sm" variant="subtle">
-          <Link href={`/biblioteca/documento/${document.id}`}>
+          <Link href={hrefDocumento(document.id, volverHref)}>
             Abrir
             <ArrowUpRight className="h-3 w-3" />
           </Link>

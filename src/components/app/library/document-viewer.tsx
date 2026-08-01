@@ -326,7 +326,11 @@ export function DocumentViewer({
           <Button asChild variant="ghost" size="sm">
             <Link href={volverHref}>
               <ArrowLeft className="h-4 w-4" />
-              {volverHref === '/biblioteca' ? 'Volver' : 'Volver a la conversación'}
+              {volverHref.startsWith('/chat')
+                ? 'Volver a la conversación'
+                : volverHref.includes('?')
+                  ? 'Volver a la búsqueda'
+                  : 'Volver'}
             </Link>
           </Button>
           <div className="flex-1 min-w-0">
