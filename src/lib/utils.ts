@@ -23,7 +23,21 @@ export function formatBytes(bytes: number, decimals = 2): string {
 }
 
 export function formatDate(date: string | Date): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
+  // Las fechas normativas llegan como 'YYYY-MM-DD' (sin hora). new Date()
+  // las interpreta como medianoche UTC, y al formatear en hora de Perú
+  // (UTC-5) retroceden un día: '2025-01-01' se mostraba como "31 de
+  // diciembre de 2024" (reportado por César 01/08/2026 sobre la
+  // Directiva N° 016-2025). Para fechas sin hora construimos la fecha en
+  // horario local, así el día impreso es el mismo que el almacenado.
+  let d: Date;
+  if (typeof date === 'string') {
+    const soloFecha = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    d = soloFecha
+      ? new Date(Number(soloFecha[1]), Number(soloFecha[2]) - 1, Number(soloFecha[3]))
+      : new Date(date);
+  } else {
+    d = date;
+  }
   return format(d, "d 'de' MMMM 'de' yyyy", { locale: es });
 }
 

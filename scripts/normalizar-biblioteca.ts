@@ -81,6 +81,18 @@ export function detectarAnio(texto: string): number | null {
   return null;
 }
 
+/** Número correlativo dentro del año: "Directiva N° 016-2025" → 16.
+ *  Se guarda con relleno de ceros para poder ordenarlo como texto en
+ *  Postgres (metadata->>correlativo). */
+export function detectarCorrelativo(texto: string): string | null {
+  const m = texto.match(/N\.?[°º]?\s*0*(\d{1,4})\s*-\s*(19|20)\d{2}/i);
+  if (m) return m[1].padStart(4, '0');
+  // "1. Lineamientos para el cumplimiento..." → 1
+  const m2 = texto.match(/^\s*(\d{1,3})\.\s/);
+  if (m2) return m2[1].padStart(4, '0');
+  return null;
+}
+
 /** Tipo real según lo que el documento ES, no el acto que lo aprueba. */
 export function detectarTipo(titulo: string, tipoActual: string): string {
   const t = titulo.trim();
@@ -117,6 +129,7 @@ async function main() {
     tipoNuevo?: string;
     anio?: number;
     entidad?: string;
+    correlativo?: string;
   }> = [];
 
   for (const d of docs) {
@@ -125,16 +138,22 @@ async function main() {
     const anio = d.date ? new Date(d.date).getUTCFullYear() : detectarAnio(texto);
     const entidad =
       (d.metadata?.entidad as string | undefined) || detectarEntidad(texto) || undefined;
+    const correlativo =
+      (d.metadata?.correlativo as string | undefined) ||
+      detectarCorrelativo(d.title) ||
+      undefined;
 
     const cambiaTipo = tipoNuevo !== d.type;
     const agregaAnio = !!anio && !d.date;
     const agregaEntidad = !!entidad && !d.metadata?.entidad;
-    if (cambiaTipo || agregaAnio || agregaEntidad) {
+    const agregaCorr = !!correlativo && !d.metadata?.correlativo;
+    if (cambiaTipo || agregaAnio || agregaEntidad || agregaCorr) {
       cambios.push({
         doc: d,
         tipoNuevo: cambiaTipo ? tipoNuevo : undefined,
         anio: agregaAnio ? (anio as number) : undefined,
         entidad: agregaEntidad ? entidad : undefined,
+        correlativo: agregaCorr ? correlativo : undefined,
       });
     }
   }
@@ -206,8 +225,12 @@ async function main() {
     const patch: Record<string, unknown> = {};
     if (c.tipoNuevo) patch.type = c.tipoNuevo;
     if (c.anio) patch.date = `${c.anio}-01-01`;
-    if (c.entidad) {
-      patch.metadata = { ...(c.doc.metadata || {}), entidad: c.entidad };
+    if (c.entidad || c.correlativo) {
+      patch.metadata = {
+        ...(c.doc.metadata || {}),
+        ...(c.entidad ? { entidad: c.entidad } : {}),
+        ...(c.correlativo ? { correlativo: c.correlativo } : {}),
+      };
     }
     const { error: e } = await supabase
       .from('normative_documents')

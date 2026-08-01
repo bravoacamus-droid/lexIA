@@ -94,7 +94,13 @@ export async function POST(req: Request) {
           count: 'exact',
         },
       )
+      // Orden: año descendente y, dentro del año, CORRELATIVO ascendente
+      // (pedido de César 01/08/2026: "las directivas como los demás
+      // fuentes se tendrían que ordenar correlativo"). El correlativo se
+      // guarda en metadata.correlativo al normalizar; los documentos sin
+      // correlativo van después de los que sí lo tienen.
       .order('date', { ascending: false, nullsFirst: false })
+      .order('metadata->>correlativo', { ascending: true, nullsFirst: false })
       .range(offset, offset + limit - 1);
     if (type) q = q.eq('type', type);
     if (entidad) q = q.eq('metadata->>entidad', entidad);

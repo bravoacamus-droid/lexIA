@@ -82,7 +82,9 @@ function agruparPorAnio(
 ): Array<{ anio: string; documentos: BrowseDoc[] }> {
   const out: Array<{ anio: string; documentos: BrowseDoc[] }> = [];
   for (const d of docs) {
-    const anio = d.date ? String(new Date(d.date).getUTCFullYear()) : 'Sin año';
+    // El año se lee del string 'YYYY-MM-DD' directamente para no
+    // depender de la zona horaria (ver formatDate en utils.ts).
+    const anio = d.date ? d.date.slice(0, 4) : 'Sin año';
     const ultimo = out[out.length - 1];
     if (ultimo && ultimo.anio === anio) ultimo.documentos.push(d);
     else out.push({ anio, documentos: [d] });

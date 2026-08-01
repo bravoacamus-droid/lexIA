@@ -50,6 +50,32 @@ interface Props {
   onUnsave?: () => void;
 }
 
+/**
+ * Convierte el identificador crudo en una etiqueta legible.
+ *
+ * Muchos actos normativos se ingirieron en varias piezas —la resolución
+ * que aprueba, la directiva, sus anexos y sus modificaciones— y todas
+ * comparten el TÍTULO del acto. Lo único que las distingue es este
+ * campo, que a veces trae un slug ("resolucion-000050-2025-pre-directiva
+ * -rnp") y a veces ya viene legible ("Anexo 1 - Relación de Entidades").
+ * César lo reportó el 01/08/2026 como "directivas que se repiten": no
+ * son copias, son partes distintas y hay que poder distinguirlas.
+ */
+function etiquetaParte(numero: string): string {
+  const n = numero.trim();
+  // Ya es legible (tiene espacios y mayúsculas): se muestra tal cual.
+  if (/\s/.test(n) && /[A-ZÁÉÍÓÚ]/.test(n)) return n;
+  // Slug: se convierte a palabras y se le quita el ruido del prefijo.
+  const limpio = n
+    .replace(/[-_]+/g, ' ')
+    .replace(/(pre|cd|oece|osce|jefatura(l)?)/gi, ' ')
+    .replace(/0+(\d)/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!limpio) return n;
+  return limpio.charAt(0).toUpperCase() + limpio.slice(1);
+}
+
 export function DocumentCard({
   document,
   excerpt,
@@ -80,7 +106,7 @@ export function DocumentCard({
           </Badge>
           {document.number && (
             <span className="text-xs font-mono text-muted-foreground truncate">
-              {document.number}
+              {etiquetaParte(document.number)}
             </span>
           )}
           {document.date && (
