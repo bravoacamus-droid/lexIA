@@ -87,7 +87,9 @@ export function detectarAnio(texto: string): number | null {
  *  Se guarda con relleno de ceros para poder ordenarlo como texto en
  *  Postgres (metadata->>correlativo). */
 export function detectarCorrelativo(texto: string): string | null {
-  const m = texto.match(/N\.?[°º]?\s*0*(\d{1,4})\s*-\s*(19|20)\d{2}/i);
+  // Acepta prefijo de letras ("D000032-2026" de las opiniones del DTN) y
+  // guiones repetidos ("341--2026", visto en un pronunciamiento).
+  const m = texto.match(/N\.?[°º]?\s*[A-Z]?0*(\d{1,4})\s*-+\s*(19|20)\d{2}/i);
   if (m) return m[1].padStart(4, '0');
   // "1. Lineamientos para el cumplimiento..." → 1
   const m2 = texto.match(/^\s*(\d{1,3})\.\s/);
@@ -144,6 +146,10 @@ export function detectarFechaDelTexto(raw: string | null): string | null {
 export function detectarTipo(titulo: string, tipoActual: string): string {
   const t = titulo.trim();
   if (/^c[óo]digo\s+de\s+[ée]tica/i.test(t)) return 'codigo_etica';
+  // TUPA — César lo reportó el 01/08/2026: "en las opiniones aún
+  // encontramos TUPAS del OECE". El mismo documento estaba además
+  // duplicado bajo pronunciamiento.
+  if (/TUPA/i.test(t)) return 'tupa';
   if (/^lineamiento/i.test(t) || /^\d+\.\s*lineamientos/i.test(t)) return 'lineamiento';
   if (/^directiva/i.test(t)) return 'directiva';
   if (/^disposiciones\s+que\s+regulan/i.test(t)) return 'directiva';
@@ -198,6 +204,7 @@ async function main() {
     const correlativo =
       (d.metadata?.correlativo as string | undefined) ||
       detectarCorrelativo(d.title) ||
+      detectarCorrelativo(d.number || '') ||
       undefined;
 
     const cambiaTipo = tipoNuevo !== d.type;
@@ -205,7 +212,8 @@ async function main() {
     const fechaExacta = agregaAnio ? fechaTexto : null;
     const agregaEntidad = !!entidad && !d.metadata?.entidad;
     const agregaCorr = !!correlativo && !d.metadata?.correlativo;
-    if (cambiaTipo || agregaAnio || agregaEntidad || agregaCorr) {
+    const agregaAnioMeta = !d.metadata?.anio && (!!anio || !!d.date);
+    if (cambiaTipo || agregaAnio || agregaEntidad || agregaCorr || agregaAnioMeta) {
       cambios.push({
         doc: d,
         tipoNuevo: cambiaTipo ? tipoNuevo : undefined,
@@ -221,10 +229,15 @@ async function main() {
   // Verificado que la mayoría de títulos repetidos son partes distintas
   // del mismo acto (anexos, modificaciones, resolución aprobatoria), así
   // que la comparación de contenido es obligatoria antes de borrar.
+  // La clave es SOLO el título: el mismo documento puede estar ingerido
+  // bajo tipos distintos y seguir siendo una copia. Caso real
+  // (01/08/2026): "Modificación del TUPA del OECE" existía tres veces
+  // —como tupa, pronunciamiento y opinion— con 316,731 caracteres y 122
+  // fragmentos idénticos cada una. Incluir el tipo en la clave las
+  // separaba en tres grupos de uno y no se detectaban.
   const porClave = new Map<string, Doc[]>();
   for (const d of docs) {
-    const tipoFinal = detectarTipo(d.title, d.type);
-    const k = `${tipoFinal}::${claveTitulo(d.title)}`;
+    const k = claveTitulo(d.title);
     porClave.set(k, [...(porClave.get(k) || []), d]);
   }
   const dupes = [...porClave.values()]
@@ -287,11 +300,19 @@ async function main() {
     // (aproximación suficiente para agrupar por año).
     if (c.fechaExacta) patch.date = c.fechaExacta;
     else if (c.anio) patch.date = `${c.anio}-01-01`;
-    if (c.entidad || c.correlativo) {
+    // El AÑO se guarda también en metadata para poder ordenar por
+    // "año descendente + correlativo ascendente": ordenar por `date`
+    // completa haría que la fecha exacta dominara y el correlativo nunca
+    // se aplicara (César, 01/08/2026: opiniones y pronunciamientos deben
+    // ir en orden correlativo, igual que las directivas).
+    const anioFinal =
+      c.anio ?? (c.doc.date ? Number(c.doc.date.slice(0, 4)) : undefined);
+    if (c.entidad || c.correlativo || anioFinal) {
       patch.metadata = {
         ...(c.doc.metadata || {}),
         ...(c.entidad ? { entidad: c.entidad } : {}),
         ...(c.correlativo ? { correlativo: c.correlativo } : {}),
+        ...(anioFinal ? { anio: String(anioFinal) } : {}),
       };
     }
     const { error: e } = await supabase
@@ -318,7 +339,15 @@ async function main() {
         return { doc: d, chunks: count || 0 };
       }),
     );
-    conConteo.sort((a, b) => b.chunks - a.chunks);
+    // Conserva la que tenga más fragmentos; a igualdad, la que YA está
+    // en el tipo correcto según el título (evita quedarse con la copia
+    // mal clasificada).
+    conConteo.sort(
+      (a, b) =>
+        b.chunks - a.chunks ||
+        Number(detectarTipo(b.doc.title, b.doc.type) === b.doc.type) -
+          Number(detectarTipo(a.doc.title, a.doc.type) === a.doc.type),
+    );
     for (const perdedor of conConteo.slice(1)) {
       await supabase.from('normative_chunks').delete().eq('document_id', perdedor.doc.id);
       await supabase.from('normative_documents').delete().eq('id', perdedor.doc.id);

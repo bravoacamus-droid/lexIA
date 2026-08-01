@@ -99,8 +99,15 @@ export async function POST(req: Request) {
       // fuentes se tendrían que ordenar correlativo"). El correlativo se
       // guarda en metadata.correlativo al normalizar; los documentos sin
       // correlativo van después de los que sí lo tienen.
-      .order('date', { ascending: false, nullsFirst: false })
+      // AÑO descendente (lo más reciente arriba) y, dentro del año,
+      // CORRELATIVO ascendente. Ordenar por la fecha completa hacía que
+      // el día exacto dominara y el correlativo nunca se aplicara: las
+      // opiniones y pronunciamientos salían en orden de publicación, no
+      // correlativo (César, 01/08/2026). Por eso el año se guarda además
+      // en metadata.anio al normalizar.
+      .order('metadata->>anio', { ascending: false, nullsFirst: false })
       .order('metadata->>correlativo', { ascending: true, nullsFirst: false })
+      .order('date', { ascending: false, nullsFirst: false })
       .range(offset, offset + limit - 1);
     if (type) q = q.eq('type', type);
     if (entidad) q = q.eq('metadata->>entidad', entidad);
