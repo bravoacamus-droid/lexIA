@@ -53,6 +53,8 @@ interface Doc {
   metadata: Record<string, unknown> | null;
   /** Longitud del texto — para distinguir copias reales de partes distintas. */
   rawLen?: number;
+  /** Texto completo — para leer la fecha de suscripción. */
+  rawText?: string | null;
 }
 
 /** Entidad emisora, deducida del título/número. */
@@ -93,6 +95,51 @@ export function detectarCorrelativo(texto: string): string | null {
   return null;
 }
 
+const MESES: Record<string, number> = {
+  enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6,
+  julio: 7, agosto: 8, setiembre: 9, septiembre: 9, octubre: 10,
+  noviembre: 11, diciembre: 12,
+};
+
+/**
+ * Fecha de SUSCRIPCIÓN leída del texto ya almacenado — sin descargar nada.
+ *
+ * Solo se aceptan los dos patrones que en la normativa peruana marcan la
+ * firma del acto: "Lima, 9 de mayo de 2025" (ciudad + fecha, inmediatamente
+ * después del número de resolución) y "a los quince (15) días del mes de...".
+ *
+ * Verificado el 01/08/2026 por qué NO vale cualquier fecha del texto:
+ *   - tomar la más reciente devolvía 2027-11-30 y 2027-12-31 (plazos de
+ *     vigencia, fechas futuras imposibles);
+ *   - tomar la primera devolvía 2025-04-22 en tres documentos distintos,
+ *     que es la entrada en vigencia de la Ley 32069 citada en el
+ *     preámbulo, no la fecha de cada documento.
+ */
+export function detectarFechaDelTexto(raw: string | null): string | null {
+  if (!raw) return null;
+  const hoy = new Date();
+  const fmt = (d: number, m: number, y: number) =>
+    `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  const valida = (d: number, m: number, y: number) =>
+    m >= 1 && m <= 12 && d >= 1 && d <= 31 && y >= 2015 && new Date(y, m - 1, d) <= hoy;
+
+  // 1) "<Ciudad>, D de <mes> de AAAA"
+  for (const m of raw.matchAll(
+    /[A-ZÁÉÍÓÚ][a-záéíóúñ]+,\s*(\d{1,2})\s+de\s+(\w+)\s+de[l]?\s+(20\d{2})/g,
+  )) {
+    const mes = MESES[m[2].toLowerCase()];
+    if (mes && valida(+m[1], mes, +m[3])) return fmt(+m[1], mes, +m[3]);
+  }
+  // 2) "a los quince (15) días del mes de abril de 2025"
+  for (const m of raw.matchAll(
+    /\((\d{1,2})\)\s*d[íi]as?\s+del\s+mes\s+de\s+(\w+)\s+de[l]?\s+(20\d{2})/gi,
+  )) {
+    const mes = MESES[m[2].toLowerCase()];
+    if (mes && valida(+m[1], mes, +m[3])) return fmt(+m[1], mes, +m[3]);
+  }
+  return null;
+}
+
 /** Tipo real según lo que el documento ES, no el acto que lo aprueba. */
 export function detectarTipo(titulo: string, tipoActual: string): string {
   const t = titulo.trim();
@@ -122,12 +169,15 @@ async function main() {
   const docs = ((data || []) as Array<Doc & { raw_text: string | null }>).map((d) => ({
     ...d,
     rawLen: (d.raw_text || '').length,
+    rawText: d.raw_text,
   })) as Doc[];
 
   const cambios: Array<{
     doc: Doc;
     tipoNuevo?: string;
     anio?: number;
+    /** Fecha completa leída del texto (día exacto), si se pudo. */
+    fechaExacta?: string;
     entidad?: string;
     correlativo?: string;
   }> = [];
@@ -135,7 +185,14 @@ async function main() {
   for (const d of docs) {
     const texto = `${d.title} ${d.number || ''}`;
     const tipoNuevo = detectarTipo(d.title, d.type);
-    const anio = d.date ? new Date(d.date).getUTCFullYear() : detectarAnio(texto);
+    // Prioridad: fecha ya guardada > fecha de suscripción leída del texto
+    // (más precisa: día exacto) > año deducido del número normativo.
+    const fechaTexto = d.date ? null : detectarFechaDelTexto(d.rawText ?? null);
+    const anio = d.date
+      ? new Date(d.date).getUTCFullYear()
+      : fechaTexto
+        ? Number(fechaTexto.slice(0, 4))
+        : detectarAnio(texto);
     const entidad =
       (d.metadata?.entidad as string | undefined) || detectarEntidad(texto) || undefined;
     const correlativo =
@@ -145,6 +202,7 @@ async function main() {
 
     const cambiaTipo = tipoNuevo !== d.type;
     const agregaAnio = !!anio && !d.date;
+    const fechaExacta = agregaAnio ? fechaTexto : null;
     const agregaEntidad = !!entidad && !d.metadata?.entidad;
     const agregaCorr = !!correlativo && !d.metadata?.correlativo;
     if (cambiaTipo || agregaAnio || agregaEntidad || agregaCorr) {
@@ -152,6 +210,7 @@ async function main() {
         doc: d,
         tipoNuevo: cambiaTipo ? tipoNuevo : undefined,
         anio: agregaAnio ? (anio as number) : undefined,
+        fechaExacta: fechaExacta || undefined,
         entidad: agregaEntidad ? entidad : undefined,
         correlativo: agregaCorr ? correlativo : undefined,
       });
@@ -224,7 +283,10 @@ async function main() {
   for (const c of cambios) {
     const patch: Record<string, unknown> = {};
     if (c.tipoNuevo) patch.type = c.tipoNuevo;
-    if (c.anio) patch.date = `${c.anio}-01-01`;
+    // Con día exacto si se leyó del texto; si no, 1 de enero del año
+    // (aproximación suficiente para agrupar por año).
+    if (c.fechaExacta) patch.date = c.fechaExacta;
+    else if (c.anio) patch.date = `${c.anio}-01-01`;
     if (c.entidad || c.correlativo) {
       patch.metadata = {
         ...(c.doc.metadata || {}),
