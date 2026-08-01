@@ -222,6 +222,7 @@ async function runPipeline(question: string): Promise<{ text: string; nChunks: n
   for (const facet of facets) {
     const rows = await search(facet, embs[idx++], 5);
     if (rows.length > 0) facetTop.push(rows[0]);
+    if (rows.length > 1) facetTop.push(rows[1]);
     rows.forEach((c) => combined.has(c.chunk_id) || combined.set(c.chunk_id, c));
   }
 
@@ -245,7 +246,7 @@ async function runPipeline(question: string): Promise<{ text: string; nChunks: n
     );
   }
 
-  const finalMax = panoramic ? 25 : 15;
+  const finalMax = panoramic ? 32 : 15;
   let chunks = [...combined.values()]
     .sort((a, b) => b.similarity - a.similarity)
     .slice(0, finalMax);
@@ -277,8 +278,8 @@ async function runPipeline(question: string): Promise<{ text: string; nChunks: n
   // Cosido de fragmentos vecinos (espejo del route)
   {
     const vecinos = await fetchNeighborChunks(admin, chunks as never, {
-      topN: 5,
-      maxAdd: panoramic ? 3 : 5,
+      topN: panoramic ? 8 : 5,
+      maxAdd: panoramic ? 8 : 5,
     });
     if (vecinos.length > 0) chunks = mergeNeighbors(chunks as never, vecinos as never) as typeof chunks;
   }

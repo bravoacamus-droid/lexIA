@@ -456,7 +456,12 @@ export async function POST(req: Request) {
         );
         for (const rows of panoramicResults) {
           if (!rows) continue;
+          // Top-2 por faceta (antes top-1). Tras el re-troceado del
+          // 01/08/2026 los fragmentos son más granulares —cada uno cubre
+          // menos terreno—, así que una faceta necesita 2 para quedar
+          // representada. Medido: con top-1 la cobertura panorámica cayó.
           if (rows.length > 0) facetTopChunks.push(rows[0]);
+          if (rows.length > 1) facetTopChunks.push(rows[1]);
           for (const c of rows) {
             if (!seenIds.has(c.chunk_id)) {
               combined.push(c);
@@ -470,7 +475,10 @@ export async function POST(req: Request) {
       // (25 vs 15) para que el LLM tenga cobertura completa del tema
       // al sintetizar. El system prompt condicional le indica que
       // agrupe en secciones enumeradas.
-      const finalMaxChunks = panoramic ? Math.min(MAX_CHUNKS + 10, 25) : MAX_CHUNKS;
+      // Presupuesto panorámico ampliado a 32 (antes 25): el re-troceado
+      // del 01/08/2026 hizo los fragmentos más granulares, así que cubrir
+      // un tema completo requiere más piezas.
+      const finalMaxChunks = panoramic ? Math.min(MAX_CHUNKS + 17, 32) : MAX_CHUNKS;
       let reranked = rerankChunks(combined, lastUser.content, finalMaxChunks);
 
       // COBERTURA POR FACETA: garantizar que el top-1 de cada faceta
@@ -521,8 +529,11 @@ export async function POST(req: Request) {
       // información.
       {
         const vecinos = await fetchNeighborChunks(supabase, reranked, {
-          topN: 5,
-          maxAdd: panoramic ? 3 : 5,
+          // En panorámicas se cose MÁS: el tema abarca artículos
+          // consecutivos (ej. emergencias: arts. 280-290) y con los
+          // fragmentos ya granulares hay que recuperar el tramo contiguo.
+          topN: panoramic ? 8 : 5,
+          maxAdd: panoramic ? 8 : 5,
         });
         if (vecinos.length > 0) {
           reranked = mergeNeighbors(reranked, vecinos as HybridSearchRow[]);
