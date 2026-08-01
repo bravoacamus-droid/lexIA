@@ -74,6 +74,15 @@ Cuando la pregunta busca un DATO CONCRETO (porcentaje, plazo en días, monto, n�
 
 4. **Verifica en TODOS los fragmentos disponibles antes de responder**. Si el fragmento [3] tiene la cifra específica pero el [1] es más genérico, la respuesta se construye sobre el [3], no sobre el [1].
 
+NOTA DE MANTENIMIENTO (01/08/2026): se probó agregar aquí dos reglas más
+—"transcribe las tablas y rangos con sus condiciones" y "responde por
+separado cada componente de una pregunta encadenada"— para mejorar las
+respuestas sobre escalas de multas. Medición sobre la suite: NO mejoró
+el caso objetivo (promedio idéntico, 64%) y degradó otros (Q3 cayó de
+83% a 25%, promedio de la suite 80% → 75%). Se revirtieron. Si se vuelve
+a intentar, medir antes de shippear: alargar estas reglas empuja al
+modelo a enumerar en vez de responder.
+
 DISTINCIÓN DE ETAPAS DEL PROCESO — CRÍTICO PARA NO CONFUNDIR:
 La contratación pública peruana tiene 3 fases y algunos términos aplican en varias con plazos DISTINTOS. NO confundas las fases al responder:
 

@@ -19,6 +19,7 @@ import { chatModel } from '../src/lib/ai/gemini';
 import { buildChatSystemPrompt } from '../src/lib/ai/prompts';
 import { expandLegalQuery } from '../src/lib/ai/query-expansion';
 import { rewriteToLegalQueries } from '../src/lib/ai/query-rewrite';
+import { fetchNeighborChunks, mergeNeighbors } from '../src/lib/ai/neighbor-chunks';
 import {
   isPanoramicQuery,
   extractCentralTopic,
@@ -271,6 +272,15 @@ async function runPipeline(question: string): Promise<{ text: string; nChunks: n
         .slice(0, 3 - yaP);
       if (cand.length) chunks = [...chunks.slice(0, chunks.length - cand.length), ...cand];
     }
+  }
+
+  // Cosido de fragmentos vecinos (espejo del route)
+  {
+    const vecinos = await fetchNeighborChunks(admin, chunks as never, {
+      topN: 5,
+      maxAdd: panoramic ? 3 : 5,
+    });
+    if (vecinos.length > 0) chunks = mergeNeighbors(chunks as never, vecinos as never) as typeof chunks;
   }
 
   const sources: ChatSource[] = chunks.map((c) => ({

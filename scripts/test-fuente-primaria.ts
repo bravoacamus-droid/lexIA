@@ -20,6 +20,7 @@ import { embedOne } from '../src/lib/ai/embeddings';
 import { expandLegalQuery } from '../src/lib/ai/query-expansion';
 import { searchNormativa } from '../src/lib/ai/voice-search';
 import { rewriteToLegalQueries } from '../src/lib/ai/query-rewrite';
+import { fetchNeighborChunks, mergeNeighbors } from '../src/lib/ai/neighbor-chunks';
 
 const admin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

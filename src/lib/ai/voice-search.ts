@@ -14,6 +14,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { embedOne } from '@/lib/ai/embeddings';
 import { expandLegalQuery } from '@/lib/ai/query-expansion';
 import { rewriteToLegalQueries } from '@/lib/ai/query-rewrite';
+import { fetchNeighborChunks, mergeNeighbors } from '@/lib/ai/neighbor-chunks';
 
 export interface NormativaSearchResult {
   /** Tipo del documento (ley, reglamento, directiva, opinion, etc.). */
@@ -302,6 +303,18 @@ export async function searchNormativa(
       }
     }
   }
+  // COSIDO DE VECINOS (ver neighbor-chunks.ts): el troceado corta
+  // artículos y tablas a la mitad. Se traen los contiguos de los 2 más
+  // relevantes — tope bajo porque la voz solo entrega 5 fragmentos y el
+  // audio penaliza el contexto largo.
+  const vecinos = await fetchNeighborChunks(admin, rows as never, {
+    topN: 2,
+    maxAdd: 2,
+  });
+  if (vecinos.length > 0) {
+    rows = mergeNeighbors(rows as never, vecinos as never) as typeof rows;
+  }
+
   return rows.map((r) => {
     const numberPart = r.doc_number ? ` ${r.doc_number}` : '';
     const typeLabel = formatTypeLabel(r.doc_type);

@@ -11,6 +11,7 @@ import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
 import { recordAiUsage } from '@/lib/ai/usage-log';
 import { expandLegalQuery } from '@/lib/ai/query-expansion';
 import { rewriteToLegalQueries } from '@/lib/ai/query-rewrite';
+import { fetchNeighborChunks, mergeNeighbors } from '@/lib/ai/neighbor-chunks';
 import {
   isPanoramicQuery,
   extractCentralTopic,
@@ -510,6 +511,24 @@ export async function POST(req: Request) {
           }
         }
       }
+      // COSIDO DE FRAGMENTOS VECINOS — regla general (ver
+      // neighbor-chunks.ts). El troceado parte los documentos por
+      // tamaño, no por unidad normativa, así que artículos, tablas y
+      // enumeraciones quedan cortados a la mitad. Traemos el fragmento
+      // contiguo de los más relevantes para que el detalle (cifras,
+      // plazos, tablas) llegue completo. Se AGREGAN sin desplazar a los
+      // ya seleccionados, así ninguna respuesta que hoy funciona pierde
+      // información.
+      {
+        const vecinos = await fetchNeighborChunks(supabase, reranked, {
+          topN: 5,
+          maxAdd: panoramic ? 3 : 5,
+        });
+        if (vecinos.length > 0) {
+          reranked = mergeNeighbors(reranked, vecinos as HybridSearchRow[]);
+        }
+      }
+
       // Orden de PRELACIÓN NORMATIVA (observación César 27/07/2026):
       // "primero la ley, el reglamento y luego los demás documentos".
       // Sort estable: dentro de cada nivel se mantiene el orden por
