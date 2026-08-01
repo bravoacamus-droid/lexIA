@@ -526,6 +526,16 @@ export function LibraryView({
             />
           ) : (
             <BrowseList
+              filtrosActivos={{
+                tipo: type,
+                entidad,
+                ley: lawFilter && lawFilter.length === 1 ? lawFilter[0] : null,
+              }}
+              onLimpiarFiltros={() => {
+                setType(null);
+                setEntidad(null);
+                setLawFilter(null);
+              }}
               docs={browseDocs}
               loading={loading}
               loadingMore={loadingMore}
@@ -688,6 +698,9 @@ interface BrowseProps {
   onSave: (id: string) => void;
   onUnsave: (id: string) => void;
   folderName?: string | null;
+  /** Filtros activos — para explicar por qué la lista salió vacía. */
+  filtrosActivos?: { tipo?: string | null; entidad?: string | null; ley?: string | null };
+  onLimpiarFiltros?: () => void;
 }
 
 function BrowseList({
@@ -701,14 +714,48 @@ function BrowseList({
   onSave,
   onUnsave,
   folderName,
+  filtrosActivos,
+  onLimpiarFiltros,
 }: BrowseProps) {
   if (loading && docs.length === 0) return <LoadingSkeleton />;
   if (docs.length === 0) {
+    // Los contadores de los chips se calculan sobre TODA la biblioteca,
+    // sin aplicar el filtro de ley ni el de entidad. Por eso un chip
+    // podía decir "Lineamiento 11" y la lista salir vacía sin explicar
+    // nada (César, 01/08/2026). Aquí se nombran los filtros activos y se
+    // ofrece quitarlos.
+    const activos: string[] = [];
+    if (filtrosActivos?.tipo) activos.push(DOC_TYPE_META[filtrosActivos.tipo as NormativeDocType]?.label ?? filtrosActivos.tipo);
+    if (filtrosActivos?.entidad) activos.push(`entidad ${filtrosActivos.entidad}`);
+    if (filtrosActivos?.ley)
+      activos.push(filtrosActivos.ley === 'ley_32069' ? 'Ley 32069' : 'Ley 30225');
+
     return (
       <div className="rounded-xl border border-dashed border-border p-10 text-center">
         <p className="text-sm font-medium">
-          {folderName ? `La carpeta "${folderName}" está vacía` : 'No hay documentos para mostrar.'}
+          {folderName
+            ? `La carpeta "${folderName}" está vacía`
+            : activos.length > 0
+              ? `Ningún documento cumple a la vez: ${activos.join(' + ')}`
+              : 'No hay documentos para mostrar.'}
         </p>
+        {!folderName && activos.length > 0 && (
+          <>
+            <p className="text-xs text-muted-foreground mt-1">
+              Los números de los filtros de arriba cuentan toda la biblioteca,
+              sin aplicar el filtro de ley ni el de entidad.
+            </p>
+            {onLimpiarFiltros && (
+              <button
+                type="button"
+                onClick={onLimpiarFiltros}
+                className="mt-3 rounded-full border border-brand-300 bg-brand-50 dark:bg-brand-950/40 px-3 py-1 text-xs font-medium text-brand-700 dark:text-brand-300 hover:border-brand-500 transition-colors"
+              >
+                Quitar filtros
+              </button>
+            )}
+          </>
+        )}
         {folderName && (
           <p className="text-xs text-muted-foreground mt-1">
             Busca documentos y guárdalos con la ⭐ para verlos aquí.
