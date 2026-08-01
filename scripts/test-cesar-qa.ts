@@ -18,6 +18,7 @@ import { embedOne } from '../src/lib/ai/embeddings';
 import { chatModel } from '../src/lib/ai/gemini';
 import { buildChatSystemPrompt } from '../src/lib/ai/prompts';
 import { expandLegalQuery } from '../src/lib/ai/query-expansion';
+import { rewriteToLegalQueries } from '../src/lib/ai/query-rewrite';
 import {
   isPanoramicQuery,
   extractCentralTopic,
@@ -223,6 +224,26 @@ async function runPipeline(question: string): Promise<{ text: string; nChunks: n
     rows.forEach((c) => combined.has(c.chunk_id) || combined.set(c.chunk_id, c));
   }
 
+  // RESCATE CONDICIONAL de fuente primaria — espejo del route real:
+  // solo actúa si el pool no trae suficientes chunks de Ley/Reglamento.
+  const esPrim0 = (t: string) => t === 'ley' || t === 'reglamento';
+  const necesitaRescate =
+    [...combined.values()].filter((c) => esPrim0(c.doc_type)).length < 3;
+  const rewrites0 = necesitaRescate ? await rewriteToLegalQueries(question) : [];
+  for (const frase of rewrites0) {
+    const er = await embedOne(frase, 'RETRIEVAL_QUERY');
+    for (const tipo of ['ley', 'reglamento'] as const) {
+      (await search(frase, er, 3, tipo)).forEach(
+        (c) => combined.has(c.chunk_id) || combined.set(c.chunk_id, c),
+      );
+    }
+  }
+  if (necesitaRescate) for (const tipo of ['ley', 'reglamento'] as const) {
+    (await search(question, embs[0], 4, tipo)).forEach(
+      (c) => combined.has(c.chunk_id) || combined.set(c.chunk_id, c),
+    );
+  }
+
   const finalMax = panoramic ? 25 : 15;
   let chunks = [...combined.values()]
     .sort((a, b) => b.similarity - a.similarity)
@@ -235,6 +256,20 @@ async function runPipeline(question: string): Promise<{ text: string; nChunks: n
     const missing = [...new Map(facetTop.filter((c) => !inFinal.has(c.chunk_id)).map((c) => [c.chunk_id, c])).values()];
     if (missing.length > 0) {
       chunks = [...chunks.slice(0, Math.max(chunks.length - missing.length, 0)), ...missing];
+    }
+  }
+
+  // Cupo garantizado de fuente primaria (espejo del route)
+  {
+    const esPrim = (t: string) => t === 'ley' || t === 'reglamento';
+    const yaP = chunks.filter((c) => esPrim(c.doc_type)).length;
+    if (yaP < 3) {
+      const inFinal = new Set(chunks.map((c) => c.chunk_id));
+      const cand = [...combined.values()]
+        .filter((c) => esPrim(c.doc_type) && !inFinal.has(c.chunk_id))
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, 3 - yaP);
+      if (cand.length) chunks = [...chunks.slice(0, chunks.length - cand.length), ...cand];
     }
   }
 

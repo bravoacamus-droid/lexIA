@@ -10,6 +10,7 @@ import type { ProfileRole } from '@/lib/auth/session';
 import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
 import { recordAiUsage } from '@/lib/ai/usage-log';
 import { expandLegalQuery } from '@/lib/ai/query-expansion';
+import { rewriteToLegalQueries } from '@/lib/ai/query-rewrite';
 import {
   isPanoramicQuery,
   extractCentralTopic,
@@ -340,6 +341,91 @@ export async function POST(req: Request) {
         }
       }
 
+      // 2c-ter. RESCATE DE FUENTE PRIMARIA — CONDICIONAL.
+      //     Regla general: si tras las búsquedas anteriores el pool ya
+      //     trae suficientes chunks de Ley/Reglamento, no se toca nada.
+      //     Solo cuando la norma base está ausente (o casi) se activan
+      //     dos rescates:
+      //       a) reescribir la consulta a lenguaje jurídico y buscar con
+      //          eso (resuelve el desajuste coloquial↔normativo);
+      //       b) repetir la consulta original filtrada a Ley/Reglamento.
+      //     Es deliberadamente un FALLBACK y no un paso permanente:
+      //     inyectar normas en toda consulta desplaza a los fragmentos
+      //     que sí responden (medido: la voz cayó de 100% a 10% en
+      //     "modalidades de contratación" cuando se hacía siempre).
+      const esPrimariaTipo = (t: string) => t === 'ley' || t === 'reglamento';
+      const RESERVA_PRIMARIA = 3;
+      const primariasEnPool = combined.filter((c) =>
+        esPrimariaTipo(c.doc_type),
+      ).length;
+      const necesitaRescate = primariasEnPool < RESERVA_PRIMARIA;
+
+      if (necesitaRescate && queryEmbedding) {
+        const rewrites = await rewriteToLegalQueries(lastUser.content);
+        if (rewrites.length > 0) {
+          const seenIds = new Set(combined.map((c) => c.chunk_id));
+          const rewriteEmbs = await Promise.all(rewrites.map(safeEmbed));
+          const resultados = await Promise.all(
+            rewrites.flatMap((frase, i) => {
+              const emb = rewriteEmbs[i];
+              if (!emb) return [];
+              return (['ley', 'reglamento'] as const).map(async (tipo) => {
+                const { data } = await supabase.rpc('hybrid_search', {
+                  query_text: frase,
+                  query_embedding: emb,
+                  match_count: 3,
+                  filter_type: tipo,
+                  filter_law: lawFilter,
+                });
+                return data as HybridSearchRow[] | null;
+              });
+            }),
+          );
+          for (const rows of resultados) {
+            if (!rows) continue;
+            for (const c of rows) {
+              if (!seenIds.has(c.chunk_id)) {
+                combined.push(c);
+                seenIds.add(c.chunk_id);
+              }
+            }
+          }
+        }
+      }
+
+      // 2c-quater. Segundo rescate (solo si sigue faltando norma base):
+      //     repetir la consulta ORIGINAL filtrada a Ley y Reglamento.
+      //     Origen (01/08/2026): César preguntó "si la entidad no tiene
+      //     listo el contrato dentro de los tres días hábiles..." y los
+      //     18 chunks recuperados fueron pronunciamientos sobre plazos de
+      //     consultas; el Art. 91 del Reglamento (que responde exacto:
+      //     requerir con 5 días hábiles y quedar liberado) nunca entró al
+      //     contexto y el chat respondió "no aparece regulado".
+      if (necesitaRescate && queryEmbedding) {
+        const seenIds = new Set(combined.map((c) => c.chunk_id));
+        const primarias = await Promise.all(
+          (['ley', 'reglamento'] as const).map(async (tipo) => {
+            const { data } = await supabase.rpc('hybrid_search', {
+              query_text: lastUser.content,
+              query_embedding: queryEmbedding,
+              match_count: 4,
+              filter_type: tipo,
+              filter_law: lawFilter,
+            });
+            return data as HybridSearchRow[] | null;
+          }),
+        );
+        for (const rows of primarias) {
+          if (!rows) continue;
+          for (const c of rows) {
+            if (!seenIds.has(c.chunk_id)) {
+              combined.push(c);
+              seenIds.add(c.chunk_id);
+            }
+          }
+        }
+      }
+
       // 2d. Búsquedas PANORÁMICAS por facetas — cuando el usuario pide
       //     un resumen/panorámica de un tema ("resúmeme todo sobre X"),
       //     ejecutamos 4-6 sub-búsquedas por facetas típicas (tipos,
@@ -397,6 +483,31 @@ export async function POST(req: Request) {
         if (uniqueMissing.length > 0) {
           const keep = Math.max(reranked.length - uniqueMissing.length, 0);
           reranked = [...reranked.slice(0, keep), ...uniqueMissing];
+        }
+      }
+
+      // CUPO GARANTIZADO DE FUENTE PRIMARIA — regla general, no atada a
+      // ningún tema. Si el pool trajo chunks de la Ley o el Reglamento,
+      // al menos los 3 mejores sobreviven el corte final, aunque su
+      // similitud quede por debajo de fuentes secundarias más verbosas
+      // (pronunciamientos y resoluciones citan largamente el caso y
+      // ganan similitud superficial). Sin este cupo, una pregunta
+      // narrativa puede llegar al modelo sin una sola norma base — que
+      // es exactamente lo que produce el "no aparece regulado".
+      // También es el blindaje necesario antes de ingerir las ~37 mil
+      // resoluciones del Tribunal: sin él inundarían todas las consultas.
+      {
+        const yaPrimarias = reranked.filter((c) => esPrimariaTipo(c.doc_type)).length;
+        if (yaPrimarias < RESERVA_PRIMARIA) {
+          const inFinal = new Set(reranked.map((c) => c.chunk_id));
+          const candidatas = combined
+            .filter((c) => esPrimariaTipo(c.doc_type) && !inFinal.has(c.chunk_id))
+            .sort((a, b) => b.similarity - a.similarity)
+            .slice(0, RESERVA_PRIMARIA - yaPrimarias);
+          if (candidatas.length > 0) {
+            const keep = Math.max(reranked.length - candidatas.length, 0);
+            reranked = [...reranked.slice(0, keep), ...candidatas];
+          }
         }
       }
       // Orden de PRELACIÓN NORMATIVA (observación César 27/07/2026):

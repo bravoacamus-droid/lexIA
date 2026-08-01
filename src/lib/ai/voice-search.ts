@@ -13,6 +13,7 @@
 import { createAdminClient } from '@/lib/supabase/server';
 import { embedOne } from '@/lib/ai/embeddings';
 import { expandLegalQuery } from '@/lib/ai/query-expansion';
+import { rewriteToLegalQueries } from '@/lib/ai/query-rewrite';
 
 export interface NormativaSearchResult {
   /** Tipo del documento (ley, reglamento, directiva, opinion, etc.). */
@@ -193,13 +194,114 @@ export async function searchNormativa(
     }
   }
 
+  // BÚSQUEDA CON LA CONSULTA REESCRITA A LENGUAJE JURÍDICO (espejo de
+  // /api/chat). Generaliza las focales manuales: el modelo traduce
+  // cualquier consulta coloquial al vocabulario del articulado. Timeout
+  // corto (1.8s) porque en la llamada la latencia se nota; si no llega a
+  // tiempo, el retrieval continúa sin ella.
+  // RESCATE CONDICIONAL: solo si el pool NO trae norma base. Inyectar
+  // Ley/Reglamento en toda consulta desplaza a los fragmentos que sí
+  // responden — medido: "modalidades de contratación" cayó de 100% a
+  // 10% cuando esto se ejecutaba siempre (la voz solo devuelve 5).
+  const esPrimariaTipo = (t: string) => t === 'ley' || t === 'reglamento';
+  const necesitaRescate =
+    !filterType && !combined.some((c) => esPrimariaTipo(c.doc_type));
+
+  if (necesitaRescate) {
+    const rewrites = await rewriteToLegalQueries(opts.query, 1800);
+    if (rewrites.length > 0) {
+      const seen = new Set(
+        combined.map((c) => `${c.document_id}:${c.content.slice(0, 60)}`),
+      );
+      const rewriteEmbs = await Promise.all(rewrites.map(safeEmbed));
+      const resultados = await Promise.all(
+        rewrites.flatMap((frase, i) => {
+          const emb = rewriteEmbs[i];
+          if (!emb) return [];
+          return (['ley', 'reglamento'] as const).map(async (tipo) => {
+            const { data } = await admin.rpc('hybrid_search', {
+              query_text: frase,
+              query_embedding: emb,
+              match_count: 3,
+              filter_type: tipo,
+              filter_law: filterLaw,
+            });
+            return data as HybridRow[] | null;
+          });
+        }),
+      );
+      for (const rowsR of resultados) {
+        if (!rowsR) continue;
+        for (const r of rowsR) {
+          const k = `${r.document_id}:${r.content.slice(0, 60)}`;
+          if (!seen.has(k)) {
+            combined.push(r);
+            seen.add(k);
+          }
+        }
+      }
+    }
+  }
+
+  // RED DE SEGURIDAD DE FUENTE PRIMARIA — se ejecuta SIEMPRE (misma
+  // regla general que en /api/chat). Repite la pregunta original
+  // restringida a la Ley y al Reglamento para que la norma base tenga
+  // un lugar en el pool aunque la búsqueda global la desplace.
+  // Origen (01/08/2026): preguntas narrativas de caso ("si la entidad
+  // no tiene listo el contrato dentro de los tres días hábiles...")
+  // recuperaban 100% pronunciamientos y la norma que respondía exacto
+  // (Art. 91 del Reglamento) no entraba al contexto. Reusa el embedding
+  // ya calculado, así que no agrega costo de embeddings.
+  if (necesitaRescate) {
+    const seen = new Set(
+      combined.map((c) => `${c.document_id}:${c.content.slice(0, 60)}`),
+    );
+    const primarias = await Promise.all(
+      (['ley', 'reglamento'] as const).map(async (tipo) => {
+        const { data } = await admin.rpc('hybrid_search', {
+          query_text: opts.query,
+          query_embedding: embedding,
+          match_count: 3,
+          filter_type: tipo,
+          filter_law: filterLaw,
+        });
+        return data as HybridRow[] | null;
+      }),
+    );
+    for (const rowsP of primarias) {
+      if (!rowsP) continue;
+      for (const r of rowsP) {
+        const k = `${r.document_id}:${r.content.slice(0, 60)}`;
+        if (!seen.has(k)) {
+          combined.push(r);
+          seen.add(k);
+        }
+      }
+    }
+  }
+
   // La penalización de "ley vieja" (30225) solo aplica si el usuario NO
   // filtró explícitamente por la Ley 30225. Si eligió la 30225 en el
   // LawSelector, esos chunks son EXACTAMENTE lo que quiere.
   const userWantsOldLaw = (filterLaw || []).includes('ley_30225');
-  const rows = rerankAndDedupe(combined, opts.query, matchCount, {
+  let rows = rerankAndDedupe(combined, opts.query, matchCount, {
     penalizeOldLaw: !userWantsOldLaw,
   });
+
+  // CUPO GARANTIZADO DE FUENTE PRIMARIA — regla general (espejo de
+  // /api/chat). La voz devuelve pocos resultados (5 por defecto), así
+  // que basta reservar 1 para la norma base: sin él, una pregunta
+  // narrativa puede llegar al modelo de voz sin una sola norma.
+  if (necesitaRescate) {
+    if (!rows.some((r) => esPrimariaTipo(r.doc_type))) {
+      const mejorPrimaria = combined
+        .filter((c) => esPrimariaTipo(c.doc_type))
+        .sort((a, b) => b.similarity - a.similarity)[0];
+      if (mejorPrimaria) {
+        rows = [...rows.slice(0, Math.max(rows.length - 1, 0)), mejorPrimaria];
+      }
+    }
+  }
   return rows.map((r) => {
     const numberPart = r.doc_number ? ` ${r.doc_number}` : '';
     const typeLabel = formatTypeLabel(r.doc_type);
