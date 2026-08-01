@@ -31,6 +31,65 @@ interface AiSummaryMini {
   questions?: Array<{ key: string; label: string; answer: string }>;
 }
 
+/** Filtro por entidad emisora, visible solo en Directivas y Lineamientos. */
+function EntidadFilter({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+}) {
+  const ENTIDADES = ['OECE', 'Perú Compras', 'DGA'];
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 mt-2">
+      <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mr-1">
+        Entidad
+      </span>
+      <button
+        type="button"
+        onClick={() => onChange(null)}
+        className={cn(
+          'rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors',
+          value === null
+            ? 'bg-foreground text-background border-foreground'
+            : 'border-border text-muted-foreground hover:border-foreground/40',
+        )}
+      >
+        Todas
+      </button>
+      {ENTIDADES.map((e) => (
+        <button
+          key={e}
+          type="button"
+          onClick={() => onChange(value === e ? null : e)}
+          className={cn(
+            'rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors',
+            value === e
+              ? 'bg-brand-600 text-white border-brand-600'
+              : 'border-border text-muted-foreground hover:border-brand-400',
+          )}
+        >
+          {e}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Agrupa documentos por año conservando el orden recibido. */
+function agruparPorAnio(
+  docs: BrowseDoc[],
+): Array<{ anio: string; documentos: BrowseDoc[] }> {
+  const out: Array<{ anio: string; documentos: BrowseDoc[] }> = [];
+  for (const d of docs) {
+    const anio = d.date ? String(new Date(d.date).getUTCFullYear()) : 'Sin año';
+    const ultimo = out[out.length - 1];
+    if (ultimo && ultimo.anio === anio) ultimo.documentos.push(d);
+    else out.push({ anio, documentos: [d] });
+  }
+  return out;
+}
+
 interface BrowseDoc {
   id: string;
   type: NormativeDocType;
@@ -40,6 +99,8 @@ interface BrowseDoc {
   date: string | null;
   source_url: string | null;
   ai_summary?: AiSummaryMini | null;
+  /** metadata.entidad — OECE / Perú Compras / DGA / SUNARP. */
+  metadata?: { entidad?: string | null } | null;
 }
 
 interface SearchResult {
@@ -129,6 +190,10 @@ export function LibraryView({
   const [debounced, setDebounced] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [type, setType] = useState<NormativeDocType | null>(null);
+  /** Entidad emisora — solo aplica a Directivas y Lineamientos, que son
+   *  los tipos que emiten OECE, Perú Compras y la DGA (pedido de César
+   *  01/08/2026). Se limpia al cambiar de tipo. */
+  const [entidad, setEntidad] = useState<string | null>(null);
   // Filtro de ley aplicable (null = ambas). Persiste solo durante la
   // navegación; al recargar Biblioteca vuelve a Ambas.
   const [lawFilter, setLawFilter] = useState<LawFilter>(null);
@@ -203,6 +268,7 @@ export function LibraryView({
             query: debounced,
             queries: tags,
             type,
+            entidad,
             law,
             limit: initialLimit,
             offset: 0,
@@ -245,7 +311,7 @@ export function LibraryView({
     return () => {
       cancelled = true;
     };
-  }, [debounced, type, selectedFolderId, pageSize, lawFilter, tags, quickFilter]);
+  }, [debounced, type, entidad, selectedFolderId, pageSize, lawFilter, tags, quickFilter]);
 
   // Infinite scroll: cargar siguiente página al ver el sentinel
   useEffect(() => {
@@ -269,6 +335,7 @@ export function LibraryView({
           body: JSON.stringify({
             query: '',
             type,
+            entidad,
             law: lawForLoad,
             limit: pageSize,
             offset: currentLength,
@@ -398,7 +465,17 @@ export function LibraryView({
           </p>
         )}
         <div className="flex flex-wrap items-center gap-3">
-          <TypeFilter value={type} onChange={setType} counts={typeCounts} />
+          <TypeFilter
+            value={type}
+            onChange={(t) => {
+              setType(t);
+              setEntidad(null);
+            }}
+            counts={typeCounts}
+          />
+          {(type === 'directiva' || type === 'lineamiento') && (
+            <EntidadFilter value={entidad} onChange={setEntidad} />
+          )}
           <QuickFilters
             value={quickFilter}
             onChange={setQuickFilter}
@@ -647,15 +724,30 @@ function BrowseList({
             ? `Recientes · ${docs.length} de ${total}`
             : `Recientes · ${docs.length}`}
       </p>
+      {/* Agrupación por AÑO (pedido de César 01/08/2026: "ordenar por
+          tipo de documento y año para que se vea más ordenado"). El
+          endpoint ya entrega ordenado por fecha descendente, así que
+          basta con insertar el encabezado al cambiar de año. */}
       <div className="space-y-3">
-        {docs.map((d) => (
-          <DocumentCard
-            key={d.id}
-            document={d}
-            isSaved={savedIds.has(d.id)}
-            onSave={() => onSave(d.id)}
-            onUnsave={() => onUnsave(d.id)}
-          />
+        {agruparPorAnio(docs).map(({ anio, documentos }) => (
+          <section key={anio} className="space-y-3">
+            <div className="flex items-center gap-2 pt-2">
+              <h3 className="text-sm font-bold tracking-tight">{anio}</h3>
+              <span className="text-[11px] text-muted-foreground">
+                {documentos.length} documento{documentos.length === 1 ? '' : 's'}
+              </span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+            {documentos.map((d) => (
+              <DocumentCard
+                key={d.id}
+                document={d}
+                isSaved={savedIds.has(d.id)}
+                onSave={() => onSave(d.id)}
+                onUnsave={() => onUnsave(d.id)}
+              />
+            ))}
+          </section>
         ))}
       </div>
       {/* Sentinel + skeleton para infinite scroll */}

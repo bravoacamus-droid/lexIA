@@ -37,6 +37,13 @@ const requestSchema = z.object({
     .optional(),
   year: z.number().int().min(1990).max(2100).nullable().optional(),
   /**
+   * Entidad emisora — pedido de César (01/08/2026): "respecto a las
+   * Directivas se tendría que clasificar por año y entidad (OECE, Perú
+   * Compras y DGA), de la misma forma los lineamientos". Se guarda en
+   * metadata.entidad al ingerir/normalizar.
+   */
+  entidad: z.string().min(2).max(40).nullable().optional(),
+  /**
    * Filtro por ley aplicable: 'ley_32069' (vigente desde abr-2025) o
    * 'ley_30225' (régimen anterior). Si no se envía o es null, no se
    * filtra. Pedido por César para evitar mezclar jurisprudencia de
@@ -68,7 +75,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'invalid_body', issues: parsed.error.issues }, { status: 400 });
   }
 
-  const { query, queries, type, year, law, limit = 12, offset = 0 } = parsed.data;
+  const { query, queries, type, year, law, entidad, limit = 12, offset = 0 } = parsed.data;
   const trimmed = query.trim();
   // Normalizar queries multi-tag: dedupe + trim + filter vacíos.
   const multiTags = Array.from(
@@ -82,7 +89,7 @@ export async function POST(req: Request) {
     let q = supabase
       .from('normative_documents')
       .select(
-        'id, type, number, title, summary, date, source_url, applicable_law, ai_summary',
+        'id, type, number, title, summary, date, source_url, applicable_law, ai_summary, metadata',
         {
           count: 'exact',
         },
@@ -90,6 +97,7 @@ export async function POST(req: Request) {
       .order('date', { ascending: false, nullsFirst: false })
       .range(offset, offset + limit - 1);
     if (type) q = q.eq('type', type);
+    if (entidad) q = q.eq('metadata->>entidad', entidad);
     if (year) {
       q = q.gte('date', `${year}-01-01`).lte('date', `${year}-12-31`);
     }
