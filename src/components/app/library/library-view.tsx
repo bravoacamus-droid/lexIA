@@ -434,6 +434,30 @@ export function LibraryView({
     };
   }, [debounced, type, entidad, anioDesde, anioHasta, selectedFolderId, pageSize, lawFilter, tags, quickFilter]);
 
+  /**
+   * Firma de los filtros vigentes. El scroll infinito la captura antes
+   * de pedir la página siguiente y la vuelve a comparar al recibirla: si
+   * el usuario cambió de filtro mientras la petición viajaba, la
+   * respuesta se descarta en vez de anexarse.
+   *
+   * Sin esto, cambiar filtros seguidos mezclaba resultados: los
+   * documentos de la búsqueda anterior aparecían pegados al final de la
+   * lista nueva (reportado por César 01/08/2026 al probar el rango de
+   * años). Se guarda en un ref y no en estado para no provocar renders.
+   */
+  const filtroKey = JSON.stringify({
+    type,
+    entidad,
+    anioDesde,
+    anioHasta,
+    law: lawFilter,
+    debounced,
+    tags,
+    selectedFolderId,
+  });
+  const filtroKeyRef = useRef(filtroKey);
+  filtroKeyRef.current = filtroKey;
+
   // Infinite scroll: cargar siguiente página al ver el sentinel
   useEffect(() => {
     if (mode !== 'browse' || debounced || tags.length > 0 || selectedFolderId) return;
@@ -448,6 +472,7 @@ export function LibraryView({
         if (loadingMore || exhausted) return;
 
         setLoadingMore(true);
+        const keyAlPedir = filtroKeyRef.current;
         const currentLength = browseDocs.length;
         const lawForLoad = lawFilter && lawFilter.length === 1 ? lawFilter[0] : null;
         fetch('/api/search', {
@@ -466,6 +491,8 @@ export function LibraryView({
         })
           .then((r) => r.json())
           .then((json) => {
+            // Descartar si los filtros cambiaron mientras viajaba.
+            if (filtroKeyRef.current !== keyAlPedir) return;
             if (json.mode !== 'browse') return;
             const more = (json.documents || []) as BrowseDoc[];
             setBrowseDocs((prev) => {
@@ -492,6 +519,10 @@ export function LibraryView({
     loadingMore,
     browseDocs.length,
     type,
+    entidad,
+    anioDesde,
+    anioHasta,
+    tags,
     pageSize,
     lawFilter,
   ]);
