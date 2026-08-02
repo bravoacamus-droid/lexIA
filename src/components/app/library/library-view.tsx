@@ -32,6 +32,102 @@ interface AiSummaryMini {
   questions?: Array<{ key: string; label: string; answer: string }>;
 }
 
+/**
+ * Filtro por RANGO DE AÑOS con botón Aplicar (pedido de César
+ * 01/08/2026). No filtra al vuelo a propósito: el usuario elige desde y
+ * hasta, y recién al presionar Aplicar se consulta — así no se disparan
+ * búsquedas intermedias mientras ajusta el rango.
+ */
+function YearRangeFilter({
+  anios,
+  desde,
+  hasta,
+  onAplicar,
+}: {
+  anios: number[];
+  desde: number | null;
+  hasta: number | null;
+  onAplicar: (desde: number | null, hasta: number | null) => void;
+}) {
+  const [d, setD] = useState<number | null>(desde);
+  const [h, setH] = useState<number | null>(hasta);
+  useEffect(() => {
+    setD(desde);
+    setH(hasta);
+  }, [desde, hasta]);
+
+  if (anios.length === 0) return null;
+  const sinCambios = d === desde && h === hasta;
+  const activo = desde !== null || hasta !== null;
+  // Rango inválido: desde mayor que hasta.
+  const invalido = d !== null && h !== null && d > h;
+
+  const sel =
+    'rounded-md border border-border bg-background px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-brand-400';
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mr-1">
+        Años
+      </span>
+      <select
+        aria-label="Año desde"
+        className={sel}
+        value={d ?? ''}
+        onChange={(e) => setD(e.target.value ? Number(e.target.value) : null)}
+      >
+        <option value="">Desde…</option>
+        {anios.map((a) => (
+          <option key={a} value={a}>
+            {a}
+          </option>
+        ))}
+      </select>
+      <span className="text-xs text-muted-foreground">—</span>
+      <select
+        aria-label="Año hasta"
+        className={sel}
+        value={h ?? ''}
+        onChange={(e) => setH(e.target.value ? Number(e.target.value) : null)}
+      >
+        <option value="">Hasta…</option>
+        {anios.map((a) => (
+          <option key={a} value={a}>
+            {a}
+          </option>
+        ))}
+      </select>
+      <button
+        type="button"
+        disabled={sinCambios || invalido}
+        onClick={() => onAplicar(d, h)}
+        className={cn(
+          'rounded-full px-3 py-1 text-xs font-semibold border transition-colors',
+          sinCambios || invalido
+            ? 'border-border text-muted-foreground/60 cursor-not-allowed'
+            : 'bg-brand-600 text-white border-brand-600 hover:bg-brand-700',
+        )}
+      >
+        Aplicar
+      </button>
+      {activo && (
+        <button
+          type="button"
+          onClick={() => onAplicar(null, null)}
+          className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground hover:border-foreground/40 transition-colors"
+        >
+          Todos los años
+        </button>
+      )}
+      {invalido && (
+        <span className="text-[11px] text-red-600 dark:text-red-400">
+          El año inicial no puede ser mayor que el final
+        </span>
+      )}
+    </div>
+  );
+}
+
 /** Filtro por entidad emisora, visible solo en Directivas y Lineamientos. */
 function EntidadFilter({
   value,
@@ -141,6 +237,8 @@ interface Props {
   pageSize: number;
   savedDocIds: string[];
   typeCounts: Record<string, number>;
+  /** Años presentes en el corpus, descendente — para el filtro de rango. */
+  aniosDisponibles?: number[];
   stats: LibraryStats;
 }
 
@@ -181,6 +279,7 @@ export function LibraryView({
   pageSize,
   savedDocIds: initialSavedIds,
   typeCounts,
+  aniosDisponibles = [],
   stats,
 }: Props) {
   const [folders, setFolders] = useState<FolderItem[]>(initialFolders);
@@ -206,6 +305,12 @@ export function LibraryView({
    *  los tipos que emiten OECE, Perú Compras y la DGA (pedido de César
    *  01/08/2026). Se limpia al cambiar de tipo. */
   const [entidad, setEntidad] = useState<string | null>(urlParams.get('entidad'));
+  const [anioDesde, setAnioDesde] = useState<number | null>(
+    urlParams.get('desde') ? Number(urlParams.get('desde')) : null,
+  );
+  const [anioHasta, setAnioHasta] = useState<number | null>(
+    urlParams.get('hasta') ? Number(urlParams.get('hasta')) : null,
+  );
   // Filtro de ley aplicable (null = ambas). Persiste solo durante la
   // navegación; al recargar Biblioteca vuelve a Ambas.
   const [lawFilter, setLawFilter] = useState<LawFilter>(
@@ -283,6 +388,8 @@ export function LibraryView({
             queries: tags,
             type,
             entidad,
+            yearFrom: anioDesde,
+            yearTo: anioHasta,
             law,
             limit: initialLimit,
             offset: 0,
@@ -325,7 +432,7 @@ export function LibraryView({
     return () => {
       cancelled = true;
     };
-  }, [debounced, type, entidad, selectedFolderId, pageSize, lawFilter, tags, quickFilter]);
+  }, [debounced, type, entidad, anioDesde, anioHasta, selectedFolderId, pageSize, lawFilter, tags, quickFilter]);
 
   // Infinite scroll: cargar siguiente página al ver el sentinel
   useEffect(() => {
@@ -350,6 +457,8 @@ export function LibraryView({
             query: '',
             type,
             entidad,
+            yearFrom: anioDesde,
+            yearTo: anioHasta,
             law: lawForLoad,
             limit: pageSize,
             offset: currentLength,
@@ -431,6 +540,8 @@ export function LibraryView({
     if (type) p.set('tipo', type);
     if (entidad) p.set('entidad', entidad);
     if (lawFilter && lawFilter.length === 1) p.set('ley', lawFilter[0]);
+    if (anioDesde) p.set('desde', String(anioDesde));
+    if (anioHasta) p.set('hasta', String(anioHasta));
     if (debounced) p.set('q', debounced);
     const qs = p.toString();
     return qs ? `/biblioteca?${qs}` : '/biblioteca';
@@ -515,6 +626,15 @@ export function LibraryView({
           {(type === 'directiva' || type === 'lineamiento') && (
             <EntidadFilter value={entidad} onChange={setEntidad} />
           )}
+          <YearRangeFilter
+            anios={aniosDisponibles}
+            desde={anioDesde}
+            hasta={anioHasta}
+            onAplicar={(d, h) => {
+              setAnioDesde(d);
+              setAnioHasta(h);
+            }}
+          />
           <QuickFilters
             value={quickFilter}
             onChange={setQuickFilter}
@@ -569,11 +689,17 @@ export function LibraryView({
                 tipo: type,
                 entidad,
                 ley: lawFilter && lawFilter.length === 1 ? lawFilter[0] : null,
+                anios:
+                  anioDesde || anioHasta
+                    ? `${anioDesde ?? 'inicio'}–${anioHasta ?? 'hoy'}`
+                    : null,
               }}
               onLimpiarFiltros={() => {
                 setType(null);
                 setEntidad(null);
                 setLawFilter(null);
+                setAnioDesde(null);
+                setAnioHasta(null);
               }}
               docs={browseDocs}
               loading={loading}
@@ -744,7 +870,12 @@ interface BrowseProps {
   /** Biblioteca con sus filtros — a donde debe volver el visor. */
   volverHref?: string;
   /** Filtros activos — para explicar por qué la lista salió vacía. */
-  filtrosActivos?: { tipo?: string | null; entidad?: string | null; ley?: string | null };
+  filtrosActivos?: {
+    tipo?: string | null;
+    entidad?: string | null;
+    ley?: string | null;
+    anios?: string | null;
+  };
   onLimpiarFiltros?: () => void;
 }
 
@@ -775,6 +906,7 @@ function BrowseList({
     if (filtrosActivos?.entidad) activos.push(`entidad ${filtrosActivos.entidad}`);
     if (filtrosActivos?.ley)
       activos.push(filtrosActivos.ley === 'ley_32069' ? 'Ley 32069' : 'Ley 30225');
+    if (filtrosActivos?.anios) activos.push(`años ${filtrosActivos.anios}`);
 
     return (
       <div className="rounded-xl border border-dashed border-border p-10 text-center">

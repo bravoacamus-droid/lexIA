@@ -40,7 +40,7 @@ export default async function LibraryPage() {
       })
       .order('date', { ascending: false, nullsFirst: false })
       .range(0, INITIAL_PAGE_SIZE - 1),
-    supabase.from('normative_documents').select('type'),
+    supabase.from('normative_documents').select('type, metadata'),
     // Documentos ingresados en los últimos 7 días
     supabase
       .from('normative_documents')
@@ -80,6 +80,16 @@ export default async function LibraryPage() {
     typeCounts[row.type] = (typeCounts[row.type] || 0) + 1;
   }
 
+  // Años presentes en el corpus — alimentan el filtro de rango.
+  const aniosSet = new Set<number>();
+  for (const row of (typeCountsRes.data || []) as Array<{
+    metadata: { anio?: string } | null;
+  }>) {
+    const a = Number(row.metadata?.anio);
+    if (a >= 1990 && a <= 2100) aniosSet.add(a);
+  }
+  const aniosDisponibles = [...aniosSet].sort((a, b) => b - a);
+
   const initialDocuments = (recentDocsRes.data || []) as never[];
   const totalDocuments = (recentDocsRes.count ?? initialDocuments.length) as number;
 
@@ -99,6 +109,7 @@ export default async function LibraryPage() {
       pageSize={INITIAL_PAGE_SIZE}
       savedDocIds={Array.from(savedDocIds)}
       typeCounts={typeCounts}
+      aniosDisponibles={aniosDisponibles}
       stats={{
         totalDocuments,
         newThisWeek,

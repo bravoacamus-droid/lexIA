@@ -37,6 +37,15 @@ const requestSchema = z.object({
     .optional(),
   year: z.number().int().min(1990).max(2100).nullable().optional(),
   /**
+   * Rango de años (pedido de César 01/08/2026: "un botón que permite
+   * escoger el rango de años y aplicar"). Filtra sobre metadata.anio,
+   * que es el mismo campo por el que se ordena y está poblado en el 95%
+   * del corpus (más que `date`). Comparación de texto: los años son
+   * siempre 4 dígitos, así que el orden lexicográfico coincide.
+   */
+  yearFrom: z.number().int().min(1990).max(2100).nullable().optional(),
+  yearTo: z.number().int().min(1990).max(2100).nullable().optional(),
+  /**
    * Entidad emisora — pedido de César (01/08/2026): "respecto a las
    * Directivas se tendría que clasificar por año y entidad (OECE, Perú
    * Compras y DGA), de la misma forma los lineamientos". Se guarda en
@@ -75,7 +84,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'invalid_body', issues: parsed.error.issues }, { status: 400 });
   }
 
-  const { query, queries, type, year, law, entidad, limit = 12, offset = 0 } = parsed.data;
+  const {
+    query, queries, type, year, yearFrom, yearTo, law, entidad,
+    limit = 12, offset = 0,
+  } = parsed.data;
   const trimmed = query.trim();
   // Normalizar queries multi-tag: dedupe + trim + filter vacíos.
   const multiTags = Array.from(
@@ -114,6 +126,8 @@ export async function POST(req: Request) {
     if (year) {
       q = q.gte('date', `${year}-01-01`).lte('date', `${year}-12-31`);
     }
+    if (yearFrom) q = q.gte('metadata->>anio', String(yearFrom));
+    if (yearTo) q = q.lte('metadata->>anio', String(yearTo));
     if (law) q = q.contains('applicable_law', [law]);
     const { data, count, error } = await q;
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

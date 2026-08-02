@@ -201,11 +201,17 @@ async function main() {
         : detectarAnio(texto);
     const entidad =
       (d.metadata?.entidad as string | undefined) || detectarEntidad(texto) || undefined;
-    const correlativo =
-      (d.metadata?.correlativo as string | undefined) ||
-      detectarCorrelativo(d.title) ||
-      detectarCorrelativo(d.number || '') ||
-      undefined;
+    // Las normas base (ley, reglamento) NO son una serie numerada: el
+    // "correlativo" que se extraía venía de los decretos citados en el
+    // título (ej. "N° 32069 y su Reglamento DS N° 009-2025-EF" daba
+    // 0009), lo cual confundía. Se ordenan por fecha.
+    const esNormaBase = tipoNuevo === 'ley' || tipoNuevo === 'reglamento';
+    const correlativo = esNormaBase
+      ? undefined
+      : (d.metadata?.correlativo as string | undefined) ||
+        detectarCorrelativo(d.title) ||
+        detectarCorrelativo(d.number || '') ||
+        undefined;
 
     const cambiaTipo = tipoNuevo !== d.type;
     const agregaAnio = !!anio && !d.date;
