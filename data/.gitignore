@@ -1,2 +1,3 @@
 tcp-index*.jsonl
 tcp-index*.state.json
+tcp-ingesta.state.jsonl
