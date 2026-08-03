@@ -63,6 +63,33 @@ interface IndexRow {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
+ * Vigila que el buscador siga respondiendo rápido mientras crece el
+ * corpus.
+ *
+ * El 02/08/2026 la ingesta degradó hybrid_search hasta superar el
+ * statement_timeout de 8 s: el chat y la voz quedaron sin fuentes y solo
+ * lo detectamos al probar a mano. Ahora se mide cada cierto tramo y se
+ * avisa en el log apenas la latencia se dispara.
+ */
+async function medirBuscador(): Promise<number> {
+  try {
+    const emb = await embedBatch(['plazo para perfeccionar el contrato']);
+    const t0 = Date.now();
+    const { error } = await supabase.rpc('hybrid_search', {
+      query_text: 'plazo para perfeccionar el contrato',
+      query_embedding: emb[0],
+      match_count: 15,
+      filter_type: null,
+      filter_law: null,
+    });
+    const ms = Date.now() - t0;
+    return error ? -1 : ms;
+  } catch {
+    return -1;
+  }
+}
+
+/**
  * Transcribe un PDF SIN capa de texto usando la capacidad multimodal de
  * Gemini (lee el documento como imagen).
  *
@@ -317,6 +344,22 @@ async function main() {
     } catch (e) {
       anotar(r.key, 'excepcion', (e as Error).message.slice(0, 80));
       fallos++;
+    }
+
+    // Chequeo de salud del buscador cada 200 documentos.
+    if ((i + 1) % 200 === 0) {
+      const ms = await medirBuscador();
+      if (ms < 0) {
+        console.log(`  🔴 EL BUSCADOR FALLA (timeout). Deteniendo para no agravarlo.`);
+        console.log(`     Revisar antes de continuar; lo ingerido queda guardado.`);
+        break;
+      }
+      const estado = ms > 3000 ? '🔴' : ms > 1800 ? '🟡' : '🟢';
+      console.log(`  ${estado} salud del buscador: ${ms} ms`);
+      if (ms > 3000) {
+        console.log('     Latencia alta — detengo aquí para revisar.');
+        break;
+      }
     }
 
     if ((i + 1) % 10 === 0 || i + 1 === total) {
