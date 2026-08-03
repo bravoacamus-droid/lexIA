@@ -295,18 +295,24 @@ export async function searchNormativa(
     penalizeOldLaw: !userWantsOldLaw,
   });
 
-  // CUPO GARANTIZADO DE FUENTE PRIMARIA — regla general (espejo de
-  // /api/chat). La voz devuelve pocos resultados (5 por defecto), así
-  // que basta reservar 1 para la norma base: sin él, una pregunta
-  // narrativa puede llegar al modelo de voz sin una sola norma.
-  if (necesitaRescate) {
-    if (!rows.some((r) => esPrimariaTipo(r.doc_type))) {
-      const mejorPrimaria = combined
-        .filter((c) => esPrimariaTipo(c.doc_type))
-        .sort((a, b) => b.similarity - a.similarity)[0];
-      if (mejorPrimaria) {
-        rows = [...rows.slice(0, Math.max(rows.length - 1, 0)), mejorPrimaria];
-      }
+  // CUPO GARANTIZADO DE FUENTE PRIMARIA — se evalúa SIEMPRE (espejo de
+  // /api/chat), no solo cuando se activó el rescate.
+  //
+  // Bug detectado el 02/08/2026 mientras ingresaban las resoluciones del
+  // Tribunal: esta guarda estaba anidada dentro de `if (necesitaRescate)`,
+  // y el rescate solo se activa cuando el pool NO trae ninguna norma
+  // base. Con el corpus creciendo, el pool casi siempre trae alguna, así
+  // que el rescate no corría... pero esa norma quedaba desplazada por las
+  // resoluciones en el rerank y la reserva nunca llegaba a rescatarla.
+  // Resultado medido: la cobertura de norma base en la voz cayó de 6/6 a
+  // 4/6 al pasar de 11 mil a 14.6 mil fragmentos. Es el modo de falla que
+  // se agrava con cada resolución que entra.
+  if (!filterType && !rows.some((r) => esPrimariaTipo(r.doc_type))) {
+    const mejorPrimaria = combined
+      .filter((c) => esPrimariaTipo(c.doc_type))
+      .sort((a, b) => b.similarity - a.similarity)[0];
+    if (mejorPrimaria) {
+      rows = [...rows.slice(0, Math.max(rows.length - 1, 0)), mejorPrimaria];
     }
   }
   // COSIDO DE VECINOS (ver neighbor-chunks.ts): el troceado corta
