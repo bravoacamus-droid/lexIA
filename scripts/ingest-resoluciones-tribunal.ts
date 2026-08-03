@@ -22,7 +22,7 @@
  */
 import { config as loadEnv } from 'dotenv';
 import { join } from 'node:path';
-import { readFileSync, existsSync, appendFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, existsSync, appendFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { extractText, getDocumentProxy } from 'unpdf';
 import { generateText } from 'ai';
@@ -47,6 +47,7 @@ const HEADERS = {
 };
 
 const ESTADO = join(process.cwd(), 'data', 'tcp-ingesta.state.jsonl');
+const CANDADO = join(process.cwd(), 'data', 'tcp-ingesta.lock');
 const LIMIT = Number(process.argv.find((a) => a.startsWith('--limit='))?.slice(8) || 0);
 const DESDE = Number(process.argv.find((a) => a.startsWith('--desde='))?.slice(8) || 2020);
 const PAUSA_MS = 900; // cortesía con gob.pe
@@ -231,17 +232,82 @@ async function fichaResolucion(
   return { pdf, fecha };
 }
 
+/**
+ * Candado de instancia única.
+ *
+ * En Windows, detener la consola que lanzó el script NO mata al proceso
+ * de Node: queda huérfano y sigue ingiriendo. El 02/08/2026 se
+ * acumularon NUEVE procesos simultáneos; cada uno con su propia foto de
+ * lo ya procesado, se pisaban entre sí y 30 de cada 50 documentos
+ * fallaban por clave duplicada (además de saturar la base y disparar la
+ * latencia de las búsquedas).
+ */
+function tomarCandado(): void {
+  if (existsSync(CANDADO)) {
+    const pid = Number(readFileSync(CANDADO, 'utf8').trim());
+    let vivo = false;
+    try {
+      process.kill(pid, 0); // no lo mata: solo comprueba que exista
+      vivo = true;
+    } catch {
+      vivo = false;
+    }
+    if (vivo) {
+      console.error(
+        `❌ Ya hay una ingesta corriendo (PID ${pid}).
+` +
+          `   Si estás seguro de que no, borra data/tcp-ingesta.lock`,
+      );
+      process.exit(1);
+    }
+    console.log(`(candado huérfano del PID ${pid} — se reemplaza)`);
+  }
+  writeFileSync(CANDADO, String(process.pid));
+  const soltar = () => {
+    try {
+      if (existsSync(CANDADO) && readFileSync(CANDADO, 'utf8').trim() === String(process.pid)) {
+        unlinkSync(CANDADO);
+      }
+    } catch {
+      /* nada que hacer */
+    }
+  };
+  process.on('exit', soltar);
+  process.on('SIGINT', () => {
+    soltar();
+    process.exit(130);
+  });
+  process.on('SIGTERM', () => {
+    soltar();
+    process.exit(143);
+  });
+}
+
 async function main() {
+  tomarCandado();
   const censo = cargarCenso();
   const procesadas = yaProcesadas();
 
   // Cruce con lo que ya está en la biblioteca
-  const { data: existentes } = await supabase
-    .from('normative_documents')
-    .select('number, title')
-    .eq('type', 'resolucion_tce');
+  // PAGINADO OBLIGATORIO: el cliente de Supabase devuelve como máximo
+  // 1,000 filas por consulta. Sin paginar, el deduplicador solo veía las
+  // primeras mil resoluciones y todo lo demás se volvía a descargar y
+  // embeber para fallar recién al insertar (medido el 02/08/2026: 30 de
+  // cada 50 documentos). Con 37 mil por ingerir, esto no es un detalle.
+  const existentes: Array<{ number: string | null; title: string }> = [];
+  for (let desde = 0; ; desde += 1000) {
+    const { data, error } = await supabase
+      .from('normative_documents')
+      .select('number, title')
+      .eq('type', 'resolucion_tce')
+      .range(desde, desde + 999);
+    if (error) throw new Error(`leyendo existentes: ${error.message}`);
+    const lote = (data || []) as Array<{ number: string | null; title: string }>;
+    existentes.push(...lote);
+    if (lote.length < 1000) break;
+  }
   const enBD = new Set<string>();
-  for (const d of (existentes || []) as Array<{ number: string | null; title: string }>) {
+  for (const d of existentes) {
     const texto = `${d.number || ''} ${d.title}`;
     // Número y año por un lado, sala por otro. Antes se hacía con un
     // solo patrón que terminaba en `\D*(S\d)?`, y al ser `\D*` codicioso
@@ -262,7 +328,9 @@ async function main() {
   const total = LIMIT > 0 ? Math.min(LIMIT, pendientes.length) : pendientes.length;
 
   console.log(`Censo (desde ${DESDE}): ${censo.length}`);
-  console.log(`Ya en biblioteca: ${enBD.size} | ya procesadas: ${procesadas.size}`);
+  console.log(
+    `Ya en biblioteca: ${existentes.length} resoluciones (${enBD.size} claves) | ya procesadas: ${procesadas.size}`,
+  );
   console.log(`A procesar en esta corrida: ${total}\n`);
 
   let ok = 0;
