@@ -25,7 +25,9 @@ import { join } from 'node:path';
 import { readFileSync, existsSync, appendFileSync, writeFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { extractText, getDocumentProxy } from 'unpdf';
+import { generateText } from 'ai';
 import { chunkText } from '../src/lib/ingestion/chunker';
+import { fastModel } from '../src/lib/ai/gemini';
 
 loadEnv({ path: join(process.cwd(), '.env.local'), override: true });
 
@@ -59,6 +61,55 @@ interface IndexRow {
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Transcribe un PDF SIN capa de texto usando la capacidad multimodal de
+ * Gemini (lee el documento como imagen).
+ *
+ * Antes estos PDFs se omitían, lo que dejaba huecos silenciosos en la
+ * biblioteca. El Tribunal publica casi todo firmado digitalmente y con
+ * texto —en las muestras de 2020 y 2026 no apareció ninguno escaneado—,
+ * pero sobre 37 mil documentos conviene tener el respaldo.
+ *
+ * Devuelve null si la transcripción falla o sale demasiado corta, para
+ * que el documento quede registrado como problema en vez de ingerirse
+ * vacío.
+ */
+async function transcribirEscaneado(
+  buf: Buffer,
+  referencia: string,
+): Promise<string | null> {
+  // Gemini acepta PDFs en línea hasta ~20 MB.
+  if (buf.length > 18 * 1024 * 1024) return null;
+  try {
+    const r = await generateText({
+      model: fastModel,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text:
+                'Transcribe FIELMENTE todo el texto de este documento legal peruano, ' +
+                'respetando el orden de lectura, la numeración de artículos y numerales, ' +
+                'y el contenido de las tablas. No resumas, no interpretes, no agregues ' +
+                'comentarios: devuelve únicamente el texto transcrito.',
+            },
+            { type: 'file', data: buf, mimeType: 'application/pdf' },
+          ],
+        },
+      ],
+      temperature: 0,
+      maxTokens: 32000,
+    });
+    const t = (r.text || '').trim();
+    return t.length >= 400 ? t : null;
+  } catch (e) {
+    console.log(`   ⚠️ OCR falló en ${referencia}: ${(e as Error).message.slice(0, 60)}`);
+    return null;
+  }
+}
 
 function cargarCenso(): IndexRow[] {
   const all = new Map<string, IndexRow>();
@@ -196,13 +247,20 @@ async function main() {
       );
       const doc = await getDocumentProxy(new Uint8Array(buf));
       const { text } = await extractText(doc, { mergePages: true });
-      const raw = String(text).trim();
+      let raw = String(text).trim();
+      let viaOcr = false;
       if (raw.length < 400) {
-        // PDF escaneado sin capa de texto — no aporta al buscador.
-        anotar(r.key, 'sin_texto', `${raw.length} chars`);
-        fallos++;
-        await sleep(PAUSA_MS);
-        continue;
+        // Sin capa de texto → lo lee Gemini como imagen en vez de omitirlo.
+        const ocr = await transcribirEscaneado(buf, r.key);
+        if (!ocr) {
+          anotar(r.key, 'sin_texto', `${raw.length} chars, OCR sin resultado`);
+          fallos++;
+          await sleep(PAUSA_MS);
+          continue;
+        }
+        raw = ocr;
+        viaOcr = true;
+        console.log(`   🖼️ ${r.key} transcrito con Gemini (${raw.length} chars)`);
       }
 
       const chunks = chunkText(raw);
@@ -225,6 +283,9 @@ async function main() {
             correlativo: r.numero.split('-')[0].padStart(4, '0'),
             sala: r.sala,
             fecha_origen: fecha ? 'publicación en gob.pe' : 'año del número',
+            // Deja rastro de que el texto vino de OCR y no de la capa
+            // del PDF, por si hay que revisar su fidelidad después.
+            texto_via_ocr: viaOcr || undefined,
           } as never,
         } as never)
         .select('id')
@@ -250,7 +311,7 @@ async function main() {
         if (e) throw new Error(e.message);
       }
 
-      anotar(r.key, 'ok', `${filas.length} frag`);
+      anotar(r.key, 'ok', `${filas.length} frag${viaOcr ? ' (ocr)' : ''}`);
       ok++;
       chunksTotal += filas.length;
     } catch (e) {
