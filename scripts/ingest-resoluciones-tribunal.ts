@@ -242,8 +242,20 @@ async function main() {
     .eq('type', 'resolucion_tce');
   const enBD = new Set<string>();
   for (const d of (existentes || []) as Array<{ number: string | null; title: string }>) {
-    const m = `${d.number || ''} ${d.title}`.match(/0*(\d{1,5})\s*-+\s*(\d{4})\D*(S\d)?/i);
-    if (m) enBD.add(`${m[1]}-${m[2]}-${(m[3] || 's?').toUpperCase()}`);
+    const texto = `${d.number || ''} ${d.title}`;
+    // Número y año por un lado, sala por otro. Antes se hacía con un
+    // solo patrón que terminaba en `\D*(S\d)?`, y al ser `\D*` codicioso
+    // se tragaba el "-S2" final: la sala quedaba vacía y NINGUNA
+    // resolución ya ingerida se reconocía. Efecto medido el 02/08/2026:
+    // 27 de 50 documentos se volvían a descargar y embeber para fallar
+    // recién al insertar, gastando cuota de embeddings al pepe.
+    const mNum = texto.match(/0*(\d{1,5})\s*-+\s*((?:19|20)\d{2})/);
+    const mSala = texto.match(/S(\d)/i);
+    if (mNum) {
+      enBD.add(`${mNum[1]}-${mNum[2]}-${mSala ? 'S' + mSala[1] : 's?'}`);
+      // Sin sala también, por si el censo la trae y la BD no (o al revés).
+      enBD.add(`${mNum[1]}-${mNum[2]}-s?`);
+    }
   }
 
   const pendientes = censo.filter((r) => !procesadas.has(r.key) && !enBD.has(r.key));
