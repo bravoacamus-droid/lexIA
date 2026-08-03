@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
 import { LibraryView } from '@/components/app/library/library-view';
-import type { NormativeDocType } from '@/lib/supabase/types';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Biblioteca normativa' };
@@ -40,7 +39,12 @@ export default async function LibraryPage() {
       })
       .order('date', { ascending: false, nullsFirst: false })
       .range(0, INITIAL_PAGE_SIZE - 1),
-    supabase.from('normative_documents').select('type, metadata'),
+    // Conteos por tipo y años disponibles, agregados en Postgres.
+    // Antes esto traía TODAS las filas para contarlas aquí, y el cliente
+    // corta en 1,000: con 3,841 documentos el chip "Resolución TCE"
+    // mostraba 737 en vez de 3,553 (César, 03/08/2026). Ver migración
+    // 0036 — se agrega en el servidor y no depende del tamaño del corpus.
+    supabase.rpc('library_facets'),
     // Documentos ingresados en los últimos 7 días
     supabase
       .from('normative_documents')
@@ -74,21 +78,14 @@ export default async function LibraryPage() {
     created_at: string;
   }>).map((f) => ({ ...f, count: folderCounts.get(f.id) || 0 }));
 
-  // Conteos por tipo (para los chips de filtro)
-  const typeCounts: Record<string, number> = {};
-  for (const row of (typeCountsRes.data || []) as Array<{ type: NormativeDocType }>) {
-    typeCounts[row.type] = (typeCounts[row.type] || 0) + 1;
-  }
-
-  // Años presentes en el corpus — alimentan el filtro de rango.
-  const aniosSet = new Set<number>();
-  for (const row of (typeCountsRes.data || []) as Array<{
-    metadata: { anio?: string } | null;
-  }>) {
-    const a = Number(row.metadata?.anio);
-    if (a >= 1990 && a <= 2100) aniosSet.add(a);
-  }
-  const aniosDisponibles = [...aniosSet].sort((a, b) => b - a);
+  // Conteos por tipo (chips de filtro) y años presentes en el corpus
+  // (alimentan el filtro de rango). Ambos llegan ya agregados.
+  const facetas = (typeCountsRes.data || {}) as {
+    tipos?: Record<string, number>;
+    anios?: number[];
+  };
+  const typeCounts: Record<string, number> = facetas.tipos || {};
+  const aniosDisponibles: number[] = facetas.anios || [];
 
   const initialDocuments = (recentDocsRes.data || []) as never[];
   const totalDocuments = (recentDocsRes.count ?? initialDocuments.length) as number;

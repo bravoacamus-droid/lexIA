@@ -71,20 +71,37 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * statement_timeout de 8 s: el chat y la voz quedaron sin fuentes y solo
  * lo detectamos al probar a mano. Ahora se mide cada cierto tramo y se
  * avisa en el log apenas la latencia se dispara.
+ *
+ * Mide TRES veces y devuelve la MEDIANA. Una sola medición no sirve para
+ * decidir: el 03/08/2026 el guardián detuvo la corrida a los 399
+ * documentos por un 3,129 ms aislado, y al medir en serie la misma
+ * consulta la mediana era 297 ms. La primera llamada de cada serie suele
+ * costar segundos (apertura de conexión) y hay picos sueltos de red; la
+ * mediana los descarta y solo sobrevive la degradación sostenida, que es
+ * la que justifica parar horas de trabajo.
  */
+const CONSULTA_SALUD = 'plazo para perfeccionar el contrato';
+
 async function medirBuscador(): Promise<number> {
   try {
-    const emb = await embedBatch(['plazo para perfeccionar el contrato']);
-    const t0 = Date.now();
-    const { error } = await supabase.rpc('hybrid_search', {
-      query_text: 'plazo para perfeccionar el contrato',
-      query_embedding: emb[0],
-      match_count: 15,
-      filter_type: null,
-      filter_law: null,
-    });
-    const ms = Date.now() - t0;
-    return error ? -1 : ms;
+    const emb = await embedBatch([CONSULTA_SALUD]);
+    const muestras: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      const t0 = Date.now();
+      const { error } = await supabase.rpc('hybrid_search', {
+        query_text: CONSULTA_SALUD,
+        query_embedding: emb[0],
+        match_count: 15,
+        filter_type: null,
+        filter_law: null,
+      });
+      // Un error sí es concluyente al primer intento: significa que la
+      // consulta superó el statement_timeout, no que la red tosió.
+      if (error) return -1;
+      muestras.push(Date.now() - t0);
+      await sleep(300);
+    }
+    return muestras.sort((a, b) => a - b)[1];
   } catch {
     return -1;
   }

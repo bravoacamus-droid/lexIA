@@ -67,3 +67,6 @@ entidad/
 consultor/
 PROMPT/
 Preguntas y respuestas planteadas por el OECE.pdf
+data/tcp-ingesta.log
+data/tcp-ingesta.err.log
+data/tcp-ingesta.lock
