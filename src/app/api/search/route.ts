@@ -37,6 +37,23 @@ const requestSchema = z.object({
     .optional(),
   year: z.number().int().min(1990).max(2100).nullable().optional(),
   /**
+   * Fecha mínima de publicación (YYYY-MM-DD). La usa el filtro rápido
+   * "Recientes" de la biblioteca.
+   *
+   * Antes ese filtro se aplicaba en el navegador SOBRE LA PÁGINA YA
+   * DESCARGADA, y por eso mostraba vacío: la primera página del chip
+   * "Resolución TCE" trae los correlativos más bajos del año (enero a
+   * marzo), así que ninguno caía dentro de los últimos 30 días aunque en
+   * la biblioteca hubiera 425 que sí (César, 03/08/2026). Filtrar en el
+   * servidor es lo único correcto cuando hay 4 mil documentos y solo se
+   * descargan 30.
+   */
+  dateFrom: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .optional(),
+  /**
    * Rango de años (pedido de César 01/08/2026: "un botón que permite
    * escoger el rango de años y aplicar"). Filtra sobre metadata.anio,
    * que es el mismo campo por el que se ordena y está poblado en el 95%
@@ -85,7 +102,7 @@ export async function POST(req: Request) {
   }
 
   const {
-    query, queries, type, year, yearFrom, yearTo, law, entidad,
+    query, queries, type, year, yearFrom, yearTo, law, entidad, dateFrom,
     limit = 12, offset = 0,
   } = parsed.data;
   const trimmed = query.trim();
@@ -98,14 +115,21 @@ export async function POST(req: Request) {
   // Sin query → listar docs (paginable) con filtros + conteo total para saber
   // cuándo terminar el infinite scroll.
   if (!trimmed && !isMultiTag) {
-    let q = supabase
+    const base = supabase
       .from('normative_documents')
       .select(
         'id, type, number, title, summary, date, source_url, applicable_law, ai_summary, metadata',
         {
           count: 'exact',
         },
-      )
+      );
+
+    // "Recientes" pide lo último publicado: ahí manda la fecha, no el
+    // correlativo. En cualquier otro caso vale el orden acordado con
+    // César (año desc, correlativo asc).
+    let q = dateFrom
+      ? base.order('date', { ascending: false, nullsFirst: false })
+      : base
       // Orden: año descendente y, dentro del año, CORRELATIVO ascendente
       // (pedido de César 01/08/2026: "las directivas como los demás
       // fuentes se tendrían que ordenar correlativo"). El correlativo se
@@ -118,11 +142,17 @@ export async function POST(req: Request) {
       // correlativo (César, 01/08/2026). Por eso el año se guarda además
       // en metadata.anio al normalizar.
       .order('metadata->>anio', { ascending: false, nullsFirst: false })
-      .order('metadata->>correlativo', { ascending: true, nullsFirst: false })
-      .order('date', { ascending: false, nullsFirst: false })
-      .range(offset, offset + limit - 1);
+      // correlativo_num, no metadata->>'correlativo': el segundo es TEXTO
+      // y "18536" ordenaba antes que "3120" (César, 03/08/2026). Con los
+      // tipos de ancho fijo no se notaba; las resoluciones del Tribunal
+      // mezclan 4 y 5 dígitos. Ver migración 0037.
+      .order('correlativo_num', { ascending: true, nullsFirst: false })
+      .order('date', { ascending: false, nullsFirst: false });
+
+    q = q.range(offset, offset + limit - 1);
     if (type) q = q.eq('type', type);
     if (entidad) q = q.eq('metadata->>entidad', entidad);
+    if (dateFrom) q = q.gte('date', dateFrom);
     if (year) {
       q = q.gte('date', `${year}-01-01`).lte('date', `${year}-12-31`);
     }

@@ -45,11 +45,15 @@ export default async function LibraryPage() {
     // mostraba 737 en vez de 3,553 (César, 03/08/2026). Ver migración
     // 0036 — se agrega en el servidor y no depende del tamaño del corpus.
     supabase.rpc('library_facets'),
-    // Documentos ingresados en los últimos 7 días
+    // Documentos ingresados en los últimos 7 días.
+    // La columna es `ingested_at`; con `created_at` —que no existe en
+    // esta tabla— la consulta fallaba en silencio y la tarjeta decía
+    // "0 nuevas publicaciones" el mismo día en que entraron 4 mil
+    // resoluciones (César, 03/08/2026).
     supabase
       .from('normative_documents')
       .select('id', { count: 'exact', head: true })
-      .gte('created_at', sevenDaysAgo),
+      .gte('ingested_at', sevenDaysAgo),
     // Cuántos docs tienen resumen IA generado (indicador de cobertura)
     supabase
       .from('normative_documents')

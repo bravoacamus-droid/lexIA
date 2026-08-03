@@ -320,6 +320,9 @@ export function LibraryView({
   // 'recent' = últimos 30 días indexados en la base. null = sin filtro.
   // Feedback César 01/07/2026 (ref UI cliente): agregar toggles visibles.
   const [quickFilter, setQuickFilter] = useState<'favorites' | 'recent' | null>(null);
+  /** Corte del filtro "Recientes": hoy menos 30 días, en YYYY-MM-DD. */
+  const fechaCorteRecientes = () =>
+    new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10);
   const [selectedFolderId, setSelectedFolderId] = useState<
     string | null | 'unfiled' | 'all-saved'
   >(null);
@@ -391,6 +394,7 @@ export function LibraryView({
             yearFrom: anioDesde,
             yearTo: anioHasta,
             law,
+            dateFrom: quickFilter === 'recent' ? fechaCorteRecientes() : null,
             limit: initialLimit,
             offset: 0,
           }),
@@ -403,20 +407,13 @@ export function LibraryView({
           setExhausted(true); // los modos search no paginan (devuelve los top N)
         } else {
           setMode('browse');
-          let docs = (json.documents || []) as BrowseDoc[];
-          // quickFilter='recent' — mostrar solo docs publicados en
-          // los últimos 30 días. Filtro post-fetch simple (el endpoint
-          // ya ordena por fecha desc, así que suelen estar entre los
-          // primeros).
-          if (quickFilter === 'recent') {
-            const cutoff = Date.now() - 30 * 86400_000;
-            docs = docs.filter((d) => {
-              if (!d.date) return false;
-              const t = new Date(d.date).getTime();
-              return !Number.isNaN(t) && t >= cutoff;
-            });
-            setExhausted(true); // no seguimos paginando si estamos filtrando
-          } else if (typeof json.total === 'number') {
+          const docs = (json.documents || []) as BrowseDoc[];
+          // "Recientes" ya viene filtrado y ordenado por el servidor
+          // (dateFrom). Antes se recortaba aquí la página descargada, y
+          // con 4 mil resoluciones eso mostraba la lista vacía: ninguno
+          // de los primeros 30 documentos caía en los últimos 30 días
+          // aunque en la biblioteca hubiera cientos que sí.
+          if (typeof json.total === 'number') {
             setBrowseTotal(json.total);
             setExhausted(json.hasMore === false);
           }
@@ -485,6 +482,7 @@ export function LibraryView({
             yearFrom: anioDesde,
             yearTo: anioHasta,
             law: lawForLoad,
+            dateFrom: quickFilter === 'recent' ? fechaCorteRecientes() : null,
             limit: pageSize,
             offset: currentLength,
           }),
@@ -724,6 +722,17 @@ export function LibraryView({
                   anioDesde || anioHasta
                     ? `${anioDesde ?? 'inicio'}–${anioHasta ?? 'hoy'}`
                     : null,
+                // El estado vacío omitía este filtro y decía "Ningún
+                // documento cumple a la vez: Resolución TCE" cuando en
+                // realidad también estaba activo "Recientes" (César,
+                // 03/08/2026). Un mensaje que no nombra todos los
+                // filtros manda a buscar el error donde no está.
+                rapido:
+                  quickFilter === 'recent'
+                    ? 'publicados en los últimos 30 días'
+                    : quickFilter === 'favorites'
+                      ? 'solo favoritos'
+                      : null,
               }}
               onLimpiarFiltros={() => {
                 setType(null);
@@ -731,6 +740,9 @@ export function LibraryView({
                 setLawFilter(null);
                 setAnioDesde(null);
                 setAnioHasta(null);
+                // También el filtro rápido: si no, "Quitar filtros"
+                // dejaba la lista igual de vacía y parecía no hacer nada.
+                setQuickFilter(null);
               }}
               docs={browseDocs}
               loading={loading}
@@ -906,6 +918,7 @@ interface BrowseProps {
     entidad?: string | null;
     ley?: string | null;
     anios?: string | null;
+    rapido?: string | null;
   };
   onLimpiarFiltros?: () => void;
 }
@@ -938,6 +951,7 @@ function BrowseList({
     if (filtrosActivos?.ley)
       activos.push(filtrosActivos.ley === 'ley_32069' ? 'Ley 32069' : 'Ley 30225');
     if (filtrosActivos?.anios) activos.push(`años ${filtrosActivos.anios}`);
+    if (filtrosActivos?.rapido) activos.push(filtrosActivos.rapido);
 
     return (
       <div className="rounded-xl border border-dashed border-border p-10 text-center">

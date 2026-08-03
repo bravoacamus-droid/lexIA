@@ -8,6 +8,13 @@
  * ascendente. Reporta además la cobertura de los campos que hacen
  * posible ese orden (año y correlativo).
  *
+ * CUIDADO al tocar este archivo: la comparación de aquí debe ser
+ * INDEPENDIENTE de cómo ordena el endpoint, no una copia. En su primera
+ * versión ambos comparaban el correlativo como TEXTO, así que el auditor
+ * daba 13/13 correcto mientras la biblioteca mostraba
+ * "18536, 3074, 3075..." — validaba la consulta contra sí misma. Ahora
+ * el endpoint ordena por correlativo_num y aquí se compara como número.
+ *
  * Uso: npx tsx scripts/auditar-orden-biblioteca.ts
  */
 import { config as loadEnv } from 'dotenv';
@@ -27,24 +34,36 @@ interface Row {
   type: string;
   title: string;
   date: string | null;
+  correlativo_num: number | null;
   metadata: { anio?: string; correlativo?: string; entidad?: string } | null;
 }
 
 async function main() {
-  const { data: tipos } = await supabase.from('normative_documents').select('type');
-  const universo = [...new Set(((tipos || []) as Array<{ type: string }>).map((t) => t.type))].sort();
+  const facetas = await supabase.rpc('library_facets');
+  const universo = Object.keys(
+    ((facetas.data || {}) as { tipos?: Record<string, number> }).tipos || {},
+  ).sort();
 
   let problemas = 0;
   for (const tipo of universo) {
-    // MISMO orden que el endpoint
-    const { data } = await supabase
-      .from('normative_documents')
-      .select('id, type, title, date, metadata')
-      .eq('type', tipo)
-      .order('metadata->>anio', { ascending: false, nullsFirst: false })
-      .order('metadata->>correlativo', { ascending: true, nullsFirst: false })
-      .order('date', { ascending: false, nullsFirst: false });
-    const docs = (data || []) as Row[];
+    // MISMO orden que el endpoint. Paginado: sin esto el cliente corta en
+    // 1,000 filas y las 4,000+ resoluciones del Tribunal quedaban sin
+    // auditar más allá de la primera página.
+    const docs: Row[] = [];
+    for (let desde = 0; ; desde += 1000) {
+      const { data, error } = await supabase
+        .from('normative_documents')
+        .select('id, type, title, date, correlativo_num, metadata')
+        .eq('type', tipo)
+        .order('metadata->>anio', { ascending: false, nullsFirst: false })
+        .order('correlativo_num', { ascending: true, nullsFirst: false })
+        .order('date', { ascending: false, nullsFirst: false })
+        .range(desde, desde + 999);
+      if (error) throw new Error(error.message);
+      const pagina = (data || []) as Row[];
+      docs.push(...pagina);
+      if (pagina.length < 1000) break;
+    }
     if (docs.length === 0) continue;
 
     const sinAnio = docs.filter((d) => !d.metadata?.anio).length;
@@ -63,9 +82,11 @@ async function main() {
           continue;
         }
         if (anioA === anioB) {
-          const cA = a.metadata?.correlativo;
-          const cB = b.metadata?.correlativo;
-          if (cA && cB && cB < cA) {
+          // Comparación NUMÉRICA a partir del texto original: si el
+          // endpoint volviera a ordenar como texto, esto lo delata.
+          const cA = Number(String(a.metadata?.correlativo ?? '').replace(/\D/g, ''));
+          const cB = Number(String(b.metadata?.correlativo ?? '').replace(/\D/g, ''));
+          if (Number.isFinite(cA) && Number.isFinite(cB) && cA > 0 && cB > 0 && cB < cA) {
             fallos.push(`correlativo baja en ${anioA}: ${cA} → ${cB}`);
           }
         }
