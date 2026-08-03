@@ -229,22 +229,54 @@ async function embedBatch(texts: string[]): Promise<number[][]> {
   return out;
 }
 
+const MESES: Record<string, string> = {
+  enero: '01', febrero: '02', marzo: '03', abril: '04', mayo: '05', junio: '06',
+  julio: '07', agosto: '08', setiembre: '09', septiembre: '09', octubre: '10',
+  noviembre: '11', diciembre: '12',
+};
+
+/**
+ * Fecha de EXPEDICIÓN leída de la firma del propio documento.
+ *
+ * Las resoluciones cierran con "Lima, 24 de julio de 2026". El texto cita
+ * además fechas de otros actos —la convocatoria, el contrato, la
+ * resolución impugnada—, así que se recorre de atrás hacia adelante y se
+ * exige que el año coincida con el de la numeración.
+ *
+ * Es la fuente PREFERENTE sobre la ficha de gob.pe: esa página traía la
+ * primera fecha que apareciera en su HTML, y en el 6% de los casos era
+ * una fecha citada. La "Resolución N° 2931-2026-S3" quedó fechada en
+ * 2023 (César, 03/08/2026).
+ */
+function fechaDeExpedicion(texto: string, anioEsperado: number): string | null {
+  const re =
+    /(?:Lima|Arequipa|Trujillo|Cusco|Piura)\s*,?\s*(\d{1,2})\s+de\s+([a-záéíóú]+)\s+de(?:l)?\s+(\d{4})/gi;
+  const hallazgos = [...texto.matchAll(re)];
+  for (let i = hallazgos.length - 1; i >= 0; i--) {
+    const [, dia, mesTxt, anio] = hallazgos[i];
+    const mes = MESES[mesTxt.toLowerCase()];
+    if (!mes || Number(anio) !== anioEsperado) continue;
+    return `${anio}-${mes}-${String(dia).padStart(2, '0')}`;
+  }
+  return null;
+}
+
 /** Extrae la URL del PDF y la fecha de la ficha de gob.pe. */
 async function fichaResolucion(
   url: string,
+  anioEsperado: number,
 ): Promise<{ pdf: string | null; fecha: string | null }> {
   const res = await fetch(url, { headers: HEADERS });
   if (!res.ok) return { pdf: null, fecha: null };
   const html = await res.text();
   const pdf = (html.match(/https:\/\/cdn\.www\.gob\.pe\/[^"']+\.pdf/i) || [])[0] || null;
-  const MESES: Record<string, number> = {
-    enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6, julio: 7,
-    agosto: 8, setiembre: 9, septiembre: 9, octubre: 10, noviembre: 11, diciembre: 12,
-  };
   const m = html.match(/(\d{1,2})\s+de\s+(\w+)\s+de\s+(20\d{2})/);
+  const mes = m ? MESES[m[2].toLowerCase()] : null;
+  // Se descarta si el año no es el de la resolución: es señal de que se
+  // capturó una fecha citada y no la de publicación.
   const fecha =
-    m && MESES[m[2].toLowerCase()]
-      ? `${m[3]}-${String(MESES[m[2].toLowerCase()]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`
+    m && mes && Number(m[3]) === anioEsperado
+      ? `${m[3]}-${mes}-${String(m[1]).padStart(2, '0')}`
       : null;
   return { pdf, fecha };
 }
@@ -358,7 +390,7 @@ async function main() {
   for (let i = 0; i < total; i++) {
     const r = pendientes[i];
     try {
-      const { pdf, fecha } = await fichaResolucion(r.url);
+      const { pdf, fecha: fechaFicha } = await fichaResolucion(r.url, r.anio);
       if (!pdf) {
         anotar(r.key, 'sin_pdf');
         fallos++;
@@ -387,6 +419,16 @@ async function main() {
         console.log(`   🖼️ ${r.key} transcrito con Gemini (${raw.length} chars)`);
       }
 
+      // Preferencia: la firma del documento; luego la ficha de gob.pe;
+      // como último recurso, el 1 de enero del año de la numeración.
+      const firma = fechaDeExpedicion(raw, r.anio);
+      const fecha = firma || fechaFicha;
+      const origenFecha = firma
+        ? 'firma del documento'
+        : fechaFicha
+          ? 'publicación en gob.pe'
+          : 'año del número';
+
       const chunks = chunkText(raw);
       const embeddings = await embedBatch(chunks.map((c) => c.content));
 
@@ -406,7 +448,7 @@ async function main() {
             anio: String(r.anio),
             correlativo: r.numero.split('-')[0].padStart(4, '0'),
             sala: r.sala,
-            fecha_origen: fecha ? 'publicación en gob.pe' : 'año del número',
+            fecha_origen: origenFecha,
             // Deja rastro de que el texto vino de OCR y no de la capa
             // del PDF, por si hay que revisar su fidelidad después.
             texto_via_ocr: viaOcr || undefined,

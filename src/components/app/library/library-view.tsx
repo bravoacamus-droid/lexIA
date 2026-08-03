@@ -179,9 +179,22 @@ function agruparPorAnio(
 ): Array<{ anio: string; documentos: BrowseDoc[] }> {
   const out: Array<{ anio: string; documentos: BrowseDoc[] }> = [];
   for (const d of docs) {
-    // El año se lee del string 'YYYY-MM-DD' directamente para no
-    // depender de la zona horaria (ver formatDate en utils.ts).
-    const anio = d.date ? d.date.slice(0, 4) : 'Sin año';
+    // Se agrupa por metadata.anio —el año DEL DOCUMENTO, tomado de su
+    // numeración— y no por el año de la fecha.
+    //
+    // Son cosas distintas y en las resoluciones del Tribunal divergen en
+    // el 6% de los casos: la "Resolución N° 2931-2026-S3" quedó fechada
+    // en 2023 porque la extracción tomó una fecha citada en el texto en
+    // vez de la de la firma. Como la lista SÍ se ordena por
+    // metadata.anio, agrupar por el año de la fecha producía encabezados
+    // alternando "2026 → 2023 → 2026 → 2023..." doce veces en sesenta
+    // documentos, y parecía que el orden estaba roto cuando no lo estaba
+    // (César, 03/08/2026).
+    //
+    // Se conserva la lectura del string 'YYYY-MM-DD' como respaldo para
+    // los tipos sin metadata.anio, sin pasar por Date() para no depender
+    // de la zona horaria (ver formatDate en utils.ts).
+    const anio = d.metadata?.anio || (d.date ? d.date.slice(0, 4) : 'Sin año');
     const ultimo = out[out.length - 1];
     if (ultimo && ultimo.anio === anio) ultimo.documentos.push(d);
     else out.push({ anio, documentos: [d] });
@@ -198,8 +211,10 @@ interface BrowseDoc {
   date: string | null;
   source_url: string | null;
   ai_summary?: AiSummaryMini | null;
-  /** metadata.entidad — OECE / Perú Compras / DGA / SUNARP. */
-  metadata?: { entidad?: string | null } | null;
+  /** metadata.entidad — OECE / Perú Compras / DGA / SUNARP.
+   *  metadata.anio — año del documento según su numeración; es el que
+   *  manda para ordenar y agrupar. */
+  metadata?: { entidad?: string | null; anio?: string | null } | null;
 }
 
 interface SearchResult {
