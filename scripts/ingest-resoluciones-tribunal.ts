@@ -478,11 +478,37 @@ async function main() {
         embedding: JSON.stringify(embeddings[k]),
         metadata: { heading: c.heading || null } as never,
       }));
-      for (let k = 0; k < filas.length; k += 50) {
-        const { error: e } = await supabase
-          .from('normative_chunks')
-          .insert(filas.slice(k, k + 50) as never);
-        if (e) throw new Error(e.message);
+      // Los fragmentos se insertan con reintento y, si aun así fallan,
+      // se BORRA el documento.
+      //
+      // Antes un timeout en cualquier lote lanzaba la excepción y el
+      // documento quedaba en la biblioteca con cero o con la mitad de
+      // sus fragmentos: visible en la lista y en los contadores, pero
+      // invisible para el chat, que solo busca sobre fragmentos. El
+      // 04/08/2026 había 69 resoluciones así. Como el archivo de estado
+      // ya las daba por procesadas, nadie las iba a reintentar nunca.
+      //
+      // El timeout de escritura es transitorio —viene de competir con el
+      // propio índice vectorial—, así que reintentar con espera creciente
+      // resuelve la mayoría. Lo que no se pueda, se deshace entero: mejor
+      // ausente y reintentable que presente y mudo.
+      try {
+        for (let k = 0; k < filas.length; k += 50) {
+          const lote = filas.slice(k, k + 50) as never;
+          let intento = 0;
+          for (;;) {
+            const { error: e } = await supabase.from('normative_chunks').insert(lote);
+            if (!e) break;
+            if (++intento > 3) throw new Error(e.message);
+            await sleep(2000 * intento);
+          }
+        }
+      } catch (e) {
+        await supabase
+          .from('normative_documents')
+          .delete()
+          .eq('id', (inserted as { id: string }).id);
+        throw new Error(`fragmentos: ${(e as Error).message}`);
       }
 
       anotar(r.key, 'ok', `${filas.length} frag${viaOcr ? ' (ocr)' : ''}`);
