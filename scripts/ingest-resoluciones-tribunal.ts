@@ -51,6 +51,12 @@ const CANDADO = join(process.cwd(), 'data', 'tcp-ingesta.lock');
 const LIMIT = Number(process.argv.find((a) => a.startsWith('--limit='))?.slice(8) || 0);
 const DESDE = Number(process.argv.find((a) => a.startsWith('--desde='))?.slice(8) || 2020);
 const PAUSA_MS = 900; // cortesía con gob.pe
+/** Tope al que puede llegar la espera si el buscador va apretado. */
+const PAUSA_MAX_MS = 4000;
+/** Pausa larga cuando el buscador está en rojo, para que se recupere. */
+const DESCANSO_MS = 120_000;
+const UMBRAL_AMARILLO = 1800;
+const UMBRAL_ROJO = 3000;
 
 interface IndexRow {
   key: string;
@@ -385,6 +391,8 @@ async function main() {
   let ok = 0;
   let fallos = 0;
   let chunksTotal = 0;
+  /** Espera entre documentos; sube y baja según la salud del buscador. */
+  let pausaActual = PAUSA_MS;
   const t0 = Date.now();
 
   for (let i = 0; i < total; i++) {
@@ -486,18 +494,45 @@ async function main() {
     }
 
     // Chequeo de salud del buscador cada 200 documentos.
+    //
+    // La lentitud NO viene del tamaño del índice sino de la CONTENCIÓN
+    // con esta misma ingesta. Medido el 04/08/2026: con la carga
+    // detenida y 148 mil fragmentos —más de los que había cuando el
+    // guardián marcó 3,322 ms— el buscador respondía en 169-412 ms. Son
+    // las escrituras al índice vectorial las que le quitan aire a las
+    // lecturas.
+    //
+    // Por eso ya no se detiene la corrida al primer rojo: eso costó 6.6
+    // horas de máquina parada sin que nadie mirara. Ahora se afloja el
+    // ritmo y se vuelve a medir; si en tres intentos no recupera, ahí sí
+    // se detiene, porque entonces el problema es otro.
     if ((i + 1) % 200 === 0) {
-      const ms = await medirBuscador();
-      if (ms < 0) {
-        console.log(`  🔴 EL BUSCADOR FALLA (timeout). Deteniendo para no agravarlo.`);
-        console.log(`     Revisar antes de continuar; lo ingerido queda guardado.`);
+      let ms = await medirBuscador();
+      let intentos = 0;
+      while ((ms < 0 || ms > UMBRAL_ROJO) && intentos < 3) {
+        intentos++;
+        console.log(
+          `  🔴 buscador en ${ms < 0 ? 'error' : `${ms} ms`} — pausa de ${DESCANSO_MS / 1000}s ` +
+            `para dejarlo respirar (intento ${intentos}/3)`,
+        );
+        await sleep(DESCANSO_MS);
+        ms = await medirBuscador();
+      }
+      if (ms < 0 || ms > UMBRAL_ROJO) {
+        console.log('  🔴 No recupera tras tres pausas — detengo. Lo ingerido queda guardado.');
         break;
       }
-      const estado = ms > 3000 ? '🔴' : ms > 1800 ? '🟡' : '🟢';
-      console.log(`  ${estado} salud del buscador: ${ms} ms`);
-      if (ms > 3000) {
-        console.log('     Latencia alta — detengo aquí para revisar.');
-        break;
+      const estado = ms > UMBRAL_AMARILLO ? '🟡' : '🟢';
+      console.log(`  ${estado} salud del buscador: ${ms} ms${intentos ? ' (recuperado)' : ''}`);
+      // En amarillo se aumenta la espera entre documentos y en verde se
+      // recupera: la ingesta cede ancho de banda cuando el buscador lo
+      // necesita en vez de competir a ciegas.
+      if (ms > UMBRAL_AMARILLO) {
+        pausaActual = Math.min(pausaActual + 600, PAUSA_MAX_MS);
+        console.log(`     ritmo aflojado a ${pausaActual} ms entre documentos`);
+      } else if (pausaActual > PAUSA_MS) {
+        pausaActual = Math.max(pausaActual - 300, PAUSA_MS);
+        console.log(`     ritmo recuperado a ${pausaActual} ms entre documentos`);
       }
     }
 
@@ -510,7 +545,7 @@ async function main() {
           `${porDoc.toFixed(1)}s/doc · faltan ~${restan.toFixed(0)} min`,
       );
     }
-    await sleep(PAUSA_MS);
+    await sleep(pausaActual);
   }
 
   console.log(`\n✅ ${ok} ingeridas · ${fallos} omitidas · ${chunksTotal} fragmentos`);
