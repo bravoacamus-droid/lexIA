@@ -70,3 +70,6 @@ Preguntas y respuestas planteadas por el OECE.pdf
 data/tcp-ingesta.log
 data/tcp-ingesta.err.log
 data/tcp-ingesta.lock
+data/tcp-reintento.log
+data/tcp-reintento.err.log
+data/tcp-ingesta.state.jsonl.bak
