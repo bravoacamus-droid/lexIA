@@ -66,6 +66,32 @@ const CONSULTA_SALUD = 'plazo para perfeccionar el contrato';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * Quita del texto extraído los caracteres de control que Postgres no
+ * acepta.
+ *
+ * Algunos PDFs del OECE traen bytes nulos en su capa de texto. Al viajar
+ * como JSON llegan a Postgres como un escape que rechaza —"unsupported
+ * Unicode escape sequence"— y tumba la inserción del documento entero:
+ * 10 de los primeros 245 (4%) se perdían por esto.
+ *
+ * Se comparan códigos en vez de usar una expresión regular con escapes
+ * para que el archivo fuente no tenga que contener caracteres de control
+ * literales. Se conservan tabulación, salto de línea y retorno de carro,
+ * que sí forman parte del contenido.
+ */
+function limpiarTexto(s: string): string {
+  let salida = '';
+  let inicio = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    if (c > 31 || c === 9 || c === 10 || c === 13) continue;
+    salida += s.slice(inicio, i);
+    inicio = i + 1;
+  }
+  return inicio === 0 ? s : salida + s.slice(inicio);
+}
+
 interface Entrada {
   id: string;
   url: string;
@@ -287,7 +313,7 @@ async function main() {
       const buf = Buffer.from(await (await fetch(pdf, { headers: HEADERS })).arrayBuffer());
       const doc = await getDocumentProxy(new Uint8Array(buf));
       const { text } = await extractText(doc, { mergePages: true });
-      let raw = String(text).trim();
+      let raw = limpiarTexto(String(text).trim());
       let viaOcr = false;
       if (raw.length < 400) {
         const ocr = await transcribirEscaneado(buf, e.titulo.slice(0, 30));
@@ -297,7 +323,7 @@ async function main() {
           await sleep(pausaActual);
           continue;
         }
-        raw = ocr;
+        raw = limpiarTexto(ocr);
         viaOcr = true;
       }
 

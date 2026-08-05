@@ -70,6 +70,33 @@ interface IndexRow {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
+ * Quita del texto extraído los caracteres de control que Postgres no
+ * acepta.
+ *
+ * Algunos PDFs traen bytes nulos en su capa de texto. Al viajar como
+ * JSON llegan a Postgres como un escape que rechaza —"unsupported
+ * Unicode escape sequence"— y tumba la inserción del documento entero.
+ * Detectado el 05/08/2026 en la ingesta de opiniones, donde costó el 4%
+ * de los documentos; se aplica también aquí porque la causa es el PDF,
+ * no la colección.
+ *
+ * Se comparan códigos en vez de usar una expresión regular con escapes
+ * para que el archivo fuente no tenga que contener caracteres de control
+ * literales. Se conservan tabulación, salto de línea y retorno de carro.
+ */
+function limpiarTexto(s: string): string {
+  let salida = '';
+  let inicio = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    if (c > 31 || c === 9 || c === 10 || c === 13) continue;
+    salida += s.slice(inicio, i);
+    inicio = i + 1;
+  }
+  return inicio === 0 ? s : salida + s.slice(inicio);
+}
+
+/**
  * Vigila que el buscador siga respondiendo rápido mientras crece el
  * corpus.
  *
@@ -411,7 +438,7 @@ async function main() {
       );
       const doc = await getDocumentProxy(new Uint8Array(buf));
       const { text } = await extractText(doc, { mergePages: true });
-      let raw = String(text).trim();
+      let raw = limpiarTexto(String(text).trim());
       let viaOcr = false;
       if (raw.length < 400) {
         // Sin capa de texto → lo lee Gemini como imagen en vez de omitirlo.
@@ -422,7 +449,7 @@ async function main() {
           await sleep(PAUSA_MS);
           continue;
         }
-        raw = ocr;
+        raw = limpiarTexto(ocr);
         viaOcr = true;
         console.log(`   🖼️ ${r.key} transcrito con Gemini (${raw.length} chars)`);
       }
