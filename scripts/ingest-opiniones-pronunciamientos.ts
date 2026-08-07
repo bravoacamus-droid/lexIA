@@ -234,6 +234,21 @@ function correlativoDe(titulo: string): string | null {
   return m ? m[1].padStart(4, '0') : null;
 }
 
+/**
+ * Entidad emisora, leída del propio título.
+ *
+ * No se puede fijar en "OECE": ese organismo existe desde 2025. Los
+ * pronunciamientos de 2023 y 2024 los emitió el OSCE, y sus títulos lo
+ * dicen ("Pronunciamiento N° 686-2024/OSCE-DGR"). Con la entidad fija se
+ * habrían etiquetado mal unos 1,266 documentos, y el filtro por entidad
+ * de la biblioteca —OECE, Perú Compras, DGA— habría mentido.
+ */
+function entidadDe(titulo: string): string {
+  if (/\bOSCE\b/i.test(titulo)) return 'OSCE';
+  if (/per[uú]\s*compras/i.test(titulo)) return 'Perú Compras';
+  return 'OECE';
+}
+
 function anioDe(titulo: string, fecha: string | null): string | null {
   const m = titulo.match(/-\s*(20\d{2})\s*[-/]/);
   if (m) return m[1];
@@ -427,7 +442,7 @@ async function main() {
           // del régimen anterior aunque compartan año con los de mayo.
           applicable_law: regimenDe(fecha),
           metadata: {
-            entidad: 'OECE',
+            entidad: entidadDe(titulo),
             anio,
             correlativo,
             pages: doc.numPages,
