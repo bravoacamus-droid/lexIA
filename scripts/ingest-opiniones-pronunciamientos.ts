@@ -53,6 +53,10 @@ const HEADERS = {
 };
 
 const CENSO = join(process.cwd(), 'data', 'oece-colecciones.census.json');
+/** Censo completo de la colección de pronunciamientos (248 páginas). */
+const CENSO_PRON = join(process.cwd(), 'data', 'pronunciamientos.census.json');
+/** Año mínimo a ingerir de ese censo. */
+const DESDE_ANIO = Number(process.argv.find((a) => a.startsWith('--desde='))?.slice(8) || 2024);
 const ESTADO = join(process.cwd(), 'data', 'oece-ingesta.state.jsonl');
 const CANDADO = join(process.cwd(), 'data', 'oece-ingesta.lock');
 const LIMIT = Number(process.argv.find((a) => a.startsWith('--limit='))?.slice(8) || 0);
@@ -236,13 +240,49 @@ function anioDe(titulo: string, fecha: string | null): string | null {
   return fecha ? fecha.slice(0, 4) : null;
 }
 
-/** Extrae la URL del PDF de la ficha de gob.pe. */
-async function pdfDeFicha(url: string): Promise<string | null> {
+const MESES: Record<string, string> = {
+  enero: '01', febrero: '02', marzo: '03', abril: '04', mayo: '05', junio: '06',
+  julio: '07', agosto: '08', setiembre: '09', septiembre: '09', octubre: '10',
+  noviembre: '11', diciembre: '12',
+};
+
+/**
+ * Entrada en vigor de la Ley 32069. Lo anterior se rige por la 30225.
+ *
+ * Se decide por la FECHA y no por el año: los pronunciamientos de enero a
+ * abril de 2025 son del régimen anterior aunque compartan año con los de
+ * mayo en adelante. Marcarlos mal haría que el selector de régimen —lo
+ * que César pidió expresamente para no mezclar— mostrara doctrina
+ * derogada como vigente.
+ */
+const VIGENCIA_32069 = '2025-04-22';
+
+function regimenDe(fecha: string | null): string[] {
+  if (!fecha) return ['ley_32069'];
+  return fecha < VIGENCIA_32069 ? ['ley_30225'] : ['ley_32069'];
+}
+
+/** Extrae del HTML de la ficha el PDF, el título y la fecha. */
+async function leerFicha(
+  url: string,
+): Promise<{ pdf: string | null; titulo: string | null; fecha: string | null }> {
   const res = await fetch(url, { headers: HEADERS });
-  if (!res.ok) return null;
+  if (!res.ok) return { pdf: null, titulo: null, fecha: null };
   const html = await res.text();
-  const m = html.match(/https:\/\/cdn[^"']+\.pdf[^"']*/);
-  return m ? m[0].replace(/\?v=\d+$/, '') : null;
+
+  const p = html.match(/https:\/\/cdn[^"']+\.pdf[^"']*/);
+  const pdf = p ? p[0].replace(/\?v=\d+$/, '') : null;
+
+  const t = html.match(/<title>([^<]+)<\/title>/);
+  const titulo = t
+    ? t[1].split(' - Informes')[0].split(' - Plataforma')[0].trim()
+    : null;
+
+  const f = html.match(/(\d{1,2})\s+de\s+([a-zñáéíóú]+)\s+de\s+(20\d{2})/i);
+  const mes = f ? MESES[f[2].toLowerCase()] : null;
+  const fecha = f && mes ? `${f[3]}-${mes}-${String(f[1]).padStart(2, '0')}` : null;
+
+  return { pdf, titulo, fecha };
 }
 
 async function main() {
@@ -274,7 +314,9 @@ async function main() {
   }
   const procesados = yaProcesados();
 
-  const pendientes: Array<Entrada & { tipo: string }> = [];
+  const pendientes: Array<Entrada & { tipo: string; orden: string }> = [];
+
+  // Fuente 1 — colecciones de opiniones y pronunciamientos (2025-2026).
   for (const [clave, tipo] of [
     ['opiniones', 'opinion'],
     ['pronunciamientos', 'pronunciamiento'],
@@ -283,11 +325,40 @@ async function main() {
       if (enBiblioteca.has(e.id) || procesados.has(e.id)) continue;
       // Entradas que no son de este tipo (el TUPA se cuela en ambas).
       if (!/opini[óo]n|pronunciamiento/i.test(e.titulo)) continue;
-      pendientes.push({ ...e, tipo });
+      pendientes.push({ ...e, tipo, orden: e.fecha || '0000' });
     }
   }
+
+  // Fuente 2 — censo completo de la colección de pronunciamientos.
+  // El de arriba solo alcanzaba 451 de los 5,940 publicados porque
+  // paraba tras dos páginas sin novedades; este recorre las 248 páginas.
+  // Solo se toman los INDIVIDUALES: de 2018 hacia atrás gob.pe publica
+  // compilados de 25 pronunciamientos en un PDF, que necesitarían otro
+  // tratamiento (partirlos) y quedan fuera del alcance pedido.
+  if (existsSync(CENSO_PRON)) {
+    const completo = JSON.parse(readFileSync(CENSO_PRON, 'utf8')) as Array<{
+      id: string; slug: string; url: string; forma: string; numero: string | null; anio: string | null;
+    }>;
+    const yaEnLista = new Set(pendientes.map((p) => p.id));
+    for (const e of completo) {
+      if (e.forma !== 'individual') continue;
+      if (!e.anio || Number(e.anio) < DESDE_ANIO) continue;
+      if (enBiblioteca.has(e.id) || procesados.has(e.id) || yaEnLista.has(e.id)) continue;
+      pendientes.push({
+        id: e.id,
+        url: e.url,
+        titulo: '',   // se lee de la ficha
+        fecha: null,  // se lee de la ficha
+        tipo: 'pronunciamiento',
+        // Sin fecha todavía: se ordena por año y correlativo del slug,
+        // que basta para procesar lo más reciente primero.
+        orden: `${e.anio}-${String(e.numero || '0').padStart(5, '0')}`,
+      });
+    }
+  }
+
   // Más reciente primero: si se corta, lo vigente ya está dentro.
-  pendientes.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+  pendientes.sort((a, b) => b.orden.localeCompare(a.orden));
 
   const lista = LIMIT > 0 ? pendientes.slice(0, LIMIT) : pendientes;
   console.log(`En biblioteca: ${enBiblioteca.size} documentos (por id de gob.pe)`);
@@ -302,13 +373,24 @@ async function main() {
   for (let i = 0; i < lista.length; i++) {
     const e = lista[i];
     try {
-      const pdf = await pdfDeFicha(e.url);
-      if (!pdf) {
+      const ficha = await leerFicha(e.url);
+      if (!ficha.pdf) {
         anotar(e.id, 'sin_pdf');
         fallos++;
         await sleep(pausaActual);
         continue;
       }
+      // El censo de la colección trae título y fecha; el censo completo
+      // de pronunciamientos solo trae el slug, así que se leen aquí.
+      const titulo = e.titulo || ficha.titulo || '';
+      const fecha = e.fecha || ficha.fecha;
+      if (!titulo) {
+        anotar(e.id, 'sin_titulo');
+        fallos++;
+        await sleep(pausaActual);
+        continue;
+      }
+      const pdf = ficha.pdf;
 
       const buf = Buffer.from(await (await fetch(pdf, { headers: HEADERS })).arrayBuffer());
       const doc = await getDocumentProxy(new Uint8Array(buf));
@@ -316,7 +398,7 @@ async function main() {
       let raw = limpiarTexto(String(text).trim());
       let viaOcr = false;
       if (raw.length < 400) {
-        const ocr = await transcribirEscaneado(buf, e.titulo.slice(0, 30));
+        const ocr = await transcribirEscaneado(buf, titulo.slice(0, 30));
         if (!ocr) {
           anotar(e.id, 'sin_texto', `${raw.length} chars, OCR sin resultado`);
           fallos++;
@@ -327,8 +409,8 @@ async function main() {
         viaOcr = true;
       }
 
-      const anio = anioDe(e.titulo, e.fecha);
-      const correlativo = correlativoDe(e.titulo);
+      const anio = anioDe(titulo, fecha);
+      const correlativo = correlativoDe(titulo);
       const chunks = chunkText(raw);
       const embeddings = await embedBatch(chunks.map((c) => c.content));
 
@@ -336,13 +418,14 @@ async function main() {
         .from('normative_documents')
         .insert({
           type: e.tipo,
-          number: e.titulo,
-          title: e.titulo,
+          number: titulo,
+          title: titulo,
           raw_text: raw,
-          date: e.fecha,
+          date: fecha,
           source_url: e.url,
-          // Toda esta tanda es del régimen vigente (2025 en adelante).
-          applicable_law: ['ley_32069'],
+          // Según la FECHA, no el año: los de enero a abril de 2025 son
+          // del régimen anterior aunque compartan año con los de mayo.
+          applicable_law: regimenDe(fecha),
           metadata: {
             entidad: 'OECE',
             anio,
