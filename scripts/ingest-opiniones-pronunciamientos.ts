@@ -244,7 +244,11 @@ function correlativoDe(titulo: string): string | null {
  * de la biblioteca —OECE, Perú Compras, DGA— habría mentido.
  */
 function entidadDe(titulo: string): string {
-  if (/\bOSCE\b/i.test(titulo)) return 'OSCE';
+  // Sin \b a propósito: gob.pe publica títulos con la separación comida,
+  // como "Pronunciamiento N° 404-2023OSCE-DGR". Con límite de palabra
+  // ese caso no calzaba —entre "3" y "O" no hay frontera— y el documento
+  // quedaba atribuido al OECE, que en 2023 no existía.
+  if (/OSCE/i.test(titulo)) return 'OSCE';
   if (/per[uú]\s*compras/i.test(titulo)) return 'Perú Compras';
   return 'OECE';
 }
