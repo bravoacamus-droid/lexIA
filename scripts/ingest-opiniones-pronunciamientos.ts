@@ -57,6 +57,12 @@ const CENSO = join(process.cwd(), 'data', 'oece-colecciones.census.json');
 const CENSO_PRON = join(process.cwd(), 'data', 'pronunciamientos.census.json');
 /** Año mínimo a ingerir de ese censo. */
 const DESDE_ANIO = Number(process.argv.find((a) => a.startsWith('--desde='))?.slice(8) || 2024);
+/** Censo de las opiniones anteriores a 2025 (fuera de colección). */
+const CENSO_OPIN_ANT = join(process.cwd(), 'data', 'opiniones-antiguas.census.json');
+/** Año mínimo de opiniones antiguas; 0 las desactiva. */
+const DESDE_OPINION = Number(
+  process.argv.find((a) => a.startsWith('--opiniones-desde='))?.slice(18) || 0,
+);
 const ESTADO = join(process.cwd(), 'data', 'oece-ingesta.state.jsonl');
 const CANDADO = join(process.cwd(), 'data', 'oece-ingesta.lock');
 const LIMIT = Number(process.argv.find((a) => a.startsWith('--limit='))?.slice(8) || 0);
@@ -281,12 +287,36 @@ function regimenDe(fecha: string | null): string[] {
   return fecha < VIGENCIA_32069 ? ['ley_30225'] : ['ley_32069'];
 }
 
+/**
+ * Descarga con reintentos y espera creciente.
+ *
+ * Sin esto, un rechazo pasajero de gob.pe —normal al pedir cientos de
+ * páginas seguidas— quedaba anotado como "sin PDF" para siempre, porque
+ * el archivo de estado da el documento por procesado. El 07/08/2026 eso
+ * costó 6 de los primeros 20: al revisarlos a mano, las fichas
+ * respondían bien y el PDF estaba donde debía.
+ */
+async function traer(url: string, intentos = 4): Promise<Response | null> {
+  for (let i = 0; i < intentos; i++) {
+    try {
+      const r = await fetch(url, { headers: HEADERS });
+      if (r.ok) return r;
+      // 4xx que no sea límite de peticiones: no insistir.
+      if (r.status < 500 && r.status !== 429) return null;
+    } catch {
+      /* red inestable: se reintenta */
+    }
+    await sleep(2000 * (i + 1));
+  }
+  return null;
+}
+
 /** Extrae del HTML de la ficha el PDF, el título y la fecha. */
 async function leerFicha(
   url: string,
 ): Promise<{ pdf: string | null; titulo: string | null; fecha: string | null }> {
-  const res = await fetch(url, { headers: HEADERS });
-  if (!res.ok) return { pdf: null, titulo: null, fecha: null };
+  const res = await traer(url);
+  if (!res) return { pdf: null, titulo: null, fecha: null };
   const html = await res.text();
 
   const p = html.match(/https:\/\/cdn[^"']+\.pdf[^"']*/);
@@ -345,6 +375,33 @@ async function main() {
       // Entradas que no son de este tipo (el TUPA se cuela en ambas).
       if (!/opini[óo]n|pronunciamiento/i.test(e.titulo)) continue;
       pendientes.push({ ...e, tipo, orden: e.fecha || '0000' });
+    }
+  }
+
+  // Fuente 3 — opiniones anteriores a 2025, que no están en ninguna
+  // colección y solo se alcanzan por el buscador de gob.pe. Ver
+  // censar-opiniones-antiguas.ts.
+  //
+  // Todas son del régimen de la Ley 30225 y las emitió el OSCE, pero eso
+  // no se fija a mano: la entidad sale del título y el régimen de la
+  // fecha, igual que en las otras fuentes. Así un documento raro con
+  // fecha posterior no queda mal clasificado por una suposición.
+  if (existsSync(CENSO_OPIN_ANT)) {
+    const antiguas = JSON.parse(readFileSync(CENSO_OPIN_ANT, 'utf8')) as Array<{
+      id: string; slug: string; url: string; numero: string | null; anio: string | null;
+    }>;
+    const yaEnLista2 = new Set(pendientes.map((p) => p.id));
+    for (const e of antiguas) {
+      if (!e.anio || Number(e.anio) < DESDE_OPINION) continue;
+      if (enBiblioteca.has(e.id) || procesados.has(e.id) || yaEnLista2.has(e.id)) continue;
+      pendientes.push({
+        id: e.id,
+        url: e.url,
+        titulo: '',
+        fecha: null,
+        tipo: 'opinion',
+        orden: `${e.anio}-${String(e.numero || '0').padStart(5, '0')}`,
+      });
     }
   }
 
@@ -411,7 +468,14 @@ async function main() {
       }
       const pdf = ficha.pdf;
 
-      const buf = Buffer.from(await (await fetch(pdf, { headers: HEADERS })).arrayBuffer());
+      const resPdf = await traer(pdf);
+      if (!resPdf) {
+        anotar(e.id, 'sin_pdf', 'descarga del PDF falló tras reintentos');
+        fallos++;
+        await sleep(pausaActual);
+        continue;
+      }
+      const buf = Buffer.from(await resPdf.arrayBuffer());
       const doc = await getDocumentProxy(new Uint8Array(buf));
       const { text } = await extractText(doc, { mergePages: true });
       let raw = limpiarTexto(String(text).trim());
