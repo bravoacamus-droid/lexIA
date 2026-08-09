@@ -2401,19 +2401,13 @@
 {"id":"8328290","estado":"ok","detalle":"26 frag"}
 {"id":"8316498","estado":"ok","detalle":"42 frag"}
 {"id":"8306499","estado":"ok","detalle":"42 frag"}
-{"id":"7960255","estado":"sin_pdf","detalle":""}
 {"id":"7922505","estado":"ok","detalle":"43 frag"}
 {"id":"7825680","estado":"ok","detalle":"38 frag"}
-{"id":"7825580","estado":"sin_texto","detalle":"0 chars, OCR sin resultado"}
 {"id":"7774616","estado":"ok","detalle":"72 frag"}
 {"id":"7730936","estado":"ok","detalle":"42 frag"}
 {"id":"7773063","estado":"ok","detalle":"55 frag"}
 {"id":"7729870","estado":"ok","detalle":"67 frag"}
 {"id":"7649338","estado":"ok","detalle":"22 frag"}
-{"id":"7573984","estado":"sin_texto","detalle":"0 chars, OCR sin resultado"}
-{"id":"7366339","estado":"error_doc","detalle":"duplicate key value violates unique constraint \"normative_documents_type_number_"}
-{"id":"6957431","estado":"sin_texto","detalle":"218 chars, OCR sin resultado"}
-{"id":"6957379","estado":"sin_pdf","detalle":""}
 {"id":"6165097","estado":"ok","detalle":"8 frag"}
 {"id":"6165115","estado":"ok","detalle":"20 frag"}
 {"id":"6165096","estado":"ok","detalle":"14 frag"}
@@ -2427,9 +2421,6 @@
 {"id":"6061161","estado":"ok","detalle":"20 frag"}
 {"id":"6061158","estado":"ok","detalle":"17 frag"}
 {"id":"6061156","estado":"ok","detalle":"41 frag"}
-{"id":"4924499","estado":"error_doc","detalle":"duplicate key value violates unique constraint \"normative_documents_type_number_"}
-{"id":"4386218","estado":"error_doc","detalle":"duplicate key value violates unique constraint \"normative_documents_type_number_"}
-{"id":"3827800","estado":"error_doc","detalle":"duplicate key value violates unique constraint \"normative_documents_type_number_"}
 {"id":"8446791","estado":"ok","detalle":"7 frag"}
 {"id":"8446810","estado":"ok","detalle":"6 frag"}
 {"id":"8447104","estado":"ok","detalle":"12 frag"}
@@ -2438,27 +2429,17 @@
 {"id":"6483453","estado":"ok","detalle":"9 frag"}
 {"id":"6714683","estado":"ok","detalle":"10 frag"}
 {"id":"6570970","estado":"ok","detalle":"5 frag"}
-{"id":"6426599","estado":"sin_pdf","detalle":""}
 {"id":"6483436","estado":"ok","detalle":"9 frag"}
 {"id":"6505526","estado":"ok","detalle":"6 frag"}
 {"id":"6621335","estado":"ok","detalle":"8 frag"}
 {"id":"6714682","estado":"ok","detalle":"8 frag"}
 {"id":"6570953","estado":"ok","detalle":"8 frag"}
 {"id":"6621323","estado":"ok","detalle":"7 frag"}
-{"id":"6505569","estado":"sin_pdf","detalle":""}
-{"id":"6714681","estado":"sin_pdf","detalle":""}
-{"id":"6621351","estado":"sin_pdf","detalle":""}
-{"id":"6714680","estado":"sin_pdf","detalle":""}
 {"id":"6714684","estado":"ok","detalle":"5 frag"}
 {"id":"6505482","estado":"ok","detalle":"8 frag"}
 {"id":"6426603","estado":"ok","detalle":"6 frag"}
-{"id":"6570930","estado":"sin_pdf","detalle":""}
 {"id":"6570917","estado":"ok","detalle":"8 frag"}
 {"id":"6714685","estado":"ok","detalle":"7 frag"}
-{"id":"6399582","estado":"sin_pdf","detalle":""}
-{"id":"6400223","estado":"sin_pdf","detalle":""}
-{"id":"6399565","estado":"sin_pdf","detalle":""}
-{"id":"6399555","estado":"sin_pdf","detalle":""}
 {"id":"6399548","estado":"ok","detalle":"5 frag"}
 {"id":"6349011","estado":"ok","detalle":"10 frag"}
 {"id":"6321876","estado":"ok","detalle":"4 frag"}
@@ -2481,16 +2462,374 @@
 {"id":"5788417","estado":"ok","detalle":"6 frag"}
 {"id":"5788403","estado":"ok","detalle":"8 frag"}
 {"id":"5788372","estado":"ok","detalle":"6 frag"}
-{"id":"5704581","estado":"sin_pdf","detalle":""}
 {"id":"5704560","estado":"ok","detalle":"3 frag"}
-{"id":"5704548","estado":"sin_pdf","detalle":""}
 {"id":"5704525","estado":"ok","detalle":"9 frag"}
 {"id":"5704508","estado":"ok","detalle":"7 frag"}
 {"id":"5704479","estado":"ok","detalle":"5 frag"}
 {"id":"5704474","estado":"ok","detalle":"4 frag"}
 {"id":"5704460","estado":"ok","detalle":"4 frag"}
-{"id":"5704447","estado":"sin_pdf","detalle":""}
-{"id":"5619448","estado":"sin_pdf","detalle":""}
-{"id":"5619437","estado":"sin_pdf","detalle":""}
 {"id":"5619415","estado":"ok","detalle":"6 frag"}
 {"id":"5619403","estado":"ok","detalle":"8 frag"}
+{"id":"7960255","estado":"sin_pdf","detalle":""}
+{"id":"7825580","estado":"sin_texto","detalle":"0 chars, OCR sin resultado"}
+{"id":"7573984","estado":"sin_texto","detalle":"0 chars, OCR sin resultado"}
+{"id":"7366339","estado":"error_doc","detalle":"duplicate key value violates unique constraint \"normative_documents_type_number_"}
+{"id":"6957431","estado":"sin_texto","detalle":"218 chars, OCR sin resultado"}
+{"id":"6957379","estado":"sin_pdf","detalle":""}
+{"id":"6426599","estado":"ok","detalle":"8 frag"}
+{"id":"6505569","estado":"ok","detalle":"6 frag"}
+{"id":"6714681","estado":"ok","detalle":"7 frag"}
+{"id":"6621351","estado":"ok","detalle":"6 frag"}
+{"id":"6714680","estado":"ok","detalle":"6 frag"}
+{"id":"6570930","estado":"ok","detalle":"10 frag"}
+{"id":"6399582","estado":"ok","detalle":"8 frag"}
+{"id":"6400223","estado":"ok","detalle":"9 frag"}
+{"id":"6399565","estado":"ok","detalle":"6 frag"}
+{"id":"6399555","estado":"ok","detalle":"5 frag"}
+{"id":"5704581","estado":"ok","detalle":"6 frag"}
+{"id":"5704548","estado":"ok","detalle":"7 frag"}
+{"id":"5704447","estado":"ok","detalle":"5 frag"}
+{"id":"5619448","estado":"ok","detalle":"3 frag"}
+{"id":"5619437","estado":"ok","detalle":"5 frag"}
+{"id":"5619393","estado":"ok","detalle":"7 frag"}
+{"id":"5619362","estado":"ok","detalle":"6 frag"}
+{"id":"5619318","estado":"ok","detalle":"4 frag"}
+{"id":"5619277","estado":"ok","detalle":"8 frag"}
+{"id":"5619246","estado":"ok","detalle":"4 frag"}
+{"id":"5513736","estado":"ok","detalle":"5 frag"}
+{"id":"5513725","estado":"ok","detalle":"5 frag"}
+{"id":"5513711","estado":"ok","detalle":"4 frag"}
+{"id":"5450251","estado":"ok","detalle":"5 frag"}
+{"id":"5412479","estado":"ok","detalle":"8 frag"}
+{"id":"5412447","estado":"ok","detalle":"8 frag"}
+{"id":"5412444","estado":"ok","detalle":"5 frag"}
+{"id":"5412442","estado":"ok","detalle":"7 frag"}
+{"id":"5412439","estado":"ok","detalle":"13 frag"}
+{"id":"5412437","estado":"ok","detalle":"6 frag"}
+{"id":"5341287","estado":"ok","detalle":"5 frag"}
+{"id":"5341281","estado":"ok","detalle":"5 frag"}
+{"id":"5341278","estado":"ok","detalle":"3 frag"}
+{"id":"5279724","estado":"ok","detalle":"8 frag"}
+{"id":"5279519","estado":"ok","detalle":"9 frag"}
+{"id":"5279504","estado":"ok","detalle":"8 frag"}
+{"id":"5274303","estado":"ok","detalle":"6 frag"}
+{"id":"5138901","estado":"ok","detalle":"8 frag"}
+{"id":"5138890","estado":"ok","detalle":"5 frag"}
+{"id":"5138882","estado":"ok","detalle":"11 frag"}
+{"id":"5138874","estado":"ok","detalle":"5 frag"}
+{"id":"5138829","estado":"ok","detalle":"8 frag"}
+{"id":"4997455","estado":"ok","detalle":"6 frag"}
+{"id":"4924499","estado":"error_doc","detalle":"duplicate key value violates unique constraint \"normative_documents_type_number_"}
+{"id":"4386218","estado":"error_doc","detalle":"duplicate key value violates unique constraint \"normative_documents_type_number_"}
+{"id":"4985212","estado":"ok","detalle":"3 frag"}
+{"id":"4976825","estado":"ok","detalle":"5 frag"}
+{"id":"4976815","estado":"ok","detalle":"12 frag"}
+{"id":"4976803","estado":"ok","detalle":"4 frag"}
+{"id":"4976788","estado":"ok","detalle":"10 frag"}
+{"id":"4976690","estado":"ok","detalle":"6 frag"}
+{"id":"4976671","estado":"ok","detalle":"6 frag"}
+{"id":"4976651","estado":"ok","detalle":"6 frag"}
+{"id":"4976626","estado":"ok","detalle":"6 frag"}
+{"id":"4976494","estado":"ok","detalle":"10 frag"}
+{"id":"4906634","estado":"ok","detalle":"4 frag"}
+{"id":"4882927","estado":"ok","detalle":"4 frag"}
+{"id":"4880853","estado":"ok","detalle":"5 frag"}
+{"id":"4848227","estado":"ok","detalle":"5 frag"}
+{"id":"4848219","estado":"ok","detalle":"5 frag"}
+{"id":"4825761","estado":"ok","detalle":"5 frag"}
+{"id":"4825748","estado":"ok","detalle":"8 frag"}
+{"id":"4825709","estado":"ok","detalle":"8 frag"}
+{"id":"4825671","estado":"ok","detalle":"5 frag"}
+{"id":"4825621","estado":"ok","detalle":"5 frag"}
+{"id":"4760117","estado":"ok","detalle":"6 frag"}
+{"id":"4760104","estado":"ok","detalle":"8 frag"}
+{"id":"4760096","estado":"ok","detalle":"5 frag"}
+{"id":"4760079","estado":"ok","detalle":"6 frag"}
+{"id":"4760067","estado":"ok","detalle":"5 frag"}
+{"id":"4760053","estado":"ok","detalle":"4 frag"}
+{"id":"4760019","estado":"ok","detalle":"4 frag"}
+{"id":"4760012","estado":"ok","detalle":"7 frag"}
+{"id":"4760005","estado":"ok","detalle":"10 frag"}
+{"id":"4985240","estado":"ok","detalle":"11 frag"}
+{"id":"4985230","estado":"ok","detalle":"6 frag"}
+{"id":"4642107","estado":"ok","detalle":"5 frag"}
+{"id":"4642091","estado":"ok","detalle":"6 frag"}
+{"id":"4623126","estado":"ok","detalle":"6 frag"}
+{"id":"4623110","estado":"ok","detalle":"8 frag"}
+{"id":"4623092","estado":"ok","detalle":"5 frag"}
+{"id":"4623075","estado":"ok","detalle":"8 frag"}
+{"id":"4623062","estado":"ok","detalle":"3 frag"}
+{"id":"4623042","estado":"ok","detalle":"6 frag"}
+{"id":"4587375","estado":"ok","detalle":"4 frag"}
+{"id":"4587277","estado":"ok","detalle":"7 frag"}
+{"id":"4587241","estado":"ok","detalle":"11 frag"}
+{"id":"4587198","estado":"ok","detalle":"5 frag"}
+{"id":"4587145","estado":"ok","detalle":"5 frag"}
+{"id":"4555238","estado":"ok","detalle":"6 frag"}
+{"id":"4555234","estado":"ok","detalle":"5 frag"}
+{"id":"4555230","estado":"ok","detalle":"7 frag"}
+{"id":"4555222","estado":"ok","detalle":"8 frag"}
+{"id":"4555196","estado":"ok","detalle":"7 frag"}
+{"id":"4502731","estado":"ok","detalle":"5 frag"}
+{"id":"4469054","estado":"ok","detalle":"4 frag"}
+{"id":"4469049","estado":"ok","detalle":"5 frag"}
+{"id":"4440399","estado":"ok","detalle":"6 frag"}
+{"id":"4433979","estado":"ok","detalle":"4 frag"}
+{"id":"4419066","estado":"ok","detalle":"8 frag"}
+{"id":"4418881","estado":"ok","detalle":"5 frag"}
+{"id":"4415218","estado":"ok","detalle":"4 frag"}
+{"id":"4415211","estado":"ok","detalle":"10 frag"}
+{"id":"4415204","estado":"ok","detalle":"4 frag"}
+{"id":"4415197","estado":"ok","detalle":"10 frag"}
+{"id":"4415187","estado":"ok","detalle":"10 frag"}
+{"id":"4415179","estado":"ok","detalle":"7 frag"}
+{"id":"4365300","estado":"ok","detalle":"15 frag"}
+{"id":"4365287","estado":"ok","detalle":"5 frag"}
+{"id":"4331689","estado":"ok","detalle":"12 frag"}
+{"id":"4331677","estado":"ok","detalle":"7 frag"}
+{"id":"4314293","estado":"ok","detalle":"7 frag"}
+{"id":"4310758","estado":"ok","detalle":"9 frag"}
+{"id":"4309261","estado":"ok","detalle":"5 frag"}
+{"id":"4309259","estado":"ok","detalle":"6 frag"}
+{"id":"4299488","estado":"ok","detalle":"9 frag"}
+{"id":"4294881","estado":"ok","detalle":"7 frag"}
+{"id":"4294876","estado":"ok","detalle":"10 frag"}
+{"id":"4251910","estado":"ok","detalle":"5 frag"}
+{"id":"4251903","estado":"ok","detalle":"8 frag"}
+{"id":"4243711","estado":"ok","detalle":"8 frag"}
+{"id":"4235238","estado":"ok","detalle":"6 frag"}
+{"id":"4234225","estado":"ok","detalle":"4 frag"}
+{"id":"4222601","estado":"ok","detalle":"10 frag"}
+{"id":"4222595","estado":"ok","detalle":"4 frag"}
+{"id":"4222584","estado":"ok","detalle":"5 frag"}
+{"id":"4222572","estado":"ok","detalle":"7 frag"}
+{"id":"4148805","estado":"ok","detalle":"8 frag"}
+{"id":"4148804","estado":"ok","detalle":"5 frag"}
+{"id":"4148802","estado":"ok","detalle":"7 frag"}
+{"id":"4148800","estado":"ok","detalle":"7 frag"}
+{"id":"4137172","estado":"ok","detalle":"4 frag"}
+{"id":"4123237","estado":"ok","detalle":"5 frag"}
+{"id":"4123980","estado":"ok","detalle":"6 frag"}
+{"id":"4123232","estado":"ok","detalle":"7 frag"}
+{"id":"4111183","estado":"ok","detalle":"8 frag"}
+{"id":"4111164","estado":"ok","detalle":"6 frag"}
+{"id":"4111078","estado":"ok","detalle":"5 frag"}
+{"id":"4099888","estado":"ok","detalle":"9 frag"}
+{"id":"4092748","estado":"ok","detalle":"14 frag"}
+{"id":"4035676","estado":"ok","detalle":"7 frag"}
+{"id":"4025763","estado":"ok","detalle":"6 frag"}
+{"id":"4021924","estado":"ok","detalle":"8 frag"}
+{"id":"4013250","estado":"ok","detalle":"7 frag"}
+{"id":"4013240","estado":"ok","detalle":"15 frag"}
+{"id":"4013227","estado":"ok","detalle":"8 frag"}
+{"id":"4013215","estado":"ok","detalle":"12 frag"}
+{"id":"4013209","estado":"ok","detalle":"7 frag"}
+{"id":"3973322","estado":"ok","detalle":"6 frag"}
+{"id":"3973304","estado":"ok","detalle":"3 frag"}
+{"id":"3973269","estado":"ok","detalle":"4 frag"}
+{"id":"3943143","estado":"ok","detalle":"8 frag"}
+{"id":"3905206","estado":"ok","detalle":"7 frag"}
+{"id":"3905196","estado":"ok","detalle":"10 frag"}
+{"id":"3905189","estado":"ok","detalle":"6 frag"}
+{"id":"3905181","estado":"ok","detalle":"6 frag"}
+{"id":"3865991","estado":"ok","detalle":"4 frag"}
+{"id":"3865985","estado":"ok","detalle":"7 frag"}
+{"id":"3857758","estado":"ok","detalle":"6 frag"}
+{"id":"3857757","estado":"ok","detalle":"6 frag"}
+{"id":"3857752","estado":"ok","detalle":"5 frag"}
+{"id":"3847800","estado":"ok","detalle":"5 frag"}
+{"id":"3827800","estado":"error_doc","detalle":"duplicate key value violates unique constraint \"normative_documents_type_number_"}
+{"id":"3847791","estado":"ok","detalle":"6 frag"}
+{"id":"3836958","estado":"ok","detalle":"10 frag"}
+{"id":"3836956","estado":"ok","detalle":"8 frag"}
+{"id":"3836951","estado":"ok","detalle":"8 frag"}
+{"id":"3832621","estado":"ok","detalle":"4 frag"}
+{"id":"3832617","estado":"ok","detalle":"5 frag"}
+{"id":"3832606","estado":"ok","detalle":"9 frag"}
+{"id":"3832598","estado":"ok","detalle":"8 frag"}
+{"id":"3828066","estado":"ok","detalle":"6 frag"}
+{"id":"3828060","estado":"ok","detalle":"9 frag"}
+{"id":"3828057","estado":"ok","detalle":"5 frag"}
+{"id":"3808977","estado":"ok","detalle":"7 frag"}
+{"id":"3808974","estado":"ok","detalle":"4 frag"}
+{"id":"3808970","estado":"ok","detalle":"7 frag"}
+{"id":"3808967","estado":"ok","detalle":"6 frag"}
+{"id":"3808961","estado":"ok","detalle":"3 frag"}
+{"id":"3808957","estado":"ok","detalle":"8 frag"}
+{"id":"3808953","estado":"ok","detalle":"9 frag"}
+{"id":"3808949","estado":"ok","detalle":"5 frag"}
+{"id":"3808944","estado":"ok","detalle":"5 frag"}
+{"id":"3808937","estado":"ok","detalle":"9 frag"}
+{"id":"3808929","estado":"ok","detalle":"5 frag"}
+{"id":"3808921","estado":"ok","detalle":"6 frag"}
+{"id":"3703317","estado":"ok","detalle":"5 frag"}
+{"id":"3703316","estado":"ok","detalle":"11 frag"}
+{"id":"3703315","estado":"ok","detalle":"4 frag"}
+{"id":"3680316","estado":"ok","detalle":"5 frag"}
+{"id":"3668628","estado":"ok","detalle":"5 frag"}
+{"id":"3668624","estado":"ok","detalle":"10 frag"}
+{"id":"3668618","estado":"ok","detalle":"12 frag"}
+{"id":"3668592","estado":"ok","detalle":"8 frag"}
+{"id":"3668587","estado":"ok","detalle":"7 frag"}
+{"id":"3668542","estado":"ok","detalle":"7 frag"}
+{"id":"3668518","estado":"ok","detalle":"6 frag"}
+{"id":"3668507","estado":"ok","detalle":"7 frag"}
+{"id":"3668499","estado":"ok","detalle":"10 frag"}
+{"id":"3668486","estado":"ok","detalle":"6 frag"}
+{"id":"3668478","estado":"ok","detalle":"13 frag"}
+{"id":"3620769","estado":"ok","detalle":"6 frag"}
+{"id":"3620761","estado":"ok","detalle":"5 frag"}
+{"id":"3620753","estado":"ok","detalle":"10 frag"}
+{"id":"3620746","estado":"ok","detalle":"5 frag"}
+{"id":"3620743","estado":"ok","detalle":"4 frag"}
+{"id":"3620732","estado":"ok","detalle":"11 frag"}
+{"id":"3620721","estado":"ok","detalle":"7 frag"}
+{"id":"3620715","estado":"ok","detalle":"8 frag"}
+{"id":"3620707","estado":"ok","detalle":"11 frag"}
+{"id":"3520058","estado":"ok","detalle":"7 frag"}
+{"id":"3519177","estado":"ok","detalle":"6 frag"}
+{"id":"3495899","estado":"ok","detalle":"9 frag"}
+{"id":"3495895","estado":"ok","detalle":"6 frag"}
+{"id":"3495892","estado":"ok","detalle":"5 frag"}
+{"id":"3495887","estado":"ok","detalle":"7 frag"}
+{"id":"3495882","estado":"ok","detalle":"6 frag"}
+{"id":"3495876","estado":"ok","detalle":"5 frag"}
+{"id":"3495871","estado":"ok","detalle":"4 frag"}
+{"id":"3495866","estado":"ok","detalle":"4 frag"}
+{"id":"3495859","estado":"ok","detalle":"5 frag"}
+{"id":"3495854","estado":"ok","detalle":"5 frag"}
+{"id":"3495844","estado":"ok","detalle":"4 frag"}
+{"id":"3405836","estado":"ok","detalle":"6 frag"}
+{"id":"3405829","estado":"ok","detalle":"11 frag"}
+{"id":"3405823","estado":"ok","detalle":"6 frag"}
+{"id":"3405814","estado":"ok","detalle":"7 frag"}
+{"id":"3341618","estado":"ok","detalle":"5 frag"}
+{"id":"3341488","estado":"ok","detalle":"5 frag"}
+{"id":"3341472","estado":"ok","detalle":"4 frag"}
+{"id":"3341434","estado":"ok","detalle":"9 frag"}
+{"id":"3341425","estado":"ok","detalle":"4 frag"}
+{"id":"3300443","estado":"ok","detalle":"3 frag"}
+{"id":"3297500","estado":"ok","detalle":"6 frag"}
+{"id":"3297496","estado":"ok","detalle":"3 frag"}
+{"id":"3297494","estado":"ok","detalle":"5 frag"}
+{"id":"3297493","estado":"ok","detalle":"5 frag"}
+{"id":"3280086","estado":"ok","detalle":"7 frag"}
+{"id":"3279955","estado":"excepcion","detalle":"fragmentos: TypeError: fetch failed"}
+{"id":"3279948","estado":"sin_pdf","detalle":""}
+{"id":"3279931","estado":"sin_pdf","detalle":""}
+{"id":"3246243","estado":"sin_pdf","detalle":""}
+{"id":"3148956","estado":"sin_pdf","detalle":""}
+{"id":"3131464","estado":"sin_pdf","detalle":""}
+{"id":"3131414","estado":"sin_pdf","detalle":""}
+{"id":"3114044","estado":"sin_pdf","detalle":""}
+{"id":"3114042","estado":"sin_pdf","detalle":""}
+{"id":"3114041","estado":"sin_pdf","detalle":""}
+{"id":"3114040","estado":"sin_pdf","detalle":""}
+{"id":"3114038","estado":"sin_pdf","detalle":""}
+{"id":"3025096","estado":"sin_pdf","detalle":""}
+{"id":"3025095","estado":"sin_pdf","detalle":""}
+{"id":"3025092","estado":"sin_pdf","detalle":""}
+{"id":"3025089","estado":"sin_pdf","detalle":""}
+{"id":"2994103","estado":"sin_pdf","detalle":""}
+{"id":"2994102","estado":"sin_pdf","detalle":""}
+{"id":"2992830","estado":"sin_pdf","detalle":""}
+{"id":"2992824","estado":"sin_pdf","detalle":""}
+{"id":"2992823","estado":"sin_pdf","detalle":""}
+{"id":"2992822","estado":"sin_pdf","detalle":""}
+{"id":"2992820","estado":"sin_pdf","detalle":""}
+{"id":"2992777","estado":"sin_pdf","detalle":""}
+{"id":"2918723","estado":"sin_pdf","detalle":""}
+{"id":"2907229","estado":"sin_pdf","detalle":""}
+{"id":"2907227","estado":"sin_pdf","detalle":""}
+{"id":"2901504","estado":"sin_pdf","detalle":""}
+{"id":"2901502","estado":"sin_pdf","detalle":""}
+{"id":"2901496","estado":"sin_pdf","detalle":""}
+{"id":"2887368","estado":"sin_pdf","detalle":""}
+{"id":"2871299","estado":"sin_pdf","detalle":""}
+{"id":"2870437","estado":"sin_pdf","detalle":""}
+{"id":"2870306","estado":"sin_pdf","detalle":""}
+{"id":"2848006","estado":"sin_pdf","detalle":""}
+{"id":"2847989","estado":"sin_pdf","detalle":""}
+{"id":"2847972","estado":"sin_pdf","detalle":""}
+{"id":"2847957","estado":"sin_pdf","detalle":""}
+{"id":"2805848","estado":"sin_pdf","detalle":""}
+{"id":"2776096","estado":"sin_pdf","detalle":""}
+{"id":"2776046","estado":"sin_pdf","detalle":""}
+{"id":"2776017","estado":"sin_pdf","detalle":""}
+{"id":"2765087","estado":"sin_pdf","detalle":""}
+{"id":"2765084","estado":"ok","detalle":"7 frag"}
+{"id":"2752160","estado":"ok","detalle":"4 frag"}
+{"id":"2752154","estado":"ok","detalle":"5 frag"}
+{"id":"2749180","estado":"ok","detalle":"7 frag"}
+{"id":"2749131","estado":"ok","detalle":"6 frag"}
+{"id":"2702558","estado":"ok","detalle":"5 frag"}
+{"id":"2702554","estado":"ok","detalle":"5 frag"}
+{"id":"2702551","estado":"ok","detalle":"11 frag"}
+{"id":"2702549","estado":"ok","detalle":"5 frag"}
+{"id":"2750905","estado":"sin_texto","detalle":"0 chars, OCR sin resultado"}
+{"id":"2701929","estado":"ok","detalle":"6 frag"}
+{"id":"2701682","estado":"ok","detalle":"6 frag"}
+{"id":"2593840","estado":"ok","detalle":"6 frag"}
+{"id":"2593833","estado":"ok","detalle":"4 frag"}
+{"id":"2593826","estado":"ok","detalle":"6 frag"}
+{"id":"2549338","estado":"ok","detalle":"7 frag"}
+{"id":"2549337","estado":"ok","detalle":"6 frag"}
+{"id":"2549336","estado":"ok","detalle":"8 frag"}
+{"id":"2549334","estado":"ok","detalle":"10 frag"}
+{"id":"2549332","estado":"ok","detalle":"4 frag"}
+{"id":"2448788","estado":"ok","detalle":"4 frag"}
+{"id":"2448787","estado":"ok","detalle":"5 frag"}
+{"id":"2448786","estado":"ok","detalle":"4 frag"}
+{"id":"2348127","estado":"ok","detalle":"8 frag"}
+{"id":"2348125","estado":"ok","detalle":"9 frag"}
+{"id":"2348124","estado":"ok","detalle":"9 frag"}
+{"id":"2348121","estado":"ok","detalle":"4 frag"}
+{"id":"2348115","estado":"ok","detalle":"4 frag"}
+{"id":"2348107","estado":"ok","detalle":"6 frag"}
+{"id":"2348101","estado":"ok","detalle":"6 frag"}
+{"id":"2348097","estado":"ok","detalle":"6 frag"}
+{"id":"2348092","estado":"ok","detalle":"7 frag"}
+{"id":"2250331","estado":"ok","detalle":"15 frag"}
+{"id":"2250329","estado":"ok","detalle":"3 frag"}
+{"id":"2250326","estado":"ok","detalle":"15 frag"}
+{"id":"2250324","estado":"ok","detalle":"9 frag"}
+{"id":"2250318","estado":"ok","detalle":"7 frag"}
+{"id":"2250314","estado":"ok","detalle":"6 frag"}
+{"id":"2250280","estado":"ok","detalle":"8 frag"}
+{"id":"2250250","estado":"ok","detalle":"5 frag"}
+{"id":"2250244","estado":"ok","detalle":"6 frag"}
+{"id":"2250236","estado":"ok","detalle":"4 frag"}
+{"id":"2172927","estado":"ok","detalle":"4 frag"}
+{"id":"2172926","estado":"ok","detalle":"9 frag"}
+{"id":"2098228","estado":"ok","detalle":"4 frag"}
+{"id":"2098227","estado":"ok","detalle":"5 frag"}
+{"id":"2098225","estado":"ok","detalle":"9 frag"}
+{"id":"2078537","estado":"ok","detalle":"5 frag"}
+{"id":"2078527","estado":"ok","detalle":"6 frag"}
+{"id":"2078522","estado":"ok","detalle":"8 frag"}
+{"id":"2058166","estado":"ok","detalle":"8 frag"}
+{"id":"2058163","estado":"ok","detalle":"5 frag"}
+{"id":"2058159","estado":"ok","detalle":"8 frag"}
+{"id":"2058155","estado":"ok","detalle":"8 frag"}
+{"id":"2058154","estado":"ok","detalle":"5 frag"}
+{"id":"2058150","estado":"ok","detalle":"7 frag"}
+{"id":"2058149","estado":"ok","detalle":"9 frag"}
+{"id":"2029832","estado":"ok","detalle":"5 frag"}
+{"id":"2029828","estado":"ok","detalle":"6 frag"}
+{"id":"2029826","estado":"ok","detalle":"7 frag"}
+{"id":"2014912","estado":"ok","detalle":"4 frag"}
+{"id":"2014911","estado":"ok","detalle":"6 frag"}
+{"id":"2014910","estado":"ok","detalle":"10 frag"}
+{"id":"2014909","estado":"ok","detalle":"7 frag"}
+{"id":"1985685","estado":"ok","detalle":"4 frag"}
+{"id":"1985684","estado":"ok","detalle":"4 frag"}
+{"id":"1985682","estado":"ok","detalle":"7 frag"}
+{"id":"1970665","estado":"ok","detalle":"6 frag"}
+{"id":"1970664","estado":"ok","detalle":"4 frag"}
+{"id":"1970663","estado":"ok","detalle":"7 frag"}
+{"id":"1963582","estado":"ok","detalle":"5 frag"}
+{"id":"1963579","estado":"ok","detalle":"8 frag"}
+{"id":"1963574","estado":"ok","detalle":"7 frag"}
+{"id":"1970662","estado":"ok","detalle":"9 frag"}
+{"id":"1963570","estado":"ok","detalle":"7 frag"}
+{"id":"1940137","estado":"ok","detalle":"6 frag"}

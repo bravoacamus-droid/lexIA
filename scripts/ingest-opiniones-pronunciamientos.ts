@@ -296,19 +296,41 @@ function regimenDe(fecha: string | null): string[] {
  * costó 6 de los primeros 20: al revisarlos a mano, las fichas
  * respondían bien y el PDF estaba donde debía.
  */
-async function traer(url: string, intentos = 4): Promise<Response | null> {
+/** Fallos de descarga seguidos. Alimenta el freno de más abajo. */
+let seguidosSinDescarga = 0;
+
+async function traer(url: string, intentos = 6): Promise<Response | null> {
   for (let i = 0; i < intentos; i++) {
     try {
       const r = await fetch(url, { headers: HEADERS });
-      if (r.ok) return r;
-      // 4xx que no sea límite de peticiones: no insistir.
+      if (r.ok) { seguidosSinDescarga = 0; return r; }
+      // 4xx que no sea límite de peticiones: no insistir, no hay nada ahí.
       if (r.status < 500 && r.status !== 429) return null;
     } catch {
       /* red inestable: se reintenta */
     }
-    await sleep(2000 * (i + 1));
+    await sleep(3000 * (i + 1));
   }
+  seguidosSinDescarga++;
   return null;
+}
+
+/**
+ * Freno cuando gob.pe deja de responder de forma sostenida.
+ *
+ * Los reintentos por documento no bastan si el bloqueo dura minutos: el
+ * 08/08/2026 se perdieron 42 documentos seguidos por esto. Se comprobó
+ * después uno por uno —los diez revisados tenían su PDF donde debía—,
+ * así que no faltaban: faltaba dejar de insistir un rato.
+ *
+ * Mismo patrón que el regulador del buscador: cuando el recurso empuja
+ * de vuelta, se cede terreno en vez de seguir golpeando.
+ */
+async function frenarSiLaFuenteSeCierra(): Promise<void> {
+  if (seguidosSinDescarga < 3) return;
+  console.log(`  ⏸️ ${seguidosSinDescarga} descargas fallidas seguidas — pausa de 5 min`);
+  await sleep(300_000);
+  seguidosSinDescarga = 0;
 }
 
 /** Extrae del HTML de la ficha el PDF, el título y la fecha. */
@@ -453,6 +475,7 @@ async function main() {
       if (!ficha.pdf) {
         anotar(e.id, 'sin_pdf');
         fallos++;
+        await frenarSiLaFuenteSeCierra();
         await sleep(pausaActual);
         continue;
       }
@@ -472,6 +495,7 @@ async function main() {
       if (!resPdf) {
         anotar(e.id, 'sin_pdf', 'descarga del PDF falló tras reintentos');
         fallos++;
+        await frenarSiLaFuenteSeCierra();
         await sleep(pausaActual);
         continue;
       }
