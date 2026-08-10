@@ -249,13 +249,20 @@ function correlativoDe(titulo: string): string | null {
  * habrían etiquetado mal unos 1,266 documentos, y el filtro por entidad
  * de la biblioteca —OECE, Perú Compras, DGA— habría mentido.
  */
-function entidadDe(titulo: string): string {
+function entidadDe(titulo: string, fecha?: string | null): string {
   // Sin \b a propósito: gob.pe publica títulos con la separación comida,
   // como "Pronunciamiento N° 404-2023OSCE-DGR". Con límite de palabra
   // ese caso no calzaba —entre "3" y "O" no hay frontera— y el documento
   // quedaba atribuido al OECE, que en 2023 no existía.
   if (/OSCE/i.test(titulo)) return 'OSCE';
+  if (/OECE/i.test(titulo)) return 'OECE';
   if (/per[uú]\s*compras/i.test(titulo)) return 'Perú Compras';
+  // Muchas opiniones antiguas se titulan solo "Opinión N° 051-2022/DTN",
+  // sin nombrar al organismo. Ahí decide la fecha: el OECE reemplazó al
+  // OSCE con la entrada en vigor de la Ley 32069. Sin esta regla, 548
+  // opiniones de 2020 a 2024 quedaban atribuidas a un organismo que aún
+  // no existía.
+  if (fecha) return fecha < VIGENCIA_32069 ? 'OSCE' : 'OECE';
   return 'OECE';
 }
 
@@ -341,7 +348,10 @@ async function leerFicha(
   if (!res) return { pdf: null, titulo: null, fecha: null };
   const html = await res.text();
 
-  const p = html.match(/https:\/\/cdn[^"']+\.pdf[^"']*/);
+  // Insensible a mayúsculas: gob.pe sirve algunos como ".PDF" y sin la
+  // bandera /i esos documentos quedaban registrados como "sin PDF"
+  // aunque el archivo estuviera ahí (ej. Pronunciamiento N° 182-2025).
+  const p = html.match(/https:\/\/cdn[^"']+\.pdf[^"']*/i);
   const pdf = p ? p[0].replace(/\?v=\d+$/, '') : null;
 
   const t = html.match(/<title>([^<]+)<\/title>/);
@@ -534,7 +544,7 @@ async function main() {
           // del régimen anterior aunque compartan año con los de mayo.
           applicable_law: regimenDe(fecha),
           metadata: {
-            entidad: entidadDe(titulo),
+            entidad: entidadDe(titulo, fecha),
             anio,
             correlativo,
             pages: doc.numPages,
