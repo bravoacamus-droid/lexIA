@@ -454,53 +454,34 @@ export async function POST(req: Request) {
             return data as HybridSearchRow[] | null;
           }),
         );
-        // Facetas que no vieron NADA normativo: se repiten excluyendo
-        // jurisprudencia.
+        // NO se rescatan las facetas que solo ven casuística. Se probó
+        // y se midió que empeora, así que queda anotado para que nadie
+        // lo reintente creyendo que es una mejora evidente.
         //
-        // Origen (09/08/2026): tras ingerir 2,400 pronunciamientos, Q6
-        // —contrataciones de emergencia— bajó de 92% a 77%. Cuatro de
-        // sus seis facetas devolvían 12 de 12 pronunciamientos y cero
-        // norma. El contenido estaba: "pago por disponibilidad" figura
-        // en 20 fragmentos normativos, pero la jurisprudencia los
-        // desplazaba.
+        // La idea (09/08/2026): tras ingerir 2,400 pronunciamientos,
+        // cuatro de las seis facetas de la pregunta sobre contrataciones
+        // de emergencia devolvían 12 de 12 pronunciamientos y cero
+        // norma. Repetir esas facetas excluyendo casuística —resolución,
+        // pronunciamiento y opinión— traía la Ley y las bases estándar.
         //
-        // No sirve el rescate de fuente primaria que ya existía: opera
-        // sobre la consulta principal, no sobre las facetas, y filtra a
-        // Ley y Reglamento, mientras que ese concepto vive en bases
-        // estándar y manuales del SEACE. Por eso se EXCLUYE
-        // jurisprudencia en vez de INCLUIR norma base.
-        const JURISPRUDENCIA = ['resolucion_tce', 'pronunciamiento'];
-        const hambrientas = panoramicFacets
-          .map((facet, i) => ({ facet, i, rows: panoramicResults[i] }))
-          .filter(({ rows }) => !rows?.some((c) => !JURISPRUDENCIA.includes(c.doc_type)));
-
-        const rescateFacetas = await Promise.all(
-          hambrientas.map(async ({ facet, i }) => {
-            const emb = panoramicEmbeddings[i];
-            if (!emb) return null;
-            const { data } = await supabase.rpc('hybrid_search', {
-              query_text: facet,
-              query_embedding: emb,
-              match_count: 3,
-              filter_type: null,
-              filter_law: lawFilter,
-              exclude_types: JURISPRUDENCIA,
-            });
-            return data as HybridSearchRow[] | null;
-          }),
-        );
-        for (const rows of rescateFacetas) {
-          if (!rows || rows.length === 0) continue;
-          // Entra al cupo garantizado por faceta: sin esto el rerank
-          // final volvería a dejarlo fuera por similitud global.
-          facetTopChunks.push(rows[0]);
-          for (const c of rows) {
-            if (!seenIds.has(c.chunk_id)) {
-              combined.push(c);
-              seenIds.add(c.chunk_id);
-            }
-          }
-        }
+        // La RECUPERACIÓN mejoró de verdad: de 6 a 9 de 9 conceptos
+        // clave presentes en el contexto. Y la RESPUESTA empeoró:
+        //
+        //     con rescate     Q6 46%  ·  Q8 58%  ·  promedio 85%
+        //     sin rescate     Q6 69%  ·  Q8 92%  ·  promedio 93%
+        //
+        // Ocho fragmentos extra, aunque contengan el concepto exacto,
+        // reparten la atención del modelo y le hacen dejar de enunciar
+        // puntos que antes acertaba. Es la misma lección que dejaron las
+        // reglas de prompt revertidas en prompts.ts: más contexto no es
+        // más respuesta.
+        //
+        // Lo que SÍ se conserva de ese trabajo es la infraestructura que
+        // destapó: hybrid_search acepta exclude_types y amplía ef_search
+        // cuando hay filtro (migraciones 0045 y 0047). Sin eso, TODA
+        // búsqueda filtrada venía recortada en silencio por el
+        // post-filtrado del índice HNSW —incluido el rescate de fuente
+        // primaria— y nadie lo había notado.
 
         for (const rows of panoramicResults) {
           if (!rows) continue;

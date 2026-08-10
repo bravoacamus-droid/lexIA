@@ -179,16 +179,29 @@ interface HybridRow {
   similarity: number;
 }
 
-async function search(q: string, e: number[], n: number, ft: string | null = null) {
+async function search(
+  q: string,
+  e: number[],
+  n: number,
+  ft: string | null = null,
+  excluir: string[] | null = null,
+) {
   const { data } = await admin.rpc('hybrid_search', {
     query_text: q,
     query_embedding: e,
     match_count: n,
     filter_type: ft,
     filter_law: null,
+    exclude_types: excluir,
   });
   return (data || []) as HybridRow[];
 }
+
+/**
+ * Tipos que resuelven un caso concreto, no la regla general.
+ * Espejo de la constante del endpoint de chat.
+ */
+const CASUISTICA = ['resolucion_tce', 'pronunciamiento', 'opinion'];
 
 async function runPipeline(question: string): Promise<{ text: string; nChunks: number; panoramic: boolean }> {
   const { expanded: expQ, focalQueries } = expandLegalQuery(question);
@@ -219,12 +232,26 @@ async function runPipeline(question: string): Promise<{ text: string; nChunks: n
     );
   }
   const facetTop: HybridRow[] = [];
+  const porFaceta: Array<{ facet: string; emb: number[]; rows: HybridRow[] }> = [];
   for (const facet of facets) {
-    const rows = await search(facet, embs[idx++], 5);
+    const emb = embs[idx++];
+    const rows = await search(facet, emb, 5);
+    porFaceta.push({ facet, emb, rows });
     if (rows.length > 0) facetTop.push(rows[0]);
     if (rows.length > 1) facetTop.push(rows[1]);
     rows.forEach((c) => combined.has(c.chunk_id) || combined.set(c.chunk_id, c));
   }
+
+  // El endpoint NO rescata las facetas que solo ven casuística: se midió
+  // con este mismo test y empeora (85% frente a 93%). Queda anotado en
+  // route.ts con el detalle.
+  //
+  // Lección de método, más importante que el resultado: durante el
+  // desarrollo este test NO incluía el rescate, así que varias corridas
+  // parecieron medir el cambio sin medirlo. El test replica el pipeline
+  // por su cuenta y no hereda lo que se toca en route.ts. Si se modifica
+  // la recuperación allí, hay que reflejarlo aquí o las conclusiones son
+  // falsas.
 
   // RESCATE CONDICIONAL de fuente primaria — espejo del route real:
   // solo actúa si el pool no trae suficientes chunks de Ley/Reglamento.
