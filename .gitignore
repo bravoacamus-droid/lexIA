@@ -77,3 +77,4 @@ data/oece-ingesta.log
 data/oece-ingesta.err.log
 data/oece-ingesta.lock
 data/oece-ingesta.state.jsonl
+data/resumenes.lock
