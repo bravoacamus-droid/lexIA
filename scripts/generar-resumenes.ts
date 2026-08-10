@@ -74,29 +74,44 @@ interface Doc {
   type: string;
   number: string | null;
   title: string;
-  raw_text: string | null;
+  texto: string | null;
 }
 
+/**
+ * Pide los pendientes con el texto YA TRUNCADO en el servidor.
+ *
+ * Traer raw_text completo hacía que la corrida avanzara 15 documentos
+ * cada 10 minutos: ese campo llega a 567 mil caracteres en la Ley y un
+ * lote de 200 arrastraba decenas de megabytes que el generador iba a
+ * descartar de todos modos, porque trunca a 24,000 antes de enviar nada
+ * al modelo. Ver migración 0048.
+ */
 async function siguienteLote(): Promise<Doc[]> {
-  let q = supabase
-    .from('normative_documents')
-    .select('id, type, number, title, raw_text')
-    .is('ai_summary', null)
-    .limit(LOTE);
-  if (SOLO_NORMATIVA) q = q.neq('type', 'resolucion_tce');
-  // La normativa primero también dentro del lote general.
-  const { data, error } = await q.order('type', { ascending: true });
+  const { data, error } = await supabase.rpc('documentos_sin_resumen', {
+    limite: LOTE,
+    excluir_tce: SOLO_NORMATIVA,
+    max_chars: 24000,
+  });
   if (error) throw new Error(error.message);
   return (data || []) as Doc[];
 }
 
 async function procesar(d: Doc): Promise<{ ok: boolean; tokIn: number; tokOut: number }> {
+  // Sin texto no hay resumen posible. Sin esta guarda, un fallo al traer
+  // el contenido produce resúmenes que dicen "el documento se encuentra
+  // vacío" y quedan guardados como si fueran buenos: el 10/08/2026 se
+  // escribieron 20 así por usar el nombre de campo equivocado, y solo se
+  // detectaron al leerlos. Es peor que no tener resumen, porque nada
+  // avisa de que están mal.
+  if ((d.texto || '').trim().length < 200) {
+    return { ok: false, tokIn: 0, tokOut: 0 };
+  }
   try {
     const r = await generateDocumentSummary({
       type: d.type,
       number: d.number,
       title: d.title,
-      raw_text: d.raw_text || '',
+      raw_text: d.texto || '',
     });
     if (!r.summary) return { ok: false, tokIn: 0, tokOut: 0 };
     const { error } = await supabase
