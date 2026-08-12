@@ -107,12 +107,27 @@ async function procesar(d: Doc): Promise<{ ok: boolean; tokIn: number; tokOut: n
     return { ok: false, tokIn: 0, tokOut: 0 };
   }
   try {
-    const r = await generateDocumentSummary({
-      type: d.type,
-      number: d.number,
-      title: d.title,
-      raw_text: d.texto || '',
-    });
+    // Tiempo límite por documento.
+    //
+    // Sin esto la corrida se cuelga entera: los documentos se procesan de
+    // a cuatro con Promise.all, y una sola llamada que no responda deja
+    // al grupo esperando para siempre. Pasó el 10/08/2026 en el
+    // documento 3,200 —el proceso seguía vivo, el registro congelado y
+    // la base sin avanzar en dos minutos— y ya se había visto en la
+    // medición inicial, donde una opinión tardó 5 minutos.
+    //
+    // 90 segundos es holgado: una llamada normal tarda 2 o 3.
+    const r = await Promise.race([
+      generateDocumentSummary({
+        type: d.type,
+        number: d.number,
+        title: d.title,
+        raw_text: d.texto || '',
+      }),
+      new Promise<never>((_, rechazar) =>
+        setTimeout(() => rechazar(new Error('tiempo agotado')), 90_000),
+      ),
+    ]);
     if (!r.summary) return { ok: false, tokIn: 0, tokOut: 0 };
     const { error } = await supabase
       .from('normative_documents')
@@ -143,6 +158,7 @@ async function main() {
   let fallos = 0;
   let tokIn = 0;
   let tokOut = 0;
+  let fallosSeguidos = 0;
   const t0 = Date.now();
 
   for (;;) {
@@ -159,6 +175,22 @@ async function main() {
         tokIn += r.tokIn;
         tokOut += r.tokOut;
       }
+      // Corte por fallos seguidos.
+      //
+      // Cuando se agotó el saldo de Gemini el 10/08/2026, la corrida
+      // siguió girando: un documento que falla conserva el resumen
+      // vacío, así que el siguiente lote devolvía los mismos y los
+      // reintentaba sin fin. Llegó a 2,130 fallos fingiendo que
+      // trabajaba. Ahora se detiene y lo dice.
+      fallosSeguidos = res.every((r) => !r.ok) ? fallosSeguidos + res.length : 0;
+      if (fallosSeguidos >= 40) {
+        console.error(
+          `\n❌ ${fallosSeguidos} fallos seguidos — se detiene. ` +
+            'Suele ser saldo agotado en Gemini; revisa AI Studio.',
+        );
+        break;
+      }
+
       const hechos = ok + fallos;
       if (hechos % 40 < CONCURRENCIA) {
         const seg = (Date.now() - t0) / 1000;
