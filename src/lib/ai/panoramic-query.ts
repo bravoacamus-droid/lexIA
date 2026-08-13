@@ -169,19 +169,40 @@ const KNOWN_TOPIC_FACETS: Array<{ match: RegExp; facets: string[] }> = [
       'artículo 132 negociación oferta supera cuantía procedimiento',
       'rechazo ofertas sustancialmente por debajo composición detallada',
       'diálogo competitivo soluciones modalidades diferenciadas',
-      'jurado concurso proyectos arquitectónicos calificación no apelable',
+      // Acortada: la versión larga encadenaba tantos términos que su
+      // rama de texto no hacía coincidir ni un fragmento.
+      'concurso de proyectos arquitectónicos',
       'facultad discrecional rigor técnico decisión sustentada',
     ],
   },
   {
     match: /emergencia|desastre/i,
+    // Facetas CORTAS, de 3 a 6 palabras. Las anteriores eran sartas de
+    // términos —"contratos de contingencia evento futuro pago
+    // disponibilidad activación"— y eso las rompía por dos lados:
+    //
+    //   · La rama de texto usa plainto_tsquery, que exige que el
+    //     fragmento contenga TODOS los términos. La faceta "cuadro
+    //     multianual necesidades gestión riesgos acuerdos marco
+    //     emergencia" generaba ocho condiciones encadenadas y hacía
+    //     coincidir CERO fragmentos: su rama de texto estaba muerta.
+    //   · La rama vectorial, con un texto tan disperso, aterrizaba en
+    //     opiniones que comparten vocabulario en vez de en la norma.
+    //
+    // Medido sobre los nueve conceptos que la pregunta debe cubrir:
+    //     facetas largas   30 fragmentos · 6/9 · una sola de la Ley
+    //     facetas cortas   29 fragmentos · 9/9 · cinco de la Ley
+    //
+    // No es que recupere más, sino mejor: "acuerdos marco para
+    // emergencias" trae cinco fragmentos de la Ley que contienen los
+    // cuatro conceptos que faltaban, porque el artículo los trata junto.
     facets: [
-      'contrataciones prevención atención emergencias contratación directa',
-      'contratos de contingencia evento futuro pago disponibilidad activación',
-      'regularización veinte días hábiles informe técnico legal',
-      'cuadro multianual necesidades gestión riesgos acuerdos marco emergencia',
-      'entidad contratante definición poderes del estado ministerios gobiernos regionales locales empresas',
-      'garantía fiel cumplimiento contratación directa emergencia',
+      'contratación directa por situación de emergencia',
+      'acuerdos marco para emergencias',
+      'regularización de la contratación directa',
+      'cuadro multianual de necesidades',
+      'entidades que pueden contratar por emergencia',
+      'garantía de fiel cumplimiento',
     ],
   },
   {
