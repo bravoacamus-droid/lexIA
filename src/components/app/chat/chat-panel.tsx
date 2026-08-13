@@ -271,6 +271,63 @@ export function ChatPanel({
     }
   }, [initialMessages]);
 
+  /**
+   * Red de seguridad: al montar, se piden las fuentes a la BASE DE DATOS.
+   *
+   * El arreglo de arriba depende de `initialMessages`, que llega del
+   * componente de servidor. Al volver con el BOTÓN ATRÁS del navegador,
+   * Next.js sirve la copia en caché de la página —la de antes de que
+   * existiera esa respuesta—, así que initialMessages viene sin las
+   * fuentes y no hay de dónde reponerlas. Por eso el bug reaparecía
+   * pese al arreglo del 01/07/2026: aquel cubría la recarga completa,
+   * no la vuelta por caché.
+   *
+   * Consultar la base no depende de ningún caché. Se hace una sola vez
+   * por montaje y solo se rellenan los mensajes a los que les falta,
+   * sin tocar los que ya tienen.
+   */
+  const fuentesRepuestas = useRef(false);
+  /** Mensajes leídos de la base, para el respaldo por posición. */
+  const [asistentesBD, setAsistentesBD] = useState<ChatSource[][]>([]);
+  useEffect(() => {
+    if (fuentesRepuestas.current) return;
+    fuentesRepuestas.current = true;
+    let cancelado = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/conversations/${conversationId}`, {
+          cache: 'no-store',
+        });
+        if (!res.ok || cancelado) return;
+        const json = (await res.json()) as {
+          messages?: Array<{ id: string; role: string; sources?: ChatSource[] | null }>;
+        };
+        const deBD: Record<string, ChatSource[]> = {};
+        for (const m of json.messages || []) {
+          if (m.role === 'assistant' && m.sources && m.sources.length > 0) {
+            deBD[m.id] = m.sources;
+          }
+        }
+        // También por posición: si useChat regeneró los identificadores,
+        // el mapeo por id no encaja y este respaldo sí.
+        setAsistentesBD(
+          (json.messages || [])
+            .filter((m) => m.role === 'assistant')
+            .map((m) => (m.sources || []) as ChatSource[]),
+        );
+        if (Object.keys(deBD).length === 0 || cancelado) return;
+        // Los ya presentes mandan: pueden ser del turno en curso, que
+        // todavía no está en la base.
+        setSourcesById((prev) => ({ ...deBD, ...prev }));
+      } catch {
+        /* si falla, quedan los mecanismos anteriores */
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [conversationId]);
+
   // Fallback: si sourcesById[id] no tiene sources pero el mensaje es
   // assistant, buscamos por posición en initialMessages. Cubre el caso
   // donde useChat regenera algún ID (raro pero visto en producción).
@@ -285,6 +342,12 @@ export function ChatPanel({
         if (initMsg?.sources && initMsg.sources.length > 0) {
           sources = initMsg.sources as ChatSource[];
         }
+      }
+      // Último recurso: lo leído de la base, que no depende del caché
+      // de navegación del que sí depende initialMessages.
+      if (sources.length === 0) {
+        const deBD = asistentesBD[assistantIdx];
+        if (deBD && deBD.length > 0) sources = deBD;
       }
     }
     return {
