@@ -114,6 +114,11 @@ export async function POST(req: Request) {
 
   // Sin query → listar docs (paginable) con filtros + conteo total para saber
   // cuándo terminar el infinite scroll.
+  // Jurisprudencia: se lista de lo más reciente a lo más antiguo. El
+  // resto conserva el correlativo ascendente acordado con César.
+  const esJurisprudencia =
+    type === 'resolucion_tce' || type === 'pronunciamiento';
+
   if (!trimmed && !isMultiTag) {
     const base = supabase
       .from('normative_documents')
@@ -146,7 +151,17 @@ export async function POST(req: Request) {
       // y "18536" ordenaba antes que "3120" (César, 03/08/2026). Con los
       // tipos de ancho fijo no se notaba; las resoluciones del Tribunal
       // mezclan 4 y 5 dígitos. Ver migración 0037.
-      .order('correlativo_num', { ascending: true, nullsFirst: false })
+      //
+      // SENTIDO según el tipo. El correlativo ascendente que pidió César
+      // funciona como catálogo en Directivas u Opiniones, que son decenas
+      // al año. En jurisprudencia no: con 15,399 resoluciones, lo último
+      // que resolvió el Tribunal —que es lo que se consulta— quedaba en
+      // la última página. Ahí se ordena de lo más reciente a lo más
+      // antiguo.
+      .order('correlativo_num', {
+        ascending: !esJurisprudencia,
+        nullsFirst: false,
+      })
       .order('date', { ascending: false, nullsFirst: false });
 
     q = q.range(offset, offset + limit - 1);

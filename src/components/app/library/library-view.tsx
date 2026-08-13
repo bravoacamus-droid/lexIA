@@ -346,11 +346,20 @@ export function LibraryView({
   const [mode, setMode] = useState<'browse' | 'search' | 'folder'>('browse');
   const [loading, setLoading] = useState(false);
 
-  // Infinite scroll state — solo aplica en modo browse sin query y sin folder
   const [browseTotal, setBrowseTotal] = useState<number>(initialTotal);
   const [loadingMore, setLoadingMore] = useState(false);
   const [exhausted, setExhausted] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  /**
+   * Página actual del listado (base 0).
+   *
+   * Sustituye al scroll infinito. Con 313 documentos aquello funcionaba;
+   * con 18,691 son más de 600 cargas para llegar al final, no hay forma
+   * de saber dónde estás ni de volver a donde estabas, y al abrir un
+   * documento y regresar se pierde todo lo cargado.
+   */
+  const [pagina, setPagina] = useState(0);
 
   // Save modal state
   const [savingDocId, setSavingDocId] = useState<string | null>(null);
@@ -411,7 +420,8 @@ export function LibraryView({
             law,
             dateFrom: quickFilter === 'recent' ? fechaCorteRecientes() : null,
             limit: initialLimit,
-            offset: 0,
+            // Paginado: cada página REEMPLAZA la lista, no se acumula.
+            offset: hasSearchInput ? 0 : pagina * pageSize,
           }),
         });
         const json = await res.json();
@@ -444,7 +454,18 @@ export function LibraryView({
     return () => {
       cancelled = true;
     };
-  }, [debounced, type, entidad, anioDesde, anioHasta, selectedFolderId, pageSize, lawFilter, tags, quickFilter]);
+  }, [debounced, type, entidad, anioDesde, anioHasta, selectedFolderId, pageSize, lawFilter, tags, quickFilter, pagina]);
+
+  /**
+   * Al cambiar cualquier filtro se vuelve a la página 1.
+   *
+   * Sin esto, quien esté en la página 40 de resoluciones y pulse el chip
+   * de Opiniones —que tiene 726— pediría un tramo que no existe y vería
+   * la lista vacía sin entender por qué.
+   */
+  useEffect(() => {
+    setPagina(0);
+  }, [debounced, type, entidad, anioDesde, anioHasta, lawFilter, tags, quickFilter, selectedFolderId]);
 
   /**
    * Firma de los filtros vigentes. El scroll infinito la captura antes
@@ -470,75 +491,13 @@ export function LibraryView({
   const filtroKeyRef = useRef(filtroKey);
   filtroKeyRef.current = filtroKey;
 
-  // Infinite scroll: cargar siguiente página al ver el sentinel
-  useEffect(() => {
-    if (mode !== 'browse' || debounced || tags.length > 0 || selectedFolderId) return;
-    if (exhausted || loading || loadingMore) return;
-    if (!sentinelRef.current) return;
-
-    const target = sentinelRef.current;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        if (!entry?.isIntersecting) return;
-        if (loadingMore || exhausted) return;
-
-        setLoadingMore(true);
-        const keyAlPedir = filtroKeyRef.current;
-        const currentLength = browseDocs.length;
-        const lawForLoad = lawFilter && lawFilter.length === 1 ? lawFilter[0] : null;
-        fetch('/api/search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            query: '',
-            type,
-            entidad,
-            yearFrom: anioDesde,
-            yearTo: anioHasta,
-            law: lawForLoad,
-            dateFrom: quickFilter === 'recent' ? fechaCorteRecientes() : null,
-            limit: pageSize,
-            offset: currentLength,
-          }),
-        })
-          .then((r) => r.json())
-          .then((json) => {
-            // Descartar si los filtros cambiaron mientras viajaba.
-            if (filtroKeyRef.current !== keyAlPedir) return;
-            if (json.mode !== 'browse') return;
-            const more = (json.documents || []) as BrowseDoc[];
-            setBrowseDocs((prev) => {
-              const seen = new Set(prev.map((d) => d.id));
-              const fresh = more.filter((d) => !seen.has(d.id));
-              return [...prev, ...fresh];
-            });
-            if (typeof json.total === 'number') setBrowseTotal(json.total);
-            if (json.hasMore === false || more.length === 0) setExhausted(true);
-          })
-          .catch(() => toast.error('Error al cargar más documentos.'))
-          .finally(() => setLoadingMore(false));
-      },
-      { rootMargin: '400px' },
-    );
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [
-    mode,
-    debounced,
-    selectedFolderId,
-    exhausted,
-    loading,
-    loadingMore,
-    browseDocs.length,
-    type,
-    entidad,
-    anioDesde,
-    anioHasta,
-    tags,
-    pageSize,
-    lawFilter,
-  ]);
+  // El listado general PAGINA; ya no hay scroll infinito.
+  //
+  // Con 313 documentos acumular funcionaba. Con 18,691 son más de 600
+  // cargas para llegar al final, no hay forma de saber dónde estás, y al
+  // abrir un documento y volver se pierde todo lo cargado. El efecto que
+  // observaba el sentinel se eliminó entero: dejarlo con una guarda
+  // muerta habría sido peor que quitarlo.
 
   async function onSave(documentId: string) {
     setSavingDocId(documentId);
@@ -765,6 +724,14 @@ export function LibraryView({
               exhausted={exhausted}
               total={mode === 'browse' && !selectedFolderId ? browseTotal : null}
               sentinelRef={sentinelRef}
+              pagina={pagina}
+              porPagina={pageSize}
+              onPagina={(p) => {
+                setPagina(p);
+                // Volver arriba: sin esto quedas a media lista de la
+                // página nueva sin darte cuenta de que cambió.
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
               savedIds={savedIds}
               onSave={onSave}
               onUnsave={onUnsave}
@@ -921,6 +888,10 @@ interface BrowseProps {
   exhausted: boolean;
   total: number | null;
   sentinelRef: React.RefObject<HTMLDivElement>;
+  /** Paginación del listado general (ausente en carpetas y búsqueda). */
+  pagina?: number;
+  porPagina?: number;
+  onPagina?: (p: number) => void;
   savedIds: Set<string>;
   onSave: (id: string) => void;
   onUnsave: (id: string) => void;
@@ -945,6 +916,9 @@ function BrowseList({
   exhausted,
   total,
   sentinelRef,
+  pagina,
+  porPagina,
+  onPagina,
   savedIds,
   onSave,
   onUnsave,
@@ -1038,19 +1012,133 @@ function BrowseList({
           </section>
         ))}
       </div>
-      {/* Sentinel + skeleton para infinite scroll */}
       {!folderName && (
         <div ref={sentinelRef} className="mt-6">
           {loadingMore && <LoadingSkeleton compact />}
-          {exhausted && docs.length > 0 && !loadingMore && (
-            <p className="text-center text-xs text-muted-foreground py-6">
-              Has llegado al final · {docs.length} documento
-              {docs.length === 1 ? '' : 's'}
-            </p>
+          {onPagina && total != null && total > 0 && (
+            <Paginador
+              pagina={pagina ?? 0}
+              porPagina={porPagina ?? 30}
+              total={total}
+              onPagina={onPagina}
+            />
           )}
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Navegación por páginas del listado.
+ *
+ * Muestra un tramo de números alrededor de la actual en vez de todas:
+ * con 18,691 documentos hay más de 600 páginas y pintarlas todas sería
+ * absurdo. Se incluyen siempre la primera y la última para poder saltar
+ * a los extremos.
+ */
+function Paginador({
+  pagina,
+  porPagina,
+  total,
+  onPagina,
+}: {
+  pagina: number;
+  porPagina: number;
+  total: number;
+  onPagina: (p: number) => void;
+}) {
+  const paginas = Math.ceil(total / porPagina);
+  if (paginas <= 1) return null;
+
+  const desde = pagina * porPagina + 1;
+  const hasta = Math.min((pagina + 1) * porPagina, total);
+
+  // Tramo visible: la actual con dos vecinas a cada lado.
+  const numeros: number[] = [];
+  for (let p = Math.max(0, pagina - 2); p <= Math.min(paginas - 1, pagina + 2); p++) {
+    numeros.push(p);
+  }
+
+  const boton =
+    'min-w-[2rem] rounded-md border px-2 py-1 text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed';
+
+  return (
+    <nav
+      className="flex flex-col items-center gap-2 py-6"
+      aria-label="Paginación de la biblioteca"
+    >
+      <p className="text-xs text-muted-foreground">
+        {desde.toLocaleString('es-PE')}–{hasta.toLocaleString('es-PE')} de{' '}
+        {total.toLocaleString('es-PE')} documentos
+      </p>
+      <div className="flex flex-wrap items-center justify-center gap-1">
+        <button
+          type="button"
+          className={cn(boton, 'border-border hover:border-foreground/40')}
+          disabled={pagina === 0}
+          onClick={() => onPagina(pagina - 1)}
+        >
+          Anterior
+        </button>
+
+        {numeros[0] > 0 && (
+          <>
+            <button
+              type="button"
+              className={cn(boton, 'border-border hover:border-foreground/40')}
+              onClick={() => onPagina(0)}
+            >
+              1
+            </button>
+            {numeros[0] > 1 && (
+              <span className="px-1 text-xs text-muted-foreground">…</span>
+            )}
+          </>
+        )}
+
+        {numeros.map((p) => (
+          <button
+            key={p}
+            type="button"
+            aria-current={p === pagina ? 'page' : undefined}
+            className={cn(
+              boton,
+              p === pagina
+                ? 'bg-brand-600 text-white border-brand-600'
+                : 'border-border hover:border-foreground/40',
+            )}
+            onClick={() => onPagina(p)}
+          >
+            {p + 1}
+          </button>
+        ))}
+
+        {numeros[numeros.length - 1] < paginas - 1 && (
+          <>
+            {numeros[numeros.length - 1] < paginas - 2 && (
+              <span className="px-1 text-xs text-muted-foreground">…</span>
+            )}
+            <button
+              type="button"
+              className={cn(boton, 'border-border hover:border-foreground/40')}
+              onClick={() => onPagina(paginas - 1)}
+            >
+              {paginas}
+            </button>
+          </>
+        )}
+
+        <button
+          type="button"
+          className={cn(boton, 'border-border hover:border-foreground/40')}
+          disabled={pagina >= paginas - 1}
+          onClick={() => onPagina(pagina + 1)}
+        >
+          Siguiente
+        </button>
+      </div>
+    </nav>
   );
 }
 
