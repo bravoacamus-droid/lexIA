@@ -20,6 +20,7 @@ import { PLANTILLA_SERVICIOS_COMPARACION_PRECIOS } from './servicios-comparacion
 import { PLANTILLA_EXPERTOS_GERENTES } from './expertos-gerentes';
 import { PLANTILLA_SERVICIOS_CONSULTORIA } from './servicios-consultoria';
 import { PLANTILLA_MANTENIMIENTO_VIAL } from './mantenimiento-vial';
+import { PLANTILLA_OBRAS_SOLO_CONSTRUCCION } from './obras-solo-construccion';
 
 const REGISTRO: PlantillaRequerimiento[] = [
   PLANTILLA_BIENES_GENERAL,
@@ -31,6 +32,7 @@ const REGISTRO: PlantillaRequerimiento[] = [
   PLANTILLA_SERVICIOS_CONSULTORIA,
   PLANTILLA_MANTENIMIENTO_VIAL,
   PLANTILLA_EXPERTOS_GERENTES,
+  PLANTILLA_OBRAS_SOLO_CONSTRUCCION,
 ];
 
 /** Todas las plantillas disponibles hoy. */
@@ -67,4 +69,5 @@ export {
   PLANTILLA_SERVICIOS_CONSULTORIA,
   PLANTILLA_MANTENIMIENTO_VIAL,
   PLANTILLA_EXPERTOS_GERENTES,
+  PLANTILLA_OBRAS_SOLO_CONSTRUCCION,
 };
