@@ -218,7 +218,16 @@ export function bloquesPago(): Bloque[] {
 export const CONTROVERSIAS_ENCABEZADO =
   'Las controversias que surjan entre las partes durante la ejecución del contrato se resuelven mediante conciliación, cuando se haya pactado, y arbitraje.';
 
-export function seccionControversias(conArbitrales = true): Seccion {
+/**
+ * `variante` recoge una diferencia real entre familias: las plantillas
+ * de bienes dicen "Para el caso del arbitraje" y las de servicios "Para
+ * el caso de arbitraje". Una palabra, pero el auditor la detecta y
+ * forzarla en ambas sería alterar el original.
+ */
+export function seccionControversias(
+  conArbitrales = true,
+  variante: 'bienes' | 'servicios' = 'bienes',
+): Seccion {
   const bloques: Bloque[] = [
     { clase: 'fijo', texto: CONTROVERSIAS_ENCABEZADO, fundamento: 'Plantilla — controversias' },
   ];
@@ -227,7 +236,9 @@ export function seccionControversias(conArbitrales = true): Seccion {
       {
         clase: 'fijo',
         texto:
-          'Para el caso del arbitraje, el postor ganador de la buena pro selecciona una de las siguientes Instituciones Arbitrales para administrarlo:',
+          variante === 'servicios'
+            ? 'Para el caso de arbitraje, el postor ganador de la buena pro selecciona una de las siguientes Instituciones Arbitrales para administrarlo:'
+            : 'Para el caso del arbitraje, el postor ganador de la buena pro selecciona una de las siguientes Instituciones Arbitrales para administrarlo:',
       },
       {
         clase: 'tabla',
