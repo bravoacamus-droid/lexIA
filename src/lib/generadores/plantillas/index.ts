@@ -16,6 +16,7 @@ import { PLANTILLA_BIENES_ESTANDARIZADOS } from './bienes-estandarizados';
 import { PLANTILLA_BIENES_COMPARACION_PRECIOS } from './bienes-comparacion-precios';
 import { PLANTILLA_VASO_DE_LECHE } from './vaso-de-leche';
 import { PLANTILLA_SERVICIOS_GENERAL } from './servicios-general';
+import { PLANTILLA_SERVICIOS_COMPARACION_PRECIOS } from './servicios-comparacion-precios';
 
 const REGISTRO: PlantillaRequerimiento[] = [
   PLANTILLA_BIENES_GENERAL,
@@ -23,6 +24,7 @@ const REGISTRO: PlantillaRequerimiento[] = [
   PLANTILLA_VASO_DE_LECHE,
   PLANTILLA_BIENES_COMPARACION_PRECIOS,
   PLANTILLA_SERVICIOS_GENERAL,
+  PLANTILLA_SERVICIOS_COMPARACION_PRECIOS,
 ];
 
 /** Todas las plantillas disponibles hoy. */
@@ -55,4 +57,5 @@ export {
   PLANTILLA_VASO_DE_LECHE,
   PLANTILLA_BIENES_COMPARACION_PRECIOS,
   PLANTILLA_SERVICIOS_GENERAL,
+  PLANTILLA_SERVICIOS_COMPARACION_PRECIOS,
 };
