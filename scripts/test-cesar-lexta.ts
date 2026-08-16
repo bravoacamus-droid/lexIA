@@ -16,7 +16,7 @@ import { buildChatSystemPrompt } from '../src/lib/ai/prompts';
 import { embedOne } from '../src/lib/ai/embeddings';
 import type { ChatSource, NormativeDocType } from '../src/lib/supabase/types';
 
-config({ path: '.env.local' });
+config({ path: '.env.local', override: true });
 
 async function main() {
   const admin = createClient(

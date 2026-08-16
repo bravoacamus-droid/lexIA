@@ -21,7 +21,7 @@ import { config } from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { join } from 'node:path';
 
-config({ path: join(process.cwd(), '.env.local') });
+config({ path: join(process.cwd(), '.env.local'), override: true });
 
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const PROJECT_REF = process.env.SUPABASE_PROJECT_REF!;

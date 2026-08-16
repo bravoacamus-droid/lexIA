@@ -13,7 +13,11 @@ import { config } from 'dotenv';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-config({ path: join(process.cwd(), '.env.local') });
+// `override: true` no es opcional: sin él, una variable presente en el
+// entorno de Windows tapa en silencio la de .env.local. Un token viejo
+// heredado del shell provocaba 401 en la Management API mientras el
+// archivo tenía el correcto.
+config({ path: join(process.cwd(), '.env.local'), override: true });
 
 // dotenv en Windows a veces deja \r al final. Sanitizamos los env vars
 // antes de inyectarlos al header HTTP (un \r en Authorization → 401).

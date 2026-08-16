@@ -10,7 +10,7 @@
  * 4. Voz: penalización ley vieja respeta el filtro ley_30225
  */
 import { config } from 'dotenv';
-config({ path: '.env.local' });
+config({ path: '.env.local', override: true });
 import {
   isPanoramicQuery,
   extractCentralTopic,

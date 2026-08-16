@@ -29,7 +29,7 @@ import { embedOne } from '../src/lib/ai/embeddings';
 import { detectTextCitations } from '../src/lib/citations/detect';
 import type { ChatSource, NormativeDocType } from '../src/lib/supabase/types';
 
-config({ path: '.env.local' });
+config({ path: '.env.local', override: true });
 
 interface TestCase {
   id: string;

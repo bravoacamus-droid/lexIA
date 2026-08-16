@@ -27,7 +27,7 @@ import { createClient } from '@supabase/supabase-js';
 import { embedOne } from '../src/lib/ai/embeddings';
 import { generateDocumentSummary } from '../src/lib/ai/document-summary';
 
-config({ path: '.env.local' });
+config({ path: '.env.local', override: true });
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const BASES_DIR = 'BASES ESTÁNDAR/BASES ESTÁNDAR - DGA';

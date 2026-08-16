@@ -20,7 +20,7 @@ import { embedOne } from '../src/lib/ai/embeddings';
 import { formatResultsForLLM } from '../src/lib/ai/voice-search';
 import type { ChatSource, NormativeDocType } from '../src/lib/supabase/types';
 
-config({ path: '.env.local' });
+config({ path: '.env.local', override: true });
 
 const QUESTIONS = [
   // ─── PREPARATORIAS ───

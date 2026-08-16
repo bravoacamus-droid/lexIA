@@ -12,7 +12,7 @@
  * (la única diferencia es el TTS).
  */
 import { config } from 'dotenv';
-config({ path: '.env.local' });
+config({ path: '.env.local', override: true });
 import { generateText } from 'ai';
 import { chatModel } from '../src/lib/ai/gemini';
 import { searchNormativa, formatResultsForLLM } from '../src/lib/ai/voice-search';

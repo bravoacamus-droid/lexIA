@@ -5,7 +5,7 @@ import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
 
-config({ path: '.env.local' });
+config({ path: '.env.local', override: true });
 
 /**
  * Test VISUAL de las tablas de un pronunciamiento.

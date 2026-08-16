@@ -2,7 +2,7 @@ import { config } from 'dotenv';
 import { join } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 
-config({ path: join(process.cwd(), '.env.local') });
+config({ path: join(process.cwd(), '.env.local'), override: true });
 
 async function main() {
   const supabase = createClient(

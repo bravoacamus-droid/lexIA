@@ -21,7 +21,7 @@ import { config } from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { generateDocumentSummary } from '../src/lib/ai/document-summary';
 
-config({ path: '.env.local' });
+config({ path: '.env.local', override: true });
 
 const CONCURRENCY = 4;
 const MAX_RETRIES = 2;

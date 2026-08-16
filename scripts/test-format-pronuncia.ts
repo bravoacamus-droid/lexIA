@@ -2,7 +2,7 @@ import { config } from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { formatNormativaText } from '../src/lib/normativa/format-raw';
 
-config({ path: '.env.local' });
+config({ path: '.env.local', override: true });
 
 async function main() {
   const admin = createClient(

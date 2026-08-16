@@ -11,7 +11,7 @@
  * modelo del documento (números, artículos, conceptos específicos).
  */
 import { config } from 'dotenv';
-config({ path: '.env.local' });
+config({ path: '.env.local', override: true });
 import { createClient } from '@supabase/supabase-js';
 import { generateText } from 'ai';
 import { embedOne } from '../src/lib/ai/embeddings';

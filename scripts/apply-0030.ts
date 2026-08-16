@@ -4,7 +4,7 @@
  * SUPABASE_ACCESS_TOKEN + SUPABASE_PROJECT_REF (ya presentes en .env.local).
  */
 import { config } from 'dotenv';
-config({ path: '.env.local' });
+config({ path: '.env.local', override: true });
 import fs from 'fs';
 
 async function main() {

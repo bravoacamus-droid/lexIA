@@ -11,7 +11,7 @@
  * llama a gemini-3.6-flash.
  */
 import { config } from 'dotenv';
-config({ path: '.env.local' });
+config({ path: '.env.local', override: true });
 import { readFileSync } from 'fs';
 import { generateText } from 'ai';
 import { generatorModel } from '../src/lib/ai/gemini';

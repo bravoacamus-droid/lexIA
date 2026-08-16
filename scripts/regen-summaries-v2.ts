@@ -7,7 +7,7 @@
  * normalizeSummaryQuestions.
  */
 import { config } from 'dotenv';
-config({ path: '.env.local' });
+config({ path: '.env.local', override: true });
 import { createClient } from '@supabase/supabase-js';
 import { generateDocumentSummary } from '../src/lib/ai/document-summary';
 

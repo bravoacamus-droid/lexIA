@@ -12,7 +12,7 @@ import { config } from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { embedOne } from '../src/lib/ai/embeddings';
 
-config({ path: '.env.local' });
+config({ path: '.env.local', override: true });
 
 interface Query {
   label: string;

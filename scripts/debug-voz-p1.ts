@@ -5,7 +5,7 @@ import { chatModel } from '../src/lib/ai/gemini';
 import { VOICE_SYSTEM_PROMPT } from '../src/lib/ai/voice-config';
 import { embedOne } from '../src/lib/ai/embeddings';
 import { formatResultsForLLM } from '../src/lib/ai/voice-search';
-config({ path: '.env.local' });
+config({ path: '.env.local', override: true });
 
 async function main() {
   const admin = createClient(

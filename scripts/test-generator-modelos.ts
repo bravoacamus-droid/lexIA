@@ -14,7 +14,7 @@
  * Uso: npx tsx scripts/test-generator-modelos.ts
  */
 import { config } from 'dotenv';
-config({ path: '.env.local' });
+config({ path: '.env.local', override: true });
 import { generateText } from 'ai';
 import { generatorModel } from '../src/lib/ai/gemini';
 import {

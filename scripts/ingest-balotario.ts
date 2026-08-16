@@ -12,7 +12,7 @@
  *   3. Inserta en training_qa_pairs con upsert por (source + question_num + page).
  */
 import { config } from 'dotenv';
-config({ path: '.env.local' });
+config({ path: '.env.local', override: true });
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import { embedOne } from '../src/lib/ai/embeddings';
