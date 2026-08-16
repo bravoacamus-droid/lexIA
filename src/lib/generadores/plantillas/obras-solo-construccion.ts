@@ -5,22 +5,18 @@
  * Transcripción de "PROCEDIMIENTOS DE SELECCIÓN/4. EJECUCIÓN DE OBRAS/
  * 2. Ejecución de obras - Solo construcción.docx".
  *
- * ⚠ CONTRADICCIÓN EN EL ORIGINAL, PARA CONSULTAR CON CÉSAR
+ * VERSIÓN CORREGIDA POR CÉSAR EL 16/08/2026
  *
- * El apartado "Sistema de entrega" dice que «el contratista es
- * responsable tanto de la elaboración del expediente técnico como de la
- * ejecución física de la obra» — que es la definición de Diseño y
- * Construcción, no de Solo Construcción. Dos apartados más abajo, el
- * mismo documento afirma lo contrario: «la Entidad retiene el riesgo del
- * diseño, por lo que debe responder ante el contratista por las
- * deficiencias del expediente técnico proporcionado», y en las
- * responsabilidades del contratista repite que «la Entidad es la
- * responsable de los errores o deficiencias del expediente técnico
- * proporcionado».
+ * La primera versión tenía dos problemas que la auditoría destapó y que
+ * César corrigió al señalárselos:
  *
- * Se transcribe el texto tal como está —corregirlo sería alterar el
- * formato oficial y además rompería el cotejo contra el .docx— pero
- * parece un copiar-pegar desde la plantilla de Diseño y Construcción.
+ *  · El apartado "Sistema de entrega" describía Diseño y Construcción
+ *    —decía que el contratista elabora el expediente técnico— y
+ *    contradecía al resto del documento. Ahora dice que se contrata
+ *    únicamente la ejecución física y que la Entidad responde por los
+ *    errores del expediente que entrega.
+ *  · Faltaban la responsabilidad por vicios ocultos y la cláusula
+ *    antisoborno, presentes en el resto de formatos. Ya están.
  *
  * RASGOS PROPIOS DE OBRAS: tres tipos de adelanto (directo, para
  * materiales, por avance), incentivos —uno de ellos OBLIGATORIO en este
@@ -36,6 +32,7 @@ import {
   seccionFinalidadPublica,
   seccionObjetivo,
   seccionAntecedentes,
+  seccionAnticorrupcion,
   seccionSolicitante,
   EJEMPLO_PROCEDIMIENTO_PENALIDADES,
   NOTA_PENALIDADES_CRITERIOS,
@@ -62,6 +59,12 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
       descripcion:
         'El límite de indemnización solo procede si el contrato original es igual o superior a S/ 50 000 000,00 o se trata de un contrato estandarizado de ingeniería y construcción de uso internacional, y no puede ser inferior al 20% del valor actualizado del contrato.',
       fundamento: 'Ley N° 32069, art. 69.2.f; Reglamento, art. 216.3',
+    },
+    {
+      id: 'vicios_ocultos_min',
+      descripcion:
+        'En obras, el plazo de responsabilidad del contratista por vicios ocultos no puede ser menor de siete (7) años contados desde la recepción.',
+      fundamento: 'Ley N° 32069, art. 69',
     },
     {
       id: 'jprd_obras',
@@ -385,12 +388,10 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
               fundamento: 'Reglamento, arts. 158 y 160',
             },
             {
-              // Este párrafo contradice el resto del documento; ver la
-              // nota de cabecera del archivo.
               clase: 'fijo',
               texto:
-                'Bajo este sistema, el contratista es responsable tanto de la elaboración del expediente técnico como de la ejecución física de la obra, asumiendo la gestión integral de ambos componentes hasta el cumplimiento de las condiciones establecidas en el contrato.',
-              fundamento: 'Plantilla — texto literal (ver contradicción documentada en cabecera)',
+                'Bajo este sistema, se contrata únicamente la ejecución física de la obra, para lo cual la entidad entrega el expediente técnico debidamente aprobado. La responsabilidad del contratista se limita al componente que ejecuta, siendo la entidad contratante responsable por los errores o deficiencias que pudieran existir en dicho expediente técnico.',
+              fundamento: 'Reglamento, arts. 158 y 160',
             },
           ],
         },
@@ -881,11 +882,39 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
           ],
         },
 
-        // NOTA PARA CÉSAR: esta plantilla NO trae la cláusula de normas
-        // de anticorrupción y antisoborno, que sí aparece en trece de
-        // los quince formatos. No se añade —el generador reproduce el
-        // formato oficial, no lo enmienda— pero la ausencia parece un
-        // descuido y conviene consultarla.
+        {
+          // Incorporadas por César el 16/08/2026, tras señalarle que
+          // faltaban. El plazo de vicios ocultos en obras NO es libre:
+          // no puede bajar de siete años.
+          id: 'vicios_ocultos',
+          titulo: 'Responsabilidad por vicios ocultos',
+          bloques: [
+            {
+              clase: 'fijo',
+              texto:
+                'La recepción conforme de la obra otorgada por la Entidad no enerva su derecho a reclamar posteriormente por defectos o vicios ocultos, de conformidad con lo establecido en el literal b) del numeral 69.2 del artículo 69 de la Ley N° 32069 y el artículo 216 de su Reglamento.',
+              fundamento: 'Ley N° 32069, art. 69.2.b; Reglamento, art. 216',
+            },
+            {
+              clase: 'parrafo',
+              texto:
+                'El plazo de responsabilidad del contratista por vicios ocultos es de {{vicios_ocultos_plazo}}, contado a partir de la recepción total o parcial de la obra, según corresponda. Durante este periodo, el contratista es responsable por la calidad ofrecida y por los defectos que no eran detectables al momento de la recepción conforme.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'vicios_ocultos_plazo',
+                  etiqueta: 'Plazo de responsabilidad por vicios ocultos',
+                  ayuda: 'Consignar el tiempo, no menor de siete (7) años',
+                  tipo: 'texto',
+                  obligatorio: true,
+                  validacion: 'vicios_ocultos_min',
+                },
+              ],
+            },
+          ],
+        },
+
+        seccionAnticorrupcion(true),
       ],
     },
 

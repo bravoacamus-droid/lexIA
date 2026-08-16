@@ -18,8 +18,11 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'n
 import { inflateRawSync } from 'node:zlib';
 import { join, dirname, sep } from 'node:path';
 
-const ORIGEN = 'ESTRUCTURA DE REQUERIMIENTO';
-const DESTINO = join('docs', 'estructura-requerimiento');
+// Admite otra carpeta por argumento, para procesar las correcciones que
+// César va enviando sin tocar la extracción original:
+//   node scripts/extraer-estructura-requerimiento.mjs correciones docs/correciones
+const ORIGEN = process.argv[2] || 'ESTRUCTURA DE REQUERIMIENTO';
+const DESTINO = process.argv[3] || join('docs', 'estructura-requerimiento');
 
 /** Lee una entrada del zip recorriendo su directorio central. */
 function entradaZip(buf, nombre) {
@@ -159,7 +162,11 @@ for (const f of archivos) {
   totalChars += md.length;
   totalTablas += tablas;
 
-  const relativo = f.split(sep).slice(1).join(sep).replace(/\.docx$/i, '.md');
+  // Se conserva la jerarquía bajo la carpeta de origen. Cuando el
+  // origen no tiene subcarpetas (las correcciones sueltas), queda el
+  // nombre del archivo tal cual.
+  const relativo =
+    (f.split(sep).length > 1 ? f.split(sep).slice(1).join(sep) : f).replace(/\.docx$/i, '.md');
   const destino = join(DESTINO, relativo);
   mkdirSync(dirname(destino), { recursive: true });
   writeFileSync(destino, `<!-- Extraído de: ${f} -->\n\n${md}\n`);

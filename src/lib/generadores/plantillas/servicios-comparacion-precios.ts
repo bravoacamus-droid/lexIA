@@ -190,27 +190,25 @@ export const PLANTILLA_SERVICIOS_COMPARACION_PRECIOS: PlantillaRequerimiento = {
           titulo: 'Garantía comercial',
           bloques: [
             {
-              // El original usa el texto de bienes aunque el formato sea
-              // de servicios. Se reproduce tal cual.
+              // Corregido por César el 16/08/2026: la primera versión
+              // traía el texto de bienes ("defectos de diseño y/o
+              // fabricación... de los bienes contratados") en un formato
+              // de servicios. Ahora habla de subsanar deficiencias de la
+              // ejecución, que es lo que corresponde.
               clase: 'fijo',
               texto:
-                'La garantía comercial, comprende contra defectos de diseño y/o fabricación, averías o fallas de funcionamiento, o pérdida total de los bienes contratados, ajenos al uso normal o habitual de los bienes y no detectables al momento que se otorgó la conformidad.',
+                'Durante el período de garantía, el contratista será responsable de subsanar, sin costo adicional para la Entidad, las deficiencias, errores, omisiones o incumplimientos que sean atribuibles a la ejecución del servicio y que sean detectados con posterioridad al otorgamiento de la conformidad, siempre que no correspondan a causas imputables a la Entidad, caso fortuito o fuerza mayor.',
               fundamento: 'Plantilla — alcance de la garantía',
             },
             {
               clase: 'fijo',
               texto:
-                'Para la atención de la garantía, el contratista deberá contar con una línea telefónica fija o móvil para las coordinaciones que correspondan, cuyo horario de atención debe ser de lunes a viernes de 8:30 - 18:00 horas.',
+                'La Entidad comunicará las observaciones mediante correo electrónico u otro medio que permita acreditar su recepción. El contratista deberá iniciar las acciones de subsanación dentro de los dos (2) días hábiles siguientes de recibida la comunicación y culminarlas en un plazo máximo de cinco (5) días hábiles, salvo que el requerimiento establezca un plazo distinto por la naturaleza del servicio.',
             },
             {
               clase: 'fijo',
               texto:
-                'El plazo máximo para la entrega de los bienes a reemplazar, serán dentro de cinco (5) días calendario computados a partir del día siguiente de la notificación al contratista. La notificación será efectuada por el comprador público a través de correo electrónico que fue autorizado por el contratista.',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'Los bienes para remplazar deben ser nuevos y debe tener las mismas características del bien contratado. Todos los gastos deberán ser cubiertos por el contratista.',
+                'La subsanación comprenderá todos los recursos, materiales, equipos, personal y demás actividades necesarias para corregir las observaciones formuladas, sin generar costo adicional para la Entidad.',
             },
             {
               clase: 'parrafo',
