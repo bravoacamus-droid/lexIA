@@ -14,10 +14,12 @@ import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import { PLANTILLA_BIENES_GENERAL } from './bienes-general';
 import { PLANTILLA_BIENES_ESTANDARIZADOS } from './bienes-estandarizados';
 import { PLANTILLA_BIENES_COMPARACION_PRECIOS } from './bienes-comparacion-precios';
+import { PLANTILLA_VASO_DE_LECHE } from './vaso-de-leche';
 
 const REGISTRO: PlantillaRequerimiento[] = [
   PLANTILLA_BIENES_GENERAL,
   PLANTILLA_BIENES_ESTANDARIZADOS,
+  PLANTILLA_VASO_DE_LECHE,
   PLANTILLA_BIENES_COMPARACION_PRECIOS,
 ];
 
@@ -48,5 +50,6 @@ export function catalogoPlantillas(): Array<{
 export {
   PLANTILLA_BIENES_GENERAL,
   PLANTILLA_BIENES_ESTANDARIZADOS,
+  PLANTILLA_VASO_DE_LECHE,
   PLANTILLA_BIENES_COMPARACION_PRECIOS,
 };
