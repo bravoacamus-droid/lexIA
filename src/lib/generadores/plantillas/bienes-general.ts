@@ -537,17 +537,34 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
               texto:
                 'El sistema de entrega llave en mano con mantenimiento es obligatorio para adquirir equipamiento médico, a fin de garantizar su ciclo de vida y operatividad.',
             },
+          ],
+          // El sistema de entrega SIEMPRE se declara —aunque sea "NO
+          // APLICA"—; lo condicional es solo el detalle de prestaciones,
+          // que la plantilla pide únicamente cuando hay un sistema
+          // especial (llave en mano, con mantenimiento o comodato).
+          subsecciones: [
             {
-              clase: 'tabla',
               id: 'prestaciones_entrega',
-              etiqueta: 'Prestaciones del sistema de entrega',
-              instruccion:
-                'Detallar las prestaciones que forman parte de la contratación y las obligaciones específicas del proveedor',
-              columnas: ['N.°', 'Prestación', 'Detalle del servicio'],
-              minimo: 1,
+              titulo: 'Prestaciones comprendidas en el sistema de entrega',
+              condicion: 'sistema_entrega_especial',
+              bloques: [
+                {
+                  clase: 'fijo',
+                  texto:
+                    'Cuando corresponda la aplicación de alguno de estos sistemas, la Entidad deberá describir de manera clara, objetiva y detallada las prestaciones que forman parte de la contratación, así como las obligaciones específicas que asumirá el proveedor durante la ejecución contractual.',
+                },
+                {
+                  clase: 'tabla',
+                  id: 'prestaciones_entrega',
+                  etiqueta: 'Prestaciones del sistema de entrega',
+                  instruccion:
+                    'Detallar las prestaciones que forman parte de la contratación y las obligaciones específicas del proveedor',
+                  columnas: ['N.°', 'Prestación', 'Detalle del servicio'],
+                  minimo: 1,
+                },
+              ],
             },
           ],
-          condicion: 'sistema_entrega_especial',
         },
         {
           id: 'plazos',
