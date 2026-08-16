@@ -23,8 +23,14 @@ import { PLANTILLA_MANTENIMIENTO_VIAL } from './mantenimiento-vial';
 import { PLANTILLA_OBRAS_SOLO_CONSTRUCCION } from './obras-solo-construccion';
 import { PLANTILLA_OBRAS_DISENO_CONSTRUCCION } from './obras-diseno-construccion';
 import { PLANTILLA_CONSULTORIA_OBRAS } from './consultoria-obras';
+import { PLANTILLA_UIT_EETT } from './uit-eett';
+import { PLANTILLA_UIT_TDR } from './uit-tdr';
+import { PLANTILLA_UIT_LOCADORES } from './uit-locadores';
 
 const REGISTRO: PlantillaRequerimiento[] = [
+  PLANTILLA_UIT_EETT,
+  PLANTILLA_UIT_TDR,
+  PLANTILLA_UIT_LOCADORES,
   PLANTILLA_BIENES_GENERAL,
   PLANTILLA_BIENES_ESTANDARIZADOS,
   PLANTILLA_VASO_DE_LECHE,
@@ -64,6 +70,9 @@ export function catalogoPlantillas(): Array<{
 }
 
 export {
+  PLANTILLA_UIT_EETT,
+  PLANTILLA_UIT_TDR,
+  PLANTILLA_UIT_LOCADORES,
   PLANTILLA_BIENES_GENERAL,
   PLANTILLA_BIENES_ESTANDARIZADOS,
   PLANTILLA_VASO_DE_LECHE,
