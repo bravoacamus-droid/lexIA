@@ -12,8 +12,14 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import { PLANTILLA_BIENES_GENERAL } from './bienes-general';
+import { PLANTILLA_BIENES_ESTANDARIZADOS } from './bienes-estandarizados';
+import { PLANTILLA_BIENES_COMPARACION_PRECIOS } from './bienes-comparacion-precios';
 
-const REGISTRO: PlantillaRequerimiento[] = [PLANTILLA_BIENES_GENERAL];
+const REGISTRO: PlantillaRequerimiento[] = [
+  PLANTILLA_BIENES_GENERAL,
+  PLANTILLA_BIENES_ESTANDARIZADOS,
+  PLANTILLA_BIENES_COMPARACION_PRECIOS,
+];
 
 /** Todas las plantillas disponibles hoy. */
 export function listarPlantillas(): PlantillaRequerimiento[] {
@@ -39,4 +45,8 @@ export function catalogoPlantillas(): Array<{
   }));
 }
 
-export { PLANTILLA_BIENES_GENERAL };
+export {
+  PLANTILLA_BIENES_GENERAL,
+  PLANTILLA_BIENES_ESTANDARIZADOS,
+  PLANTILLA_BIENES_COMPARACION_PRECIOS,
+};

@@ -1,38 +1,46 @@
 /**
- * Contrasta una plantilla codificada contra el .md extraído del .docx que
- * entregó César, para no dar por buena una transcripción incompleta.
+ * Contrasta TODAS las plantillas codificadas contra los .md extraídos de
+ * los .docx que entregó César.
  *
- * Comprueba lo único que no admite margen: que cada bloque marcado como
- * `fijo` —la cláusula antisoborno, la acreditación de experiencia, los
- * topes— exista PALABRA POR PALABRA en el documento de origen. Si el
- * generador altera esos párrafos, el requerimiento deja de ser válido.
+ * Comprueba lo único que no admite margen: que cada texto marcado como
+ * invariable —la cláusula antisoborno, la acreditación de experiencia,
+ * los topes— exista PALABRA POR PALABRA en el documento de origen de esa
+ * plantilla. Si el generador altera esos párrafos, el requerimiento deja
+ * de ser válido.
+ *
+ * Con quince plantillas compartiendo bloques, esta comprobación es lo
+ * que impide que un texto correcto para "Bienes en General" se cuele en
+ * un formato donde César lo escribió distinto.
  *
  * Uso: npx tsx scripts/auditar-plantilla-requerimiento.ts
  */
-import { readFileSync } from 'node:fs';
-import { PLANTILLA_BIENES_GENERAL } from '../src/lib/generadores/plantillas/bienes-general';
-import type { Seccion, Bloque, PlantillaRequerimiento } from '../src/lib/generadores/plantilla-tipos';
+import { readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { listarPlantillas } from '../src/lib/generadores/plantillas';
+import type { Seccion, Bloque } from '../src/lib/generadores/plantilla-tipos';
 
-const PLANTILLAS: Array<{ plantilla: PlantillaRequerimiento; fuente: string }> = [
-  {
-    plantilla: PLANTILLA_BIENES_GENERAL,
-    fuente:
-      'docs/estructura-requerimiento/PROCEDIMIENTOS DE SELECCIÓN/1. BIENES/1. Bienes en General.md',
-  },
-];
+const RAIZ = join('docs', 'estructura-requerimiento');
 
 const normalizar = (s: string) => s.replace(/\s+/g, ' ').trim();
 
 let fallos = 0;
+let plantillasConFallo = 0;
+let totalLiterales = 0;
 
-for (const { plantilla, fuente: ruta } of PLANTILLAS) {
+for (const plantilla of listarPlantillas()) {
+  const ruta = join(RAIZ, plantilla.origen.replace(/\.docx$/i, '.md'));
+  if (!existsSync(ruta)) {
+    console.error(`\n❌ ${plantilla.id}: no se encuentra el origen ${ruta}`);
+    fallos++;
+    plantillasConFallo++;
+    continue;
+  }
   const fuente = normalizar(readFileSync(ruta, 'utf8'));
 
   const conteo: Record<string, number> = {};
   let secciones = 0;
   let condicionales = 0;
   let camposObligatorios = 0;
-  /** Fragmentos que deben existir palabra por palabra en el original. */
   const literales: string[] = [];
 
   const recorrer = (ss: Seccion[]) => {
@@ -57,29 +65,37 @@ for (const { plantilla, fuente: ruta } of PLANTILLAS) {
     }
   };
   recorrer(plantilla.secciones);
+  totalLiterales += literales.length;
 
-  console.log(`\n${plantilla.encabezado} — ${plantilla.subtitulo}`);
-  console.log(`  origen: ${plantilla.origen}`);
-  console.log(`  secciones y subsecciones: ${secciones} (condicionales: ${condicionales})`);
-  console.log(`  bloques: ${JSON.stringify(conteo)}`);
-  console.log(`  campos obligatorios: ${camposObligatorios}`);
-  console.log(`  validaciones normativas: ${plantilla.validaciones.length}`);
-
-  console.log(`\n  Textos invariables cotejados con el original: ${literales.length}`);
+  const fallosAqui: string[] = [];
   for (const t of literales) {
     // Se coteja el arranque del fragmento: basta para detectar una
     // reescritura, y evita falsos negativos por saltos de línea.
     const muestra = normalizar(t).slice(0, 140);
-    const ok = fuente.includes(muestra);
-    if (!ok) fallos++;
-    if (!ok) console.log(`    ❌ ${muestra.slice(0, 100)}…`);
+    if (!fuente.includes(muestra)) fallosAqui.push(muestra);
   }
-  if (!fallos) console.log('    todos coinciden');
+  fallos += fallosAqui.length;
+  if (fallosAqui.length) plantillasConFallo++;
+
+  const marca = fallosAqui.length === 0 ? '✅' : '❌';
+  console.log(
+    `${marca} ${plantilla.subtitulo}\n` +
+      `   ${secciones} secciones (${condicionales} condicionales) · ` +
+      `${camposObligatorios} campos obligatorios · ` +
+      `${literales.length} textos invariables · ` +
+      `${plantilla.validaciones.length} topes\n` +
+      `   ${Object.entries(conteo)
+        .map(([k, v]) => `${k}:${v}`)
+        .join(' ')}`,
+  );
+  for (const f of fallosAqui) console.log(`   ↳ NO está en el original: ${f.slice(0, 110)}…`);
 }
 
+const total = listarPlantillas().length;
 console.log(
-  fallos === 0
-    ? '\nTodos los textos invariables coinciden con el original.'
-    : `\n${fallos} texto(s) invariable(s) NO coinciden con el original.`,
+  `\n${total} plantilla(s) · ${totalLiterales} textos invariables cotejados · ` +
+    (fallos === 0
+      ? 'todos coinciden con el original.'
+      : `${fallos} discrepancia(s) en ${plantillasConFallo} plantilla(s).`),
 );
 process.exit(fallos === 0 ? 0 : 1);
