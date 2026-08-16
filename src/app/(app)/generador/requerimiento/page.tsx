@@ -84,6 +84,26 @@ export default async function RequerimientosListPage() {
         </Button>
       </header>
 
+      {/* Puente al generador nuevo. Los dos conviven a propósito: este
+          cubre el Anexo de menores a 8 UIT y el otro los formatos de
+          procedimiento de selección que entregó César. Retirar este
+          antes de que el nuevo tenga las quince plantillas dejaría sin
+          herramienta a quien ya la está usando. */}
+      <Card className="flex flex-wrap items-center justify-between gap-3 border-brand-300/60 bg-brand-50/40 p-4 dark:bg-brand-950/20">
+        <div>
+          <p className="text-sm font-medium">
+            Formatos oficiales de procedimiento de selección
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Reproducen el formato completo: el texto obligatorio va tal cual y LexIA solo
+            redacta lo que depende de tu contratación.
+          </p>
+        </div>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/generador/requerimiento-plantilla">Abrir</Link>
+        </Button>
+      </Card>
+
       {items.length === 0 ? (
         <Card className="p-12 text-center">
           <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-brand-100 text-brand-700 mb-4">

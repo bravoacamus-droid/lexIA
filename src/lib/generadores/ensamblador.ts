@@ -83,6 +83,25 @@ export const respuestasVacias = (): RespuestasRequerimiento => ({
 });
 
 /**
+ * Completa los grupos ausentes de unas respuestas leídas de la base.
+ *
+ * El JSONB guardado puede venir con grupos faltantes —de una versión
+ * anterior, o de un guardado parcial—, y el ensamblador no debería tener
+ * que comprobar la existencia de cada uno. Se normaliza una vez, aquí.
+ */
+export function normalizarRespuestas(
+  r: Partial<RespuestasRequerimiento> | null | undefined,
+): RespuestasRequerimiento {
+  return {
+    campos: { ...(r?.campos ?? {}) },
+    redacciones: { ...(r?.redacciones ?? {}) },
+    opciones: { ...(r?.opciones ?? {}) },
+    tablas: { ...(r?.tablas ?? {}) },
+    condiciones: { ...(r?.condiciones ?? {}) },
+  };
+}
+
+/**
  * Extrae el importe de un texto como "S/ 150 000,00 (ciento cincuenta
  * mil con 00/100 soles)".
  *

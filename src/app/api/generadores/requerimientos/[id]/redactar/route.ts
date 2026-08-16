@@ -1,0 +1,182 @@
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { generateText } from 'ai';
+import { createClient } from '@/lib/supabase/server';
+import { chatModel, CHAT_MODEL_ID } from '@/lib/ai/gemini';
+import { embedOne } from '@/lib/ai/embeddings';
+import { recordAiUsage } from '@/lib/ai/usage-log';
+import { obtenerPlantilla } from '@/lib/generadores/plantillas';
+import {
+  promptSistema,
+  promptUsuario,
+  consultaNormativa,
+  limpiarRedaccion,
+  redaccionUtil,
+} from '@/lib/generadores/redactor';
+import type { BloqueRedactado, Seccion } from '@/lib/generadores/plantilla-tipos';
+
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
+const Schema = z.object({
+  bloque_id: z.string().min(1).max(80),
+  aporte: z.string().max(8000).optional(),
+});
+
+/** Busca el bloque redactable por id, recorriendo también las subsecciones. */
+function buscarBloque(secciones: Seccion[], id: string): BloqueRedactado | null {
+  for (const s of secciones) {
+    for (const b of s.bloques) {
+      if (b.clase === 'redactado' && b.id === id) return b;
+    }
+    if (s.subsecciones) {
+      const encontrado = buscarBloque(s.subsecciones, id);
+      if (encontrado) return encontrado;
+    }
+  }
+  return null;
+}
+
+/** Sustento normativo de la biblioteca para este apartado. */
+async function sustentoNormativo(consulta: string): Promise<string> {
+  try {
+    const embedding = await embedOne(consulta, 'RETRIEVAL_QUERY');
+    const supabase = createClient();
+    const { data } = await supabase.rpc('hybrid_search', {
+      query_text: consulta,
+      query_embedding: embedding as unknown as number[],
+      match_count: 5,
+      filter_type: null,
+    });
+    const filas = (data ?? []) as Array<{
+      content: string;
+      doc_title: string;
+      doc_type: string;
+      doc_number: string | null;
+    }>;
+    if (filas.length === 0) return '';
+    return filas
+      .map((f, i) => {
+        const etiqueta = `${f.doc_type}${f.doc_number ? ' ' + f.doc_number : ''}`;
+        return `[${i + 1}] ${etiqueta} — ${f.doc_title}\n${f.content.slice(0, 1200)}`;
+      })
+      .join('\n\n---\n\n');
+  } catch (e) {
+    // Sin sustento se redacta igual: el prompt ya prohíbe citar norma que
+    // no venga respaldada, así que la salida sale sin citas en vez de con
+    // citas inventadas.
+    console.error('[redactar] falló la búsqueda de sustento:', (e as Error).message);
+    return '';
+  }
+}
+
+/**
+ * POST /api/generadores/requerimientos/[id]/redactar
+ * Body: { bloque_id, aporte? }
+ *
+ * Redacta UN apartado de la plantilla. No guarda: devuelve el texto para
+ * que el usuario lo revise y decida. Guardar automáticamente lo que
+ * escribió el modelo convertiría la revisión en un trámite que nadie
+ * hace.
+ */
+export async function POST(req: Request, ctx: { params: { id: string } }) {
+  if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    return NextResponse.json({ error: 'missing_env' }, { status: 500 });
+  }
+
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+
+  const parsed = Schema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'invalid_payload', detail: parsed.error.flatten() },
+      { status: 400 },
+    );
+  }
+
+  const { data } = await supabase
+    .from('requerimientos_plantilla')
+    .select('user_id, plantilla_id, denominacion, respuestas')
+    .eq('id', ctx.params.id)
+    .maybeSingle();
+  if (!data) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+
+  const fila = data as {
+    user_id: string;
+    plantilla_id: string;
+    denominacion: string;
+    respuestas: { campos?: Record<string, string> } | null;
+  };
+  if (fila.user_id !== user.id) {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  }
+
+  const plantilla = obtenerPlantilla(fila.plantilla_id);
+  if (!plantilla) {
+    return NextResponse.json({ error: 'plantilla_desconocida' }, { status: 500 });
+  }
+
+  const bloque = buscarBloque(plantilla.secciones, parsed.data.bloque_id);
+  if (!bloque) {
+    return NextResponse.json(
+      { error: 'bloque_desconocido', detail: parsed.data.bloque_id },
+      { status: 400 },
+    );
+  }
+
+  const contexto = {
+    denominacion: fila.denominacion,
+    organo: fila.respuestas?.campos?.organo,
+    aporteUsuario: parsed.data.aporte,
+  };
+
+  const sustento = await sustentoNormativo(consultaNormativa(plantilla, bloque, contexto));
+
+  try {
+    const inicio = Date.now();
+    const resultado = await generateText({
+      model: chatModel,
+      system: promptSistema(plantilla),
+      prompt: promptUsuario(bloque, { ...contexto, contextoNormativo: sustento }),
+      temperature: 0.3,
+    });
+    const latencyMs = Date.now() - inicio;
+
+    void recordAiUsage({
+      userId: user.id,
+      feature: `requerimiento_plantilla_${bloque.id}`,
+      model: CHAT_MODEL_ID,
+      inputTokens: resultado.usage?.promptTokens ?? 0,
+      outputTokens: resultado.usage?.completionTokens ?? 0,
+      latencyMs,
+      metadata: {
+        requerimiento_id: ctx.params.id,
+        plantilla_id: plantilla.id,
+        bloque_id: bloque.id,
+      },
+    });
+
+    const texto = limpiarRedaccion(resultado.text ?? '', bloque);
+    if (!redaccionUtil(texto)) {
+      return NextResponse.json({ error: 'respuesta_vacia' }, { status: 502 });
+    }
+
+    return NextResponse.json({
+      bloque_id: bloque.id,
+      texto,
+      con_sustento: sustento.length > 0,
+      tokens: {
+        entrada: resultado.usage?.promptTokens ?? 0,
+        salida: resultado.usage?.completionTokens ?? 0,
+      },
+    });
+  } catch (e) {
+    const msg = (e as Error).message || 'unknown';
+    console.error('[redactar] fallo del modelo:', msg);
+    return NextResponse.json({ error: 'generation_failed', detail: msg }, { status: 500 });
+  }
+}
