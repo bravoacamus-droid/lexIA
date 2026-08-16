@@ -474,6 +474,16 @@ export const VALIDACION_EXPERIENCIA = {
   descripcion:
     'El monto de facturación exigido como experiencia no puede ser mayor a tres veces la cuantía de la contratación o del ítem.',
   fundamento: 'Plantilla — Requisitos de calificación, experiencia del postor',
+  factor: 3,
+};
+
+/** Consultoría en general se limita a UNA vez la cuantía, no a tres. */
+export const VALIDACION_EXPERIENCIA_CONSULTORIA = {
+  id: 'experiencia_max',
+  descripcion:
+    'El monto de facturación exigido como experiencia no puede ser mayor a una vez el valor de la cuantía de la contratación o del ítem.',
+  fundamento: 'Plantilla — Requisitos de calificación, experiencia del postor',
+  factor: 1,
 };
 
 export const VALIDACION_MYPE = {

@@ -148,6 +148,15 @@ export interface Validacion {
   descripcion: string;
   /** Artículo o directiva que lo impone. */
   fundamento: string;
+  /**
+   * Multiplicador sobre la cuantía, cuando el tope se expresa así.
+   *
+   * No es el mismo en todas las plantillas: bienes y servicios admiten
+   * hasta TRES veces la cuantía, pero consultoría en general se limita a
+   * UNA vez. Fijarlo en el código haría que el aviso fuese correcto en
+   * unas plantillas y falso en otras.
+   */
+  factor?: number;
 }
 
 export interface PlantillaRequerimiento {

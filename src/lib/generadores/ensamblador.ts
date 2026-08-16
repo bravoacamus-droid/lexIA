@@ -139,8 +139,8 @@ function verificarTopes(
   contexto: ContextoContratacion,
 ): Aviso[] {
   const avisos: Aviso[] = [];
-  const fundamentoDe = (id: string) =>
-    plantilla.validaciones.find((v) => v.id === id)?.fundamento ?? 'Plantilla';
+  const validacionDe = (id: string) => plantilla.validaciones.find((v) => v.id === id);
+  const fundamentoDe = (id: string) => validacionDe(id)?.fundamento ?? 'Plantilla';
 
   const pct = respuestas.campos.adelanto_porcentaje;
   if (pct) {
@@ -159,11 +159,15 @@ function verificarTopes(
     const exp = respuestas.campos.experiencia_monto;
     if (exp) {
       const v = montoDe(exp);
-      const tope = contexto.cuantia * 3;
+      // El multiplicador lo fija la plantilla: tres veces en bienes y
+      // servicios, una sola vez en consultoría en general.
+      const factor = validacionDe('experiencia_max')?.factor ?? 3;
+      const tope = contexto.cuantia * factor;
       if (v !== null && v > tope) {
+        const veces = factor === 1 ? 'una vez' : `${factor} veces`;
         avisos.push({
           validacion: 'experiencia_max',
-          mensaje: `La experiencia exigida (${soles(v)}) supera el máximo de tres veces la cuantía (${soles(tope)}).`,
+          mensaje: `La experiencia exigida (${soles(v)}) supera el máximo de ${veces} la cuantía (${soles(tope)}).`,
           fundamento: fundamentoDe('experiencia_max'),
           nivel: 'error',
         });
