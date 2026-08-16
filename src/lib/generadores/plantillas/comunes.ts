@@ -115,8 +115,30 @@ export const NOTA_PENALIDADES_CRITERIOS =
 export const EJEMPLO_PROCEDIMIENTO_PENALIDADES =
   'Cuando se verifique alguno de estos supuestos, el área usuaria y/o la DEC notificará al contratista dentro del plazo máximo de un (01) día hábil, adjuntando el informe técnico y el sustento correspondiente.\nEl contratista contará con un plazo de dos (02) días hábiles para presentar sus descargos, los cuales deberán estar debidamente sustentados con evidencia objetiva.\nLa Entidad evaluará los descargos presentados en un plazo máximo de tres (03) días hábiles, emitiendo la decisión correspondiente sobre la procedencia o no de la penalidad, la cual será comunicada al contratista por escrito.';
 
-export function seccionPenalidades(variante: 'corta' | 'larga' = 'larga'): Seccion {
-  return {
+/**
+ * Tope del 10% a la suma de penalidades.
+ *
+ * NO está en todas las plantillas: Bienes en General no lo enuncia y
+ * "Expertos y gerentes de proyectos" sí. Por eso es un parámetro y no
+ * una constante que se cuele en todas — dar por hecho que estaba en
+ * todas fue justamente el error que la auditoría destapó al codificar la
+ * primera plantilla.
+ */
+export const TOPE_PENALIDADES =
+  'La suma de la aplicación de las penalidades por mora y otras penalidades no debe exceder el 10% del monto vigente del contrato o, de ser el caso, del ítem correspondiente.';
+
+export const VALIDACION_PENALIDADES = {
+  id: 'penalidades_max',
+  descripcion:
+    'La suma de penalidades por mora y otras penalidades no debe exceder el 10% del monto vigente del contrato o del ítem.',
+  fundamento: 'Plantilla — Penalidades',
+};
+
+export function seccionPenalidades(
+  variante: 'corta' | 'larga' = 'larga',
+  conTope = false,
+): Seccion {
+  const seccion: Seccion = {
     id: 'penalidades',
     titulo: 'Penalidades',
     bloques: [],
@@ -168,6 +190,19 @@ export function seccionPenalidades(variante: 'corta' | 'larga' = 'larga'): Secci
       },
     ],
   };
+
+  if (conTope) {
+    // El tope va justo tras la tabla de otras penalidades, antes del
+    // procedimiento de descargos, como en el original.
+    const otras = seccion.subsecciones![1];
+    otras.bloques.splice(3, 0, {
+      clase: 'fijo',
+      texto: TOPE_PENALIDADES,
+      fundamento: 'Plantilla — tope de penalidades',
+    });
+  }
+
+  return seccion;
 }
 
 // ════════════════════════════════════════════════════════════════════
