@@ -139,6 +139,17 @@ export function ListadoRequerimientos({
         </Button>
       </Card>
 
+      {/* El módulo anterior queda accesible desde aquí. No va en el menú
+          para no ofrecer dos entradas que se llaman igual, pero quien
+          tenga documentos allí debe poder abrirlos. */}
+      <p className="mt-3 text-xs text-muted-foreground">
+        ¿Buscas los requerimientos que hiciste con el formato anterior de Anexo (EETT/TDR)?{' '}
+        <Link href="/generador/requerimiento" className="underline underline-offset-2 hover:text-foreground">
+          Están aquí
+        </Link>
+        .
+      </p>
+
       <div className="mt-8">
         <h2 className="mb-3 text-sm font-semibold">
           Mis requerimientos{' '}

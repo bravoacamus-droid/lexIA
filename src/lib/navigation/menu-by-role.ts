@@ -180,6 +180,21 @@ export const MENU_SECTIONS: MenuSection[] = [
         roles: ['entity'],
         color: 'amber',
       },
+      {
+        // Entrada propia y no un enlace dentro del Generador: hasta el
+        // 17/08/2026 el módulo de requerimiento no figuraba en ningún
+        // menú y solo se podía volver a él desde dentro de sí mismo, así
+        // que en la práctica era inalcanzable. César lo reportó al no
+        // encontrarlo y terminar usando el chat, que produce otra
+        // estructura.
+        label: 'Requerimiento',
+        href: '/generador/requerimiento-plantilla',
+        icon: ClipboardList,
+        description:
+          'Arma el requerimiento sobre los 15 formatos oficiales: el texto obligatorio va tal cual y LexIA redacta lo que depende de tu contratación.',
+        roles: ['entity'],
+        color: 'emerald',
+      },
     ],
   },
   {
@@ -214,6 +229,19 @@ export const MENU_SECTIONS: MenuSection[] = [
   {
     label: 'Consultor',
     items: [
+      {
+        // Duplicado a propósito en las dos secciones: el mismo destino,
+        // pero cada rol lo ve bajo un encabezado que le corresponde. Una
+        // sola entrada obligaría al consultor a buscarlo dentro de
+        // "Entidad pública".
+        label: 'Requerimiento',
+        href: '/generador/requerimiento-plantilla',
+        icon: ClipboardList,
+        description:
+          'Arma el requerimiento sobre los 15 formatos oficiales, para la entidad a la que asesoras.',
+        roles: ['consultant'],
+        color: 'emerald',
+      },
       {
         label: 'Casos de estudio',
         href: '/casos',
