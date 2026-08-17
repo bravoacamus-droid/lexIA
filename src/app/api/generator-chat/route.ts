@@ -111,7 +111,7 @@ export async function POST(req: Request) {
   // ya borró (48h TTL).
   const { data: filesData } = await supabase
     .from('generator_files')
-    .select('id, gemini_file_uri, mime_type, original_name, expires_at')
+    .select('id, gemini_file_uri, mime_type, gemini_mime_type, original_name, expires_at')
     .eq('conversation_id', conversationId)
     .or('expires_at.is.null,expires_at.gt.' + new Date().toISOString())
     .order('created_at', { ascending: true });
@@ -120,6 +120,7 @@ export async function POST(req: Request) {
     id: string;
     gemini_file_uri: string;
     mime_type: string;
+    gemini_mime_type: string | null;
     original_name: string;
     expires_at: string | null;
   }>;
@@ -260,7 +261,12 @@ ${ragContext}
         ...files.map((f) => ({
           type: 'file' as const,
           data: new URL(f.gemini_file_uri),
-          mimeType: f.mime_type,
+          // El MIME REAL del archivo subido, no el que traía el usuario.
+          // Un .docx se sube convertido a text/plain; declarar el
+          // original hace que URI y MIME no concuerden y Gemini responda
+          // INVALID_ARGUMENT (bug reportado por César el 17/08/2026).
+          // El fallback cubre las filas anteriores a la migración 0053.
+          mimeType: f.gemini_mime_type ?? f.mime_type,
         })),
       ],
     };

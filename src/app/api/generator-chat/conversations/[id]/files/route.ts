@@ -119,6 +119,11 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
       expires_at: uploaded.expiresAt || null,
       original_name: file.name,
       mime_type: mimeType,
+      // El MIME con el que realmente se subió a Gemini. Difiere del
+      // anterior cuando hubo conversión (.docx → text/plain), y es el
+      // único que puede viajar en la petición: si no coincide con el
+      // contenido del URI, Gemini responde INVALID_ARGUMENT.
+      gemini_mime_type: uploadMime,
       size_bytes: file.size,
     } as never)
     .select('id')
