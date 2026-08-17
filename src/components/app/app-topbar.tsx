@@ -11,6 +11,7 @@ import {
   UserCircle,
   CreditCard,
   ShieldCheck,
+  Bell,
   Wrench,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -155,6 +156,15 @@ export function AppTopbar({ user, onOpenPalette, onOpenMobileSidebar }: Props) {
               <Link href="/cuenta/suscripcion">
                 <CreditCard className="h-4 w-4" />
                 Suscripción y consumo
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              {/* La página existía terminada desde antes pero no la
+                  enlazaba nadie: no había forma de llegar a ella salvo
+                  escribiendo la URL. */}
+              <Link href="/cuenta/notificaciones">
+                <Bell className="h-4 w-4" />
+                Notificaciones
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>

@@ -102,6 +102,10 @@ for (const f of fuentes) {
   const txt = readFileSync(f, 'utf8');
   const encontrados = [
     ...txt.matchAll(/href=["'`](\/[^"'`${\s]*)/g),
+    // Las rutas también viajan como propiedad de objeto en los arrays de
+    // tarjetas y de menú. Omitirlo dejaba fuera enlaces reales: así se
+    // escapó /rnp/actualizacion-financiera en la primera pasada.
+    ...txt.matchAll(/href:\s*["'`](\/[^"'`${\s]*)/g),
     ...txt.matchAll(/(?:push|replace|redirect)\(\s*[`'"](\/[^`'"${\s]*)/g),
   ]
     // Se descarta la cadena de consulta y el ancla: "/chat?new=1" es la
@@ -145,10 +149,28 @@ for (const ruta of rutas) {
 if (huerfanas.length === 0) console.log('  ✅ ninguna página queda huérfana');
 
 // ── 3. Enlaces a rutas inexistentes ───────────────────────────────────
+// Un destino puede estar anunciado a propósito antes de existir. Se
+// reconoce por la marca en el mismo objeto que lo declara —comingSoon en
+// el menú, proximamente en las tarjetas—; lo que no vale es un enlace
+// vivo hacia una página que no está.
+const pendientes = new Set(hrefsPendientes);
+for (const f of fuentes) {
+  const txt = readFileSync(f, 'utf8');
+  for (const b of txt.split(/\n\s*\{\s*\n/)) {
+    if (!/comingSoon:\s*true|proximamente:\s*true/.test(b)) continue;
+    const m = b.match(/href:\s*["'`](\/[^"'`\s]*)/);
+    if (m) pendientes.add(m[1]);
+  }
+}
+
 console.log('\n── Enlaces internos rotos ──');
 let rotos = 0;
 for (const [ruta, quienes] of enlaces) {
   if (ruta.startsWith('/api/') || ruta.includes('$') || ruta.includes('[')) continue;
+  if (pendientes.has(ruta)) {
+    console.log(`  ⏳ "${ruta}" anunciado como pendiente, sin enlace activo`);
+    continue;
+  }
   const existe =
     rutas.some((r) => r === ruta || r.startsWith(ruta + '/')) ||
     existsSync(join('src', 'app', ...ruta.split('/').filter(Boolean), 'page.tsx')) ||

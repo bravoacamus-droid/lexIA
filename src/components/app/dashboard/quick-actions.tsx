@@ -9,7 +9,7 @@ import {
   FileSearch,
   FilePen,
   HardHat,
-  Briefcase,
+  ClipboardList,
   ShieldCheck,
   ScanSearch,
   type LucideIcon,
@@ -108,13 +108,16 @@ const ACTIONS_BY_ROLE: Record<ProfileRole, ActionItem[]> = {
   consultant: [
     ...SHARED_ACTIONS,
     {
-      icon: Briefcase,
-      title: 'Casos de estudio',
-      desc: 'Análisis avanzado y modelos de litigio (pronto).',
-      href: '/casos',
-      accent: 'from-purple-500/15 to-fuchsia-500/10',
+      // El texto ya avisaba "(pronto)", pero la tarjeta era un enlace y
+      // llevaba a un 404. Se cambia por el generador de requerimientos,
+      // que el consultor sí puede usar desde el 17/08/2026.
+      icon: ClipboardList,
+      title: 'Armar requerimiento',
+      desc: 'Los 15 formatos oficiales, con el texto obligatorio ya puesto.',
+      href: '/generador/requerimiento-plantilla',
+      accent: 'from-emerald-500/15 to-teal-500/10',
       iconBg:
-        'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-400',
+        'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400',
     },
   ],
 };

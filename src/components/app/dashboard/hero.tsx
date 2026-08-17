@@ -56,7 +56,10 @@ const ROLE_CTAS: Record<
   ],
   consultant: [
     { icon: MessageSquare, label: 'Iniciar consulta', href: '/chat?new=1', primary: true },
-    { icon: Briefcase, label: 'Casos de estudio', href: '/casos' },
+    // Antes apuntaba a "Casos de estudio" (/casos), que sigue sin
+    // construirse: era un acceso rápido a un 404. Se sustituye por el
+    // generador de requerimientos, que el consultor sí tiene disponible.
+    { icon: FilePen, label: 'Armar requerimiento', href: '/generador/requerimiento-plantilla' },
     { icon: Sparkles, label: 'Análisis jurisprudencial', href: '/biblioteca?type=resolucion_tce' },
   ],
 };

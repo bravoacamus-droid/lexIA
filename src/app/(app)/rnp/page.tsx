@@ -16,6 +16,10 @@ const TILES = [
     href: '/rnp/aumento-cmc',
     iconBg: 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400',
     accent: 'from-emerald-500/15 to-teal-500/10',
+    // La página aún no existe. Hasta el 17/08/2026 la tarjeta era un
+    // enlace normal y llevaba a un 404: prometía un asistente que no
+    // estaba construido. Se anuncia como pendiente en vez de fallar.
+    proximamente: true,
   },
   {
     icon: FileSpreadsheet,
@@ -24,6 +28,7 @@ const TILES = [
     href: '/rnp/actualizacion-financiera',
     iconBg: 'bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-400',
     accent: 'from-sky-500/15 to-blue-500/10',
+    proximamente: true,
   },
   {
     icon: ListChecks,
@@ -72,27 +77,56 @@ export default async function RnpHubPage() {
       </header>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {TILES.map((t) => (
-          <Link
-            key={t.href}
-            href={t.href}
-            className="group relative block overflow-hidden rounded-xl border border-border bg-card p-6 hover:border-brand-400 transition-all hover:-translate-y-0.5 hover:shadow-md h-full"
-          >
-            <div
-              className={`absolute inset-0 -z-10 bg-gradient-to-br ${t.accent} opacity-0 group-hover:opacity-100 transition-opacity`}
-            />
-            <div className="flex items-start justify-between mb-3">
-              <span
-                className={`inline-flex h-10 w-10 items-center justify-center rounded-lg ${t.iconBg}`}
+        {TILES.map((t) => {
+          const contenido = (
+            <>
+              <div
+                className={`absolute inset-0 -z-10 bg-gradient-to-br ${t.accent} opacity-0 group-hover:opacity-100 transition-opacity`}
+              />
+              <div className="flex items-start justify-between mb-3">
+                <span
+                  className={`inline-flex h-10 w-10 items-center justify-center rounded-lg ${t.iconBg}`}
+                >
+                  <t.icon className="h-5 w-5" strokeWidth={1.7} />
+                </span>
+                {t.proximamente ? (
+                  <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                    Próximamente
+                  </span>
+                ) : (
+                  <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                )}
+              </div>
+              <h3 className="font-semibold text-[15px] mb-1">{t.title}</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">{t.desc}</p>
+            </>
+          );
+
+          // Sin página construida no se ofrece el enlace: una tarjeta
+          // que anuncia lo que viene es honesta; una que lleva a un 404
+          // hace dudar de todo lo demás.
+          if (t.proximamente) {
+            return (
+              <div
+                key={t.href}
+                aria-disabled
+                className="group relative block overflow-hidden rounded-xl border border-dashed border-border bg-card/60 p-6 h-full cursor-default"
               >
-                <t.icon className="h-5 w-5" strokeWidth={1.7} />
-              </span>
-              <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
-            <h3 className="font-semibold text-[15px] mb-1">{t.title}</h3>
-            <p className="text-xs text-muted-foreground leading-relaxed">{t.desc}</p>
-          </Link>
-        ))}
+                {contenido}
+              </div>
+            );
+          }
+
+          return (
+            <Link
+              key={t.href}
+              href={t.href}
+              className="group relative block overflow-hidden rounded-xl border border-border bg-card p-6 hover:border-brand-400 transition-all hover:-translate-y-0.5 hover:shadow-md h-full"
+            >
+              {contenido}
+            </Link>
+          );
+        })}
       </div>
 
       <Card className="p-5 bg-secondary/50">
