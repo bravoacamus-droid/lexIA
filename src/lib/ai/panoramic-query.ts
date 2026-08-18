@@ -89,7 +89,15 @@ export function extractCentralTopic(query: string): string {
     // Cubre "explica", "explícame", "explique", "expliques" (subjuntivo)
     /^(?:expl[íi]ca(?:me)?|expl[íi]cas|expl[íi]que|expl[íi]ques)\s+(?:todo\s+)?(?:respecto\s+(?:a|al|de)|sobre|acerca\s+de|de)\s+(?:la\s+|el\s+|los\s+|las\s+)?/i,
     /^dame\s+(?:un\s+)?(?:res[uú]men|panorama|visi[óo]n(?:\s+general)?)\s+(?:de|sobre|acerca\s+de)\s+(?:la\s+|el\s+|los\s+|las\s+)?/i,
-    /^cu[áa]les?\s+son\s+(?:los?|las?)\s+(?:tipos?|modalidades?|formas?|clases|categor[íi]as|impedimentos?)\s+de\s+/i,
+    // "requisitos", "condiciones", "supuestos", "causales" y "pasos"
+    // faltaban, y son los arranques más frecuentes del sector. Sin
+    // ellos el tema central quedaba siendo la pregunta ENTERA y las
+    // facetas salían absurdas: "tipos de cuáles son los requisitos para
+    // la inscripción de RNP…". Cinco búsquedas desperdiciadas por
+    // pregunta. Detectado el 17/08/2026 al diagnosticar la consulta de
+    // César sobre el RNP.
+    /^cu[áa]les?\s+son\s+(?:los?|las?)\s+(?:tipos?|modalidades?|formas?|clases|categor[íi]as|impedimentos?|requisitos?|condiciones|supuestos?|causales?|pasos?|obligaciones|plazos?|documentos?|criterios?)\s+(?:para|de|del|que)\s+/i,
+    /^cu[áa]les?\s+son\s+(?:los?|las?)\s+/i,
     /^qu[ée]\s+(?:tipos?|modalidades?|formas?|clases|categor[íi]as)\s+(?:de\s+)?(?:hay|existen)?\s*/i,
     /^qu[ée]\s+es\s+(?:el|la|los|las|un|una)?\s*/i,
     /^en\s+qu[ée]\s+consiste(?:n)?\s+(?:el|la|los|las)?\s*/i,

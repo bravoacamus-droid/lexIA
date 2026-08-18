@@ -9,7 +9,7 @@ import type { ChatSource, NormativeDocType } from '@/lib/supabase/types';
 import type { ProfileRole } from '@/lib/auth/session';
 import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
 import { recordAiUsage } from '@/lib/ai/usage-log';
-import { expandLegalQuery } from '@/lib/ai/query-expansion';
+import { expandLegalQuery, tipoDeFoco } from '@/lib/ai/query-expansion';
 import { rewriteToLegalQueries } from '@/lib/ai/query-rewrite';
 import { fetchNeighborChunks, mergeNeighbors } from '@/lib/ai/neighbor-chunks';
 import {
@@ -74,7 +74,15 @@ function rerankChunks(
   keepCount: number,
 ): HybridSearchRow[] {
   const wantsBaseRule =
-    /(?:prevalece|prevalecen|artículo|numeral|inciso|plazo|obliga|est[aá]blece|determina|dispone|regula)/i.test(
+    /(?:prevalece|prevalecen|artículo|numeral|inciso|plazo|obliga|est[aá]blece|determina|dispone|regula|requisitos?|condiciones|supuestos?|causales?)/i.test(
+      query,
+    );
+  // Preguntas de TRÁMITE: quién lo regula no es la Ley sino la directiva,
+  // el TUPA o la guía del procedimiento. Sin esto la casuística ganaba
+  // por volumen —15 399 resoluciones frente a 34 fragmentos de la
+  // Directiva del RNP— y la norma aplicable no llegaba al modelo.
+  const wantsProcedure =
+    /(?:tr[áa]mite|inscripci[óo]n|reinscripci[óo]n|renovaci[óo]n|actualizaci[óo]n|procedimiento administrativo|registro nacional|rnp|tupa|formulario|tasa|derecho de tramitaci[óo]n)/i.test(
       query,
     );
   const seen = new Set<string>();
@@ -83,6 +91,13 @@ function rerankChunks(
       let score = r.similarity;
       if (wantsBaseRule && (r.doc_type === 'ley' || r.doc_type === 'reglamento')) {
         score += 0.08;
+      }
+      if (
+        wantsProcedure &&
+        (r.doc_type === 'directiva' || r.doc_type === 'tupa' || r.doc_type === 'guia' ||
+          r.doc_type === 'lineamiento')
+      ) {
+        score += 0.12;
       }
       return { row: r, score };
     })
@@ -324,8 +339,11 @@ export async function POST(req: Request) {
             const { data } = await supabase.rpc('hybrid_search', {
               query_text: focal,
               query_embedding: focalEmb,
-              match_count: 3,
-              filter_type: 'ley',
+              // Cada focal busca dentro del tipo de norma al que apunta.
+              // Estaba fijado a 'ley', lo que anulaba toda focal dirigida
+              // a una directiva o al TUPA. Ver tipoDeFoco().
+              filter_type: tipoDeFoco(focal),
+              match_count: tipoDeFoco(focal) === 'ley' ? 3 : 6,
               filter_law: lawFilter,
             });
             return data as HybridSearchRow[] | null;

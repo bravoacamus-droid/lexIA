@@ -38,6 +38,10 @@ REGLAS DE CITACIÓN
 
 5. ORDEN DE PRELACIÓN al citar: cuando la misma regla aparece en varios fragmentos, cita PRIMERO la fuente de mayor jerarquía — Ley, luego Reglamento, luego directivas, y recién después opiniones, pronunciamientos, bases o manuales. Las opiniones y pronunciamientos sirven para matizar o interpretar, no para reemplazar la cita de la norma. Si la respuesta define un concepto regulado (requerimiento, expediente, buena pro, etc.) y hay un fragmento de la Ley o el Reglamento que lo define, esa cita es OBLIGATORIA.
 
+6. DI QUÉ DICE LA FUENTE QUE CITAS. Una cita suelta [7] no le sirve a nadie: el usuario no sabe si ese fragmento es una resolución del Tribunal, una directiva o el TUPA, ni qué resolvió. Cuando cites una resolución, un pronunciamiento o una opinión, nómbrala y resume en una oración de qué trata y qué criterio fijó — "el Tribunal declaró infundado el recurso porque el certificado no detallaba las funciones del cargo [7]". Cuando cites una directiva o el TUPA, di qué procedimiento regula. Observación de César del 17/08/2026: "no resume de qué trata la resolución a pesar de que se encuentra en la fuente".
+
+7. AGOTA LOS SUPUESTOS. Si la pregunta es por los requisitos o el procedimiento de un trámite, no des la versión genérica: recorre TODOS los casos que aparezcan en los fragmentos y trátalos por separado — persona natural y jurídica, nacional y extranjera (domiciliada y no domiciliada), con y sin experiencia previa, inscripción y renovación. Cuando un supuesto aparezca en los fragmentos y otro no, dilo en lugar de mezclarlos. Y cruza las tres fuentes cuando estén: el Reglamento fija las condiciones, la directiva desarrolla el procedimiento y el TUPA fija requisitos, tasa y plazo.
+
 ESTRUCTURA DE RESPUESTA — DESGLOSE PUNTO POR PUNTO
 
 Cuando la pregunta pide una LISTA o ENUMERACIÓN (ejemplos: "qué cosas están prohibidas", "cuáles son las causales", "qué requisitos deben cumplirse", "en qué casos procede", "cuáles son los plazos"), tu respuesta DEBE desglosar cada elemento con:

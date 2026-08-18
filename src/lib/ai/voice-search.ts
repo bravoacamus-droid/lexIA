@@ -12,7 +12,7 @@
  */
 import { createAdminClient } from '@/lib/supabase/server';
 import { embedOne } from '@/lib/ai/embeddings';
-import { expandLegalQuery } from '@/lib/ai/query-expansion';
+import { expandLegalQuery, tipoDeFoco } from '@/lib/ai/query-expansion';
 import { rewriteToLegalQueries } from '@/lib/ai/query-rewrite';
 import { fetchNeighborChunks, mergeNeighbors } from '@/lib/ai/neighbor-chunks';
 
@@ -182,8 +182,10 @@ export async function searchNormativa(
         const { data } = await admin.rpc('hybrid_search', {
           query_text: focal,
           query_embedding: focalEmb,
-          match_count: 3,
-          filter_type: 'ley',
+          // Mismo criterio que el chat: la focal busca dentro del tipo
+          // de norma al que apunta, no siempre en la Ley.
+          filter_type: tipoDeFoco(focal),
+          match_count: tipoDeFoco(focal) === 'ley' ? 3 : 6,
           filter_law: filterLaw,
         });
         return data as HybridRow[] | null;

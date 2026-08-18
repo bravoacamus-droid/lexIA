@@ -28,6 +28,30 @@ export interface LegalExpansion {
  * Retorna `{expanded, focalQueries}`. Si no aplica ninguna expansión
  * `expanded` es string vacío y `focalQueries` array vacío.
  */
+/**
+ * A qué tipo de documento apunta una consulta focal.
+ *
+ * Las focales se ejecutan con `filter_type` para garantizar que la
+ * fuente entre al pool aunque quede por debajo en similaridad global.
+ * Hasta el 17/08/2026 ese filtro estaba fijado a 'ley', lo que hacía
+ * INÚTIL cualquier focal dirigida a otra norma: la consulta de César
+ * sobre el RNP lanzaba una focal hacia la Directiva que lo regula y la
+ * buscaba dentro de la Ley, donde no está.
+ *
+ * El texto de la focal lo escribimos nosotros en este archivo, así que
+ * deducir el destino de ese texto es fiable y evita tener que cambiar la
+ * forma de `focalQueries` en los cuatro sitios que la consumen.
+ */
+export function tipoDeFoco(focal: string): string | null {
+  const f = focal.toLowerCase();
+  if (f.includes('directiva')) return 'directiva';
+  if (f.includes('tupa')) return 'tupa';
+  if (f.includes('bases estándar') || f.includes('bases estandar')) return 'bases_estandar';
+  // Por omisión se mantiene el comportamiento anterior: la fuente
+  // primaria es la Ley y su Reglamento.
+  return 'ley';
+}
+
 export function expandLegalQuery(query: string): LegalExpansion {
   const q = query.toLowerCase();
   const additions: string[] = [];
@@ -208,6 +232,71 @@ export function expandLegalQuery(query: string): LegalExpansion {
     );
     focalQueries.push('diálogo competitivo negociación modalidades diferenciadas artículo 76 77');
     focalQueries.push('jurado concurso proyectos arquitectónicos calificación no apelable');
+  }
+
+  // Rol del área usuaria → sus funciones están repartidas entre varios
+  // artículos y la programación multianual es la que menos se recupera:
+  // la pregunta nunca nombra el CMN, así que hay que traerlo.
+  if (/[áa]rea usuaria/i.test(q) && /(?:rol|funci|responsabilidad|qu[ée] hace|competenc)/i.test(q)) {
+    add(
+      'área usuaria funciones formulación del requerimiento especificaciones técnicas términos de referencia cuadro multianual de necesidades programación multianual conformidad de la prestación finalidad pública coordinación con la Dependencia Encargada de las Contrataciones',
+      'área usuaria cuadro multianual de necesidades programación',
+    );
+  }
+
+  // ── Siglas del sector ───────────────────────────────────────────────
+  // Las entidades preguntan con siglas ("requisitos del RNP", "cuánto es
+  // mi CMC") y la biblioteca guarda el nombre completo. El embedding no
+  // salva ese salto por sí solo: la consulta de César sobre el RNP no
+  // trajo NI UN fragmento de la Directiva que lo regula, pese a estar
+  // cargada con 34 fragmentos. Se traduce la sigla y se añaden los
+  // términos con los que la norma nombra el trámite.
+  const SIGLAS: Array<{ patron: RegExp; verbose: string; focal: string }> = [
+    {
+      patron: /\brnp\b|registro nacional de proveedores/i,
+      verbose:
+        'Registro Nacional de Proveedores RNP inscripción reinscripción ejecutor de obras consultor de obras bienes y servicios capacidad máxima de contratación persona jurídica nacional extranjera domiciliada no domiciliada Directiva Trámites ante el RNP',
+      focal: 'Directiva Trámites ante el RNP inscripción ejecutor de obras requisitos',
+    },
+    {
+      patron: /\bcmc\b|capacidad m[áa]xima de contrataci[óo]n/i,
+      verbose:
+        'capacidad máxima de contratación CMC aumento de capacidad libre de contratación récord de obras mejora patrimonial',
+      focal: 'capacidad máxima de contratación aumento requisitos',
+    },
+    {
+      patron: /\bseace\b|pladicop/i,
+      verbose:
+        'Sistema Electrónico de Contrataciones del Estado SEACE Plataforma Digital de Contrataciones Públicas Pladicop registro publicación',
+      focal: 'SEACE Pladicop registro de información obligación',
+    },
+    {
+      patron: /\bdec\b|dependencia encargada de (?:las )?contrataciones/i,
+      verbose:
+        'Dependencia Encargada de las Contrataciones DEC funciones responsabilidades órgano encargado',
+      focal: 'Dependencia Encargada de las Contrataciones funciones',
+    },
+    {
+      patron: /\bjprd\b|junta de prevenci[óo]n/i,
+      verbose:
+        'Junta de Prevención y Resolución de Disputas JPRD centro de administración designación monto contractual',
+      focal: 'Junta de Prevención y Resolución de Disputas JPRD procedencia',
+    },
+    {
+      patron: /\btupa\b/i,
+      verbose:
+        'Texto Único de Procedimientos Administrativos TUPA del OECE derecho de tramitación tasa plazo de atención requisitos del procedimiento',
+      focal: 'TUPA OECE procedimiento requisitos derecho de tramitación',
+    },
+    {
+      patron: /\bcmn\b|cuadro multianual de necesidades/i,
+      verbose:
+        'Cuadro Multianual de Necesidades CMN programación multianual formulación aprobación',
+      focal: 'Cuadro Multianual de Necesidades formulación aprobación',
+    },
+  ];
+  for (const { patron, verbose, focal } of SIGLAS) {
+    if (patron.test(q)) add(verbose, focal);
   }
 
   // Preguntas de DEFINICIÓN ("¿qué es el requerimiento?", "definición

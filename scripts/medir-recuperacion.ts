@@ -136,6 +136,22 @@ const CASOS: Caso[] = [
       ['finalidad pública', /finalidad\s+p[úu]blica/i],
     ],
   },
+  {
+    // Observación de César del 17/08/2026: la respuesta no enumeraba los
+    // supuestos. La causa era de recuperación — la Directiva que regula
+    // el trámite no llegaba al modelo. Queda como caso fijo.
+    id: 'Q10-rnp-ejecutor',
+    pregunta:
+      'cuales son los requisitos para la inscripcion de rnp como ejecutor de obras en persona juridica',
+    claves: [
+      ['procedimiento de la directiva', /reinscripci[óo]n|art[íi]culo\s*381/i],
+      ['persona jurídica extranjera', /extranjer[ao]/i],
+      ['capacidad máxima de contratación', /capacidad\s+m[áa]xima\s+de\s+contrataci[óo]n/i],
+      ['sin experiencia previa', /sin\s+experiencia|500\s*000|500,000/i],
+      ['derecho de tramitación', /derecho\s+de\s+tramitaci[óo]n|tasa/i],
+      ['ejecutor de obras', /ejecutor\s+de\s+obras?/i],
+    ],
+  },
 ];
 
 interface Fila { chunk_id: string; content: string; doc_type: string }
