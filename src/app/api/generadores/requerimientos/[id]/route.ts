@@ -11,6 +11,44 @@ import {
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+/**
+ * Quita los caracteres de control que llegan al pegar desde Word.
+ *
+ * PostgreSQL NO admite \u0000 en jsonb: rechaza la fila entera con
+ * "unsupported Unicode escape sequence". El resto de controles no
+ * rompen la base pero ensucian el Word exportado. Es la misma clase de
+ * fallo que ya obligó a limpiar el texto de los PDF en la ingesta.
+ *
+ * Se conservan el salto de línea y el tabulador, que sí son
+ * significativos en los apartados redactados.
+ */
+function limpiarTexto(v: string): string {
+  // eslint-disable-next-line no-control-regex
+  return v.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
+}
+
+/** Aplica la limpieza a todo lo que escribe el usuario. */
+function limpiarRespuestas(
+  r: NonNullable<z.infer<typeof ActualizarSchema>['respuestas']>,
+) {
+  const mapa = (o?: Record<string, string>) =>
+    o && Object.fromEntries(Object.entries(o).map(([k, v]) => [k, limpiarTexto(v)]));
+  return {
+    campos: mapa(r.campos),
+    redacciones: mapa(r.redacciones),
+    opciones: r.opciones,
+    tablas:
+      r.tablas &&
+      Object.fromEntries(
+        Object.entries(r.tablas).map(([k, filas]) => [
+          k,
+          filas.map((f) => f.map(limpiarTexto)),
+        ]),
+      ),
+    condiciones: r.condiciones,
+  };
+}
+
 /** Lo que se guarda; todo opcional para permitir guardado incremental. */
 const ActualizarSchema = z.object({
   denominacion: z.string().min(2).max(500).optional(),
@@ -138,7 +176,7 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
     // usuario tocó, y dos pestañas abiertas no deben borrarse el trabajo
     // la una a la otra.
     const previas = normalizarRespuestas(r.fila.respuestas);
-    const nuevas = parsed.data.respuestas;
+    const nuevas = limpiarRespuestas(parsed.data.respuestas);
     cambios.respuestas = {
       campos: { ...previas.campos, ...(nuevas.campos ?? {}) },
       redacciones: { ...previas.redacciones, ...(nuevas.redacciones ?? {}) },

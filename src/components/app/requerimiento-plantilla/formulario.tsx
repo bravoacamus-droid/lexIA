@@ -115,8 +115,18 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
         cache: 'no-store',
       });
       if (detalle.ok) {
-        const j = (await detalle.json()) as { estado: Estado };
-        setEstado(j.estado);
+        // Se comprueba la forma antes de guardarla: un `estado` ausente
+        // dejaba el componente con undefined y la siguiente pintada
+        // reventaba en estado.avisos, que es justo la pantalla en blanco
+        // sin información que reportó César.
+        const j = (await detalle.json()) as { estado?: Partial<Estado> };
+        if (j?.estado && Array.isArray(j.estado.avisos)) {
+          setEstado({
+            faltantes: j.estado.faltantes ?? [],
+            avisos: j.estado.avisos ?? [],
+            omitidas: j.estado.omitidas ?? [],
+          });
+        }
       }
       setGuardado(true);
     } catch (e) {
