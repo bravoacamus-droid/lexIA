@@ -480,7 +480,11 @@ export function ensamblarRequerimiento(
         case 'tabla': {
           const filas = respuestas.tablas[b.id] ?? [];
           const minimo = b.minimo ?? 0;
-          if (filas.length < minimo) {
+          // Se cuentan las filas con algo escrito: pulsar "agregar fila"
+          // y dejarla en blanco no completa nada, y el índice lateral
+          // tiene que decir lo mismo que esto.
+          const conContenido = filas.filter((f) => f.some((c) => c.trim())).length;
+          if (conContenido < minimo) {
             faltantes.push({
               seccion,
               bloque: b.id,

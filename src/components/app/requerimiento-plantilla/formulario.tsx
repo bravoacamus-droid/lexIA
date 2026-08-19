@@ -34,7 +34,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type {
   PlantillaRequerimiento,
@@ -54,6 +53,12 @@ import {
   nuevoIdExtra,
 } from '@/lib/generadores/ensamblador';
 import {
+  anclaApartado,
+  anclaBloque,
+  construirIndice,
+  resumenIndice,
+} from '@/lib/generadores/indice';
+import {
   ControlCampo,
   ControlOpcion,
   ControlParrafo,
@@ -63,6 +68,7 @@ import {
 import { RevisionGlobal } from './revision-global';
 import { CargarProyecto } from './cargar-proyecto';
 import { ApartadoPropio } from './apartado-propio';
+import { IndiceDocumento } from './indice-documento';
 
 interface Estado {
   faltantes: Falta[];
@@ -426,7 +432,14 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
     if (s.condicion && !r.condiciones[s.condicion]) return null;
     const utiles = s.bloques.filter((b) => b.clase !== 'titulo');
     return (
-      <div key={s.id} className={cn(nivel > 1 && 'border-l pl-4')}>
+      <div
+        key={s.id}
+        // El ancla de primer nivel la pone la envoltura que además
+        // lleva los controles de colocación; aquí solo las hijas, para
+        // no repetir un id en el documento.
+        id={nivel > 1 ? anclaApartado(s.id) : undefined}
+        className={cn('scroll-mt-24 transition', nivel > 1 && 'border-l pl-4')}
+      >
         <h3
           className={cn(
             'font-semibold',
@@ -435,7 +448,30 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
         >
           {numero}. {s.titulo}
         </h3>
-        {utiles.length > 0 && <div className="mt-3 space-y-4">{utiles.map((b, i) => bloqueVisible(b, `${s.id}-${i}`))}</div>}
+        {utiles.length > 0 && (
+          <div className="mt-3 space-y-4">
+            {utiles.map((b, i) => {
+              // El ancla la lleva la envoltura, no el control: un
+              // párrafo con huecos no tiene id propio y una tabla
+              // tampoco expone uno en el DOM.
+              const idBloque =
+                b.clase === 'parrafo'
+                  ? b.campos[0]?.id
+                  : 'id' in b && typeof b.id === 'string'
+                    ? b.id
+                    : undefined;
+              return (
+                <div
+                  key={`${s.id}-${i}`}
+                  id={idBloque ? anclaBloque(idBloque) : undefined}
+                  className="scroll-mt-24 transition"
+                >
+                  {bloqueVisible(b, `${s.id}-${i}`)}
+                </div>
+              );
+            })}
+          </div>
+        )}
         {s.subsecciones && s.subsecciones.length > 0 && (
           <div className="mt-4 space-y-5">
             {s.subsecciones
@@ -462,6 +498,11 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
       )
       .map((a) => ({ apartado: a, numero: String(++n) }));
   }, [plantilla, r]);
+
+  // El índice se calcula aquí y no en el servidor: tiene que ponerse en
+  // verde según se escribe, no en el siguiente guardado.
+  const indice = useMemo(() => construirIndice(plantilla, r), [plantilla, r]);
+  const resumen = useMemo(() => resumenIndice(indice), [indice]);
 
   const errores = estado.avisos.filter((a) => a.nivel === 'error');
   const advertencias = estado.avisos.filter((a) => a.nivel === 'advertencia');
@@ -568,7 +609,11 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
 
           <Card className="space-y-8 p-5">
             {apartados.map(({ apartado, numero }, i) => (
-              <div key={apartado.id} className="group/apartado relative">
+              <div
+                key={apartado.id}
+                id={anclaApartado(apartado.id)}
+                className="group/apartado relative scroll-mt-24 transition"
+              >
                 {/* Colocación. Cada entidad ordena el documento como le
                     conviene; el formato oficial se recupera con un
                     botón. */}
@@ -671,28 +716,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
             </Card>
           )}
 
-          <Card className="p-4">
-            <h3 className="text-sm font-semibold">
-              Pendientes{' '}
-              <Badge variant={estado.faltantes.length ? 'danger' : 'secondary'}>
-                {estado.faltantes.length}
-              </Badge>
-            </h3>
-            {estado.faltantes.length === 0 ? (
-              <p className="mt-2 text-xs text-muted-foreground">
-                No falta ningún dato obligatorio.
-              </p>
-            ) : (
-              <ul className="mt-2 space-y-1.5">
-                {estado.faltantes.map((f, i) => (
-                  <li key={i} className="text-xs leading-relaxed">
-                    <span className="font-medium">{f.etiqueta}</span>
-                    <span className="block text-muted-foreground">{f.seccion}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
+          <IndiceDocumento grupos={indice} resumen={resumen} />
 
           {estado.omitidas.length > 0 && (
             <Card className="p-4">
