@@ -60,7 +60,6 @@ interface Props {
   inicial: {
     denominacion: string;
     cuantia: number | null;
-    monto_contrato: number | null;
     respuestas: RespuestasRequerimiento;
   };
   estadoInicial: Estado;
@@ -80,7 +79,6 @@ function condicionesDe(secciones: Seccion[], acc: Array<{ id: string; titulo: st
 export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial }: Props) {
   const [denominacion, setDenominacion] = useState(inicial.denominacion);
   const [cuantia, setCuantia] = useState(inicial.cuantia?.toString() ?? '');
-  const [montoContrato, setMontoContrato] = useState(inicial.monto_contrato?.toString() ?? '');
   const [r, setR] = useState<RespuestasRequerimiento>(inicial.respuestas);
   const [estado, setEstado] = useState<Estado>(estadoInicial);
   const [guardando, setGuardando] = useState(false);
@@ -92,8 +90,8 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
   // Se agrupa el guardado en vez de disparar uno por tecla: escribir un
   // párrafo largo lanzaría cientos de peticiones.
   const pendiente = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const ultimo = useRef({ denominacion, cuantia, montoContrato, r });
-  ultimo.current = { denominacion, cuantia, montoContrato, r };
+  const ultimo = useRef({ denominacion, cuantia, r });
+  ultimo.current = { denominacion, cuantia, r };
 
   const guardar = useCallback(async () => {
     setGuardando(true);
@@ -104,12 +102,21 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           denominacion: v.denominacion,
-          cuantia: v.cuantia ? Number(v.cuantia) : null,
-          monto_contrato: v.montoContrato ? Number(v.montoContrato) : null,
+          // Se manda tal cual: el servidor la interpreta con el mismo
+          // analizador que lee los importes de las plantillas. Antes se
+          // convertía aquí con Number(), y "100,000.00" salía NaN, la
+          // petición devolvía 400 y no se guardaba nada de lo escrito.
+          cuantia: v.cuantia.trim() || null,
           respuestas: v.r,
         }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      // El servidor avisa de lo que no pudo interpretar —una cuantía mal
+      // escrita, por ejemplo—. Sin esto el usuario ve "Guardado" y el
+      // dato no está, que es justo la queja que hubo.
+      const guardado = (await res.json().catch(() => null)) as { avisos?: string[] } | null;
+      for (const aviso of guardado?.avisos ?? []) toast.warning(aviso);
 
       // Se relee el estado del servidor: los avisos de topes dependen de
       // la cuantía, que también acaba de cambiar.
@@ -153,6 +160,10 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
   // ── Mutadores ───────────────────────────────────────────────────────
   const setCampo = (k: string, v: string) => {
     setR((p) => ({ ...p, campos: { ...p.campos, [k]: v } }));
+    // La denominación del expediente y la del numeral 1 son la misma:
+    // se escribe en el documento y el expediente la sigue. Antes se
+    // pedía tres veces —al crear, en el expediente y en el numeral 1—.
+    if (k === 'denominacion') setDenominacion(v);
     marcarSucio();
   };
   const setRedaccion = (k: string, v: string) => {
@@ -360,6 +371,11 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
           <div>
             <h1 className="text-lg font-semibold">{plantilla.encabezado}</h1>
             <p className="text-xs text-muted-foreground">{plantilla.subtitulo}</p>
+            {denominacion.trim() && (
+              <p className="mt-0.5 max-w-xl truncate text-xs text-muted-foreground">
+                {denominacion}
+              </p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -389,57 +405,30 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
         {/* Formulario */}
         <div className="space-y-6">
           <Card className="p-5">
-            <h2 className="mb-4 text-sm font-semibold">Datos del expediente</h2>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="sm:col-span-3">
-                <Label htmlFor="denominacion" className="text-sm font-medium">
-                  Denominación de la contratación
-                </Label>
-                <Input
-                  id="denominacion"
-                  value={denominacion}
-                  onChange={(e) => {
-                    setDenominacion(e.target.value);
-                    marcarSucio();
-                  }}
-                  className="mt-1.5"
-                />
-              </div>
-              <div>
-                <Label htmlFor="cuantia" className="text-sm font-medium">
-                  Cuantía de la contratación
-                </Label>
-                <Input
-                  id="cuantia"
-                  value={cuantia}
-                  onChange={(e) => {
-                    setCuantia(e.target.value);
-                    marcarSucio();
-                  }}
-                  inputMode="decimal"
-                  placeholder="S/"
-                  className="mt-1.5"
-                />
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Sin este dato no se pueden verificar los topes de experiencia.
-                </p>
-              </div>
-              <div>
-                <Label htmlFor="monto" className="text-sm font-medium">
-                  Monto del contrato
-                </Label>
-                <Input
-                  id="monto"
-                  value={montoContrato}
-                  onChange={(e) => {
-                    setMontoContrato(e.target.value);
-                    marcarSucio();
-                  }}
-                  inputMode="decimal"
-                  placeholder="S/"
-                  className="mt-1.5"
-                />
-              </div>
+            <h2 className="text-sm font-semibold">Datos del expediente</h2>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              La denominación de la contratación se escribe una sola vez, en el numeral 1 del
+              documento; aquí no se repite.
+            </p>
+            <div className="mt-4 max-w-xs">
+              <Label htmlFor="cuantia" className="text-sm font-medium">
+                Cuantía de la contratación
+              </Label>
+              <Input
+                id="cuantia"
+                value={cuantia}
+                onChange={(e) => {
+                  setCuantia(e.target.value);
+                  marcarSucio();
+                }}
+                inputMode="decimal"
+                placeholder="S/ 100,000.00"
+                className="mt-1.5"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Sin este dato no se pueden verificar los topes de experiencia. Se admite escribirla
+                con separadores.
+              </p>
             </div>
           </Card>
 

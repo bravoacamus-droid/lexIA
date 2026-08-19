@@ -29,6 +29,7 @@ import type {
   Bloque,
   BloqueCampo,
 } from './plantilla-tipos';
+import { z } from 'zod';
 
 export interface RespuestasRequerimiento {
   /** id de campo → valor que escribió el usuario. */
@@ -47,8 +48,17 @@ export interface RespuestasRequerimiento {
 export interface ContextoContratacion {
   /** Cuantía de la contratación o del ítem, en la moneda del proceso. */
   cuantia?: number;
-  /** Monto del contrato original, para el tope de adelantos. */
-  montoContrato?: number;
+  /**
+   * El monto del contrato NO se pide.
+   *
+   * Cuando se redacta el requerimiento todavía no hay contrato: lo
+   * único que existe es la cuantía. Se pedía como un dato más del
+   * expediente y solo alimentaba una comprobación de la JPRD que nunca
+   * llegaba a ejecutarse —ninguna plantilla enciende esa condición; el
+   * umbral de los S/ 10 000 000,00 viaja al lector como nota del propio
+   * formato—. Observación de César del 18/08/2026: "la opción de monto
+   * contratado la veo innecesaria".
+   */
 }
 
 export interface Falta {
@@ -91,9 +101,23 @@ export const respuestasVacias = (): RespuestasRequerimiento => ({
  */
 export function normalizarRespuestas(
   r: Partial<RespuestasRequerimiento> | null | undefined,
+  /**
+   * Denominación del expediente. Si viene, rellena el campo homónimo
+   * del formato cuando está vacío.
+   *
+   * La denominación se pedía tres veces —al crear, en los datos del
+   * expediente y en el numeral 1— y era la misma. Se escribe una vez y
+   * el campo del documento la toma de ahí. Observación de César del
+   * 18/08/2026.
+   */
+  denominacion?: string,
 ): RespuestasRequerimiento {
+  const campos = { ...(r?.campos ?? {}) };
+  if (denominacion?.trim() && !(campos.denominacion ?? '').trim()) {
+    campos.denominacion = denominacion.trim();
+  }
   return {
-    campos: { ...(r?.campos ?? {}) },
+    campos,
     redacciones: { ...(r?.redacciones ?? {}) },
     opciones: { ...(r?.opciones ?? {}) },
     tablas: { ...(r?.tablas ?? {}) },
@@ -111,23 +135,56 @@ export function normalizarRespuestas(
  * confundirlo con el anglosajón.
  */
 export function montoDe(texto: string): number | null {
-  const m = texto.match(/\d[\d.,  ]*\d|\d/);
+  const m = texto.match(/\d[\d.,\u00a0 ]*\d|\d/);
   if (!m) return null;
-  let s = m[0].replace(/[  ]/g, '');
+  // El signo va delante del número y no entra en la coincidencia. Sin
+  // esto "-5000" se leía como 5000, que es peor que no leerlo.
+  const negativo = m.index !== undefined && texto[m.index - 1] === '-';
+  let s = m[0].replace(/[\u00a0 ]/g, '');
   const coma = s.lastIndexOf(',');
   const punto = s.lastIndexOf('.');
-  if (coma > punto) {
-    // Formato peruano: 1.234.567,89
-    s = s.replace(/\./g, '').replace(',', '.');
-  } else if (punto > coma) {
-    // Formato anglosajón: 1,234,567.89
-    s = s.replace(/,/g, '');
-  } else {
-    s = s.replace(/[.,]/g, '');
+  // Grupos de tres desde el inicio: 1.234.567 o 100,000. No hay forma
+  // de leerlo como decimales.
+  const milesConComa = /^\d{1,3}(?:,\d{3})+$/;
+  const milesConPunto = /^\d{1,3}(?:\.\d{3})+$/;
+
+  if (coma >= 0 && punto >= 0) {
+    // Están los dos: manda el último. "1.234.567,89" es peruano;
+    // "1,234,567.89" es anglosajón.
+    s = coma > punto ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+  } else if (coma >= 0) {
+    // Solo comas. "1,50" son decimales; "100,000" son miles —que es
+    // como se escribió la cuantía que no se conseguía guardar—.
+    s = milesConComa.test(s) ? s.replace(/,/g, '') : s.replace(',', '.');
+  } else if (punto >= 0) {
+    // Solo puntos, mismo criterio: "1.50" es decimal, "150.000" son
+    // miles.
+    s = milesConPunto.test(s) ? s.replace(/\./g, '') : s;
   }
   const n = Number(s);
-  return Number.isFinite(n) ? n : null;
+  if (!Number.isFinite(n)) return null;
+  return negativo ? -n : n;
 }
+
+/**
+ * Importe tal como lo escribe una persona, para los cuerpos de petición.
+ *
+ * Acepta número o cadena —"100,000.00", "S/ 150 000,00"— y devuelve el
+ * número, o null si el campo viene vacío. Antes las rutas exigían un
+ * número ya convertido: `Number("100,000.00")` daba NaN, Zod lo
+ * rechazaba y la petición entera fallaba con 400, de modo que no se
+ * guardaba ni la cuantía ni el texto escrito en ese mismo intervalo.
+ */
+export const MontoSchema = z.preprocess((v) => {
+  if (v === null || v === undefined || v === '') return null;
+  const n = typeof v === 'number' ? v : typeof v === 'string' ? montoDe(v) : null;
+  // Un importe que no se entiende —o negativo— se ignora: el campo se
+  // queda como estaba y el resto de lo que se guardaba en ese envío se
+  // guarda igual. Rechazar la petición entera por una cifra mal escrita
+  // es exactamente el fallo que se está corrigiendo.
+  if (n === null || !Number.isFinite(n) || n <= 0) return undefined;
+  return n;
+}, z.number().positive().nullable().optional());
 
 const soles = (n: number) =>
   `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -195,19 +252,6 @@ function verificarTopes(
         'No se indicó la cuantía de la contratación, por lo que no fue posible verificar los topes de experiencia (3 veces la cuantía y 25% para MYPE).',
       fundamento: fundamentoDe('experiencia_max'),
       nivel: 'advertencia',
-    });
-  }
-
-  if (
-    respuestas.condiciones.usa_jprd &&
-    contexto.montoContrato !== undefined &&
-    contexto.montoContrato <= 10_000_000
-  ) {
-    avisos.push({
-      validacion: 'jprd_umbral',
-      mensaje: `La JPRD solo procede si el monto contractual supera S/ 10 000 000,00; el indicado es ${soles(contexto.montoContrato)}.`,
-      fundamento: fundamentoDe('jprd_umbral'),
-      nivel: 'error',
     });
   }
 

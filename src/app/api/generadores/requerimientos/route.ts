@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { catalogoPlantillas, obtenerPlantilla } from '@/lib/generadores/plantillas';
 import { ensureCanUse } from '@/lib/billing/feature-gate';
+import { MontoSchema } from '@/lib/generadores/ensamblador';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -19,8 +20,9 @@ export const dynamic = 'force-dynamic';
 const CrearSchema = z.object({
   plantilla_id: z.string().min(2).max(80),
   denominacion: z.string().min(2).max(500),
-  cuantia: z.number().positive().optional(),
-  monto_contrato: z.number().positive().optional(),
+  // Mismo criterio que en el guardado: se acepta el importe escrito con
+  // separadores, que es como llega de un teclado.
+  cuantia: MontoSchema.optional(),
 });
 
 /** GET /api/generadores/requerimientos — listado del usuario + catálogo. */
@@ -82,8 +84,16 @@ export async function POST(req: Request) {
       plantilla_id: plantilla.id,
       denominacion: parsed.data.denominacion,
       cuantia: parsed.data.cuantia ?? null,
-      monto_contrato: parsed.data.monto_contrato ?? null,
-      respuestas: { campos: {}, redacciones: {}, opciones: {}, tablas: {}, condiciones: {} },
+      // La denominación se escribe UNA vez. El campo homónimo del
+      // formato se siembra aquí para que el numeral 1 no la vuelva a
+      // pedir. Observación de César del 18/08/2026.
+      respuestas: {
+        campos: { denominacion: parsed.data.denominacion },
+        redacciones: {},
+        opciones: {},
+        tablas: {},
+        condiciones: {},
+      },
     })
     .select('id')
     .single();

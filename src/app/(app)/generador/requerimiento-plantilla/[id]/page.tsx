@@ -43,7 +43,7 @@ export default async function RequerimientoPlantillaPage({
 
   const { data } = await supabase
     .from('requerimientos_plantilla')
-    .select('id, user_id, plantilla_id, denominacion, cuantia, monto_contrato, respuestas')
+    .select('id, user_id, plantilla_id, denominacion, cuantia, respuestas')
     .eq('id', params.id)
     .maybeSingle();
 
@@ -54,6 +54,7 @@ export default async function RequerimientoPlantillaPage({
 
   const respuestas = normalizarRespuestas(
     (data.respuestas ?? {}) as Partial<RespuestasRequerimiento>,
+    data.denominacion as string,
   );
 
   // El estado inicial se calcula en el servidor con el mismo ensamblador
@@ -61,7 +62,6 @@ export default async function RequerimientoPlantillaPage({
   // pendientes distinta de la del documento.
   const doc = ensamblarRequerimiento(plantilla, respuestas, {
     cuantia: (data.cuantia as number | null) ?? undefined,
-    montoContrato: (data.monto_contrato as number | null) ?? undefined,
   });
 
   return (
@@ -71,7 +71,6 @@ export default async function RequerimientoPlantillaPage({
       inicial={{
         denominacion: data.denominacion as string,
         cuantia: (data.cuantia as number | null) ?? null,
-        monto_contrato: (data.monto_contrato as number | null) ?? null,
         respuestas,
       }}
       estadoInicial={{

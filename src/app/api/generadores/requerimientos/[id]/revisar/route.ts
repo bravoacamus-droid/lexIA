@@ -97,7 +97,7 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
 
   const { data } = await supabase
     .from('requerimientos_plantilla')
-    .select('user_id, plantilla_id, denominacion, cuantia, monto_contrato, respuestas')
+    .select('user_id, plantilla_id, denominacion, cuantia, respuestas')
     .eq('id', ctx.params.id)
     .maybeSingle();
   if (!data) return NextResponse.json({ error: 'not_found' }, { status: 404 });
@@ -107,7 +107,6 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
     plantilla_id: string;
     denominacion: string;
     cuantia: number | null;
-    monto_contrato: number | null;
     respuestas: Partial<RespuestasRequerimiento>;
   };
   if (fila.user_id !== user.id) {
@@ -119,10 +118,9 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
     return NextResponse.json({ error: 'plantilla_desconocida' }, { status: 500 });
   }
 
-  const respuestas = normalizarRespuestas(fila.respuestas);
+  const respuestas = normalizarRespuestas(fila.respuestas, fila.denominacion);
   const doc = ensamblarRequerimiento(plantilla, respuestas, {
     cuantia: fila.cuantia ?? undefined,
-    montoContrato: fila.monto_contrato ?? undefined,
   });
   const inventario = inventarioRevisable(plantilla, respuestas);
 

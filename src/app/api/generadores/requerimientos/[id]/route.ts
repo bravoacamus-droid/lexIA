@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { obtenerPlantilla } from '@/lib/generadores/plantillas';
 import {
   ensamblarRequerimiento,
+  MontoSchema,
   normalizarRespuestas,
   type RespuestasRequerimiento,
 } from '@/lib/generadores/ensamblador';
@@ -52,8 +53,7 @@ function limpiarRespuestas(
 /** Lo que se guarda; todo opcional para permitir guardado incremental. */
 const ActualizarSchema = z.object({
   denominacion: z.string().min(2).max(500).optional(),
-  cuantia: z.number().positive().nullable().optional(),
-  monto_contrato: z.number().positive().nullable().optional(),
+  cuantia: MontoSchema.optional(),
   status: z.enum(['draft', 'review', 'final', 'archived']).optional(),
   respuestas: z
     .object({
@@ -72,7 +72,6 @@ interface Fila {
   plantilla_id: string;
   denominacion: string;
   cuantia: number | null;
-  monto_contrato: number | null;
   status: string;
   respuestas: Partial<RespuestasRequerimiento>;
   created_at: string;
@@ -124,10 +123,9 @@ export async function GET(_req: Request, ctx: { params: { id: string } }) {
     );
   }
 
-  const respuestas = normalizarRespuestas(r.fila.respuestas);
+  const respuestas = normalizarRespuestas(r.fila.respuestas, r.fila.denominacion);
   const doc = ensamblarRequerimiento(plantilla, respuestas, {
     cuantia: r.fila.cuantia ?? undefined,
-    montoContrato: r.fila.monto_contrato ?? undefined,
   });
 
   return NextResponse.json({
@@ -136,7 +134,6 @@ export async function GET(_req: Request, ctx: { params: { id: string } }) {
       plantilla_id: r.fila.plantilla_id,
       denominacion: r.fila.denominacion,
       cuantia: r.fila.cuantia,
-      monto_contrato: r.fila.monto_contrato,
       status: r.fila.status,
       respuestas,
       created_at: r.fila.created_at,
@@ -157,7 +154,8 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
   const r = await cargar(ctx.params.id);
   if ('error' in r) return r.error;
 
-  const parsed = ActualizarSchema.safeParse(await req.json().catch(() => null));
+  const cuerpo = (await req.json().catch(() => null)) as Record<string, unknown> | null;
+  const parsed = ActualizarSchema.safeParse(cuerpo);
   if (!parsed.success) {
     return NextResponse.json(
       { error: 'invalid_payload', detail: parsed.error.flatten() },
@@ -165,17 +163,30 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
     );
   }
 
+  // Una cuantía ilegible no tumba el guardado, pero hay que decirlo: si
+  // no, el usuario ve "Guardado" y la cifra no está.
+  const avisos: string[] = [];
+  const cuantiaCruda = cuerpo?.cuantia;
+  if (
+    typeof cuantiaCruda === 'string' &&
+    cuantiaCruda.trim() !== '' &&
+    parsed.data.cuantia === undefined
+  ) {
+    avisos.push(
+      'No se entendió la cuantía. Escríbela solo con cifras, por ejemplo 100,000.00.',
+    );
+  }
+
   const cambios: Record<string, unknown> = {};
   if (parsed.data.denominacion !== undefined) cambios.denominacion = parsed.data.denominacion;
   if (parsed.data.cuantia !== undefined) cambios.cuantia = parsed.data.cuantia;
-  if (parsed.data.monto_contrato !== undefined) cambios.monto_contrato = parsed.data.monto_contrato;
   if (parsed.data.status !== undefined) cambios.status = parsed.data.status;
 
   if (parsed.data.respuestas) {
     // Fusión por grupo, no reemplazo: la interfaz manda solo lo que el
     // usuario tocó, y dos pestañas abiertas no deben borrarse el trabajo
     // la una a la otra.
-    const previas = normalizarRespuestas(r.fila.respuestas);
+    const previas = normalizarRespuestas(r.fila.respuestas, r.fila.denominacion);
     const nuevas = limpiarRespuestas(parsed.data.respuestas);
     cambios.respuestas = {
       campos: { ...previas.campos, ...(nuevas.campos ?? {}) },
@@ -187,7 +198,7 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
   }
 
   if (Object.keys(cambios).length === 0) {
-    return NextResponse.json({ ok: true, sin_cambios: true });
+    return NextResponse.json({ ok: true, sin_cambios: true, avisos });
   }
 
   const { error } = await r.supabase
@@ -196,7 +207,7 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
     .eq('id', ctx.params.id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, avisos });
 }
 
 /** DELETE — borrado del requerimiento. */

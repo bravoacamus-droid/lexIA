@@ -42,7 +42,7 @@ export async function GET(req: Request, ctx: { params: { id: string } }) {
 
   const { data, error } = await supabase
     .from('requerimientos_plantilla')
-    .select('user_id, plantilla_id, denominacion, cuantia, monto_contrato, respuestas')
+    .select('user_id, plantilla_id, denominacion, cuantia, respuestas')
     .eq('id', ctx.params.id)
     .maybeSingle();
 
@@ -54,7 +54,6 @@ export async function GET(req: Request, ctx: { params: { id: string } }) {
     plantilla_id: string;
     denominacion: string;
     cuantia: number | null;
-    monto_contrato: number | null;
     respuestas: Partial<RespuestasRequerimiento>;
   };
   if (fila.user_id !== user.id) {
@@ -69,9 +68,8 @@ export async function GET(req: Request, ctx: { params: { id: string } }) {
     );
   }
 
-  const doc = ensamblarRequerimiento(plantilla, normalizarRespuestas(fila.respuestas), {
+  const doc = ensamblarRequerimiento(plantilla, normalizarRespuestas(fila.respuestas, fila.denominacion), {
     cuantia: fila.cuantia ?? undefined,
-    montoContrato: fila.monto_contrato ?? undefined,
   });
 
   const nombre = fila.denominacion
