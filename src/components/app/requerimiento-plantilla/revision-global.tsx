@@ -21,6 +21,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import type { DestinoRespuesta } from '@/lib/generadores/ensamblador';
 
 export interface Hallazgo {
   apartado_id: string | null;
@@ -35,7 +36,7 @@ interface Apartado {
   id: string;
   etiqueta: string;
   seccion: string;
-  destino: 'redacciones' | 'campos';
+  destino: DestinoRespuesta;
 }
 
 interface Revision {

@@ -42,6 +42,48 @@ export interface RespuestasRequerimiento {
   tablas: Record<string, string[][]>;
   /** id de condición → si la sección aplica. */
   condiciones: Record<string, boolean>;
+  /**
+   * Apartados que añade la entidad por su cuenta.
+   *
+   * El formato oficial no lo prevé todo y cada entidad tiene sus
+   * particularidades. Van como apartados de primer nivel, se numeran
+   * con los demás y se colocan donde el usuario los ponga. Observación
+   * de César del 18/08/2026: "debe permitir agregar otros campos según
+   * la necesidad de cada entidad".
+   */
+  extras: ApartadoExtra[];
+  /**
+   * Orden de los apartados de primer nivel, por id.
+   *
+   * Lo que no figure aquí conserva el orden del formato y se coloca
+   * detrás. La numeración se recalcula al armar, así que mover un
+   * apartado renumera el documento entero sin tocar un solo texto
+   * invariable. Observación de César: "cada componente debe permitir
+   * ser reubicado en la posición que cada entidad lo crea conveniente".
+   */
+  orden: string[];
+}
+
+/** Apartado escrito enteramente por la entidad. */
+export interface ApartadoExtra {
+  /** Identificador propio; lleva el prefijo `extra:` para no chocar. */
+  id: string;
+  titulo: string;
+  texto: string;
+}
+
+/** Dónde se guarda un texto del usuario. Lo comparten revisor y reparto. */
+export type DestinoRespuesta = 'redacciones' | 'campos' | 'extras';
+
+/** Prefijo con el que se distinguen de los apartados del formato. */
+export const PREFIJO_EXTRA = 'extra:';
+
+/** Un id de apartado propio, único dentro del documento. */
+export function nuevoIdExtra(existentes: ApartadoExtra[]): string {
+  let n = existentes.length + 1;
+  const usados = new Set(existentes.map((e) => e.id));
+  while (usados.has(`${PREFIJO_EXTRA}${n}`)) n++;
+  return `${PREFIJO_EXTRA}${n}`;
 }
 
 /** Datos económicos contra los que se contrastan los topes. */
@@ -90,6 +132,8 @@ export const respuestasVacias = (): RespuestasRequerimiento => ({
   opciones: {},
   tablas: {},
   condiciones: {},
+  extras: [],
+  orden: [],
 });
 
 /**
@@ -122,7 +166,51 @@ export function normalizarRespuestas(
     opciones: { ...(r?.opciones ?? {}) },
     tablas: { ...(r?.tablas ?? {}) },
     condiciones: { ...(r?.condiciones ?? {}) },
+    extras: [...(r?.extras ?? [])],
+    orden: [...(r?.orden ?? [])],
   };
+}
+
+/**
+ * Apartado de primer nivel: uno del formato o uno propio de la entidad.
+ */
+export type ApartadoOrdenado =
+  | { tipo: 'seccion'; id: string; seccion: Seccion }
+  | { tipo: 'extra'; id: string; extra: ApartadoExtra };
+
+/**
+ * Los apartados en el orden en que van a salir.
+ *
+ * Lo usan el ensamblador y el formulario, para que lo que se ve en
+ * pantalla y lo que sale en el Word sean el mismo documento. Un id que
+ * ya no existe —una plantilla que cambió, un apartado propio
+ * borrado— simplemente se ignora, y lo que nadie colocó conserva el
+ * orden del formato al final.
+ */
+export function apartadosOrdenados(
+  plantilla: PlantillaRequerimiento,
+  respuestas: RespuestasRequerimiento,
+): ApartadoOrdenado[] {
+  const base: ApartadoOrdenado[] = [
+    ...plantilla.secciones.map(
+      (seccion) => ({ tipo: 'seccion', id: seccion.id, seccion }) as ApartadoOrdenado,
+    ),
+    ...respuestas.extras.map(
+      (extra) => ({ tipo: 'extra', id: extra.id, extra }) as ApartadoOrdenado,
+    ),
+  ];
+  const porId = new Map(base.map((a) => [a.id, a]));
+  const out: ApartadoOrdenado[] = [];
+  const vistos = new Set<string>();
+  for (const id of respuestas.orden) {
+    const a = porId.get(id);
+    if (a && !vistos.has(id)) {
+      out.push(a);
+      vistos.add(id);
+    }
+  }
+  for (const a of base) if (!vistos.has(a.id)) out.push(a);
+  return out;
 }
 
 /**
@@ -420,7 +508,31 @@ export function ensamblarRequerimiento(
   };
 
   let n = 0;
-  for (const s of plantilla.secciones) {
+  for (const apartado of apartadosOrdenados(plantilla, respuestas)) {
+    if (apartado.tipo === 'extra') {
+      const { extra } = apartado;
+      const titulo = extra.titulo.trim() || 'Apartado adicional';
+      const texto = extra.texto.trim();
+      n++;
+      partes.push(`### ${n}. ${titulo}`, '');
+      if (texto) {
+        partes.push(texto, '');
+      } else {
+        // Un apartado propio sin contenido es un olvido, no una
+        // sección "de corresponder": se marca como pendiente igual que
+        // cualquier otro dato obligatorio.
+        partes.push(pendiente(titulo), '');
+        faltantes.push({
+          seccion: titulo,
+          bloque: extra.id,
+          etiqueta: titulo,
+          ayuda: 'Apartado añadido por la entidad; está sin escribir.',
+        });
+      }
+      continue;
+    }
+
+    const s = apartado.seccion;
     if (s.condicion && !respuestas.condiciones[s.condicion]) {
       omitidas.push(s.titulo);
       continue;

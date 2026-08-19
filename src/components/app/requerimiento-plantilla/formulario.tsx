@@ -24,6 +24,10 @@ import {
   EyeOff,
   Check,
   Loader2,
+  ChevronUp,
+  ChevronDown,
+  Plus,
+  RotateCcw,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,7 +41,14 @@ import type {
   Seccion,
   Bloque,
 } from '@/lib/generadores/plantilla-tipos';
-import type { RespuestasRequerimiento, Falta, Aviso } from '@/lib/generadores/ensamblador';
+import type {
+  RespuestasRequerimiento,
+  Falta,
+  Aviso,
+  ApartadoExtra,
+  DestinoRespuesta,
+} from '@/lib/generadores/ensamblador';
+import { apartadosOrdenados, nuevoIdExtra } from '@/lib/generadores/ensamblador';
 import {
   ControlCampo,
   ControlOpcion,
@@ -47,6 +58,7 @@ import {
 } from './bloques';
 import { RevisionGlobal } from './revision-global';
 import { CargarProyecto } from './cargar-proyecto';
+import { ApartadoPropio } from './apartado-propio';
 
 interface Estado {
   faltantes: Falta[];
@@ -178,6 +190,74 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
     setR((p) => ({ ...p, tablas: { ...p.tablas, [k]: v } }));
     marcarSucio();
   };
+  /** Escribe un texto donde corresponda, venga de donde venga. */
+  const escribirEn = (destino: DestinoRespuesta, bloqueId: string, texto: string) => {
+    if (destino === 'campos') setCampo(bloqueId, texto);
+    else if (destino === 'redacciones') setRedaccion(bloqueId, texto);
+    else cambiarExtra(bloqueId, { texto });
+  };
+
+  // ── Apartados propios y su colocación ───────────────────────────────
+
+  const cambiarExtra = (idExtra: string, cambio: Partial<ApartadoExtra>) => {
+    setR((p) => ({
+      ...p,
+      extras: p.extras.map((e) => (e.id === idExtra ? { ...e, ...cambio } : e)),
+    }));
+    marcarSucio();
+  };
+
+  const anadirExtra = () => {
+    setR((p) => {
+      const extra: ApartadoExtra = { id: nuevoIdExtra(p.extras), titulo: '', texto: '' };
+      // Se coloca al final del orden vigente; desde ahí el usuario lo
+      // sube a donde quiera.
+      const orden = apartadosOrdenados(plantilla, p).map((a) => a.id);
+      return { ...p, extras: [...p.extras, extra], orden: [...orden, extra.id] };
+    });
+    marcarSucio();
+  };
+
+  const borrarExtra = (idExtra: string) => {
+    setR((p) => ({
+      ...p,
+      extras: p.extras.filter((e) => e.id !== idExtra),
+      orden: p.orden.filter((x) => x !== idExtra),
+    }));
+    marcarSucio();
+  };
+
+  /**
+   * Sube o baja un apartado de primer nivel.
+   *
+   * Se intercambia con el siguiente apartado VISIBLE, no con el
+   * siguiente de la lista: si en medio hay una sección apagada por su
+   * condición, saltársela es lo que el usuario espera —de lo contrario
+   * pulsa y no se mueve nada—.
+   */
+  const mover = (idApartado: string, direccion: -1 | 1) => {
+    setR((p) => {
+      const orden = apartadosOrdenados(plantilla, p);
+      const visible = (a: (typeof orden)[number]) =>
+        a.tipo === 'extra' || !a.seccion.condicion || p.condiciones[a.seccion.condicion];
+      const i = orden.findIndex((a) => a.id === idApartado);
+      if (i < 0) return p;
+      let j = i + direccion;
+      while (j >= 0 && j < orden.length && !visible(orden[j])) j += direccion;
+      if (j < 0 || j >= orden.length) return p;
+      const ids = orden.map((a) => a.id);
+      [ids[i], ids[j]] = [ids[j], ids[i]];
+      return { ...p, orden: ids };
+    });
+    marcarSucio();
+  };
+
+  /** Vuelve al orden del formato oficial, sin borrar nada. */
+  const restaurarOrden = () => {
+    setR((p) => ({ ...p, orden: [] }));
+    marcarSucio();
+  };
+
   /**
    * Escribe de una vez el reparto de un proyecto cargado.
    *
@@ -185,19 +265,21 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
    * sueltas encadenan veinte pintadas y veinte guardados.
    */
   const aplicarLote = (
-    cambios: Array<{ destino: 'redacciones' | 'campos'; bloqueId: string; texto: string }>,
+    cambios: Array<{ destino: DestinoRespuesta; bloqueId: string; texto: string }>,
     condicionesEncendidas: string[],
   ) => {
     setR((p) => {
       const campos = { ...p.campos };
       const redacciones = { ...p.redacciones };
+      let extras = p.extras;
       for (const c of cambios) {
         if (c.destino === 'campos') campos[c.bloqueId] = c.texto;
-        else redacciones[c.bloqueId] = c.texto;
+        else if (c.destino === 'redacciones') redacciones[c.bloqueId] = c.texto;
+        else extras = extras.map((e) => (e.id === c.bloqueId ? { ...e, texto: c.texto } : e));
       }
       const condiciones = { ...p.condiciones };
       for (const k of condicionesEncendidas) condiciones[k] = true;
-      return { ...p, campos, redacciones, condiciones };
+      return { ...p, campos, redacciones, extras, condiciones };
     });
     marcarSucio();
   };
@@ -354,6 +436,22 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
     );
   };
 
+  /**
+   * Los apartados de primer nivel, en su orden y con su número.
+   *
+   * La numeración se calcula igual que en el ensamblador —solo cuentan
+   * los que salen— para que el número que se ve en pantalla sea el que
+   * saldrá en el Word.
+   */
+  const apartados = useMemo(() => {
+    let n = 0;
+    return apartadosOrdenados(plantilla, r)
+      .filter(
+        (a) => a.tipo === 'extra' || !a.seccion.condicion || r.condiciones[a.seccion.condicion],
+      )
+      .map((a) => ({ apartado: a, numero: String(++n) }));
+  }, [plantilla, r]);
+
   const errores = estado.avisos.filter((a) => a.nivel === 'error');
   const advertencias = estado.avisos.filter((a) => a.nivel === 'advertencia');
 
@@ -458,19 +556,72 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
           </Card>
 
           <Card className="space-y-8 p-5">
-            {plantilla.secciones
-              .filter((s) => !s.condicion || r.condiciones[s.condicion])
-              .map((s, i) => pintarSeccion(s, String(i + 1), 1))}
+            {apartados.map(({ apartado, numero }, i) => (
+              <div key={apartado.id} className="group/apartado relative">
+                {/* Colocación. Cada entidad ordena el documento como le
+                    conviene; el formato oficial se recupera con un
+                    botón. */}
+                <div className="absolute -top-1 right-0 z-10 flex gap-1 opacity-0 transition focus-within:opacity-100 group-hover/apartado:opacity-100">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 w-7 p-0"
+                    disabled={i === 0}
+                    title="Subir este apartado"
+                    aria-label={`Subir ${numero}`}
+                    onClick={() => mover(apartado.id, -1)}
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 w-7 p-0"
+                    disabled={i === apartados.length - 1}
+                    title="Bajar este apartado"
+                    aria-label={`Bajar ${numero}`}
+                    onClick={() => mover(apartado.id, 1)}
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {apartado.tipo === 'extra' ? (
+                  <ApartadoPropio
+                    extra={apartado.extra}
+                    numero={numero}
+                    onChange={(cambio) => cambiarExtra(apartado.id, cambio)}
+                    onBorrar={() => borrarExtra(apartado.id)}
+                  />
+                ) : (
+                  pintarSeccion(apartado.seccion, numero, 1)
+                )}
+              </div>
+            ))}
+
+            <div className="flex flex-wrap items-center gap-2 border-t pt-4">
+              <Button type="button" variant="outline" size="sm" onClick={anadirExtra}>
+                <Plus className="mr-1.5 h-4 w-4" />
+                Añadir un apartado propio
+              </Button>
+              {r.orden.length > 0 && (
+                <Button type="button" variant="ghost" size="sm" onClick={restaurarOrden}>
+                  <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                  Volver al orden del formato
+                </Button>
+              )}
+              <span className="text-xs text-muted-foreground">
+                Los apartados se suben y se bajan con las flechas; el documento se renumera solo.
+              </span>
+            </div>
           </Card>
 
           <RevisionGlobal
             id={id}
             guardarPrimero={guardar}
-            onAplicar={(destino, bloqueId, texto) =>
-              destino === 'redacciones'
-                ? setRedaccion(bloqueId, texto)
-                : setCampo(bloqueId, texto)
-            }
+            onAplicar={escribirEn}
           />
         </div>
 

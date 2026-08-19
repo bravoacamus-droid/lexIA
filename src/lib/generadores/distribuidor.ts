@@ -36,7 +36,7 @@ import type {
   PlantillaRequerimiento,
   Seccion,
 } from './plantilla-tipos';
-import type { RespuestasRequerimiento } from './ensamblador';
+import type { DestinoRespuesta, RespuestasRequerimiento } from './ensamblador';
 
 /** Un apartado del formato que puede recibir contenido del proyecto. */
 export interface DestinoDistribucion {
@@ -45,7 +45,7 @@ export interface DestinoDistribucion {
   seccion: string;
   /** Lo que el formato oficial pide ahí. */
   instruccion: string;
-  destino: 'redacciones' | 'campos';
+  destino: DestinoRespuesta;
   /** Tipo del campo, para que el modelo no meta un párrafo en una fecha. */
   tipo?: BloqueCampo['tipo'];
   /**
@@ -143,6 +143,22 @@ export function destinosDistribucion(
   };
 
   for (const s of plantilla.secciones) seccion(s, []);
+
+  // Si la entidad ya creó apartados propios, el proyecto también puede
+  // repartirse en ellos: para eso los creó.
+  for (const e of respuestas.extras) {
+    out.push({
+      id: e.id,
+      etiqueta: e.titulo.trim() || 'Apartado adicional',
+      seccion: 'Apartados añadidos por la entidad',
+      instruccion:
+        e.titulo.trim() ||
+        'Apartado propio de la entidad, sin instrucción del formato oficial.',
+      destino: 'extras',
+      condiciones: [],
+      ocupado: !!e.texto.trim(),
+    });
+  }
   return out;
 }
 

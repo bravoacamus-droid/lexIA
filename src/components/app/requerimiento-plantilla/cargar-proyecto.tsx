@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import type { DestinoRespuesta } from '@/lib/generadores/ensamblador';
 
 interface Asignacion {
   apartado_id: string;
@@ -40,7 +41,7 @@ interface Apartado {
   id: string;
   etiqueta: string;
   seccion: string;
-  destino: 'redacciones' | 'campos';
+  destino: DestinoRespuesta;
 }
 
 interface Reparto {

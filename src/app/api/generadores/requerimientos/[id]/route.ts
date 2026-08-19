@@ -47,6 +47,14 @@ function limpiarRespuestas(
         ]),
       ),
     condiciones: r.condiciones,
+    extras:
+      r.extras &&
+      r.extras.map((e) => ({
+        id: e.id,
+        titulo: limpiarTexto(e.titulo),
+        texto: limpiarTexto(e.texto),
+      })),
+    orden: r.orden,
   };
 }
 
@@ -62,6 +70,24 @@ const ActualizarSchema = z.object({
       opciones: z.record(z.string()).optional(),
       tablas: z.record(z.array(z.array(z.string()))).optional(),
       condiciones: z.record(z.boolean()).optional(),
+      /**
+       * Apartados propios de la entidad. El tope no es por avaricia:
+       * cada uno se numera en el documento y se manda entero al revisor,
+       * así que una lista sin límite convierte el requerimiento en otra
+       * cosa.
+       */
+      extras: z
+        .array(
+          z.object({
+            id: z.string().min(1).max(40),
+            titulo: z.string().max(300),
+            texto: z.string().max(20000),
+          }),
+        )
+        .max(30)
+        .optional(),
+      /** Orden de los apartados de primer nivel, por id. */
+      orden: z.array(z.string().min(1).max(80)).max(200).optional(),
     })
     .optional(),
 });
@@ -194,6 +220,12 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
       opciones: { ...previas.opciones, ...(nuevas.opciones ?? {}) },
       tablas: { ...previas.tablas, ...(nuevas.tablas ?? {}) },
       condiciones: { ...previas.condiciones, ...(nuevas.condiciones ?? {}) },
+      // Estos dos son listas, no diccionarios: se reemplazan enteros o
+      // se dejan como estaban. Fusionarlos por índice mezclaría el orden
+      // de dos pestañas abiertas y saldría un documento que no quiso
+      // nadie.
+      extras: nuevas.extras ?? previas.extras,
+      orden: nuevas.orden ?? previas.orden,
     };
   }
 

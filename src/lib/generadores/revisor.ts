@@ -35,7 +35,12 @@ import type {
   PlantillaRequerimiento,
   Seccion,
 } from './plantilla-tipos';
-import type { Aviso, Falta, RespuestasRequerimiento } from './ensamblador';
+import type {
+  Aviso,
+  DestinoRespuesta,
+  Falta,
+  RespuestasRequerimiento,
+} from './ensamblador';
 
 /** Un apartado con contenido escrito por el usuario, revisable. */
 export interface ApartadoRevisable {
@@ -49,7 +54,7 @@ export interface ApartadoRevisable {
   /** Lo que hay escrito. */
   texto: string;
   /** Dónde se guarda si el usuario acepta un texto propuesto. */
-  destino: 'redacciones' | 'campos';
+  destino: DestinoRespuesta;
   /**
    * Si admite reemplazo directo. Un plazo en días o un importe son
    * decisiones del área usuaria: se señalan, no se sustituyen.
@@ -146,6 +151,24 @@ export function inventarioRevisable(
   };
 
   for (const s of plantilla.secciones) seccion(s);
+
+  // Los apartados que añadió la entidad son texto libre entero, sin
+  // instrucción del formato que los guíe: son los que más falta hace
+  // revisar, no los que menos.
+  for (const e of respuestas.extras) {
+    const texto = e.texto.trim();
+    if (!texto) continue;
+    out.push({
+      id: e.id,
+      etiqueta: e.titulo.trim() || 'Apartado adicional',
+      seccion: 'Apartado añadido por la entidad',
+      instruccion:
+        'Apartado propio de la entidad: el formato oficial no lo contempla, así que revísalo contra la norma y contra el resto del documento.',
+      texto,
+      destino: 'extras',
+      editable: true,
+    });
+  }
   return out;
 }
 
