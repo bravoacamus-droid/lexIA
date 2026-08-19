@@ -9,7 +9,7 @@
  * restantes, la interfaz no hay que tocarla.
  */
 import { useState } from 'react';
-import { Sparkles, Plus, Trash2, ChevronDown, Loader2 } from 'lucide-react';
+import { Sparkles, Plus, Trash2, ChevronDown, Loader2, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -22,6 +22,7 @@ import type {
   BloqueTabla,
   BloqueParrafo,
 } from '@/lib/generadores/plantilla-tipos';
+import { OPCION_PROPIA } from '@/lib/generadores/ensamblador';
 
 /** Nota al pie de un control, con la instrucción literal de la plantilla. */
 function Ayuda({ children }: { children: React.ReactNode }) {
@@ -183,31 +184,125 @@ export function ControlOpcion({
   bloque,
   valor,
   onChange,
+  textoPropio,
+  onTextoPropio,
 }: {
   bloque: BloqueOpcion;
   valor: string;
   onChange: (v: string) => void;
+  /** Texto de la alternativa que redacta la entidad, si eligió esa vía. */
+  textoPropio: string;
+  onTextoPropio: (v: string) => void;
 }) {
+  const propia = valor === OPCION_PROPIA;
+  const elegido = !!valor;
+
   return (
     <div>
-      <Label className="text-sm font-medium">{bloque.etiqueta}</Label>
+      <Label className="text-sm font-medium">
+        {bloque.etiqueta}
+        {!elegido && <span className="ml-1 text-destructive">*</span>}
+      </Label>
       <Ayuda>{bloque.instruccion}</Ayuda>
+
       <div className="mt-2 space-y-2">
-        {bloque.opciones.map((o) => (
-          <button
-            key={o.valor}
-            type="button"
-            onClick={() => onChange(o.valor)}
-            className={cn(
-              'w-full rounded-lg border p-3 text-left text-sm leading-relaxed transition',
-              valor === o.valor
-                ? 'border-primary bg-primary/5 ring-1 ring-primary/40'
-                : 'border-border hover:border-primary/40 hover:bg-muted/50',
-            )}
-          >
-            {o.texto}
-          </button>
-        ))}
+        {bloque.opciones.map((o) => {
+          const activa = valor === o.valor;
+          return (
+            <div
+              key={o.valor}
+              className={cn(
+                'rounded-lg border p-3 transition',
+                activa
+                  ? 'border-primary bg-primary/5 ring-1 ring-primary/40'
+                  : 'border-border hover:border-primary/40',
+                elegido && !activa && 'opacity-60',
+              )}
+            >
+              <p className="text-sm leading-relaxed">{o.texto}</p>
+              <div className="mt-2 flex items-center gap-2">
+                {activa ? (
+                  <>
+                    {/* Que se vea que está DENTRO del documento, no
+                        solo resaltada: seleccionar y no notar que se
+                        eligió fue la queja. */}
+                    <span className="flex items-center gap-1 text-xs font-medium text-primary">
+                      <Check className="h-3.5 w-3.5" />
+                      Agregada al documento
+                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs text-muted-foreground"
+                      onClick={() => onChange('')}
+                    >
+                      Quitar
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    onClick={() => onChange(o.valor)}
+                  >
+                    <Plus className="mr-1 h-3.5 w-3.5" />
+                    Agregar al documento
+                  </Button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Ninguna de las tres tiene por qué encajar en toda entidad. */}
+        <div
+          className={cn(
+            'rounded-lg border border-dashed p-3 transition',
+            propia ? 'border-primary bg-primary/5 ring-1 ring-primary/40' : 'border-border',
+            elegido && !propia && 'opacity-60',
+          )}
+        >
+          {propia ? (
+            <>
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1 text-xs font-medium text-primary">
+                  <Check className="h-3.5 w-3.5" />
+                  Redacción propia, agregada al documento
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-xs text-muted-foreground"
+                  onClick={() => onChange('')}
+                >
+                  Quitar
+                </Button>
+              </div>
+              <Textarea
+                value={textoPropio}
+                onChange={(e) => onTextoPropio(e.target.value)}
+                rows={3}
+                className="mt-2"
+                placeholder="Redacta aquí la alternativa que corresponde a esta contratación…"
+              />
+            </>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs"
+              onClick={() => onChange(OPCION_PROPIA)}
+            >
+              <Plus className="mr-1 h-3.5 w-3.5" />
+              Ninguna se ajusta: redactar la nuestra
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

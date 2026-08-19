@@ -48,7 +48,11 @@ import type {
   ApartadoExtra,
   DestinoRespuesta,
 } from '@/lib/generadores/ensamblador';
-import { apartadosOrdenados, nuevoIdExtra } from '@/lib/generadores/ensamblador';
+import {
+  apartadosOrdenados,
+  campoOpcionPropia,
+  nuevoIdExtra,
+} from '@/lib/generadores/ensamblador';
 import {
   ControlCampo,
   ControlOpcion,
@@ -361,6 +365,8 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
             bloque={b}
             valor={r.opciones[b.id] ?? ''}
             onChange={(v) => setOpcion(b.id, v)}
+            textoPropio={r.campos[campoOpcionPropia(b.id)] ?? ''}
+            onTextoPropio={(v) => setCampo(campoOpcionPropia(b.id), v)}
           />
         );
       case 'redactado':
@@ -384,11 +390,16 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
         );
       case 'nota':
         return (
+          // Advertencia del formato oficial. En rojo, no en ámbar: es
+          // una condición que si se pasa por alto invalida el
+          // requerimiento, no un consejo. Petición de César del
+          // 18/08/2026.
           <p
             key={clave}
-            className="rounded-md border-l-2 border-amber-400/60 bg-amber-50/50 px-3 py-2 text-xs leading-relaxed text-muted-foreground dark:bg-amber-950/20"
+            className="flex gap-2 rounded-md border-l-2 border-destructive/70 bg-destructive/5 px-3 py-2 text-xs leading-relaxed text-destructive dark:bg-destructive/10"
           >
-            {b.texto}
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>{b.texto}</span>
           </p>
         );
       case 'fijo':

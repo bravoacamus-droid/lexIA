@@ -41,6 +41,7 @@ import type {
   Falta,
   RespuestasRequerimiento,
 } from './ensamblador';
+import { OPCION_PROPIA, campoOpcionPropia } from './ensamblador';
 
 /** Un apartado con contenido escrito por el usuario, revisable. */
 export interface ApartadoRevisable {
@@ -135,10 +136,29 @@ export function inventarioRevisable(
           });
           break;
         }
+        case 'opcion': {
+          // Las alternativas del formato son invariables y no se
+          // revisan. La que redacta la entidad cuando ninguna encaja,
+          // sí: es texto libre suyo dentro de una cláusula del formato.
+          if (respuestas.opciones[b.id] !== OPCION_PROPIA) break;
+          const texto = (respuestas.campos[campoOpcionPropia(b.id)] ?? '').trim();
+          if (!texto) break;
+          out.push({
+            id: campoOpcionPropia(b.id),
+            etiqueta: `${b.etiqueta} (redacción propia)`,
+            seccion,
+            instruccion: b.instruccion,
+            texto,
+            destino: 'campos',
+            editable: true,
+          });
+          break;
+        }
         default:
-          // Fijos, notas, títulos, opciones y tablas no son texto libre:
-          // o son invariables, o se eligen de una lista cerrada. Van al
-          // documento que se manda como contexto, y ahí se juzgan.
+          // Fijos, notas, títulos y tablas no son texto libre: o son
+          // invariables, o exigen una estructura que el reemplazo de
+          // texto no puede garantizar. Van al documento que se manda
+          // como contexto, y ahí se juzgan.
           break;
       }
     }

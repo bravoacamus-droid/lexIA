@@ -229,6 +229,11 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
           minimo: 1,
         },
         {
+          clase: 'nota',
+          texto:
+            'Cuando el objeto de la contratación corresponda a bienes comprendidos en una Ficha de Homologación o en una Ficha Técnica para Subasta Inversa Electrónica, la descripción del bien deberá ser concordante con la denominación establecida en dichos documentos.',
+        },
+        {
           clase: 'opcion',
           id: 'forma_contratacion',
           etiqueta: 'Forma de contratación',
@@ -249,11 +254,6 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
                 'Los bienes antes descritos serán contratados por paquete único, debiendo el postor presentar oferta por la totalidad de los bienes que integran el paquete.',
             },
           ],
-        },
-        {
-          clase: 'nota',
-          texto:
-            'Cuando el objeto de la contratación corresponda a bienes comprendidos en una Ficha de Homologación o en una Ficha Técnica para Subasta Inversa Electrónica, la descripción del bien deberá ser concordante con la denominación establecida en dichos documentos.',
         },
       ],
     },

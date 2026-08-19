@@ -72,6 +72,11 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
           minimo: 1,
         },
         {
+          clase: 'nota',
+          texto:
+            'Cuando el objeto de la contratación corresponda a servicios comprendidos en una Ficha de Homologación, la descripción deberá ser concordante con la denominación establecida en dichos documentos.',
+        },
+        {
           clase: 'opcion',
           id: 'forma_contratacion',
           etiqueta: 'Forma de contratación',
@@ -94,11 +99,6 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
                 'Los servicios antes descritos serán contratados por paquete único, debiendo el postor presentar oferta por la totalidad de las prestaciones comprendidas en el paquete.',
             },
           ],
-        },
-        {
-          clase: 'nota',
-          texto:
-            'Cuando el objeto de la contratación corresponda a servicios comprendidos en una Ficha de Homologación, la descripción deberá ser concordante con la denominación establecida en dichos documentos.',
         },
       ],
     },

@@ -75,6 +75,20 @@ export interface ApartadoExtra {
 /** Dónde se guarda un texto del usuario. Lo comparten revisor y reparto. */
 export type DestinoRespuesta = 'redacciones' | 'campos' | 'extras';
 
+/**
+ * Valor que marca "ninguna de las alternativas del formato me sirve".
+ *
+ * El texto lo escribe entonces la entidad y se guarda en `campos` bajo
+ * `<id de la opción>__propia`. Los ids del formato no llevan doble
+ * guion bajo, así que no puede chocar con ninguno. Observación de César
+ * del 18/08/2026 sobre la forma de contratación: las opciones "deben
+ * dejar agregar".
+ */
+export const OPCION_PROPIA = '__propia';
+
+/** Dónde se guarda el texto de una alternativa escrita por la entidad. */
+export const campoOpcionPropia = (idOpcion: string) => `${idOpcion}${OPCION_PROPIA}`;
+
 /** Prefijo con el que se distinguen de los apartados del formato. */
 export const PREFIJO_EXTRA = 'extra:';
 
@@ -427,8 +441,14 @@ export function ensamblarRequerimiento(
         case 'opcion': {
           const elegida = respuestas.opciones[b.id];
           const op = b.opciones.find((o) => o.valor === elegida);
+          const propia =
+            elegida === OPCION_PROPIA
+              ? (respuestas.campos[campoOpcionPropia(b.id)] ?? '').trim()
+              : '';
           if (op) {
             partes.push(op.texto, '');
+          } else if (propia) {
+            partes.push(propia, '');
           } else {
             faltantes.push({
               seccion,
