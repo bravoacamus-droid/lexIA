@@ -48,6 +48,14 @@ export interface BloqueCampo {
   ayuda: string;
   tipo: 'texto' | 'texto_largo' | 'numero' | 'moneda' | 'fecha' | 'dias';
   obligatorio: boolean;
+  /**
+   * Muestra la ayuda como advertencia, en rojo.
+   *
+   * Para las instrucciones que no son un consejo sino una condición: si
+   * se pasan por alto, el requerimiento queda mal. Petición de César del
+   * 18/08/2026 sobre la documentación para la suscripción del contrato.
+   */
+  advertencia?: boolean;
   /** Tope normativo a verificar. Ver `validaciones`. */
   validacion?: string;
 }
@@ -65,6 +73,8 @@ export interface BloqueRedactado {
   id: string;
   etiqueta: string;
   instruccion: string;
+  /** Muestra la instrucción como advertencia, en rojo. Ver `BloqueCampo`. */
+  advertencia?: boolean;
   ejemplo?: string;
   /** Extensión orientativa de la redacción. */
   extension?: 'parrafo' | 'varios_parrafos' | 'lista';
@@ -102,6 +112,8 @@ export interface BloqueTabla {
   id: string;
   etiqueta: string;
   instruccion?: string;
+  /** Muestra la instrucción como advertencia, en rojo. Ver `BloqueCampo`. */
+  advertencia?: boolean;
   columnas: string[];
   /** Instrucción por columna, cuando la plantilla la trae. */
   ayudaColumnas?: string[];

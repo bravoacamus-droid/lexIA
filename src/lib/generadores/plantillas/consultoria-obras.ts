@@ -296,7 +296,8 @@ export const PLANTILLA_CONSULTORIA_OBRAS: PlantillaRequerimiento = {
               etiqueta: 'Documentación para el perfeccionamiento',
               instruccion:
                 'Indicar la documentación adicional que el adjudicatario debe presentar, directamente relacionada con el objeto de la consultoría',
-              columnas: ['Tipo de servicio', 'Documentación'],
+              advertencia: true,
+              columnas: ['N.°', 'Documentación'],
               minimo: 1,
             },
           ],

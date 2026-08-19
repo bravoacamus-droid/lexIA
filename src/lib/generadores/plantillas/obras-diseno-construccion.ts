@@ -180,7 +180,7 @@ export const PLANTILLA_OBRAS_DISENO_CONSTRUCCION: PlantillaRequerimiento = {
               clase: 'tabla',
               id: 'documentacion_perfeccionamiento',
               etiqueta: 'Documentación para el perfeccionamiento',
-              columnas: ['Tipo de obra', 'Documentación'],
+              columnas: ['N.°', 'Documentación'],
               minimo: 1,
             },
           ],

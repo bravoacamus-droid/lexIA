@@ -162,7 +162,7 @@ export const PLANTILLA_SERVICIOS_CONSULTORIA: PlantillaRequerimiento = {
               clase: 'tabla',
               id: 'documentacion_perfeccionamiento',
               etiqueta: 'Documentación para el perfeccionamiento',
-              columnas: ['Tipo de servicio', 'Documentación'],
+              columnas: ['N.°', 'Documentación'],
               minimo: 1,
             },
           ],

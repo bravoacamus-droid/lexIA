@@ -164,7 +164,8 @@ export const PLANTILLA_SERVICIOS_COMPARACION_PRECIOS: PlantillaRequerimiento = {
               etiqueta: 'Documentación para el perfeccionamiento',
               instruccion:
                 'Indicar la documentación adicional que el adjudicatario debe presentar, directamente relacionada con el objeto',
-              columnas: ['Tipo de servicio', 'Documentación'],
+              advertencia: true,
+              columnas: ['N.°', 'Documentación'],
               minimo: 1,
             },
           ],

@@ -9,7 +9,15 @@
  * restantes, la interfaz no hay que tocarla.
  */
 import { useState } from 'react';
-import { Sparkles, Plus, Trash2, ChevronDown, Loader2, Check } from 'lucide-react';
+import {
+  Sparkles,
+  Plus,
+  Trash2,
+  ChevronDown,
+  Loader2,
+  Check,
+  AlertTriangle,
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,9 +32,30 @@ import type {
 } from '@/lib/generadores/plantilla-tipos';
 import { OPCION_PROPIA } from '@/lib/generadores/ensamblador';
 
-/** Nota al pie de un control, con la instrucción literal de la plantilla. */
-function Ayuda({ children }: { children: React.ReactNode }) {
-  return <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{children}</p>;
+/**
+ * Nota al pie de un control, con la instrucción literal de la plantilla.
+ *
+ * Con `advertencia` va en rojo y con icono, igual que las notas del
+ * formato: hay instrucciones que no son un consejo sino una condición
+ * —qué documentación puede exigirse y cuál no— y en gris pequeño se
+ * leen como decoración.
+ */
+function Ayuda({
+  children,
+  advertencia,
+}: {
+  children: React.ReactNode;
+  advertencia?: boolean;
+}) {
+  if (!advertencia) {
+    return <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{children}</p>;
+  }
+  return (
+    <p className="mt-1.5 flex gap-2 rounded-md border-l-2 border-destructive/70 bg-destructive/5 px-3 py-2 text-xs leading-relaxed text-destructive dark:bg-destructive/10">
+      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+      <span>{children}</span>
+    </p>
+  );
 }
 
 // ── Campo ─────────────────────────────────────────────────────────────
@@ -86,7 +115,7 @@ export function ControlCampo({
           className="mt-1.5"
         />
       )}
-      <Ayuda>{bloque.ayuda}</Ayuda>
+      <Ayuda advertencia={bloque.advertencia}>{bloque.ayuda}</Ayuda>
 
       {puedeMejorar && (
         <Button
@@ -170,7 +199,7 @@ export function ControlParrafo({
         })}
       </p>
       {bloque.campos.map((c) => (
-        <Ayuda key={c.id}>
+        <Ayuda key={c.id} advertencia={c.advertencia}>
           <span className="font-medium">{c.etiqueta}:</span> {c.ayuda}
         </Ayuda>
       ))}
@@ -365,7 +394,7 @@ export function ControlRedactado({
           </button>
         )}
       </div>
-      <Ayuda>{bloque.instruccion}</Ayuda>
+      <Ayuda advertencia={bloque.advertencia}>{bloque.instruccion}</Ayuda>
 
       {verEjemplo && bloque.ejemplo && (
         <pre className="mt-2 whitespace-pre-wrap rounded-lg bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground">
@@ -469,7 +498,9 @@ export function ControlTabla({
         {bloque.etiqueta}
         {(bloque.minimo ?? 0) > 0 && <span className="ml-1 text-destructive">*</span>}
       </Label>
-      {bloque.instruccion && <Ayuda>{bloque.instruccion}</Ayuda>}
+      {bloque.instruccion && (
+        <Ayuda advertencia={bloque.advertencia}>{bloque.instruccion}</Ayuda>
+      )}
 
       <div className="mt-2 overflow-x-auto rounded-lg border">
         <table className="w-full text-sm">

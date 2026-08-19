@@ -162,7 +162,8 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
               etiqueta: 'Documentación para el perfeccionamiento',
               instruccion:
                 'Indicar la documentación adicional que el adjudicatario debe presentar, directamente relacionada con el objeto y necesaria para acreditar las condiciones técnicas, legales, operativas o de seguridad',
-              columnas: ['Tipo de servicio', 'Documentación'],
+              advertencia: true,
+              columnas: ['N.°', 'Documentación'],
               minimo: 1,
             },
           ],
