@@ -25,6 +25,8 @@
 
 /** Bloque de texto que se reproduce TAL CUAL. */
 export interface BloqueFijo {
+  /** Ver `VisibleSi`. */
+  visibleSi?: VisibleSi;
   clase: 'fijo';
   texto: string;
   /** Norma que obliga a este texto, si la plantilla la cita. */
@@ -33,15 +35,36 @@ export interface BloqueFijo {
 
 /** Título de sección o subsección. */
 export interface BloqueTitulo {
+  /** Ver `VisibleSi`. */
+  visibleSi?: VisibleSi;
   clase: 'titulo';
   texto: string;
   /** 1 = sección principal, 2 = subsección, 3 = sub-subsección. */
   nivel: 1 | 2 | 3;
 }
 
+/**
+ * Muestra el bloque solo si una opción se resolvió de cierta manera.
+ *
+ * Hay apartados que el formato pide únicamente cuando se eligió una de
+ * las alternativas: si se permite subcontratar, hay que decir qué
+ * prestaciones NO pueden subcontratarse; si se prohíbe, esa pregunta no
+ * existe. Hasta ahora la plantilla solo sabía condicionar secciones
+ * enteras con un interruptor, y eso obligaba a preguntar dos veces lo
+ * mismo. Petición de César del 19/08/2026.
+ */
+export interface VisibleSi {
+  /** Id del bloque de opción del que depende. */
+  opcion: string;
+  /** Valor —o valores— que lo hacen aparecer. */
+  valor: string | string[];
+}
+
 /** Dato puntual que aporta el usuario. */
 export interface BloqueCampo {
   clase: 'campo';
+  /** Ver `VisibleSi`. */
+  visibleSi?: VisibleSi;
   id: string;
   etiqueta: string;
   /** La instrucción entre corchetes, tal como la escribió César. */
@@ -70,6 +93,8 @@ export interface BloqueCampo {
  */
 export interface BloqueRedactado {
   clase: 'redactado';
+  /** Ver `VisibleSi`. */
+  visibleSi?: VisibleSi;
   id: string;
   etiqueta: string;
   instruccion: string;
@@ -91,6 +116,8 @@ export interface BloqueRedactado {
  * completo con marcadores `{{id}}` que el ensamblador sustituye.
  */
 export interface BloqueParrafo {
+  /** Ver `VisibleSi`. */
+  visibleSi?: VisibleSi;
   clase: 'parrafo';
   texto: string;
   campos: BloqueCampo[];
@@ -99,6 +126,8 @@ export interface BloqueParrafo {
 
 /** Alternativas excluyentes; el usuario elige una. */
 export interface BloqueOpcion {
+  /** Ver `VisibleSi`. */
+  visibleSi?: VisibleSi;
   clase: 'opcion';
   id: string;
   etiqueta: string;
@@ -109,6 +138,8 @@ export interface BloqueOpcion {
 /** Tabla con columnas fijas y filas que aporta el usuario. */
 export interface BloqueTabla {
   clase: 'tabla';
+  /** Ver `VisibleSi`. */
+  visibleSi?: VisibleSi;
   id: string;
   etiqueta: string;
   instruccion?: string;
@@ -123,6 +154,8 @@ export interface BloqueTabla {
 
 /** Advertencia normativa que la plantilla incrusta entre corchetes. */
 export interface BloqueNota {
+  /** Ver `VisibleSi`. */
+  visibleSi?: VisibleSi;
   clase: 'nota';
   texto: string;
 }

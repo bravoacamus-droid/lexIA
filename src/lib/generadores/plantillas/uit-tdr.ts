@@ -361,6 +361,17 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
                 },
               ],
             },
+            {
+              clase: 'redactado',
+              id: 'prestaciones_no_subcontratables',
+              etiqueta: 'Prestaciones que no pueden subcontratarse',
+              instruccion:
+                'Completar las prestaciones esenciales que, de acuerdo con lo determinado por el área usuaria en los términos de referencia, no pueden ser materia de subcontratación',
+              extension: 'lista',
+              // Solo tiene sentido si se permitió subcontratar: si está
+              // prohibida, la pregunta no existe.
+              visibleSi: { opcion: 'subcontratacion', valor: 'permitida' },
+            },
           ],
         },
         {

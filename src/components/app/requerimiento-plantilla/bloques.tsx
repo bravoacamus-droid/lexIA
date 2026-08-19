@@ -451,6 +451,84 @@ export function ControlOpcion({
   );
 }
 
+/**
+ * Apartado que el formato pide como lista.
+ *
+ * Se escribía en un cuadro de texto con un renglón por elemento, sin
+ * que nada indicara que cada línea es un punto aparte. César lo pidió
+ * así: "debe permitir que cada obligación sea ingresada a través de
+ * viñetas u otros".
+ *
+ * Por dentro sigue siendo el mismo texto con saltos de línea, que es lo
+ * que el documento espera: nada cambia aguas abajo —ni el ensamblador,
+ * ni la revisión, ni el índice—, solo la forma de escribirlo.
+ */
+function EditorLista({
+  valor,
+  onChange,
+  etiqueta,
+}: {
+  valor: string;
+  onChange: (v: string) => void;
+  etiqueta: string;
+}) {
+  const lineas = valor ? valor.split('\n') : [''];
+  const escribir = (ls: string[]) => onChange(ls.join('\n'));
+
+  return (
+    <div className="mt-2 space-y-1.5">
+      {lineas.map((l, i) => (
+        <div key={i} className="flex items-start gap-2">
+          <span className="mt-2 select-none text-muted-foreground">•</span>
+          <Textarea
+            value={l}
+            onChange={(e) => escribir(lineas.map((x, k) => (k === i ? e.target.value : x)))}
+            onKeyDown={(e) => {
+              // Enter abre el siguiente punto en vez de partir este.
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const ls = [...lineas];
+                ls.splice(i + 1, 0, '');
+                escribir(ls);
+              }
+              // Retroceso en un renglón vacío lo quita, como en
+              // cualquier lista.
+              if (e.key === 'Backspace' && l === '' && lineas.length > 1) {
+                e.preventDefault();
+                escribir(lineas.filter((_, k) => k !== i));
+              }
+            }}
+            rows={1}
+            placeholder={i === 0 ? `${etiqueta}: un punto por renglón…` : ''}
+            className="min-h-0 flex-1 resize-none py-1.5 text-sm"
+          />
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="mt-0.5 h-7 w-7 shrink-0 p-0 text-muted-foreground hover:text-destructive"
+            disabled={lineas.length === 1 && !l}
+            aria-label={`Quitar el punto ${i + 1}`}
+            onClick={() => escribir(lineas.length === 1 ? [''] : lineas.filter((_, k) => k !== i))}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      ))}
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        className="h-7 text-xs"
+        onClick={() => escribir([...lineas, ''])}
+      >
+        <Plus className="mr-1 h-3.5 w-3.5" />
+        Añadir punto
+      </Button>
+    </div>
+  );
+}
+
 // ── Redactado ─────────────────────────────────────────────────────────
 
 export function ControlRedactado({
@@ -516,14 +594,18 @@ export function ControlRedactado({
         </pre>
       )}
 
-      <Textarea
-        id={bloque.id}
-        value={valor}
-        onChange={(e) => onChange(e.target.value)}
-        rows={bloque.extension === 'parrafo' ? 4 : 7}
-        className="mt-2"
-        placeholder="Escríbelo, o descríbelo abajo y deja que LexIA lo redacte."
-      />
+      {bloque.extension === 'lista' ? (
+        <EditorLista valor={valor} onChange={onChange} etiqueta={bloque.etiqueta} />
+      ) : (
+        <Textarea
+          id={bloque.id}
+          value={valor}
+          onChange={(e) => onChange(e.target.value)}
+          rows={bloque.extension === 'parrafo' ? 4 : 7}
+          className="mt-2"
+          placeholder="Escríbelo, o descríbelo abajo y deja que LexIA lo redacte."
+        />
+      )}
 
       {mejorar && (
         <p className="mt-1.5 text-xs text-muted-foreground">

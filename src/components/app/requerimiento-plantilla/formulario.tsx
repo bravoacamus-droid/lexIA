@@ -50,6 +50,9 @@ import type {
 } from '@/lib/generadores/ensamblador';
 import {
   apartadosOrdenados,
+  // Se renombra: aquí `bloqueVisible` ya es la función que PINTA un
+  // bloque, y esta decide si el bloque existe.
+  bloqueVisible as bloqueAplica,
   campoOpcionPropia,
   nuevoIdExtra,
 } from '@/lib/generadores/ensamblador';
@@ -453,7 +456,9 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
 
   const pintarSeccion = (s: Seccion, numero: string, nivel: number) => {
     if (s.condicion && !r.condiciones[s.condicion]) return null;
-    const utiles = s.bloques.filter((b) => b.clase !== 'titulo');
+    // Fuera los títulos, que ya los pinta la sección, y fuera lo que
+    // depende de una opción que no se ha elegido.
+    const utiles = s.bloques.filter((b) => b.clase !== 'titulo' && bloqueAplica(b, r));
     return (
       <div
         key={s.id}

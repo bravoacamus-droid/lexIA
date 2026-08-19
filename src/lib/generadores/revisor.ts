@@ -41,7 +41,7 @@ import type {
   Falta,
   RespuestasRequerimiento,
 } from './ensamblador';
-import { OPCION_PROPIA, campoOpcionPropia } from './ensamblador';
+import { OPCION_PROPIA, bloqueVisible, campoOpcionPropia } from './ensamblador';
 
 /** Un apartado con contenido escrito por el usuario, revisable. */
 export interface ApartadoRevisable {
@@ -113,6 +113,7 @@ export function inventarioRevisable(
 
   const bloques = (bs: Bloque[], seccion: string) => {
     for (const b of bs) {
+      if (!bloqueVisible(b, respuestas)) continue;
       switch (b.clase) {
         case 'campo':
           campo(b, seccion);

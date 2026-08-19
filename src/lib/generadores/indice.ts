@@ -27,6 +27,7 @@ import type {
 import {
   OPCION_PROPIA,
   apartadosOrdenados,
+  bloqueVisible,
   campoOpcionPropia,
   type RespuestasRequerimiento,
 } from './ensamblador';
@@ -92,6 +93,8 @@ export function construirIndice(
 
   const bloques = (bs: Bloque[], entradas: EntradaIndice[]) => {
     for (const b of bs) {
+      // Lo que no está en el documento no se cuenta como pendiente.
+      if (!bloqueVisible(b, respuestas)) continue;
       const idBloque = idDeBloque(b);
       const ancla = idBloque ? anclaBloque(idBloque) : '';
       switch (b.clase) {

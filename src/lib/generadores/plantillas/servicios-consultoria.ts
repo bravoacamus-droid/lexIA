@@ -504,9 +504,20 @@ export const PLANTILLA_SERVICIOS_CONSULTORIA: PlantillaRequerimiento = {
                 {
                   valor: 'permitida',
                   texto:
-                    'El contratista puede subcontratar hasta un máximo del 40% del monto del contrato vigente de conformidad con lo dispuesto en el artículo 108 del Reglamento.',
+                    'El contratista puede subcontratar hasta un máximo del 40% del monto del contrato vigente de conformidad con lo dispuesto en el artículo 108 del Reglamento. Se consideran prestaciones esenciales que no pueden ser materia de subcontratación las siguientes:',
                 },
               ],
+            },
+            {
+              clase: 'redactado',
+              id: 'prestaciones_no_subcontratables',
+              etiqueta: 'Prestaciones que no pueden subcontratarse',
+              instruccion:
+                'Completar las prestaciones esenciales que, de acuerdo con lo determinado por el área usuaria en los términos de referencia, no pueden ser materia de subcontratación',
+              extension: 'lista',
+              // Solo tiene sentido si se permitió subcontratar: si está
+              // prohibida, la pregunta no existe.
+              visibleSi: { opcion: 'subcontratacion', valor: 'permitida' },
             },
           ],
         },

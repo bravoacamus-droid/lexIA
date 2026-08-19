@@ -37,6 +37,7 @@ import type {
   Seccion,
 } from './plantilla-tipos';
 import type { DestinoRespuesta, RespuestasRequerimiento } from './ensamblador';
+import { bloqueVisible } from './ensamblador';
 
 /** Un apartado del formato que puede recibir contenido del proyecto. */
 export interface DestinoDistribucion {
@@ -108,6 +109,9 @@ export function destinosDistribucion(
 
   const bloques = (bs: Bloque[], seccion: string, condiciones: string[]) => {
     for (const b of bs) {
+      // Un apartado que depende de una opción no elegida no puede
+      // recibir contenido: no existe todavía.
+      if (!bloqueVisible(b, respuestas)) continue;
       switch (b.clase) {
         case 'campo':
           campo(b, seccion, condiciones);

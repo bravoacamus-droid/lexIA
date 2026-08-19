@@ -72,6 +72,23 @@ export interface ApartadoExtra {
   texto: string;
 }
 
+/**
+ * Si un bloque condicionado por una opción está a la vista.
+ *
+ * Vive aquí y no en cada sitio porque lo consultan el ensamblador, el
+ * índice, el revisor y el reparto de proyectos: si cada uno decidiera
+ * por su cuenta, el documento y la pantalla acabarían discrepando.
+ */
+export function bloqueVisible(
+  bloque: { visibleSi?: { opcion: string; valor: string | string[] } },
+  respuestas: RespuestasRequerimiento,
+): boolean {
+  const cond = bloque.visibleSi;
+  if (!cond) return true;
+  const elegida = respuestas.opciones[cond.opcion] ?? '';
+  return Array.isArray(cond.valor) ? cond.valor.includes(elegida) : cond.valor === elegida;
+}
+
 /** Dónde se guarda un texto del usuario. Lo comparten revisor y reparto. */
 export type DestinoRespuesta = 'redacciones' | 'campos' | 'extras';
 
@@ -406,6 +423,9 @@ export function ensamblarRequerimiento(
 
   const escribirBloques = (bloques: Bloque[], seccion: string) => {
     for (const b of bloques) {
+      // Un bloque que depende de una opción no elegida no está en el
+      // documento: ni su texto ni su hueco pendiente.
+      if (!bloqueVisible(b, respuestas)) continue;
       switch (b.clase) {
         case 'titulo':
           partes.push(`${'#'.repeat(Math.min(b.nivel + 2, 6))} ${b.texto}`, '');
