@@ -17,6 +17,7 @@ import {
   Loader2,
   Check,
   AlertTriangle,
+  Lightbulb,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,10 +36,18 @@ import { OPCION_PROPIA } from '@/lib/generadores/ensamblador';
 /**
  * Nota al pie de un control, con la instrucción literal de la plantilla.
  *
- * Con `advertencia` va en rojo y con icono, igual que las notas del
- * formato: hay instrucciones que no son un consejo sino una condición
- * —qué documentación puede exigirse y cuál no— y en gris pequeño se
- * leen como decoración.
+ * Dos clases de aviso, dos colores, porque no dicen lo mismo:
+ *
+ *   · Sugerencia (lo normal): cómo se rellena esto, con el ejemplo que
+ *     trae el formato. Va en violeta con una bombilla. En gris pequeño
+ *     se leía como decoración y César pidió distinguirlas.
+ *   · Advertencia (`advertencia`): una condición que si se pasa por
+ *     alto deja mal el requerimiento. Va en rojo y con recuadro, para
+ *     que pese más que la sugerencia.
+ *
+ * El violeta no es capricho: el azul es el color de marca —lo elegido,
+ * lo propuesto— y el rojo, el verde y el ámbar ya significan otra cosa
+ * en esta pantalla.
  */
 function Ayuda({
   children,
@@ -47,14 +56,49 @@ function Ayuda({
   children: React.ReactNode;
   advertencia?: boolean;
 }) {
-  if (!advertencia) {
-    return <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{children}</p>;
+  if (advertencia) {
+    return (
+      <p className="mt-1.5 flex gap-2 rounded-md border-l-2 border-destructive/70 bg-destructive/5 px-3 py-2 text-xs leading-relaxed text-destructive dark:bg-destructive/10">
+        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+        <span>{children}</span>
+      </p>
+    );
   }
   return (
-    <p className="mt-1.5 flex gap-2 rounded-md border-l-2 border-destructive/70 bg-destructive/5 px-3 py-2 text-xs leading-relaxed text-destructive dark:bg-destructive/10">
-      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+    <p className="mt-1 flex gap-1.5 text-xs leading-relaxed text-violet-700 dark:text-violet-300">
+      <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-80" />
       <span>{children}</span>
     </p>
+  );
+}
+
+/**
+ * Texto invariable del formato.
+ *
+ * Son los que alargan la pantalla —tres seguidos en "Garantía de la
+ * prestación"— y no se editan: se muestran recortados y se despliegan
+ * si alguien quiere leerlos enteros. Antes se cortaban con puntos
+ * suspensivos y no había forma de ver el resto.
+ */
+export function TextoFijo({ texto }: { texto: string }) {
+  const [abierto, setAbierto] = useState(false);
+  const largo = texto.length > 240;
+  return (
+    <div className="rounded-md bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+      <span className="mb-1 block font-medium uppercase tracking-wide">
+        Texto obligatorio del formato
+      </span>
+      {abierto || !largo ? texto : `${texto.slice(0, 240)}…`}
+      {largo && (
+        <button
+          type="button"
+          onClick={() => setAbierto((v) => !v)}
+          className="ml-1 font-medium text-foreground underline-offset-2 hover:underline"
+        >
+          {abierto ? 'ver menos' : 'ver completo'}
+        </button>
+      )}
+    </div>
   );
 }
 

@@ -231,6 +231,18 @@ comprobar(
   'un párrafo con huecos se ancla por su primer hueco, no queda suelto',
   anclas.every((a) => a.startsWith('bloque-')),
 );
+// El índice tiene que poder desplegar el apartado antes de saltar: si
+// no sabe a cuál pertenece cada entrada, el enlace lleva a algo plegado
+// y no se ve nada.
+const raices = new Set(completo.filter((g) => g.nivel === 1).map((g) => g.id));
+comprobar(
+  'cada grupo sabe de qué apartado de primer nivel cuelga',
+  completo.every((g) => raices.has(g.raiz)),
+);
+comprobar(
+  'una subsección apunta al apartado que la contiene, no a sí misma',
+  completo.some((g) => g.nivel > 1 && g.raiz !== g.id),
+);
 
 // ── 5. El resumen ─────────────────────────────────────────────────────
 console.log('\n── Las cuentas de la cabecera ──');

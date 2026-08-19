@@ -26,6 +26,7 @@ import {
   Loader2,
   ChevronUp,
   ChevronDown,
+  ChevronRight,
   Plus,
   RotateCcw,
 } from 'lucide-react';
@@ -64,6 +65,7 @@ import {
   ControlParrafo,
   ControlRedactado,
   ControlTabla,
+  TextoFijo,
 } from './bloques';
 import { RevisionGlobal } from './revision-global';
 import { CargarProyecto } from './cargar-proyecto';
@@ -262,6 +264,37 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
     marcarSucio();
   };
 
+  /**
+   * Apartados plegados.
+   *
+   * Un requerimiento entero es una lista vertical larguísima —solo la
+   * garantía de la prestación trae tres textos invariables seguidos— y
+   * recorrerla para llegar a un apartado concreto es el problema que
+   * César describió. Se pliegan por apartado, y el índice despliega
+   * solo el que necesita antes de saltar.
+   *
+   * No se guarda en la base: es cómo mira el documento cada uno, no
+   * parte del documento.
+   */
+  const [plegados, setPlegados] = useState<Set<string>>(new Set());
+
+  const alternarPliegue = (idApartado: string) =>
+    setPlegados((p) => {
+      const n = new Set(p);
+      if (n.has(idApartado)) n.delete(idApartado);
+      else n.add(idApartado);
+      return n;
+    });
+
+  const desplegar = useCallback((idApartado: string) => {
+    setPlegados((p) => {
+      if (!p.has(idApartado)) return p;
+      const n = new Set(p);
+      n.delete(idApartado);
+      return n;
+    });
+  }, []);
+
   /** Vuelve al orden del formato oficial, sin borrar nada. */
   const restaurarOrden = () => {
     setR((p) => ({ ...p, orden: [] }));
@@ -412,17 +445,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
         // Texto invariable: se muestra para que el usuario sepa que
         // estará en el documento, pero no es editable. Ese es justo el
         // punto de la plantilla.
-        return (
-          <div
-            key={clave}
-            className="rounded-md bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground"
-          >
-            <span className="mb-1 block font-medium uppercase tracking-wide">
-              Texto obligatorio del formato
-            </span>
-            {b.texto.length > 320 ? `${b.texto.slice(0, 320)}…` : b.texto}
-          </div>
-        );
+        return <TextoFijo key={clave} texto={b.texto} />;
       default:
         return null;
     }
@@ -608,54 +631,85 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
           </Card>
 
           <Card className="space-y-8 p-5">
-            {apartados.map(({ apartado, numero }, i) => (
-              <div
-                key={apartado.id}
-                id={anclaApartado(apartado.id)}
-                className="group/apartado relative scroll-mt-24 transition"
-              >
-                {/* Colocación. Cada entidad ordena el documento como le
-                    conviene; el formato oficial se recupera con un
-                    botón. */}
-                <div className="absolute -top-1 right-0 z-10 flex gap-1 opacity-0 transition focus-within:opacity-100 group-hover/apartado:opacity-100">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 w-7 p-0"
-                    disabled={i === 0}
-                    title="Subir este apartado"
-                    aria-label={`Subir ${numero}`}
-                    onClick={() => mover(apartado.id, -1)}
-                  >
-                    <ChevronUp className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 w-7 p-0"
-                    disabled={i === apartados.length - 1}
-                    title="Bajar este apartado"
-                    aria-label={`Bajar ${numero}`}
-                    onClick={() => mover(apartado.id, 1)}
-                  >
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </div>
+            {apartados.map(({ apartado, numero }, i) => {
+              const plegado = plegados.has(apartado.id);
+              const titulo =
+                apartado.tipo === 'extra'
+                  ? apartado.extra.titulo.trim() || 'Apartado adicional'
+                  : apartado.seccion.titulo;
+              return (
+                <div
+                  key={apartado.id}
+                  id={anclaApartado(apartado.id)}
+                  className="group/apartado relative scroll-mt-24 transition"
+                >
+                  {/* Plegar y colocar. Cada entidad ordena el documento
+                      como le conviene, y no tiene por qué recorrerlo
+                      entero para llegar a un apartado. */}
+                  <div className="absolute -top-1 right-0 z-10 flex gap-1 opacity-0 transition focus-within:opacity-100 group-hover/apartado:opacity-100">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0"
+                      disabled={i === 0}
+                      title="Subir este apartado"
+                      aria-label={`Subir ${numero}`}
+                      onClick={() => mover(apartado.id, -1)}
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0"
+                      disabled={i === apartados.length - 1}
+                      title="Bajar este apartado"
+                      aria-label={`Bajar ${numero}`}
+                      onClick={() => mover(apartado.id, 1)}
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </div>
 
-                {apartado.tipo === 'extra' ? (
-                  <ApartadoPropio
-                    extra={apartado.extra}
-                    numero={numero}
-                    onChange={(cambio) => cambiarExtra(apartado.id, cambio)}
-                    onBorrar={() => borrarExtra(apartado.id)}
-                  />
-                ) : (
-                  pintarSeccion(apartado.seccion, numero, 1)
-                )}
-              </div>
-            ))}
+                  {plegado ? (
+                    <button
+                      type="button"
+                      onClick={() => alternarPliegue(apartado.id)}
+                      className="flex w-full items-center gap-2 rounded-md py-1 pr-16 text-left text-base font-semibold hover:text-primary"
+                    >
+                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span>
+                        {numero}. {titulo}
+                      </span>
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => alternarPliegue(apartado.id)}
+                        title="Plegar este apartado"
+                        aria-label={`Plegar ${numero}`}
+                        className="absolute -left-5 top-1 hidden text-muted-foreground hover:text-foreground group-hover/apartado:block"
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </button>
+                      {apartado.tipo === 'extra' ? (
+                        <ApartadoPropio
+                          extra={apartado.extra}
+                          numero={numero}
+                          onChange={(cambio) => cambiarExtra(apartado.id, cambio)}
+                          onBorrar={() => borrarExtra(apartado.id)}
+                        />
+                      ) : (
+                        pintarSeccion(apartado.seccion, numero, 1)
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
 
             <div className="flex flex-wrap items-center gap-2 border-t pt-4">
               <Button type="button" variant="outline" size="sm" onClick={anadirExtra}>
@@ -668,8 +722,33 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
                   Volver al orden del formato
                 </Button>
               )}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  setPlegados((p) =>
+                    p.size === apartados.length
+                      ? new Set()
+                      : new Set(apartados.map((a) => a.apartado.id)),
+                  )
+                }
+              >
+                {plegados.size === apartados.length ? (
+                  <>
+                    <ChevronDown className="mr-1.5 h-3.5 w-3.5" />
+                    Desplegar todo
+                  </>
+                ) : (
+                  <>
+                    <ChevronRight className="mr-1.5 h-3.5 w-3.5" />
+                    Plegar todo
+                  </>
+                )}
+              </Button>
               <span className="text-xs text-muted-foreground">
-                Los apartados se suben y se bajan con las flechas; el documento se renumera solo.
+                Los apartados se pliegan y se ordenan con las flechas; el documento se renumera
+                solo.
               </span>
             </div>
           </Card>
@@ -716,7 +795,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
             </Card>
           )}
 
-          <IndiceDocumento grupos={indice} resumen={resumen} />
+          <IndiceDocumento grupos={indice} resumen={resumen} onDesplegar={desplegar} />
 
           {estado.omitidas.length > 0 && (
             <Card className="p-4">

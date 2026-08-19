@@ -27,26 +27,33 @@ const ICONO: Record<EstadoEntrada, { Icono: typeof Check; clase: string; titulo:
  * Lleva al apartado y lo señala un momento.
  *
  * El resalte importa: en una pantalla llena de campos iguales, saltar
- * sin más deja al usuario sin saber dónde ha caído.
+ * sin más deja al usuario sin saber dónde ha caído. Y se espera un
+ * fotograma porque el apartado puede acabar de desplegarse: si se mide
+ * antes, se salta a donde estaba el elemento, no a donde está.
  */
 function irA(ancla: string) {
-  const el = document.getElementById(ancla);
-  if (!el) return;
-  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  el.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'rounded-lg');
-  window.setTimeout(() => {
-    el.classList.remove('ring-2', 'ring-primary', 'ring-offset-2', 'rounded-lg');
-  }, 1600);
-  const campo = el.querySelector<HTMLElement>('input, textarea, button');
-  campo?.focus({ preventScroll: true });
+  requestAnimationFrame(() => {
+    const el = document.getElementById(ancla);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'rounded-lg');
+    window.setTimeout(() => {
+      el.classList.remove('ring-2', 'ring-primary', 'ring-offset-2', 'rounded-lg');
+    }, 1600);
+    const campo = el.querySelector<HTMLElement>('input, textarea, button');
+    campo?.focus({ preventScroll: true });
+  });
 }
 
 export function IndiceDocumento({
   grupos,
   resumen,
+  onDesplegar,
 }: {
   grupos: GrupoIndice[];
   resumen: { total: number; completas: number; pendientes: number };
+  /** Despliega el apartado antes de saltar, por si estaba plegado. */
+  onDesplegar: (idApartado: string) => void;
 }) {
   const [soloPendientes, setSoloPendientes] = useState(false);
 
@@ -90,7 +97,10 @@ export function IndiceDocumento({
             <div key={`${g.id}-${g.numero}`} style={{ paddingLeft: `${(g.nivel - 1) * 10}px` }}>
               <button
                 type="button"
-                onClick={() => irA(g.ancla)}
+                onClick={() => {
+                  onDesplegar(g.raiz);
+                  irA(g.ancla);
+                }}
                 className={cn(
                   'flex w-full items-start gap-1.5 text-left text-xs hover:text-primary',
                   g.nivel === 1 ? 'font-semibold' : 'font-medium text-muted-foreground',
@@ -121,7 +131,10 @@ export function IndiceDocumento({
                       <li key={e.id}>
                         <button
                           type="button"
-                          onClick={() => irA(e.ancla)}
+                          onClick={() => {
+                            onDesplegar(g.raiz);
+                            irA(e.ancla);
+                          }}
                           className="flex w-full items-start gap-1.5 text-left text-xs leading-relaxed text-muted-foreground hover:text-foreground"
                         >
                           <Icono

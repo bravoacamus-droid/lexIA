@@ -50,6 +50,13 @@ export interface GrupoIndice {
   titulo: string;
   /** Profundidad, para sangrar el índice como el documento. */
   nivel: number;
+  /**
+   * Apartado de primer nivel al que pertenece.
+   *
+   * Lo necesita el índice para desplegar el apartado antes de saltar:
+   * un enlace que lleva a algo plegado no lleva a ninguna parte.
+   */
+  raiz: string;
   ancla: string;
   entradas: EntradaIndice[];
   completas: number;
@@ -153,7 +160,7 @@ export function construirIndice(
    * invariable no tiene entradas, pero sigue en el índice: sirve para
    * llegar hasta ella.
    */
-  const recorrer = (s: Seccion, numero: string, nivel: number) => {
+  const recorrer = (s: Seccion, numero: string, nivel: number, raiz: string) => {
     if (s.condicion && !respuestas.condiciones[s.condicion]) return;
     const entradas: EntradaIndice[] = [];
     bloques(s.bloques, entradas);
@@ -162,6 +169,7 @@ export function construirIndice(
       numero,
       titulo: s.titulo,
       nivel,
+      raiz,
       ancla: anclaApartado(s.id),
       entradas,
       completas: entradas.filter((e) => e.estado === 'completo').length,
@@ -171,7 +179,7 @@ export function construirIndice(
     for (const h of s.subsecciones ?? []) {
       if (h.condicion && !respuestas.condiciones[h.condicion]) continue;
       sub++;
-      recorrer(h, `${numero}.${sub}`, nivel + 1);
+      recorrer(h, `${numero}.${sub}`, nivel + 1, raiz);
     }
   };
 
@@ -187,6 +195,7 @@ export function construirIndice(
         numero: String(n),
         titulo,
         nivel: 1,
+        raiz: extra.id,
         ancla: anclaApartado(extra.id),
         entradas: [
           {
@@ -205,7 +214,7 @@ export function construirIndice(
     const s = apartado.seccion;
     if (s.condicion && !respuestas.condiciones[s.condicion]) continue;
     n++;
-    recorrer(s, String(n), 1);
+    recorrer(s, String(n), 1, s.id);
   }
 
   return grupos;
