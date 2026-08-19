@@ -17,6 +17,7 @@ import {
   TDR_AUDIT_PROMPT,
   TDR_AUDIT_SUMMARY_PROMPT,
 } from '@/lib/ai/evaluator-prompts';
+import { parseJsonLoose } from '@/lib/ai/json-suelto';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutos para todo el pipeline
@@ -69,47 +70,6 @@ type OfferEvaluation = {
   ocr_issue?: boolean;
   ocr_note?: string;
 };
-
-function parseJsonLoose<T>(text: string): T {
-  // 1. Quitar fences markdown comunes
-  let clean = text
-    .replace(/```json\s*/gi, '')
-    .replace(/```\s*/g, '')
-    .replace(/^[\s\S]*?(?=\{)/, '') // todo antes del primer {
-    .trim();
-
-  // 2. Si el JSON está completo, parsearlo directo
-  try {
-    return JSON.parse(clean) as T;
-  } catch {
-    /* sigue intentando */
-  }
-
-  // 3. Extraer el bloque más grande entre primer { y último }
-  const firstBrace = clean.indexOf('{');
-  const lastBrace = clean.lastIndexOf('}');
-  if (firstBrace === -1 || lastBrace === -1) {
-    throw new Error(`No JSON object found. Sample: ${text.slice(0, 200)}`);
-  }
-  const candidate = clean.slice(firstBrace, lastBrace + 1);
-
-  try {
-    return JSON.parse(candidate) as T;
-  } catch (err) {
-    // 4. Último intento: arreglar errores comunes (trailing commas, comillas inteligentes)
-    const fixed = candidate
-      .replace(/,(\s*[}\]])/g, '$1') // trailing commas
-      .replace(/[“”]/g, '"') // comillas tipográficas
-      .replace(/[‘’]/g, "'");
-    try {
-      return JSON.parse(fixed) as T;
-    } catch (err2) {
-      throw new Error(
-        `Parse JSON falló: ${(err as Error).message}. Sample (primeros 300 chars del candidato): ${candidate.slice(0, 300)}`,
-      );
-    }
-  }
-}
 
 export async function POST(_req: Request, ctx: { params: { id: string } }) {
   const supabase = createClient();

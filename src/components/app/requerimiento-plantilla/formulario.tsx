@@ -45,6 +45,7 @@ import {
   ControlRedactado,
   ControlTabla,
 } from './bloques';
+import { RevisionGlobal } from './revision-global';
 
 interface Estado {
   faltantes: Falta[];
@@ -445,6 +446,16 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
               .filter((s) => !s.condicion || r.condiciones[s.condicion])
               .map((s, i) => pintarSeccion(s, String(i + 1), 1))}
           </Card>
+
+          <RevisionGlobal
+            id={id}
+            guardarPrimero={guardar}
+            onAplicar={(destino, bloqueId, texto) =>
+              destino === 'redacciones'
+                ? setRedaccion(bloqueId, texto)
+                : setCampo(bloqueId, texto)
+            }
+          />
         </div>
 
         {/* Estado del documento */}
