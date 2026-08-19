@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "typecheck:scripts": "tsc -p tsconfig.scripts.json",
     "ingest": "tsx scripts/ingest.ts",
     "seed": "tsx scripts/seed.ts",
     "db:push": "tsx scripts/db-push.ts"

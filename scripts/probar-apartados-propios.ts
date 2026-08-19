@@ -199,7 +199,10 @@ comprobar('y sabe que ya tiene texto', enReparto?.ocupado === true);
 console.log('\n── El Word ──');
 void (async () => {
   try {
-    const buffer = await markdownToDocxBuffer(docMovido.markdown, 'Requerimiento');
+    const buffer = await markdownToDocxBuffer(docMovido.markdown, {
+      title: 'Requerimiento',
+      subtitle: plantilla.subtitulo,
+    });
     comprobar('se exporta con el orden nuevo y el apartado propio dentro', buffer.length > 5000);
   } catch (e) {
     comprobar(`la exportación a Word falló: ${(e as Error).message}`, false);

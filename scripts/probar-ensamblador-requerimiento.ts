@@ -115,7 +115,6 @@ r.redacciones.conformidad =
 async function main() {
   const doc = ensamblarRequerimiento(PLANTILLA_BIENES_GENERAL, r, {
     cuantia: 95_000,
-    montoContrato: 95_000,
   });
 
   mkdirSync(SALIDA, { recursive: true });
@@ -153,13 +152,17 @@ async function main() {
       adelanto_porcentaje: '40',
       experiencia_monto_mype: 'S/ 90 000,00 (noventa mil con 00/100 soles)',
     },
-    condiciones: { ...r.condiciones, usa_jprd: true },
   };
   const conAvisos = ensamblarRequerimiento(PLANTILLA_BIENES_GENERAL, excedido, {
     cuantia: 95_000,
-    montoContrato: 95_000,
   });
-  const esperados = ['adelanto_directo_max', 'experiencia_max', 'experiencia_mype', 'jprd_umbral'];
+  // Solo estos tres tienen verificador. El umbral de la JPRD se declaraba
+  // como validación y se comprobaba contra un `usa_jprd` que NINGUNA
+  // plantilla enciende y contra un monto de contrato que no existe
+  // cuando se redacta el requerimiento: era código que no podía
+  // ejecutarse. Se retiró el 18/08/2026 junto con el campo. La regla
+  // sigue llegando al lector como nota del propio formato.
+  const esperados = ['adelanto_directo_max', 'experiencia_max', 'experiencia_mype'];
   const obtenidos = conAvisos.avisos.map((a) => a.validacion);
   for (const e of esperados) {
     const ok = obtenidos.includes(e);

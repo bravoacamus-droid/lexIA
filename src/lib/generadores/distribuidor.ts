@@ -171,6 +171,9 @@ REGLAS QUE NO PUEDES ROMPER:
 - Devuelve SOLO un objeto JSON, sin texto alrededor y sin vallas de código.
 - El contenido es del proyecto. Puedes recortarlo, reordenarlo y ajustar la redacción para que encaje en el apartado, pero NO puedes inventar datos, plazos, cantidades, requisitos ni normas que el proyecto no diga.
 - Si el proyecto no dice nada que corresponda a un apartado, NO lo incluyas. Un apartado vacío es correcto; uno rellenado con generalidades es un daño.
+- NO conviertas unidades ni recalcules cifras. Si el proyecto dice "doce (12) meses" y el apartado pide días, no escribas 360 ni 365: eso es decidir por el área usuaria y un plazo mal convertido acaba en el contrato. Copia la cifra tal como está o, si el apartado exige otra unidad, déjalo fuera y anótalo en "sin_ubicar" diciendo qué unidad falta.
+- Que un dato aparezca en el proyecto no significa que encaje en un apartado. Antes de colocarlo, comprueba que sea LO QUE ESE APARTADO PIDE: una meta presupuestal no es una actividad del Plan Operativo Institucional, un correo no es un domicilio, un importe estimado no es la cuantía exigida como experiencia. Si es de otra cosa, va a "sin_ubicar".
+- "alta" solo cuando el proyecto lo dice explícitamente para ese apartado. Si has tenido que interpretar a qué apartado pertenece, es "media"; si has encajado un dato aproximado, es "baja".
 - No repartas la misma frase en dos apartados salvo que de verdad corresponda a los dos.
 - Los títulos del proyecto no mandan: lo que manda es qué pide cada apartado del formato. Un párrafo titulado "Alcances" puede pertenecer a "Actividades" o a "Características técnicas" según lo que diga.
 - Lo del proyecto que no corresponda a ningún apartado va en "sin_ubicar", resumido en una línea cada cosa. No lo descartes en silencio.

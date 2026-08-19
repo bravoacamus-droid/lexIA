@@ -235,7 +235,15 @@ async function main() {
   comprobar('llena el objetivo general', tiene('objetivo_general'));
   comprobar('llena las características técnicas', tiene('caracteristicas_tecnicas'));
   comprobar('llena las actividades', tiene('actividades'));
-  comprobar('recoge el plazo de doce meses', /12|doce/.test(texto('plazo_servicio') + texto('caracteristicas_tecnicas')));
+  // El plazo tiene que sobrevivir, pero no necesariamente dentro del
+  // campo de plazo: el formato lo pide en días y el proyecto lo da en
+  // meses, así que dejarlo en "no encaja" con la advertencia es mejor
+  // criterio que convertir 12 meses en 360 o 365 días por su cuenta.
+  // Eso sería decidir por el área usuaria.
+  const plazoEnAlgunSitio =
+    /12|doce/.test(texto('plazo_servicio') + texto('caracteristicas_tecnicas')) ||
+    reparto.sin_ubicar.some((s) => /12|doce/.test(s) && /plazo/i.test(s));
+  comprobar('el plazo de doce meses no se pierde', plazoEnAlgunSitio);
   comprobar(
     'coloca la visita en su apartado',
     tiene('visita') && /visita/i.test(texto('visita')),

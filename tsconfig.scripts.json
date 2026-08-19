@@ -1,0 +1,7 @@
+{
+  "//": "Los guiones de scripts/ están fuera del tsconfig principal porque no forman parte del build de Next. Eso los dejaba sin comprobación de tipos: tsx solo borra los tipos, no los verifica, así que una llamada con la firma equivocada solo se notaba —o no— en tiempo de ejecución. Con esto se comprueban aparte, con las mismas rutas del proyecto.",
+  "extends": "./tsconfig.json",
+  "include": ["scripts/**/*.ts", "src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules"],
+  "compilerOptions": { "noEmit": true }
+}

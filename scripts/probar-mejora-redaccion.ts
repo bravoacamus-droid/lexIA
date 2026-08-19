@@ -63,7 +63,23 @@ se hace 2 veces al año, o sea cada 6 meses, y el proveedor tiene que traer sus 
 el plazo es de 180 dias calendario contados desde el dia siguiente de la firma del contrato.
 tambien tiene que dejar un informe cada vez que termina.`;
 
-const DATOS = ['14', '180', '6'];
+/**
+ * Los datos que tienen que sobrevivir a la mejora, en cifra o en letra.
+ *
+ * El registro jurídico escribe los números en palabras —"catorce (14)",
+ * "cada seis meses"—, así que exigir el dígito comprueba el estilo del
+ * modelo en vez de lo que importa: que la decisión del área usuaria
+ * siga ahí. Con esta redacción, la primera pasada falló por "6" cuando
+ * el texto decía "cada seis meses".
+ */
+const DATOS: Array<[string, RegExp]> = [
+  ['14 equipos', /\b14\b|catorce/i],
+  ['180 días', /\b180\b|ciento ochenta/i],
+  // "cada seis meses" y "periodicidad semestral" son el mismo dato: lo
+  // que tiene que sobrevivir es la frecuencia que fijó el área usuaria,
+  // no la forma de escribirla.
+  ['cada 6 meses', /\b6\b|seis|semestral/i],
+];
 
 async function main() {
   if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
@@ -95,10 +111,10 @@ async function main() {
   console.log(`\n${mejorado}\n`);
 
   if (!redaccionUtil(mejorado)) problema('la mejora salió vacía o demasiado corta');
-  for (const d of DATOS) {
-    const ok = mejorado.includes(d);
-    if (!ok) problema(`se perdió el dato "${d}" que había escrito el área usuaria`);
-    console.log(`   ${ok ? '✅' : '❌'} conserva el dato "${d}"`);
+  for (const [nombre, patron] of DATOS) {
+    const ok = patron.test(mejorado);
+    if (!ok) problema(`se perdió el dato "${nombre}" que había escrito el área usuaria`);
+    console.log(`   ${ok ? '✅' : '❌'} conserva el dato "${nombre}" (en cifra o en letra)`);
   }
   const mayusculas = mejorado.replace(/[^a-záéíóúñ]/gi, '').length > 0;
   const empiezaMinuscula = /^[a-záéíóúñ]/.test(mejorado);

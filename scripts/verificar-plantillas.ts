@@ -195,7 +195,7 @@ async function main() {
 
     // ── 3. Ensamblado y exportación ───────────────────────────────────
     const r = respuestasCompletas(p);
-    const doc = ensamblarRequerimiento(p, r, { cuantia: 1_000_000, montoContrato: 1_000_000 });
+    const doc = ensamblarRequerimiento(p, r, { cuantia: 1_000_000 });
 
     if (doc.faltantes.length > 0) {
       problema(
@@ -252,7 +252,9 @@ async function main() {
   };
   const bloqueLista = { ...bloqueParrafo, extension: 'lista' as const };
 
-  const limpiezas: Array<[string, string, string, typeof bloqueParrafo]> = [
+  const limpiezas: Array<
+    [string, string, string, typeof bloqueParrafo | typeof bloqueLista]
+  > = [
     ['valla de código', '```\nTexto redactado.\n```', 'Texto redactado.', bloqueParrafo],
     ['valla con lenguaje', '```markdown\nTexto redactado.\n```', 'Texto redactado.', bloqueParrafo],
     ['título repetido', 'Finalidad pública\nTexto redactado.', 'Texto redactado.', bloqueParrafo],
@@ -298,6 +300,34 @@ async function main() {
     });
     return encontrado as unknown as { ejemplo: string; etiqueta: string; instruccion: string };
   })();
+
+  // ── Qué topes se comprueban de verdad ─────────────────────────────
+  // Las plantillas declaran límites normativos; solo algunos tienen un
+  // verificador en el ensamblador. Los demás son documentación: valen
+  // como fundamento de un aviso, pero nadie contrasta la cifra. Se
+  // listan aquí para que la diferencia esté a la vista y no se
+  // descubra el día que alguien dé por comprobado algo que no lo está.
+  console.log('\n── Topes declarados y topes verificados ──');
+  {
+    const CON_VERIFICADOR = ['adelanto_directo_max', 'experiencia_max', 'experiencia_mype'];
+    const declaradas = new Map<string, number>();
+    for (const p of listarPlantillas()) {
+      for (const v of p.validaciones) {
+        declaradas.set(v.id, (declaradas.get(v.id) ?? 0) + 1);
+      }
+    }
+    for (const [id, cuantas] of [...declaradas].sort()) {
+      const verificado = CON_VERIFICADOR.includes(id);
+      console.log(
+        `   ${verificado ? "✅" : "📄"} ${id} — ${cuantas} plantilla(s)` +
+          (verificado ? "" : " · solo documental, sin comprobación automática"),
+      );
+    }
+    const huerfanos = CON_VERIFICADOR.filter((id) => !declaradas.has(id));
+    if (huerfanos.length > 0) {
+      problema(`hay verificadores sin validación que los respalde: ${huerfanos.join(", ")}`);
+    }
+  }
 
   console.log('\n── Construcción del prompt ──');
   console.log(`   Bienes en General: ${conEjemplo} bloques con ejemplo, ${sinEjemplo} sin ejemplo`);
