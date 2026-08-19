@@ -46,6 +46,7 @@ import {
   ControlTabla,
 } from './bloques';
 import { RevisionGlobal } from './revision-global';
+import { CargarProyecto } from './cargar-proyecto';
 
 interface Estado {
   faltantes: Falta[];
@@ -166,6 +167,30 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
     setR((p) => ({ ...p, tablas: { ...p.tablas, [k]: v } }));
     marcarSucio();
   };
+  /**
+   * Escribe de una vez el reparto de un proyecto cargado.
+   *
+   * Un solo `setR` en lugar de uno por apartado: veinte llamadas
+   * sueltas encadenan veinte pintadas y veinte guardados.
+   */
+  const aplicarLote = (
+    cambios: Array<{ destino: 'redacciones' | 'campos'; bloqueId: string; texto: string }>,
+    condicionesEncendidas: string[],
+  ) => {
+    setR((p) => {
+      const campos = { ...p.campos };
+      const redacciones = { ...p.redacciones };
+      for (const c of cambios) {
+        if (c.destino === 'campos') campos[c.bloqueId] = c.texto;
+        else redacciones[c.bloqueId] = c.texto;
+      }
+      const condiciones = { ...p.condiciones };
+      for (const k of condicionesEncendidas) condiciones[k] = true;
+      return { ...p, campos, redacciones, condiciones };
+    });
+    marcarSucio();
+  };
+
   const setCondicion = (k: string, v: boolean) => {
     setR((p) => ({ ...p, condiciones: { ...p.condiciones, [k]: v } }));
     marcarSucio();
@@ -417,6 +442,8 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
               </div>
             </div>
           </Card>
+
+          <CargarProyecto id={id} onAplicar={aplicarLote} />
 
           {/* Qué apartados aplican */}
           <Card className="p-5">
