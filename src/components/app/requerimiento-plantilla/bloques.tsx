@@ -289,10 +289,22 @@ export function ControlOpcion({
                 activa
                   ? 'border-primary bg-primary/5 ring-1 ring-primary/40'
                   : 'border-border hover:border-primary/40',
-                elegido && !activa && 'opacity-60',
+                // Con una elegida, las demás se apagan de verdad: fondo
+                // apagado, borde discontinuo y texto atenuado. No se usa
+                // `opacity` sobre la tarjeta entera porque apagaría
+                // también su botón, y ese tiene que seguir legible para
+                // poder cambiar de opción.
+                elegido && !activa && 'border-dashed border-border/60 bg-muted/40',
               )}
             >
-              <p className="text-sm leading-relaxed">{o.texto}</p>
+              <p
+                className={cn(
+                  'text-sm leading-relaxed transition',
+                  elegido && !activa && 'text-muted-foreground/70',
+                )}
+              >
+                {o.texto}
+              </p>
               <div className="mt-2 flex items-center gap-2">
                 {activa ? (
                   <>
@@ -335,7 +347,7 @@ export function ControlOpcion({
           className={cn(
             'rounded-lg border border-dashed p-3 transition',
             propia ? 'border-primary bg-primary/5 ring-1 ring-primary/40' : 'border-border',
-            elegido && !propia && 'opacity-60',
+            elegido && !propia && 'border-border/60 bg-muted/40',
           )}
         >
           {propia ? (
