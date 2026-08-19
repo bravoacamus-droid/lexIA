@@ -405,7 +405,7 @@ export const PLANTILLA_CONSULTORIA_OBRAS: PlantillaRequerimiento = {
                 {
                   valor: 'no_aplica',
                   texto:
-                    'El contrato se rige por el sistema de entrega de NO APLICA, por no corresponder a ninguno de los sistemas de entrega regulados para la formulación y diseño de inversiones.',
+                    'No aplica, por no corresponder a ninguno de los sistemas de entrega regulados para la formulación y diseño de inversiones.',
                 },
                 {
                   valor: 'solo_formulacion',

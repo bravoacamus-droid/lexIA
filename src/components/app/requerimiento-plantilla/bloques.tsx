@@ -8,7 +8,7 @@
  * y no props sueltas — cuando se codifiquen las catorce plantillas
  * restantes, la interfaz no hay que tocarla.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Sparkles,
   Plus,
@@ -213,6 +213,65 @@ export function ControlCampo({
  * entero, con el hueco como campo, para que quede claro que lo demás no
  * se toca.
  */
+/**
+ * El hueco de un párrafo.
+ *
+ * El tamaño lo decide el tipo del campo, no una medida fija: un plazo en
+ * días necesita cuatro caracteres y un lugar de prestación puede ser
+ * "la Oficina Registral de Ayacucho, ubicada en…, distrito de…,
+ * provincia de…, departamento de…". Con el ancho fijo de antes ese
+ * texto se escribía a ciegas.
+ *
+ * Los campos de texto admiten además saltos de línea —varias sedes, una
+ * por línea— y la caja crece con lo que se escribe. Petición de César
+ * del 19/08/2026.
+ */
+function HuecoParrafo({
+  campo,
+  valor,
+  onChange,
+}: {
+  campo: BloqueCampo;
+  valor: string;
+  onChange: (v: string) => void;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const libre = campo.tipo === 'texto' || campo.tipo === 'texto_largo';
+
+  // La caja se ajusta a su contenido en cada pintada; si no, al abrir un
+  // requerimiento ya escrito saldría de una línea con el texto oculto.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [valor]);
+
+  if (!libre) {
+    // Cifras, fechas y plazos: caja corta, que es lo que ocupan.
+    return (
+      <Input
+        value={valor}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={campo.etiqueta}
+        inputMode={campo.tipo === 'numero' || campo.tipo === 'dias' ? 'numeric' : undefined}
+        className="mx-1 inline-block h-7 w-36 align-baseline text-sm"
+      />
+    );
+  }
+
+  return (
+    <Textarea
+      ref={ref}
+      value={valor}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={campo.etiqueta}
+      rows={1}
+      className="mx-1 my-1 inline-block min-h-0 w-full max-w-3xl resize-none overflow-hidden py-1.5 align-top text-sm"
+    />
+  );
+}
+
 export function ControlParrafo({
   bloque,
   valores,
@@ -232,12 +291,11 @@ export function ControlParrafo({
           const campo = bloque.campos.find((c) => c.id === m[1]);
           if (!campo) return <span key={i}>{t}</span>;
           return (
-            <Input
+            <HuecoParrafo
               key={i}
-              value={valores[campo.id] ?? ''}
-              onChange={(e) => onChange(campo.id, e.target.value)}
-              placeholder={campo.etiqueta}
-              className="mx-1 inline-block h-7 w-64 align-baseline text-sm"
+              campo={campo}
+              valor={valores[campo.id] ?? ''}
+              onChange={(v) => onChange(campo.id, v)}
             />
           );
         })}

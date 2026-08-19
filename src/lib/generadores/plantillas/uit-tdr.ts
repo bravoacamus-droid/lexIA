@@ -248,7 +248,7 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
               etiqueta: 'Sistema de entrega',
               instruccion: 'Consignar el sistema de entrega determinado en la estrategia de contratación',
               opciones: [
-                { valor: 'no_aplica', texto: 'El contrato se rige por el sistema de entrega de NO APLICA.' },
+                { valor: 'no_aplica', texto: 'No aplica ningún sistema de entrega.' },
                 {
                   valor: 'diseno_operacion',
                   texto: 'El contrato se rige por el sistema de entrega de Diseño de la operación y mantenimiento.',

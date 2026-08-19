@@ -433,7 +433,7 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
                 {
                   valor: 'no_aplica',
                   texto:
-                    'El contrato se rige por el sistema de entrega de NO APLICA, por no corresponder a ninguno de los sistemas de entrega regulados.',
+                    'No aplica, por no corresponder a ninguno de los sistemas de entrega regulados.',
                 },
                 {
                   valor: 'diseno_operacion',

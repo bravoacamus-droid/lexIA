@@ -23,7 +23,7 @@
  *
  * Uso: npx tsx scripts/verificar-plantillas.ts
  */
-import { listarPlantillas } from '../src/lib/generadores/plantillas';
+import { listarPlantillas, obtenerPlantilla } from '../src/lib/generadores/plantillas';
 import {
   ensamblarRequerimiento,
   respuestasVacias,
@@ -308,6 +308,69 @@ async function main() {
   // listan aquí para que la diferencia esté a la vista y no se
   // descubra el día que alguien dé por comprobado algo que no lo está.
   console.log('\n── Topes declarados y topes verificados ──');
+  // ── Redacción de las alternativas ─────────────────────────────────
+  // "El contrato se rige por el sistema de entrega de NO APLICA" no es
+  // una frase: la opción de que no aplique ningún sistema arrastraba el
+  // encabezado de las que sí aplican. Corregido el 19/08/2026 a
+  // petición de César, en las seis plantillas que la traían.
+  console.log('\n── Redacción de las alternativas ──');
+  // ── Un dato de varias líneas dentro de un párrafo ─────────────────
+  // El lugar de prestación puede ser una dirección larga o varias
+  // sedes, una por línea. Lo que no puede pasar es que el salto de
+  // línea se coma el texto invariable que rodea al hueco.
+  console.log('\n── Un hueco de párrafo con varias líneas ──');
+  {
+    const p = obtenerPlantilla('ps-servicios-general');
+    if (p) {
+      const LUGAR = 'la Oficina Registral de Ayacucho, distrito y provincia de Huamanga\nla Oficina Receptora de Huanta, provincia de Huanta';
+      const doc = ensamblarRequerimiento(
+        p,
+        { ...respuestasVacias(), campos: { denominacion: 'X', lugar_servicio: LUGAR } },
+        {},
+      );
+      const comprobaciones: Array<[string, boolean]> = [
+        ['conserva el texto invariable del párrafo', doc.markdown.includes('El servicio se presta en')],
+        ['conserva la primera línea', doc.markdown.includes('Oficina Registral de Ayacucho')],
+        ['y la segunda', doc.markdown.includes('Oficina Receptora de Huanta')],
+      ];
+      for (const [que, ok] of comprobaciones) {
+        if (!ok) problema(`un hueco con varias líneas no ${que}`);
+        console.log(`   ${ok ? '✅' : '❌'} ${que}`);
+      }
+      try {
+        const buffer = await markdownToDocxBuffer(doc.markdown, { title: 'Requerimiento' });
+        const ok = buffer.length > 5000;
+        if (!ok) problema('el Word con un hueco de varias líneas salió vacío');
+        console.log(`   ${ok ? '✅' : '❌'} el Word se genera igual`);
+      } catch (e) {
+        problema(`el Word falló con un hueco de varias líneas: ${(e as Error).message}`);
+      }
+    }
+  }
+
+  {
+    const FRASE = 'sistema de entrega de NO APLICA';
+    let sueltas = 0;
+    for (const p of listarPlantillas()) {
+      const rec = (ss: Seccion[]) => {
+        for (const s of ss) {
+          for (const b of s.bloques as Bloque[]) {
+            if (b.clase !== 'opcion') continue;
+            for (const o of b.opciones) {
+              if (o.texto.includes(FRASE)) {
+                problema(`${p.id}: la alternativa "${o.valor}" sigue diciendo "${FRASE}"`);
+                sueltas++;
+              }
+            }
+          }
+          rec(s.subsecciones ?? []);
+        }
+      };
+      rec(p.secciones);
+    }
+    console.log(`   ${sueltas === 0 ? '✅' : '❌'} ninguna alternativa arrastra el encabezado que no le corresponde`);
+  }
+
   {
     const CON_VERIFICADOR = ['adelanto_directo_max', 'experiencia_max', 'experiencia_mype'];
     const declaradas = new Map<string, number>();

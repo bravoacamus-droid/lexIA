@@ -322,7 +322,7 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
               opciones: [
                 {
                   valor: 'no_aplica',
-                  texto: 'El contrato se rige por el sistema de entrega de NO APLICA.',
+                  texto: 'No aplica ningún sistema de entrega.',
                 },
                 { valor: 'llave_en_mano', texto: 'El contrato se rige por el sistema de entrega de Llave en mano.' },
                 {
