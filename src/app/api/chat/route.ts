@@ -10,6 +10,10 @@ import type { ProfileRole } from '@/lib/auth/session';
 import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
 import { recordAiUsage } from '@/lib/ai/usage-log';
 import { expandLegalQuery, tipoDeFoco } from '@/lib/ai/query-expansion';
+import {
+  detectarReferencias,
+  seleccionarFragmentos,
+} from '@/lib/ai/referencia-documento';
 import { rewriteToLegalQueries } from '@/lib/ai/query-rewrite';
 import { fetchNeighborChunks, mergeNeighbors } from '@/lib/ai/neighbor-chunks';
 import {
@@ -227,6 +231,72 @@ export async function POST(req: Request) {
   const panoramic = isPanoramicQuery(lastUser.content);
   const panoramicTopic = panoramic ? extractCentralTopic(lastUser.content) : '';
   const panoramicFacets = panoramic ? buildPanoramicFacets(panoramicTopic) : [];
+
+  // ── Documento citado por su nombre ──────────────────────────────────
+  // Cuando el usuario pide "resúmeme la Resolución N° 8902-2025-S2" no
+  // hay que buscar por parecido: hay que ir a buscar ESE documento. Un
+  // número no significa nada para un embedding —"8902" y "8903" son casi
+  // el mismo vector— y la búsqueda por palabras exige que case la frase
+  // entera. Por eso el chat devolvía resoluciones de numeración parecida
+  // y afirmaba que la pedida no estaba, teniéndola cargada con 22
+  // fragmentos. Reportado por César el 17/08/2026.
+  const referencias = detectarReferencias(lastUser.content);
+  const chunksCitados: HybridSearchRow[] = [];
+  if (referencias.length > 0) {
+    // Se limita a dos documentos por turno: pedir tres o más resúmenes a
+    // la vez desborda el contexto y ninguno sale bien.
+    for (const ref of referencias.slice(0, 2)) {
+      let q = supabase
+        .from('normative_documents')
+        .select('id, type, number, title')
+        .ilike('number', ref.patron)
+        .limit(4);
+      if (ref.tipo) q = q.eq('type', ref.tipo);
+      const { data: docs } = await q;
+      if (!docs || docs.length === 0) continue;
+
+      // Con sufijo se puede desambiguar entre salas: "8902-2025-S2" no es
+      // "8902-2025-S5".
+      const doc =
+        (ref.sufijo &&
+          docs.find((d) =>
+            String((d as { number: string }).number)
+              .toLowerCase()
+              .includes(ref.sufijo!.toLowerCase()),
+          )) ||
+        docs[0];
+      const meta = doc as { id: string; type: string; number: string; title: string };
+
+      const { data: frags } = await supabase
+        .from('normative_chunks')
+        .select('id, content, chunk_index')
+        .eq('document_id', meta.id)
+        .order('chunk_index', { ascending: true });
+      if (!frags || frags.length === 0) continue;
+
+      for (const f of seleccionarFragmentos(
+        frags as Array<{ id: string; content: string; chunk_index: number }>,
+      )) {
+        chunksCitados.push({
+          chunk_id: f.id,
+          document_id: meta.id,
+          content: f.content,
+          doc_title: meta.title,
+          doc_type: meta.type as NormativeDocType,
+          doc_number: meta.number,
+          // Se marca al máximo para que ningún reordenamiento posterior
+          // lo desplace: es el documento que el usuario pidió por su
+          // nombre, no un candidato más.
+          similarity: 1,
+        });
+      }
+      console.log('[chat] documento_citado', {
+        pedido: ref.textoOriginal,
+        encontrado: meta.number,
+        fragmentos: chunksCitados.length,
+      });
+    }
+  }
 
   let sources: ChatSource[] = [];
 
@@ -525,8 +595,16 @@ export async function POST(req: Request) {
       // Presupuesto panorámico ampliado a 32 (antes 25): el re-troceado
       // del 01/08/2026 hizo los fragmentos más granulares, así que cubrir
       // un tema completo requiere más piezas.
-      const finalMaxChunks = panoramic ? Math.min(MAX_CHUNKS + 17, 32) : MAX_CHUNKS;
+      // Si el usuario nombró un documento, su contenido va PRIMERO y no
+      // compite por el cupo: es lo que pidió. El resto del pool queda
+      // como contexto complementario.
+      const presupuesto = panoramic ? Math.min(MAX_CHUNKS + 17, 32) : MAX_CHUNKS;
+      const finalMaxChunks = Math.max(presupuesto - chunksCitados.length, 6);
       let reranked = rerankChunks(combined, lastUser.content, finalMaxChunks);
+      if (chunksCitados.length > 0) {
+        const yaEsta = new Set(chunksCitados.map((c) => c.chunk_id));
+        reranked = [...chunksCitados, ...reranked.filter((c) => !yaEsta.has(c.chunk_id))];
+      }
 
       // COBERTURA POR FACETA: garantizar que el top-1 de cada faceta
       // sobreviva el corte. Si el rerank lo dejó fuera, lo re-inyectamos

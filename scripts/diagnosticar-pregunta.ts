@@ -24,6 +24,7 @@ import { join } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 import { embedOne } from '../src/lib/ai/embeddings';
 import { expandLegalQuery, tipoDeFoco } from '../src/lib/ai/query-expansion';
+import { detectarReferencias, seleccionarFragmentos } from '../src/lib/ai/referencia-documento';
 import {
   isPanoramicQuery,
   extractCentralTopic,
@@ -80,6 +81,53 @@ async function main() {
   const tema = panoramica ? extractCentralTopic(pregunta) : '';
   const facetas = panoramica ? buildPanoramicFacets(tema) : [];
 
+  // El chat, antes de buscar por parecido, comprueba si el usuario nombró
+  // un documento concreto. Si esta herramienta no hiciera lo mismo daría
+  // un diagnóstico falso.
+  const referencias = detectarReferencias(pregunta);
+  console.log('── Documento citado por su nombre ──');
+  if (referencias.length === 0) {
+    console.log('   (ninguno: se busca solo por parecido)');
+  }
+  const citados = new Map<string, Fila>();
+  for (const ref of referencias.slice(0, 2)) {
+    let q = admin
+      .from('normative_documents')
+      .select('id, type, number, title')
+      .ilike('number', ref.patron)
+      .limit(4);
+    if (ref.tipo) q = q.eq('type', ref.tipo);
+    const { data: docs } = await q;
+    if (!docs || docs.length === 0) {
+      console.log(`   ❌ ${ref.numero} — no está en la biblioteca`);
+      continue;
+    }
+    const doc = ((ref.sufijo &&
+      docs.find((d: { number: string }) =>
+        d.number.toLowerCase().includes(ref.sufijo!.toLowerCase()),
+      )) ||
+      docs[0]) as { id: string; type: string; number: string; title: string };
+    const { data: frags } = await admin
+      .from('normative_chunks')
+      .select('id, content, chunk_index')
+      .eq('document_id', doc.id)
+      .order('chunk_index', { ascending: true });
+    const sel = seleccionarFragmentos((frags || []) as Array<{ id: string; content: string }>);
+    for (const f of sel) {
+      citados.set(f.id, {
+        chunk_id: f.id,
+        content: f.content,
+        doc_type: doc.type,
+        doc_title: doc.title,
+        doc_number: doc.number,
+      });
+    }
+    console.log(
+      `   ✅ ${doc.number} — ${frags?.length ?? 0} fragmentos, se envían ${sel.length}`,
+    );
+  }
+  console.log();
+
   console.log('── Cómo interpreta la consulta ──');
   console.log(`   panorámica            ${panoramica ? 'sí' : 'no'}`);
   if (panoramica) console.log(`   tema central          "${tema}"`);
@@ -100,7 +148,7 @@ async function main() {
   }
   for (const f of facetas) consultas.push([f, 8, null]);
 
-  const porChunk = new Map<string, Fila>();
+  const porChunk = new Map<string, Fila>(citados);
   for (const [q, n, t] of consultas) {
     const e = await embedOne(q, 'RETRIEVAL_QUERY').catch(() => null);
     if (!e) continue;
