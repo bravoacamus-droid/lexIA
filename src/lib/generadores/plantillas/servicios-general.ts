@@ -553,6 +553,37 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
           ],
         },
         {
+          id: 'entregables',
+          titulo: 'Entregable',
+          condicion: 'tiene_entregables',
+          bloques: [
+            {
+              clase: 'tabla',
+              id: 'entregables',
+              etiqueta: 'Entregables',
+              instruccion:
+                'Señalar los documentos que el contratista debe entregar, la oportunidad y/o plazo de entrega y el medio de entrega: correo electrónico, mesa de partes virtual de la Entidad, entre otros',
+              columnas: ['N°', 'Entregable', 'Plazo', 'Contenido'],
+              minimo: 1,
+            },
+            {
+              clase: 'parrafo',
+              texto:
+                'Los entregables deberán ser presentados a través de Mesa de Partes virtual de la Entidad y/o correo electrónico {{canal_entregables}}, en los plazos y fechas establecidas en los Términos de Referencia.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'canal_entregables',
+                  etiqueta: 'Mesa de partes o correo',
+                  ayuda: 'Consignar el link de la mesa de partes y/o el correo electrónico',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
+            },
+          ],
+        },
+        {
           id: 'adelanto_directo',
           titulo: 'Adelanto directo',
           condicion: 'otorga_adelanto',

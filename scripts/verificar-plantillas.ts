@@ -308,12 +308,100 @@ async function main() {
   // listan aquí para que la diferencia esté a la vista y no se
   // descubra el día que alguien dé por comprobado algo que no lo está.
   console.log('\n── Topes declarados y topes verificados ──');
+  {
+    const CON_VERIFICADOR = ['adelanto_directo_max', 'experiencia_max', 'experiencia_mype'];
+    const declaradas = new Map<string, number>();
+    for (const p of listarPlantillas()) {
+      for (const v of p.validaciones) {
+        declaradas.set(v.id, (declaradas.get(v.id) ?? 0) + 1);
+      }
+    }
+    for (const [id, cuantas] of [...declaradas].sort()) {
+      const verificado = CON_VERIFICADOR.includes(id);
+      console.log(
+        `   ${verificado ? "✅" : "📄"} ${id} — ${cuantas} plantilla(s)` +
+          (verificado ? "" : " · solo documental, sin comprobación automática"),
+      );
+    }
+    const huerfanos = CON_VERIFICADOR.filter((id) => !declaradas.has(id));
+    if (huerfanos.length > 0) {
+      problema(`hay verificadores sin validación que los respalde: ${huerfanos.join(", ")}`);
+    }
+  }
+
   // ── Redacción de las alternativas ─────────────────────────────────
   // "El contrato se rige por el sistema de entrega de NO APLICA" no es
   // una frase: la opción de que no aplique ningún sistema arrastraba el
   // encabezado de las que sí aplican. Corregido el 19/08/2026 a
   // petición de César, en las seis plantillas que la traían.
   console.log('\n── Redacción de las alternativas ──');
+  {
+    const FRASE = 'sistema de entrega de NO APLICA';
+    let sueltas = 0;
+    for (const p of listarPlantillas()) {
+      const rec = (ss: Seccion[]) => {
+        for (const s of ss) {
+          for (const b of s.bloques as Bloque[]) {
+            if (b.clase !== 'opcion') continue;
+            for (const o of b.opciones) {
+              if (o.texto.includes(FRASE)) {
+                problema(`${p.id}: la alternativa "${o.valor}" sigue diciendo "${FRASE}"`);
+                sueltas++;
+              }
+            }
+          }
+          rec(s.subsecciones ?? []);
+        }
+      };
+      rec(p.secciones);
+    }
+    console.log(`   ${sueltas === 0 ? '✅' : '❌'} ninguna alternativa arrastra el encabezado que no le corresponde`);
+  }
+
+  // ── El apartado de entregables ────────────────────────────────────
+  // Faltaba en dos plantillas y en una tercera estaba colgado de otro
+  // apartado, con columnas que no eran las del formato. El auditor no
+  // lo veía: solo coteja textos invariables, y una cabecera de tabla no
+  // lo es. En obras el propio formato lo parte en dos —diseño y
+  // ejecución—, así que se acepta una tabla o varias mientras vivan en
+  // un apartado de entregables.
+  console.log('\n── El apartado de entregables ──');
+  {
+    let faltan = 0;
+    for (const p of listarPlantillas()) {
+      const tablas: Array<{ seccion: string; columnas: string[] }> = [];
+      const rec = (ss: Seccion[], dentroDeEntregables: boolean) => {
+        for (const s of ss) {
+          const propio = dentroDeEntregables || /entregable/i.test(s.titulo);
+          for (const b of s.bloques as Bloque[]) {
+            if (b.clase === 'tabla' && b.id.startsWith('entregables') && propio) {
+              tablas.push({ seccion: s.titulo, columnas: b.columnas });
+            }
+            if (b.clase === 'tabla' && b.id.startsWith('entregables') && !propio) {
+              problema(`${p.id}: los entregables cuelgan de "${s.titulo}", no de su propio apartado`);
+              faltan++;
+            }
+          }
+          rec(s.subsecciones ?? [], propio);
+        }
+      };
+      rec(p.secciones, false);
+
+      if (tablas.length === 0) {
+        problema(`${p.id}: no tiene tabla de entregables en su apartado`);
+        faltan++;
+        continue;
+      }
+      for (const t of tablas) {
+        if (t.columnas[0] !== 'N°' && t.columnas[0] !== 'N.°') {
+          problema(`${p.id}: la primera columna de entregables es "${t.columnas[0]}"`);
+          faltan++;
+        }
+      }
+    }
+    console.log(`   ${faltan === 0 ? '✅' : '❌'} las quince tienen su apartado de entregables, con su tabla`);
+  }
+
   // ── Un dato de varias líneas dentro de un párrafo ─────────────────
   // El lugar de prestación puede ser una dirección larga o varias
   // sedes, una por línea. Lo que no puede pasar es que el salto de
@@ -348,49 +436,6 @@ async function main() {
     }
   }
 
-  {
-    const FRASE = 'sistema de entrega de NO APLICA';
-    let sueltas = 0;
-    for (const p of listarPlantillas()) {
-      const rec = (ss: Seccion[]) => {
-        for (const s of ss) {
-          for (const b of s.bloques as Bloque[]) {
-            if (b.clase !== 'opcion') continue;
-            for (const o of b.opciones) {
-              if (o.texto.includes(FRASE)) {
-                problema(`${p.id}: la alternativa "${o.valor}" sigue diciendo "${FRASE}"`);
-                sueltas++;
-              }
-            }
-          }
-          rec(s.subsecciones ?? []);
-        }
-      };
-      rec(p.secciones);
-    }
-    console.log(`   ${sueltas === 0 ? '✅' : '❌'} ninguna alternativa arrastra el encabezado que no le corresponde`);
-  }
-
-  {
-    const CON_VERIFICADOR = ['adelanto_directo_max', 'experiencia_max', 'experiencia_mype'];
-    const declaradas = new Map<string, number>();
-    for (const p of listarPlantillas()) {
-      for (const v of p.validaciones) {
-        declaradas.set(v.id, (declaradas.get(v.id) ?? 0) + 1);
-      }
-    }
-    for (const [id, cuantas] of [...declaradas].sort()) {
-      const verificado = CON_VERIFICADOR.includes(id);
-      console.log(
-        `   ${verificado ? "✅" : "📄"} ${id} — ${cuantas} plantilla(s)` +
-          (verificado ? "" : " · solo documental, sin comprobación automática"),
-      );
-    }
-    const huerfanos = CON_VERIFICADOR.filter((id) => !declaradas.has(id));
-    if (huerfanos.length > 0) {
-      problema(`hay verificadores sin validación que los respalde: ${huerfanos.join(", ")}`);
-    }
-  }
 
   console.log('\n── Construcción del prompt ──');
   console.log(`   Bienes en General: ${conEjemplo} bloques con ejemplo, ${sinEjemplo} sin ejemplo`);
