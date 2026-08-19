@@ -170,12 +170,27 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
     marcarSucio();
   };
 
-  async function redactar(bloqueId: string, aporte: string): Promise<string | null> {
+  /**
+   * Pide a LexIA el texto de un apartado.
+   *
+   * Cuando el apartado ya tiene texto, se envia: el modelo lo mejora en
+   * vez de escribir otro. Antes no se enviaba nunca y el boton
+   * descartaba en silencio lo que habia escrito el area usuaria.
+   */
+  async function redactar(
+    bloqueId: string,
+    aporte: string,
+    textoActual: string,
+  ): Promise<string | null> {
     try {
       const res = await fetch(`/api/generadores/requerimientos/${id}/redactar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bloque_id: bloqueId, aporte }),
+        body: JSON.stringify({
+          bloque_id: bloqueId,
+          aporte,
+          texto_actual: textoActual.trim() || undefined,
+        }),
       });
       const j = await res.json();
       if (!res.ok) {
@@ -185,9 +200,12 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
         return null;
       }
       if (!j.con_sustento) {
-        toast.warning('Redactado sin sustento normativo', {
-          description: 'No se encontró norma aplicable en la biblioteca; revisa las citas.',
-        });
+        toast.warning(
+          j.modo === 'mejorado' ? 'Mejorado sin sustento normativo' : 'Redactado sin sustento normativo',
+          {
+            description: 'No se encontró norma aplicable en la biblioteca; revisa las citas.',
+          },
+        );
       }
       return j.texto as string;
     } catch (e) {
@@ -206,6 +224,11 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
             bloque={b}
             valor={r.campos[b.id] ?? ''}
             onChange={(v) => setCampo(b.id, v)}
+            onMejorar={
+              b.tipo === 'texto_largo'
+                ? (aporte, textoActual) => redactar(b.id, aporte, textoActual)
+                : undefined
+            }
           />
         );
       case 'parrafo':
@@ -228,7 +251,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
             bloque={b}
             valor={r.redacciones[b.id] ?? ''}
             onChange={(v) => setRedaccion(b.id, v)}
-            onRedactar={(aporte) => redactar(b.id, aporte)}
+            onRedactar={(aporte, textoActual) => redactar(b.id, aporte, textoActual)}
           />
         );
       case 'tabla':

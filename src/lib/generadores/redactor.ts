@@ -23,6 +23,17 @@ export interface ContextoRedaccion {
   organo?: string;
   /** Lo que el usuario aportó sobre este bloque en concreto. */
   aporteUsuario?: string;
+  /**
+   * Lo que el area usuaria ya escribio en este apartado.
+   *
+   * Cuando viene, el trabajo NO es redactar sino mejorar: el contenido
+   * es suyo y las decisiones son suyas. Hasta el 17/08/2026 este texto
+   * no se enviaba nunca, asi que el boton generaba desde cero y
+   * descartaba en silencio lo que la persona habia escrito. Observacion
+   * de Cesar: "debe haber una opcion para mejorar la redaccion con la IA
+   * cada clausula".
+   */
+  textoActual?: string;
   /** Sustento normativo recuperado de la biblioteca, si lo hay. */
   contextoNormativo?: string;
 }
@@ -81,6 +92,21 @@ export function promptUsuario(
   partes.push(`\nCONTRATACIÓN: ${contexto.denominacion}`);
   if (contexto.organo) partes.push(`ÁREA USUARIA: ${contexto.organo}`);
 
+  const yaEscrito = contexto.textoActual?.trim();
+  if (yaEscrito) {
+    partes.push(
+      `
+TEXTO QUE YA REDACTO EL AREA USUARIA:
+"""
+${yaEscrito}
+"""`,
+    );
+    partes.push(
+      `
+TU TAREA ES MEJORAR ESE TEXTO, NO ESCRIBIR OTRO. Conserva integras todas las decisiones y todos los datos que contiene -plazos, cantidades, condiciones, nombres- porque son del area usuaria y tu no puedes cambiarlas. Corrige la redaccion, ordena las ideas, ajusta el registro al del formato oficial y completa lo que la instruccion exige y falte. Si algo del texto contradice la instruccion del formato o la norma, NO lo corrijas por tu cuenta: mantenlo y anade al final una linea que empiece por "[Revisar:" senalando la discrepancia.`,
+    );
+  }
+
   if (contexto.aporteUsuario?.trim()) {
     partes.push(
       `\nINFORMACIÓN QUE APORTA EL ÁREA USUARIA (incorpórala sin cambiar su sentido):\n"""\n${contexto.aporteUsuario.trim()}\n"""`,
@@ -91,7 +117,13 @@ export function promptUsuario(
     partes.push(`\nSUSTENTO NORMATIVO DISPONIBLE:\n${contexto.contextoNormativo.trim()}`);
   }
 
-  partes.push(`\nRedacta ahora el apartado "${bloque.etiqueta}".`);
+  partes.push(
+    yaEscrito
+      ? `
+Devuelve ahora el apartado "${bloque.etiqueta}" mejorado, y solo eso.`
+      : `
+Redacta ahora el apartado "${bloque.etiqueta}".`,
+  );
   return partes.join('\n');
 }
 

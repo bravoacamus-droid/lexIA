@@ -21,6 +21,12 @@ export const maxDuration = 60;
 const Schema = z.object({
   bloque_id: z.string().min(1).max(80),
   aporte: z.string().max(8000).optional(),
+  /**
+   * Lo que el usuario ya tiene escrito en el apartado. Si viene, el
+   * modelo mejora ese texto en vez de escribir uno nuevo; sin esto el
+   * boton descartaba en silencio el trabajo del area usuaria.
+   */
+  texto_actual: z.string().max(20000).optional(),
 });
 
 /** Busca el bloque redactable por id, recorriendo también las subsecciones. */
@@ -28,6 +34,20 @@ function buscarBloque(secciones: Seccion[], id: string): BloqueRedactado | null 
   for (const s of secciones) {
     for (const b of s.bloques) {
       if (b.clase === 'redactado' && b.id === id) return b;
+      // Los campos de texto largo tambien son clausulas que escribe el
+      // area usuaria a mano —"bienes similares", "actividades"— y son
+      // justo las que nadie revisa. Se adaptan a la misma forma para que
+      // el boton de mejorar valga en los dos sitios y no haya que
+      // mantener dos caminos.
+      if (b.clase === 'campo' && b.tipo === 'texto_largo' && b.id === id) {
+        return {
+          clase: 'redactado',
+          id: b.id,
+          etiqueta: b.etiqueta,
+          instruccion: b.ayuda,
+          extension: 'parrafo',
+        };
+      }
     }
     if (s.subsecciones) {
       const encontrado = buscarBloque(s.subsecciones, id);
@@ -132,6 +152,7 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
     denominacion: fila.denominacion,
     organo: fila.respuestas?.campos?.organo,
     aporteUsuario: parsed.data.aporte,
+    textoActual: parsed.data.texto_actual,
   };
 
   const sustento = await sustentoNormativo(consultaNormativa(plantilla, bloque, contexto));
@@ -157,6 +178,7 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
         requerimiento_id: ctx.params.id,
         plantilla_id: plantilla.id,
         bloque_id: bloque.id,
+        modo: contexto.textoActual?.trim() ? 'mejorar' : 'redactar',
       },
     });
 
@@ -167,6 +189,7 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
 
     return NextResponse.json({
       bloque_id: bloque.id,
+      modo: contexto.textoActual?.trim() ? 'mejorado' : 'redactado',
       texto,
       con_sustento: sustento.length > 0,
       tokens: {

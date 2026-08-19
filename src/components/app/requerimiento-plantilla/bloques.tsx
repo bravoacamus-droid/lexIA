@@ -34,12 +34,34 @@ export function ControlCampo({
   bloque,
   valor,
   onChange,
+  onMejorar,
 }: {
   bloque: BloqueCampo;
   valor: string;
   onChange: (v: string) => void;
+  /**
+   * Solo para los campos de texto largo. Son clausulas que el area
+   * usuaria escribe entera a mano, asi que se les ofrece la misma ayuda
+   * que a los apartados redactados en vez de dejarlas sin revisar.
+   */
+  onMejorar?: (aporte: string, textoActual: string) => Promise<string | null>;
 }) {
   const largo = bloque.tipo === 'texto_largo';
+  const [mejorando, setMejorando] = useState(false);
+  const [propuesta, setPropuesta] = useState<string | null>(null);
+  const puedeMejorar = largo && !!onMejorar && valor.trim().length > 0;
+
+  async function pedirMejora() {
+    if (!onMejorar) return;
+    setMejorando(true);
+    try {
+      const texto = await onMejorar('', valor);
+      if (texto) setPropuesta(texto);
+    } finally {
+      setMejorando(false);
+    }
+  }
+
   return (
     <div>
       <Label htmlFor={bloque.id} className="text-sm font-medium">
@@ -64,6 +86,48 @@ export function ControlCampo({
         />
       )}
       <Ayuda>{bloque.ayuda}</Ayuda>
+
+      {puedeMejorar && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="mt-2"
+          onClick={pedirMejora}
+          disabled={mejorando}
+        >
+          {mejorando ? (
+            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+          )}
+          Mejorar redacción
+        </Button>
+      )}
+
+      {propuesta && (
+        <div className="mt-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+          <p className="mb-2 text-xs font-medium text-primary">
+            Versión mejorada por LexIA — revísala antes de usarla
+          </p>
+          <pre className="whitespace-pre-wrap text-sm leading-relaxed">{propuesta}</pre>
+          <div className="mt-2 flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                onChange(propuesta);
+                setPropuesta(null);
+              }}
+            >
+              Reemplazar con esta versión
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => setPropuesta(null)}>
+              Descartar
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -160,18 +224,27 @@ export function ControlRedactado({
   bloque: BloqueRedactado;
   valor: string;
   onChange: (v: string) => void;
-  /** Devuelve el texto redactado; el usuario decide si lo acepta. */
-  onRedactar: (aporte: string) => Promise<string | null>;
+  /**
+   * Devuelve el texto redactado; el usuario decide si lo acepta.
+   *
+   * Recibe tambien lo ya escrito: con texto el modelo mejora, sin texto
+   * redacta desde cero. Son dos operaciones distintas y el usuario tiene
+   * que ver cual va a ocurrir antes de pulsar.
+   */
+  onRedactar: (aporte: string, textoActual: string) => Promise<string | null>;
 }) {
   const [aporte, setAporte] = useState('');
   const [redactando, setRedactando] = useState(false);
   const [verEjemplo, setVerEjemplo] = useState(false);
   const [propuesta, setPropuesta] = useState<string | null>(null);
 
+  // El apartado ya tiene contenido propio: el boton mejora, no reemplaza.
+  const mejorar = valor.trim().length > 0;
+
   async function pedirRedaccion() {
     setRedactando(true);
     try {
-      const texto = await onRedactar(aporte);
+      const texto = await onRedactar(aporte, mejorar ? valor : '');
       if (texto) setPropuesta(texto);
     } finally {
       setRedactando(false);
@@ -214,12 +287,22 @@ export function ControlRedactado({
         placeholder="Escríbelo, o descríbelo abajo y deja que LexIA lo redacte."
       />
 
+      {mejorar && (
+        <p className="mt-1.5 text-xs text-muted-foreground">
+          Ya hay texto: LexIA lo mejorará conservando tus datos y decisiones, no escribirá otro.
+        </p>
+      )}
+
       <div className="mt-2 flex items-end gap-2">
         <div className="flex-1">
           <Input
             value={aporte}
             onChange={(e) => setAporte(e.target.value)}
-            placeholder="Datos concretos para que LexIA redacte este apartado…"
+            placeholder={
+              mejorar
+                ? 'Qué quieres que corrija o añada (opcional)…'
+                : 'Datos concretos para que LexIA redacte este apartado…'
+            }
             className="h-9 text-sm"
           />
         </div>
@@ -235,7 +318,7 @@ export function ControlRedactado({
           ) : (
             <Sparkles className="mr-1.5 h-3.5 w-3.5" />
           )}
-          Redactar
+          {mejorar ? 'Mejorar redacción' : 'Redactar'}
         </Button>
       </div>
 
@@ -244,7 +327,9 @@ export function ControlRedactado({
         // escribió el modelo convierte la revisión en un trámite que
         // nadie hace.
         <div className="mt-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
-          <p className="mb-2 text-xs font-medium text-primary">Propuesta de LexIA — revísala antes de usarla</p>
+          <p className="mb-2 text-xs font-medium text-primary">
+            {mejorar ? 'Versión mejorada por LexIA' : 'Propuesta de LexIA'} — revísala antes de usarla
+          </p>
           <pre className="whitespace-pre-wrap text-sm leading-relaxed">{propuesta}</pre>
           <div className="mt-2 flex gap-2">
             <Button
@@ -255,7 +340,7 @@ export function ControlRedactado({
                 setPropuesta(null);
               }}
             >
-              Usar este texto
+              {mejorar ? 'Reemplazar con esta versión' : 'Usar este texto'}
             </Button>
             <Button type="button" size="sm" variant="ghost" onClick={() => setPropuesta(null)}>
               Descartar

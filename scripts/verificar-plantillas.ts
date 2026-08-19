@@ -318,6 +318,30 @@ async function main() {
       if (!ok) problema(`el prompt no ${que}`);
       console.log(`   ${ok ? '✅' : '❌'} ${que}`);
     }
+    // Modo mejorar: con texto previo la tarea cambia y lo escrito por el
+    // area usuaria tiene que viajar entero. Antes no se enviaba nunca y
+    // el boton generaba otro texto en su lugar.
+    const escrito =
+      'Los bienes deben ser entregados en 30 dias calendario en el almacen central de la entidad.';
+    const mejorar = promptUsuario(bloqueConEjemplo as never, {
+      denominacion: 'Adquisición de muebles de melamina',
+      aporteUsuario: 'Añade la garantía',
+      textoActual: escrito,
+    });
+    const comprobacionesMejora: Array<[string, boolean]> = [
+      ['envía el texto ya escrito', mejorar.includes(escrito)],
+      ['ordena mejorar y no reescribir', mejorar.includes('MEJORAR ESE TEXTO, NO ESCRIBIR OTRO')],
+      ['prohíbe cambiar los datos del usuario', mejorar.includes('Conserva integras todas las decisiones')],
+      ['cierra pidiendo el apartado mejorado', mejorar.includes('mejorado, y solo eso')],
+      ['ya no pide redactar desde cero', !mejorar.includes('Redacta ahora el apartado')],
+      ['sigue admitiendo la indicación adicional', mejorar.includes('Añade la garantía')],
+      ['sin texto previo sigue redactando', prompt.includes('Redacta ahora el apartado')],
+    ];
+    for (const [que, ok] of comprobacionesMejora) {
+      if (!ok) problema(`el modo mejorar no ${que}`);
+      console.log(`   ${ok ? '✅' : '❌'} modo mejorar: ${que}`);
+    }
+
     const sistema = promptSistema(bienes);
     const prohibiciones = ['No inventes cifras', 'No exijas marcas comerciales', 'sin comillas envolventes'];
     for (const frase of prohibiciones) {
