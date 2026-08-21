@@ -37,6 +37,7 @@ import {
   marcaDeLista,
   type MarcadorLista,
 } from '@/lib/generadores/ensamblador';
+import type { RevisionTabla } from '@/lib/generadores/revisor-tabla';
 
 /**
  * Nota al pie de un control, con la instrucción literal de la plantilla.
@@ -729,11 +730,19 @@ export function ControlTabla({
   bloque,
   filas,
   onChange,
+  onRevisar,
 }: {
   bloque: BloqueTabla;
   filas: string[][];
   onChange: (filas: string[][]) => void;
+  /**
+   * Revisa la tabla con LexIA. Las tablas se llenan a mano y nadie las
+   * miraba, y ahí viven los plazos y las cifras.
+   */
+  onRevisar: (filas: string[][]) => Promise<RevisionTabla | null>;
 }) {
+  const [revisando, setRevisando] = useState(false);
+  const [revision, setRevision] = useState<RevisionTabla | null>(null);
   const nueva = () => onChange([...filas, Array(bloque.columnas.length).fill('')]);
   const borrar = (i: number) => onChange(filas.filter((_, k) => k !== i));
   const editar = (i: number, j: number, v: string) =>
@@ -806,10 +815,95 @@ export function ControlTabla({
         </table>
       </div>
 
-      <Button type="button" variant="ghost" size="sm" onClick={nueva} className="mt-1.5">
-        <Plus className="mr-1.5 h-3.5 w-3.5" />
-        Agregar fila
-      </Button>
+      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+        <Button type="button" variant="ghost" size="sm" onClick={nueva}>
+          <Plus className="mr-1.5 h-3.5 w-3.5" />
+          Agregar fila
+        </Button>
+        {filas.some((f) => f.some((c) => c.trim())) && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={revisando}
+            onClick={async () => {
+              setRevisando(true);
+              try {
+                setRevision(await onRevisar(filas));
+              } finally {
+                setRevisando(false);
+              }
+            }}
+          >
+            {revisando ? (
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+            )}
+            Revisar con LexIA
+          </Button>
+        )}
+      </div>
+
+      {revision && (
+        <div className="mt-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+          {revision.observaciones.length === 0 && !revision.filas ? (
+            <p className="text-xs text-muted-foreground">
+              Sin observaciones: la tabla está completa y bien redactada.
+            </p>
+          ) : (
+            <>
+              {revision.observaciones.length > 0 && (
+                <ul className="space-y-1.5">
+                  {revision.observaciones.map((o, i) => (
+                    <li key={i} className="flex gap-2 text-xs leading-relaxed">
+                      <AlertTriangle
+                        className={cn(
+                          'mt-0.5 h-3.5 w-3.5 shrink-0',
+                          o.tipo === 'norma' || o.tipo === 'falta'
+                            ? 'text-destructive'
+                            : 'text-amber-600',
+                        )}
+                      />
+                      <span>
+                        {o.fila > 0 && <span className="font-medium">Fila {o.fila}: </span>}
+                        {o.detalle}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {revision.filas && (
+                <div className="mt-2 flex flex-wrap items-center gap-2 border-t pt-2">
+                  <span className="text-xs text-muted-foreground">
+                    LexIA propone la misma tabla mejor redactada, con los mismos datos.
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      onChange(revision.filas as string[][]);
+                      setRevision({ ...revision, filas: null });
+                    }}
+                  >
+                    Aplicar la redacción propuesta
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="mt-1 h-7 text-xs"
+            onClick={() => setRevision(null)}
+          >
+            Cerrar
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

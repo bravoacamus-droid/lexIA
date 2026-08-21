@@ -569,7 +569,7 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
               instruccion:
                 'Establecer, para cada prestación accesoria, la relación de documentos que el contratista debe presentar para efectos de pago',
               columnas: ['Prestación accesoria', 'Requisitos para el pago'],
-              minimo: 1,
+              minimo: 0,
             },
           ],
         },

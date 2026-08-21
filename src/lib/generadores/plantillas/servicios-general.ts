@@ -507,7 +507,7 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
                   instruccion:
                     'Establecer de manera independiente el plazo de cada prestación accesoria y el evento que da inicio a su cómputo',
                   columnas: ['Prestación accesoria', 'Plazo', 'Inicio del cómputo'],
-                  minimo: 1,
+                  minimo: 0,
                 },
                 {
                   clase: 'nota',
@@ -561,7 +561,7 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
                   instruccion:
                     'Señalar de manera independiente el lugar donde se ejecutará cada prestación accesoria, indicando dirección exacta, distrito, provincia y departamento, y el horario o condiciones',
                   columnas: ['Prestación accesoria', 'Lugar de ejecución'],
-                  minimo: 1,
+                  minimo: 0,
                 },
               ],
             },
@@ -794,7 +794,7 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
               instruccion:
                 'Establecer, para cada prestación accesoria, la relación de documentos que el contratista debe presentar para efectos de pago',
               columnas: ['Prestación accesoria', 'Requisitos para el pago'],
-              minimo: 1,
+              minimo: 0,
             },
           ],
         },

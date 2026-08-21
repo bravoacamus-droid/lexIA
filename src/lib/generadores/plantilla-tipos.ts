@@ -54,10 +54,18 @@ export interface BloqueTitulo {
  * mismo. Petición de César del 19/08/2026.
  */
 export interface VisibleSi {
-  /** Id del bloque de opción del que depende. */
-  opcion: string;
+  /**
+   * Interruptor del que depende, si es uno de los "de corresponder".
+   *
+   * Un bloque suelto puede depender de lo mismo que una sección: si la
+   * contratación no tiene prestaciones accesorias, su tabla de plazos
+   * no pinta nada aunque viva dentro de la sección del plazo principal.
+   */
+  condicion?: string;
+  /** Id del bloque de opción del que depende, si depende de una. */
+  opcion?: string;
   /** Valor —o valores— que lo hacen aparecer. */
-  valor: string | string[];
+  valor?: string | string[];
 }
 
 /** Dato puntual que aporta el usuario. */

@@ -358,6 +358,39 @@ async function main() {
     console.log(`   ${sueltas === 0 ? '✅' : '❌'} ninguna alternativa arrastra el encabezado que no le corresponde`);
   }
 
+  // ── Todo lo accesorio cuelga del mismo interruptor ────────────────
+  // "Si NO hay prestaciones accesorias, no hay plazo, ni lugar, ni
+  // requisitos de pago de la prestación accesoria" —César, 19/08/2026—.
+  // Estaba así salvo en un anexo de 8 UIT, donde la tabla de plazos se
+  // pedía siempre. Se comprueba en las quince para que no vuelva.
+  console.log('\n── Lo accesorio depende de que haya accesorias ──');
+  {
+    let sueltos = 0;
+    for (const p of listarPlantillas()) {
+      const rec = (ss: Seccion[], heredada?: string) => {
+        for (const s of ss) {
+          const cond = s.condicion ?? heredada;
+          for (const b of s.bloques as Bloque[]) {
+            if (!('id' in b) || !/_accesorias$/.test(String(b.id))) continue;
+            const propia =
+              'visibleSi' in b && b.visibleSi?.condicion === 'tiene_prestaciones_accesorias';
+            if (cond !== 'tiene_prestaciones_accesorias' && !propia) {
+              problema(`${p.id}: "${b.id}" se pide aunque no haya prestaciones accesorias`);
+              sueltos++;
+            }
+            if (b.clase === 'tabla' && (b.minimo ?? 0) > 0) {
+              problema(`${p.id}: "${b.id}" exige fila; debe poder quedar en no aplica`);
+              sueltos++;
+            }
+          }
+          rec(s.subsecciones ?? [], cond);
+        }
+      };
+      rec(p.secciones);
+    }
+    console.log(`   ${sueltos === 0 ? '✅' : '❌'} plazo, lugar y pago de accesorias van con su interruptor`);
+  }
+
   // ── Forma y requisitos de pago ────────────────────────────────────
   // El apartado de pago de las prestaciones accesorias faltaba en las
   // cuatro plantillas cuyo formato lo trae; se añadió el 19/08/2026 a

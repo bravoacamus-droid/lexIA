@@ -104,12 +104,17 @@ export interface ApartadoExtra {
  * por su cuenta, el documento y la pantalla acabarían discrepando.
  */
 export function bloqueVisible(
-  bloque: { visibleSi?: { opcion: string; valor: string | string[] } },
+  bloque: {
+    visibleSi?: { condicion?: string; opcion?: string; valor?: string | string[] };
+  },
   respuestas: RespuestasRequerimiento,
 ): boolean {
   const cond = bloque.visibleSi;
   if (!cond) return true;
+  if (cond.condicion && !respuestas.condiciones[cond.condicion]) return false;
+  if (!cond.opcion) return true;
   const elegida = respuestas.opciones[cond.opcion] ?? '';
+  if (cond.valor === undefined) return !!elegida;
   return Array.isArray(cond.valor) ? cond.valor.includes(elegida) : cond.valor === elegida;
 }
 

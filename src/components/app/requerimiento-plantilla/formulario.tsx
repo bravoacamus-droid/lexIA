@@ -63,6 +63,7 @@ import {
   construirIndice,
   resumenIndice,
 } from '@/lib/generadores/indice';
+import type { RevisionTabla } from '@/lib/generadores/revisor-tabla';
 import {
   ControlCampo,
   ControlOpcion,
@@ -398,6 +399,39 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
     }
   }
 
+  /**
+   * Pide a LexIA que revise una tabla.
+   *
+   * Se manda lo que hay en pantalla, no lo guardado: si no, revisaría la
+   * versión de hace unos segundos y las observaciones no cuadrarían con
+   * lo que el usuario está viendo.
+   */
+  async function revisarTabla(bloqueId: string, filas: string[][]) {
+    try {
+      const res = await fetch(`/api/generadores/requerimientos/${id}/revisar-tabla`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bloque_id: bloqueId, filas }),
+      });
+      const j = await res.json();
+      if (!res.ok) {
+        toast.error('LexIA no pudo revisar la tabla', {
+          description: j?.detail ?? j?.error ?? `HTTP ${res.status}`,
+        });
+        return null;
+      }
+      if (!j.con_sustento && !j.vacio) {
+        toast.warning('Revisada sin sustento normativo', {
+          description: 'No se encontró norma aplicable en la biblioteca.',
+        });
+      }
+      return j as { observaciones: RevisionTabla['observaciones']; filas: string[][] | null };
+    } catch (e) {
+      toast.error('Fallo al revisar la tabla', { description: (e as Error).message });
+      return null;
+    }
+  }
+
   // ── Pintado ─────────────────────────────────────────────────────────
   const bloqueVisible = (b: Bloque, clave: string) => {
     switch (b.clase) {
@@ -449,6 +483,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
             bloque={b}
             filas={r.tablas[b.id] ?? []}
             onChange={(f) => setTabla(b.id, f)}
+            onRevisar={(f) => revisarTabla(b.id, f)}
           />
         );
       case 'nota':

@@ -281,6 +281,10 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
                 'Establecer de manera independiente el plazo de cada prestación accesoria y el evento que da inicio a su cómputo',
               columnas: ['Prestación accesoria', 'Plazo', 'Inicio del cómputo'],
               minimo: 0,
+              // Sin prestaciones accesorias no hay plazo que fijar. Vive
+              // suelto dentro del plazo principal, así que la condición
+              // la lleva el bloque.
+              visibleSi: { condicion: 'tiene_prestaciones_accesorias' },
             },
           ],
         },
@@ -466,7 +470,7 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
               instruccion:
                 'Establecer, para cada prestación accesoria, la relación de documentos que el contratista debe presentar para efectos de pago',
               columnas: ['Prestación accesoria', 'Requisitos para el pago'],
-              minimo: 1,
+              minimo: 0,
             },
           ],
         },
