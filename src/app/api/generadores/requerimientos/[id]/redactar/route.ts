@@ -29,6 +29,35 @@ const Schema = z.object({
   texto_actual: z.string().max(20000).optional(),
 });
 
+/**
+ * Un campo de texto largo se trata como un apartado redactable más.
+ *
+ * Cuando el campo es el hueco de un párrafo hay que decírselo al modelo
+ * con la frase entera: si no, devuelve "Se consideran servicios
+ * similares aquellos que…" para un párrafo que ya empieza con "Se
+ * consideran servicios similares a los siguientes", y el documento sale
+ * repitiendo la frase.
+ */
+function adaptar(
+  c: { id: string; etiqueta: string; ayuda: string },
+  parrafo?: string,
+): BloqueRedactado {
+  const instruccion = parrafo
+    ? `${c.ayuda}.
+
+Tu texto se inserta en el hueco de esta frase del documento:
+"${parrafo.replace(/\{\{[^}]+\}\}/g, '______')}"
+Escribe SOLO lo que va en el hueco, sin repetir el resto de la frase y sin volver a introducir el tema.`
+    : c.ayuda;
+  return {
+    clase: 'redactado',
+    id: c.id,
+    etiqueta: c.etiqueta,
+    instruccion,
+    extension: 'parrafo',
+  };
+}
+
 /** Busca el bloque redactable por id, recorriendo también las subsecciones. */
 function buscarBloque(secciones: Seccion[], id: string): BloqueRedactado | null {
   for (const s of secciones) {
@@ -40,13 +69,13 @@ function buscarBloque(secciones: Seccion[], id: string): BloqueRedactado | null 
       // el boton de mejorar valga en los dos sitios y no haya que
       // mantener dos caminos.
       if (b.clase === 'campo' && b.tipo === 'texto_largo' && b.id === id) {
-        return {
-          clase: 'redactado',
-          id: b.id,
-          etiqueta: b.etiqueta,
-          instruccion: b.ayuda,
-          extension: 'parrafo',
-        };
+        return adaptar(b);
+      }
+      // Y los que viven dentro de un párrafo, como "servicios similares":
+      // el hueco es del usuario aunque el párrafo sea invariable.
+      if (b.clase === 'parrafo') {
+        const campo = b.campos.find((c) => c.id === id && c.tipo === 'texto_largo');
+        if (campo) return adaptar(campo, b.texto);
       }
     }
     if (s.subsecciones) {

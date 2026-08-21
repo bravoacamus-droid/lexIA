@@ -129,7 +129,10 @@ export function ControlCampo({
   const largo = bloque.tipo === 'texto_largo';
   const [mejorando, setMejorando] = useState(false);
   const [propuesta, setPropuesta] = useState<string | null>(null);
-  const puedeMejorar = largo && !!onMejorar && valor.trim().length > 0;
+  // Antes solo se ofrecía con texto escrito: en blanco no había forma
+  // de pedirle a LexIA que lo propusiera, que es lo que hace falta en
+  // "servicios similares" o "bienes similares".
+  const puedeMejorar = largo && !!onMejorar;
 
   async function pedirMejora() {
     if (!onMejorar) return;
@@ -181,7 +184,7 @@ export function ControlCampo({
           ) : (
             <Sparkles className="mr-1.5 h-3.5 w-3.5" />
           )}
-          Mejorar redacción
+          {valor.trim() ? 'Mejorar redacción' : 'Proponer con LexIA'}
         </Button>
       )}
 
@@ -236,13 +239,23 @@ function HuecoParrafo({
   campo,
   valor,
   onChange,
+  onRedactar,
 }: {
   campo: BloqueCampo;
   valor: string;
   onChange: (v: string) => void;
+  /**
+   * Pide el texto a LexIA. Solo para los huecos de texto largo: en
+   * "servicios similares" el área usuaria quiere que se los propongan,
+   * no describirlos desde cero. Petición de César del 19/08/2026.
+   */
+  onRedactar?: (aporte: string, textoActual: string) => Promise<string | null>;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
+  const [pidiendo, setPidiendo] = useState(false);
+  const [propuesta, setPropuesta] = useState<string | null>(null);
   const libre = campo.tipo === 'texto' || campo.tipo === 'texto_largo';
+  const conAyuda = campo.tipo === 'texto_largo' && !!onRedactar;
 
   // La caja se ajusta a su contenido en cada pintada; si no, al abrir un
   // requerimiento ya escrito saldría de una línea con el texto oculto.
@@ -267,14 +280,66 @@ function HuecoParrafo({
   }
 
   return (
-    <Textarea
-      ref={ref}
-      value={valor}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={campo.etiqueta}
-      rows={1}
-      className="mx-1 my-1 inline-block min-h-0 w-full max-w-3xl resize-none overflow-hidden py-1.5 align-top text-sm"
-    />
+    <span className="block">
+      <Textarea
+        ref={ref}
+        value={valor}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={campo.etiqueta}
+        rows={1}
+        className="mx-1 my-1 inline-block min-h-0 w-full max-w-3xl resize-none overflow-hidden py-1.5 align-top text-sm"
+      />
+
+      {conAyuda && (
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="ml-1 h-7 text-xs"
+          disabled={pidiendo}
+          onClick={async () => {
+            setPidiendo(true);
+            try {
+              const texto = await onRedactar!('', valor);
+              if (texto) setPropuesta(texto);
+            } finally {
+              setPidiendo(false);
+            }
+          }}
+        >
+          {pidiendo ? (
+            <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Sparkles className="mr-1 h-3.5 w-3.5" />
+          )}
+          {valor.trim() ? 'Mejorar con LexIA' : 'Proponer con LexIA'}
+        </Button>
+      )}
+
+      {propuesta && (
+        <span className="mt-1 block rounded-lg border border-primary/30 bg-primary/5 p-2.5">
+          <span className="mb-1 block text-xs font-medium text-primary">
+            Propuesta de LexIA — revísala antes de usarla
+          </span>
+          <span className="block whitespace-pre-wrap text-sm leading-relaxed">{propuesta}</span>
+          <span className="mt-2 flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                onChange(propuesta);
+                setPropuesta(null);
+              }}
+            >
+              Usar este texto
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => setPropuesta(null)}>
+              Descartar
+            </Button>
+          </span>
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -282,10 +347,16 @@ export function ControlParrafo({
   bloque,
   valores,
   onChange,
+  onRedactar,
 }: {
   bloque: BloqueParrafo;
   valores: Record<string, string>;
   onChange: (id: string, v: string) => void;
+  onRedactar: (
+    campoId: string,
+    aporte: string,
+    textoActual: string,
+  ) => Promise<string | null>;
 }) {
   const tramos = bloque.texto.split(/(\{\{[^}]+\}\})/);
   return (
@@ -302,6 +373,7 @@ export function ControlParrafo({
               campo={campo}
               valor={valores[campo.id] ?? ''}
               onChange={(v) => onChange(campo.id, v)}
+              onRedactar={(aporte, actual) => onRedactar(campo.id, aporte, actual)}
             />
           );
         })}

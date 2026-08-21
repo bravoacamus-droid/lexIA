@@ -451,7 +451,13 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
         );
       case 'parrafo':
         return (
-          <ControlParrafo key={clave} bloque={b} valores={r.campos} onChange={setCampo} />
+          <ControlParrafo
+            key={clave}
+            bloque={b}
+            valores={r.campos}
+            onChange={setCampo}
+            onRedactar={(campoId, aporte, actual) => redactar(campoId, aporte, actual)}
+          />
         );
       case 'opcion':
         return (

@@ -142,6 +142,61 @@ async function main() {
   if (!redaccionUtil(desdeCero)) problema('la redacción desde cero salió vacía');
   else console.log('   ✅ sigue redactando cuando el apartado está en blanco');
 
+  // ── 3. Un hueco de párrafo tiene que encajar en su frase ──────────
+  // "Servicios similares" no es un apartado suelto: se inserta dentro
+  // de "Se consideran servicios similares a los siguientes ___". Sin
+  // decírselo al modelo, devuelve la frase entera y el documento la
+  // repite dos veces.
+  console.log('\n── Un campo que vive dentro de un párrafo ──');
+  {
+    let parrafo = '';
+    const buscar = (ss: Seccion[]): BloqueRedactado | null => {
+      for (const s of ss) {
+        for (const b of s.bloques) {
+          if (b.clase !== 'parrafo') continue;
+          const c = b.campos.find((x) => x.tipo === 'texto_largo');
+          if (!c) continue;
+          parrafo = b.texto;
+          return {
+            clase: 'redactado',
+            id: c.id,
+            etiqueta: c.etiqueta,
+            instruccion:
+              c.ayuda +
+              '. Tu texto se inserta en el hueco de esta frase del documento: "' +
+              b.texto.replace(/\{\{[^}]+\}\}/g, '______') +
+              '". Escribe SOLO lo que va en el hueco, sin repetir el resto de la frase.',
+            extension: 'parrafo',
+          };
+        }
+        const h = buscar(s.subsecciones ?? []);
+        if (h) return h;
+      }
+      return null;
+    };
+    const hueco = buscar(plantilla.secciones);
+    if (!hueco) {
+      console.log('   (esta plantilla no tiene huecos de texto largo)');
+    } else {
+      const r = await generateText({
+        model: modelo,
+        system: promptSistema(plantilla),
+        prompt: promptUsuario(hueco, {
+          denominacion: 'Servicio de procesamiento de efectivo y monedas',
+        }),
+        temperature: 0.3,
+      });
+      const texto = limpiarRedaccion(r.text ?? '', hueco);
+      console.log(`   ${hueco.etiqueta}: ${texto.slice(0, 140)}…`);
+      const arranque = parrafo.split('{{')[0].trim().slice(0, 20).toLowerCase();
+      const repite = texto.trim().toLowerCase().startsWith(arranque);
+      if (repite) problema('el texto repite la frase del párrafo en la que se inserta');
+      console.log(`   ${repite ? '❌' : '✅'} no repite la frase del párrafo`);
+      if (!redaccionUtil(texto)) problema('la propuesta para el hueco salió vacía');
+      else console.log('   ✅ propone contenido con el campo en blanco');
+    }
+  }
+
   console.log(
     fallos === 0
       ? '\n✅ Mejorar conserva los datos del área usuaria y corrige la forma.'
