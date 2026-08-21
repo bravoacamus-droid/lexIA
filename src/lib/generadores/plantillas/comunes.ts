@@ -215,9 +215,121 @@ export const PAGO_PLAZO =
 export const PAGO_INTERESES =
   'De conformidad con el artículo 67.5 de la Ley, en caso de retraso injustificado en el pago por parte de la Entidad, esta reconocerá al contratista los intereses legales correspondientes.';
 
-export function bloquesPago(): Bloque[] {
+export const PAGO_CONSORCIO =
+  'En el caso que se haya suscrito contrato con un consorcio, el pago se efectuará, a quien corresponda, conforme lo estipulado en el respectivo en el contrato de consorcio.';
+
+export const PAGO_DOCUMENTACION =
+  'Para efectos del pago de las contraprestaciones ejecutadas por el contratista, la entidad contratante debe contar con la siguiente documentación:';
+
+/**
+ * Bloques del apartado "Forma y requisitos de pago".
+ *
+ * Traía el plazo, dónde se presenta la documentación y los intereses,
+ * pero se saltaba la mitad de lo que pide el formato: el consorcio, la
+ * modalidad de pago, la relación de documentos exigibles y el pago
+ * anticipado excepcional. César lo resumió así: "esta condición no se
+ * alinea de acuerdo a lo planteado en el formato Word. Falta considerar
+ * los requisitos de pago". Se completa contra sus .docx, que traen los
+ * cuatro párrafos en trece de los quince.
+ */
+/**
+ * Pago anticipado, total o parcial, al inicio del contrato.
+ *
+ * El formato lo trae entre corchetes y empieza por "De manera
+ * excepcional": no es la regla, es una posibilidad que la entidad tiene
+ * que sustentar. Va bajo su propio interruptor y solo entonces entra en
+ * el documento. Lo traen siete de los quince formatos.
+ */
+export function bloquesPagoAnticipado(): Bloque[] {
+  const soloSiAplica = { condicion: 'permite_pago_anticipado' } as const;
+  return [
+    {
+      clase: 'fijo',
+      texto:
+        'De manera excepcional, se permitirá que el pago se realice de forma total o parcial al inicio de la vigencia contractual, siempre que se sustente que dicha modalidad es una condición de mercado indispensable para la ejecución de las obligaciones.',
+      fundamento: 'Plantilla — pago anticipado',
+      visibleSi: soloSiAplica,
+    },
+    {
+      clase: 'fijo',
+      texto: 'Para la procedencia del pago anticipado, se aplicarán las siguientes reglas:',
+      fundamento: 'Plantilla — pago anticipado',
+      visibleSi: soloSiAplica,
+    },
+    {
+      clase: 'fijo',
+      texto:
+        'El contratista deberá entregar previamente una garantía conforme lo señalado en el numeral de “garantía de fiel cumplimiento”.',
+      fundamento: 'Plantilla — pago anticipado',
+      visibleSi: soloSiAplica,
+    },
+    {
+      clase: 'fijo',
+      texto:
+        'En este supuesto, el área usuaria emitirá una primera conformidad para efectos estrictamente administrativos de pago y, posteriormente, la conformidad final al verificarse el cumplimiento total de la prestación.',
+      fundamento: 'Plantilla — pago anticipado',
+      visibleSi: soloSiAplica,
+    },
+  ];
+}
+
+export function bloquesPago(
+  /**
+   * "responsable de" o "responsable del", según el .docx.
+   *
+   * Sus formatos escriben esa frase de las dos maneras —seis con "de" y
+   * siete con "del"— y el cotejo verbatim distingue la letra. No es una
+   * errata que convenga unificar por nuestra cuenta: el documento tiene
+   * que salir como su formato.
+   */
+  articuloConformidad: 'de' | 'del' = 'del',
+): Bloque[] {
   return [
     { clase: 'fijo', texto: PAGO_PLAZO, fundamento: 'Plantilla — forma de pago' },
+    { clase: 'fijo', texto: PAGO_CONSORCIO, fundamento: 'Plantilla — pago a consorcios' },
+    {
+      clase: 'parrafo',
+      texto:
+        'La entidad contratante realiza el pago de la contraprestación pactada a favor del contratista mediante {{modalidad_pago_principal}}.',
+      campos: [
+        {
+          clase: 'campo',
+          id: 'modalidad_pago_principal',
+          etiqueta: 'Modalidad de pago',
+          ayuda:
+            'Consignar si se trata de único pago o pagos a cuenta o pagos periódicos o pagos mensuales, así como el detalle que corresponde en el caso de pago a cuenta',
+          tipo: 'texto',
+          obligatorio: true,
+        },
+      ],
+    },
+    { clase: 'fijo', texto: PAGO_DOCUMENTACION, fundamento: 'Plantilla — requisitos de pago' },
+    {
+      clase: 'parrafo',
+      texto:
+        `Documento en el que conste la conformidad de la prestación efectuada suscrita por el servidor responsable ${articuloConformidad} {{area_responsable_conformidad}}.`,
+      campos: [
+        {
+          clase: 'campo',
+          id: 'area_responsable_conformidad',
+          etiqueta: 'Área responsable de otorgar la conformidad',
+          ayuda: 'Registrar la denominación del área responsable de otorgar la conformidad',
+          tipo: 'texto',
+          obligatorio: true,
+        },
+      ],
+    },
+    { clase: 'fijo', texto: 'Comprobante de pago.', fundamento: 'Plantilla — requisitos de pago' },
+    {
+      clase: 'campo',
+      id: 'otra_documentacion_pago',
+      etiqueta: 'Otra documentación exigible para el pago',
+      ayuda:
+        'Consignar otra documentación necesaria a ser presentada para el pago único o los pagos a cuenta, según corresponda',
+      tipo: 'texto_largo',
+      // El formato dice "según corresponda": puede no haber ninguna.
+      obligatorio: false,
+    },
     {
       clase: 'parrafo',
       texto:

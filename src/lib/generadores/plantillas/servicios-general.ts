@@ -31,6 +31,7 @@ import {
   seccionAnticorrupcion,
   seccionSolicitante,
   bloquesPago,
+  bloquesPagoAnticipado,
   EXPERIENCIA_TITULAR,
   VALIDACION_ADELANTO,
   VALIDACION_EXPERIENCIA,
@@ -821,6 +822,7 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
           bloques: [
             { clase: 'fijo', texto: 'El pago se realiza de conformidad con lo establecido en el artículo 67 de la Ley.' },
             ...bloquesPago(),
+            ...bloquesPagoAnticipado(),
           ],
         },
         {

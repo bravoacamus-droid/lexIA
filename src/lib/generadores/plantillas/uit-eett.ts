@@ -26,6 +26,7 @@ import {
   seccionViciosOcultos,
   seccionSolicitante,
   bloquesPago,
+  bloquesPagoAnticipado,
   VALIDACION_ADELANTO,
   VALIDACION_EXPERIENCIA,
   VALIDACION_PENALIDADES,
@@ -595,7 +596,9 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
           titulo: 'Forma y requisitos de pago',
           bloques: [
             { clase: 'fijo', texto: 'El pago se realiza de conformidad con lo establecido en el artículo 67 de la Ley.' },
-            ...bloquesPago(),
+            // Su .docx dice "responsable de", no "del".
+            ...bloquesPago('de'),
+            ...bloquesPagoAnticipado(),
           ],
         },
         {

@@ -27,6 +27,7 @@ import {
   seccionAnticorrupcion,
   seccionSolicitante,
   bloquesPago,
+  bloquesPagoAnticipado,
   EXPERIENCIA_TITULAR,
   VALIDACION_EXPERIENCIA,
   VALIDACION_MYPE,
@@ -468,7 +469,9 @@ export const PLANTILLA_SERVICIOS_COMPARACION_PRECIOS: PlantillaRequerimiento = {
           titulo: 'Forma y requisitos de pago',
           bloques: [
             { clase: 'fijo', texto: 'El pago se realiza de conformidad con lo establecido en el artículo 67 de la Ley.' },
-            ...bloquesPago(),
+            // Su .docx dice "responsable de", no "del".
+            ...bloquesPago('de'),
+            ...bloquesPagoAnticipado(),
             {
               clase: 'nota',
               texto:

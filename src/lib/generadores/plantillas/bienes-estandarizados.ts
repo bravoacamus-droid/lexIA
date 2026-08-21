@@ -611,7 +611,8 @@ export const PLANTILLA_BIENES_ESTANDARIZADOS: PlantillaRequerimiento = {
           titulo: 'Forma y requisitos de pago',
           bloques: [
             { clase: 'fijo', texto: 'El pago se realiza de conformidad con lo establecido en el artículo 67 de la Ley.' },
-            ...bloquesPago(),
+            // Su .docx dice "responsable de", no "del".
+            ...bloquesPago('de'),
           ],
         },
 
