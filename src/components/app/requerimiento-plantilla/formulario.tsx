@@ -95,14 +95,41 @@ interface Props {
 }
 
 /** Reúne las condiciones declaradas en la plantilla, con su título. */
-function condicionesDe(secciones: Seccion[], acc: Array<{ id: string; titulo: string }> = []) {
-  for (const s of secciones) {
-    if (s.condicion && !acc.some((c) => c.id === s.condicion)) {
-      acc.push({ id: s.condicion, titulo: s.titulo });
+/**
+ * Los apartados "de corresponder", agrupados por el numeral del que
+ * cuelgan.
+ *
+ * En una lista plana de veinte interruptores no se sabe a qué pertenece
+ * cada uno: "Soporte técnico" y "Capacidad legal" parecen del mismo
+ * rango cuando uno es una prestación accesoria y el otro un requisito
+ * de calificación. Petición de César del 19/08/2026: "poner el título
+ * general y recién los subtítulos".
+ */
+interface GrupoCondiciones {
+  titulo: string;
+  condiciones: Array<{ id: string; titulo: string }>;
+}
+
+function condicionesPorApartado(secciones: Seccion[]): GrupoCondiciones[] {
+  const grupos: GrupoCondiciones[] = [];
+  const vistas = new Set<string>();
+
+  const recoger = (ss: Seccion[], grupo: GrupoCondiciones) => {
+    for (const s of ss) {
+      if (s.condicion && !vistas.has(s.condicion)) {
+        vistas.add(s.condicion);
+        grupo.condiciones.push({ id: s.condicion, titulo: s.titulo });
+      }
+      if (s.subsecciones) recoger(s.subsecciones, grupo);
     }
-    if (s.subsecciones) condicionesDe(s.subsecciones, acc);
+  };
+
+  for (const s of secciones) {
+    const grupo: GrupoCondiciones = { titulo: s.titulo, condiciones: [] };
+    recoger([s], grupo);
+    if (grupo.condiciones.length > 0) grupos.push(grupo);
   }
-  return acc;
+  return grupos;
 }
 
 export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial }: Props) {
@@ -113,7 +140,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
   const [guardando, setGuardando] = useState(false);
   const [guardado, setGuardado] = useState(true);
 
-  const condiciones = useMemo(() => condicionesDe(plantilla.secciones), [plantilla]);
+  const condiciones = useMemo(() => condicionesPorApartado(plantilla.secciones), [plantilla]);
 
   // ── Guardado ────────────────────────────────────────────────────────
   // Se agrupa el guardado en vez de disparar uno por tecla: escribir un
@@ -713,18 +740,27 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
               El formato oficial marca estos apartados como &ldquo;de corresponder&rdquo;. Los que
               dejes apagados no aparecen en el documento.
             </p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {condiciones.map((c) => (
-                <label
-                  key={c.id}
-                  className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm"
-                >
-                  <span>{c.titulo}</span>
-                  <Switch
-                    checked={r.condiciones[c.id] ?? false}
-                    onCheckedChange={(v) => setCondicion(c.id, v)}
-                  />
-                </label>
+            <div className="mt-4 space-y-4">
+              {condiciones.map((g) => (
+                <div key={g.titulo}>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {g.titulo}
+                  </h3>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    {g.condiciones.map((c) => (
+                      <label
+                        key={c.id}
+                        className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm"
+                      >
+                        <span>{c.titulo}</span>
+                        <Switch
+                          checked={r.condiciones[c.id] ?? false}
+                          onCheckedChange={(v) => setCondicion(c.id, v)}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </Card>

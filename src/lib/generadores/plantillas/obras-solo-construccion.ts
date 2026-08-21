@@ -985,7 +985,13 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
     {
       id: 'requisitos_calificacion',
       titulo: 'REQUISITOS DE CALIFICACIÓN',
-      bloques: [],
+      bloques: [
+        {
+          clase: 'nota',
+          texto:
+            'En caso así se determine en la estrategia de contratación, la entidad contratante puede incluir cualquiera de los siguientes requisitos de calificación adicionales. Cabe señalar que, una vez incorporados en el presente numeral, los requisitos de calificación se consideran obligatorios, debiéndose eliminar aquellos que no hayan sido seleccionados.',
+        },
+      ],
       subsecciones: [
         {
           id: 'experiencia_postor',
@@ -1098,6 +1104,71 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
               clase: 'fijo',
               texto:
                 'El postor debe señalar la denominación del puesto, cargo y/o posición, y tiempo de experiencia del personal clave propuesto (años, meses y días) en el Anexo N° 19.',
+            },
+          ],
+        },
+        {
+          id: 'participacion_consorcio',
+          titulo: 'Participación en consorcio',
+          condicion: 'exige_requisitos_consorcio',
+          bloques: [
+            {
+              clase: 'nota',
+              texto:
+                'Consignar uno o más de estos requisitos en caso así haya sido sustentado en la estrategia de contratación',
+            },
+            {
+              clase: 'parrafo',
+              texto:
+                'C.1 El número máximo de consorciados es de {{consorcio_maximo}}',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'consorcio_maximo',
+                  etiqueta: 'Número máximo de consorciados',
+                  ayuda:
+                    'Consignar el número máximo de integrantes del consorcio en función a la naturaleza de la prestación',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
+            },
+            {
+              clase: 'parrafo',
+              texto:
+                'C.2 El porcentaje mínimo de participación de cada consorciado es de {{consorcio_participacion}}',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'consorcio_participacion',
+                  etiqueta: 'Participación mínima de cada consorciado',
+                  ayuda:
+                    'Consignar el porcentaje mínimo de participación de cada integrante del consorcio',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
+            },
+            {
+              clase: 'parrafo',
+              texto:
+                'C.3 El porcentaje mínimo de participación en la ejecución del contrato, para el integrante del consorcio que acredite mayor experiencia, es de {{consorcio_participacion_lider}}',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'consorcio_participacion_lider',
+                  etiqueta: 'Participación mínima del consorciado con mayor experiencia',
+                  ayuda:
+                    'Consignar el porcentaje mínimo de participación en las obligaciones del integrante del consorcio que acredite la mayor experiencia',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
+            },
+            {
+              clase: 'fijo',
+              texto: 'Se acredita con la promesa de consorcio.',
+              fundamento: 'Plantilla — participación en consorcio',
             },
           ],
         },

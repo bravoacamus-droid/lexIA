@@ -668,7 +668,18 @@ export const PLANTILLA_MANTENIMIENTO_VIAL: PlantillaRequerimiento = {
     {
       id: 'requisitos_calificacion',
       titulo: 'REQUISITOS DE CALIFICACIÓN',
-      bloques: [],
+      bloques: [
+        {
+          clase: 'nota',
+          texto:
+            'Cuando así se determine durante la estrategia de contratación, la Entidad podrá incorporar uno o más de los requisitos de calificación facultativos previstos en el presente numeral, siempre que resulten necesarios y guarden relación con el objeto de la contratación.',
+        },
+        {
+          clase: 'nota',
+          texto:
+            'Los requisitos de calificación que sean incorporados tendrán carácter obligatorio para el procedimiento de selección, por lo que deberán eliminarse aquellos que no hayan sido considerados por la Entidad.',
+        },
+      ],
       subsecciones: [
         {
           id: 'experiencia_postor',
@@ -815,6 +826,71 @@ export const PLANTILLA_MANTENIMIENTO_VIAL: PlantillaRequerimiento = {
               texto:
                 'El postor debe señalar los nombres y apellidos, documento de identidad, el nombre de la universidad o institución educativa que expidió el grado o título profesional, y el grado o título profesional obtenido en el Anexo N° 16, adjuntando en su oferta copia del grado de bachiller o título profesional. En caso se acredite estudios en el extranjero del personal clave, debe presentarse, adicionalmente, copia simple de la revalidación o reconocimiento del grado o título ante la SUNEDU.',
               fundamento: 'Plantilla — acreditación de calificaciones',
+            },
+          ],
+        },
+        {
+          id: 'participacion_consorcio',
+          titulo: 'Participación en consorcio',
+          condicion: 'exige_requisitos_consorcio',
+          bloques: [
+            {
+              clase: 'nota',
+              texto:
+                'Consignar uno o más de los requisitos siguientes, en caso así haya sido sustentado en la estrategia de contratación',
+            },
+            {
+              clase: 'parrafo',
+              texto:
+                'C.1 El número máximo de consorciados es de {{consorcio_maximo}}',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'consorcio_maximo',
+                  etiqueta: 'Número máximo de consorciados',
+                  ayuda:
+                    'Consignar el número máximo de integrantes del consorcio en función a la naturaleza de la prestación',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
+            },
+            {
+              clase: 'parrafo',
+              texto:
+                'C.2 El porcentaje mínimo de participación de cada consorciado es de {{consorcio_participacion}}',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'consorcio_participacion',
+                  etiqueta: 'Participación mínima de cada consorciado',
+                  ayuda:
+                    'Consignar el porcentaje mínimo de participación de cada integrante del consorcio',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
+            },
+            {
+              clase: 'parrafo',
+              texto:
+                'C.3 El porcentaje mínimo de participación en la ejecución del contrato, para el integrante del consorcio que acredite mayor experiencia, es de {{consorcio_participacion_lider}}',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'consorcio_participacion_lider',
+                  etiqueta: 'Participación mínima del consorciado con mayor experiencia',
+                  ayuda:
+                    'Consignar el porcentaje mínimo de participación en las obligaciones del integrante del consorcio que acredite la mayor experiencia',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
+            },
+            {
+              clase: 'fijo',
+              texto: 'Se acredita con la promesa de consorcio.',
+              fundamento: 'Plantilla — participación en consorcio',
             },
           ],
         },

@@ -970,7 +970,33 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
     {
       id: 'requisitos_calificacion',
       titulo: 'REQUISITOS DE CALIFICACIÓN',
-      bloques: [],
+      bloques: [
+        {
+          clase: 'nota',
+          texto:
+            'Cuando así se determine durante la estrategia de contratación, la Entidad podrá incorporar uno o más de los requisitos de calificación facultativos previstos en el presente numeral, siempre que resulten necesarios y guarden relación con el objeto de la contratación.',
+        },
+        {
+          clase: 'nota',
+          texto:
+            'Los requisitos de calificación que sean incorporados tendrán carácter obligatorio para el procedimiento de selección, por lo que deberán eliminarse aquellos que no hayan sido considerados por la Entidad.',
+        },
+        {
+          clase: 'nota',
+          texto:
+            'Tratándose de la contratación de un ASISTE, los requisitos de calificación referidos a la Formación Académica y a la Experiencia del Personal Clave deberán incorporarse obligatoriamente en las Bases, conforme a la normativa aplicable.',
+        },
+        {
+          clase: 'nota',
+          texto:
+            'Pueden ser considerados personal clave los profesionales especialistas que son esenciales para ejecutar la prestación. No son personal clave aquellos que brinden labores de asistencia administrativa, técnica u operativas.',
+        },
+        {
+          clase: 'nota',
+          texto:
+            'El tiempo de experiencia mínimo debe ser razonable y congruente con el periodo en el cual el personal ejecutará las actividades para las que se le requiere, de forma tal que no constituya una restricción a la participación de postores. Asimismo, los trabajos o prestaciones que se le requiera acreditar deben estar relacionados con la actividad específica que realizará durante la ejecución contractual.',
+        },
+      ],
       subsecciones: [
         {
           id: 'capacidad_legal',
@@ -1265,6 +1291,71 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
             },
             ],
           },
+          ],
+        },
+        {
+          id: 'participacion_consorcio',
+          titulo: 'Participación en consorcio',
+          condicion: 'exige_requisitos_consorcio',
+          bloques: [
+            {
+              clase: 'nota',
+              texto:
+                'Consignar uno o más de los requisitos siguientes, en caso así haya sido sustentado en la estrategia de contratación',
+            },
+            {
+              clase: 'parrafo',
+              texto:
+                'D.1 El número máximo de consorciados es de {{consorcio_maximo}}.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'consorcio_maximo',
+                  etiqueta: 'Número máximo de consorciados',
+                  ayuda:
+                    'Consignar el número máximo de integrantes del consorcio en función a la naturaleza de la prestación',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
+            },
+            {
+              clase: 'parrafo',
+              texto:
+                'D.2 El porcentaje mínimo de participación de cada consorciado es de {{consorcio_participacion}}.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'consorcio_participacion',
+                  etiqueta: 'Participación mínima de cada consorciado',
+                  ayuda:
+                    'Consignar el porcentaje mínimo de participación de cada integrante del consorcio',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
+            },
+            {
+              clase: 'parrafo',
+              texto:
+                'D.3 El porcentaje mínimo de participación en la ejecución del contrato, para el integrante del consorcio que acredite mayor experiencia, es de {{consorcio_participacion_lider}}.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'consorcio_participacion_lider',
+                  etiqueta: 'Participación mínima del consorciado con mayor experiencia',
+                  ayuda:
+                    'Consignar el porcentaje mínimo de participación en las obligaciones del integrante del consorcio que acredite la mayor experiencia',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
+            },
+            {
+              clase: 'fijo',
+              texto: 'Se acredita con la promesa de consorcio.',
+              fundamento: 'Plantilla — participación en consorcio',
+            },
           ],
         },
       ],

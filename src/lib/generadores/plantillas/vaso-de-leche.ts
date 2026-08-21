@@ -841,6 +841,11 @@ export const PLANTILLA_VASO_DE_LECHE: PlantillaRequerimiento = {
       titulo: 'REQUISITOS DE CALIFICACIÓN',
       bloques: [
         {
+          clase: 'nota',
+          texto:
+            'Consignar uno o más de los requisitos siguientes, en caso así haya sido sustentado en la estrategia de contratación',
+        },
+        {
           clase: 'fijo',
           texto:
             'Para determinar que los postores cuentan con las capacidades necesarias para ejecutar el contrato, los evaluadores incorporan obligatoriamente los siguientes requisitos de calificación.',

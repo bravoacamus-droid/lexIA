@@ -960,6 +960,21 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
       titulo: 'REQUISITOS DE CALIFICACIÓN',
       bloques: [
         {
+          clase: 'nota',
+          texto:
+            'La entidad contratante puede incluir cualquiera de los siguientes requisitos de calificación facultativos. Cabe señalar que, una vez incorporados en el presente numeral, los requisitos de calificación se consideran obligatorios, debiéndose eliminar aquellos que no hayan sido seleccionados.',
+        },
+        {
+          clase: 'nota',
+          texto:
+            'Pueden ser considerados personal clave los profesionales especialistas que son esenciales para ejecutar la prestación. No son personal clave aquellos que brinden labores de asistencia administrativa, técnica u operativas.',
+        },
+        {
+          clase: 'nota',
+          texto:
+            'El tiempo de experiencia mínimo debe ser razonable y congruente con el periodo en el cual el personal ejecutará las actividades para las que se le requiere, de forma tal que no constituya una restricción a la participación de postores. Asimismo, los trabajos o prestaciones que se le requiera acreditar deben estar relacionados con la actividad especifica que realizará durante la ejecución contractual.',
+        },
+        {
           clase: 'fijo',
           texto:
             'Para determinar que los postores cuentan con las capacidades necesarias para ejecutar el contrato, los evaluadores incorporan obligatoriamente los siguientes requisitos de calificación.',
@@ -1086,6 +1101,71 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
               etiqueta: 'Acreditación',
               instruccion: 'Precisar los documentos con los que se acredita el requisito',
               extension: 'parrafo',
+            },
+          ],
+        },
+        {
+          id: 'participacion_consorcio',
+          titulo: 'Participación en consorcio',
+          condicion: 'exige_requisitos_consorcio',
+          bloques: [
+            {
+              clase: 'nota',
+              texto:
+                'Consignar uno o más de los requisitos siguientes,',
+            },
+            {
+              clase: 'parrafo',
+              texto:
+                'D.1 El número máximo de consorciados es de {{consorcio_maximo}}.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'consorcio_maximo',
+                  etiqueta: 'Número máximo de consorciados',
+                  ayuda:
+                    'Consignar el número máximo de integrantes del consorcio en función a la naturaleza de la prestación',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
+            },
+            {
+              clase: 'parrafo',
+              texto:
+                'D.2 El porcentaje mínimo de participación de cada consorciado es de {{consorcio_participacion}}.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'consorcio_participacion',
+                  etiqueta: 'Participación mínima de cada consorciado',
+                  ayuda:
+                    'Consignar el porcentaje mínimo de participación de cada integrante del consorcio',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
+            },
+            {
+              clase: 'parrafo',
+              texto:
+                'D.3 El porcentaje mínimo de participación en la ejecución del contrato, para el integrante del consorcio que acredite mayor experiencia, es de {{consorcio_participacion_lider}}.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'consorcio_participacion_lider',
+                  etiqueta: 'Participación mínima del consorciado con mayor experiencia',
+                  ayuda:
+                    'Consignar el porcentaje mínimo de participación en las obligaciones del integrante del consorcio que acredite la mayor experiencia',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
+            },
+            {
+              clase: 'fijo',
+              texto: 'Se acredita con la promesa de consorcio.',
+              fundamento: 'Plantilla — participación en consorcio',
             },
           ],
         },
