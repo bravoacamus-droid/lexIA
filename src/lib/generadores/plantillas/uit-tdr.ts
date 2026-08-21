@@ -592,6 +592,36 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
               ],
             },
             {
+              clase: 'parrafo',
+              texto:
+                'El contratista debe solicitar los adelantos dentro de los {{adelanto_plazo_solicitud}} días siguientes de perfeccionamiento del contrato, adjuntando a su solicitud la garantía por adelantos acompañada del comprobante de pago correspondiente. Vencido dicho plazo no procede la solicitud del adelanto.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'adelanto_plazo_solicitud',
+                  etiqueta: 'Plazo para solicitar el adelanto',
+                  ayuda: 'Consignar plazo en días',
+                  tipo: 'dias',
+                  obligatorio: true,
+                },
+              ],
+            },
+            {
+              clase: 'parrafo',
+              texto:
+                'La Entidad otorgará el adelanto dentro de los {{adelanto_plazo_entrega}} días calendario siguientes a la presentación de la solicitud, siempre que esta cumpla con los requisitos establecidos en el contrato y en la normativa vigente.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'adelanto_plazo_entrega',
+                  etiqueta: 'Plazo para entregar el adelanto',
+                  ayuda: 'Consignar plazo en días calendario',
+                  tipo: 'dias',
+                  obligatorio: true,
+                },
+              ],
+            },
+            {
               clase: 'fijo',
               texto:
                 'La experiencia del postor en la especialidad se acreditará con copia simple de (i) contratos u órdenes de servicios, y su respectiva conformidad o constancia de prestación; o (ii) comprobantes de pago cuya cancelación se acredite documental y fehacientemente, con constancia de depósito, nota de abono, reporte de estado de cuenta, cualquier otro documento emitido por entidad del sistema financiero que acredite el abono o mediante cancelación en el mismo comprobante de pago, o comprobante de retención electrónico emitido por SUNAT por la retención del IGV correspondientes a un máximo de veinte contrataciones. En caso el postor sustente su experiencia en la especialidad mediante contrataciones realizadas con privados, para acreditarla debe presentar de forma obligatoria lo indicado en el numeral (ii) del presente párrafo; no es posible que acredite su experiencia únicamente con la presentación de contratos u órdenes de compra con conformidad o constancia de prestación.',

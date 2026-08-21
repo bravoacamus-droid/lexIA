@@ -366,6 +366,36 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
               ],
             },
             {
+              clase: 'parrafo',
+              texto:
+                'El contratista debe solicitar los adelantos dentro de los {{adelanto_plazo_solicitud}} días siguientes de perfeccionamiento del contrato, adjuntando a su solicitud la garantía por adelantos acompañada del comprobante de pago correspondiente. Vencido dicho plazo no procede la solicitud del adelanto.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'adelanto_plazo_solicitud',
+                  etiqueta: 'Plazo para solicitar el adelanto',
+                  ayuda: 'Consignar plazo en días',
+                  tipo: 'dias',
+                  obligatorio: true,
+                },
+              ],
+            },
+            {
+              clase: 'parrafo',
+              texto:
+                'La Entidad otorgará el adelanto dentro de los {{adelanto_plazo_entrega}} días calendario siguientes a la presentación de la solicitud, siempre que esta cumpla con los requisitos establecidos en el contrato y en la normativa vigente.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'adelanto_plazo_entrega',
+                  etiqueta: 'Plazo para entregar el adelanto',
+                  ayuda: 'Consignar plazo en días calendario',
+                  tipo: 'dias',
+                  obligatorio: true,
+                },
+              ],
+            },
+            {
               clase: 'nota',
               texto:
                 'Cuando la contratación contemple un sistema de entrega —llave en mano, llave en mano con mantenimiento o suministro con comodato— debe establecerse de manera independiente el plazo de cada prestación, precisando el evento que determina el inicio de su ejecución. En suministros, indicar el número de entregas, su periodicidad y el cronograma.',

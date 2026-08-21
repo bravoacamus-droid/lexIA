@@ -23,6 +23,8 @@
  *
  * Uso: npx tsx scripts/verificar-plantillas.ts
  */
+import { readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { listarPlantillas, obtenerPlantilla } from '../src/lib/generadores/plantillas';
 import {
   ensamblarRequerimiento,
@@ -356,6 +358,56 @@ async function main() {
       rec(p.secciones);
     }
     console.log(`   ${sueltas === 0 ? '✅' : '❌'} ninguna alternativa arrastra el encabezado que no le corresponde`);
+  }
+
+  // ── Textos obligatorios que el .docx trae y la plantilla no ───────
+  // El auditor comprueba que lo codificado EXISTA en el .docx, pero no
+  // al revés: un párrafo obligatorio podía faltar sin que saltara
+  // nada. Así se escaparon el tope conjunto del 10% de las penalidades
+  // y las dos condiciones del adelanto directo, que César echó en
+  // falta el 19/08/2026. Esto mira en la otra dirección.
+  console.log('\n── Textos obligatorios presentes en el .docx ──');
+  {
+    // Se busca la forma CON HUECO, que es la del texto obligatorio. La
+    // misma frase con una cifra dentro —"dentro de los siete (7) días"—
+    // es un ejemplo del formato, y los ejemplos no van al documento.
+    const IMPRESCINDIBLES: Array<[string, string]> = [
+      ['no debe exceder el 10%', 'no debe exceder el 10%'],
+      [
+        'solicitar los adelantos dentro de los [consignar plazo]',
+        'solicitar los adelantos dentro de los',
+      ],
+      [
+        'otorgará el adelanto dentro de los [consignar plazo]',
+        'otorgará el adelanto dentro de los',
+      ],
+    ];
+    let huecos = 0;
+    for (const p of listarPlantillas()) {
+      const ruta = join('docs', 'estructura-requerimiento', p.origen.replace(/\.docx$/i, '.md'));
+      if (!existsSync(ruta)) continue;
+      const fuente = readFileSync(ruta, 'utf8');
+      const codificado: string[] = [];
+      const rec = (ss: Seccion[]) => {
+        for (const s of ss) {
+          for (const b of s.bloques as Bloque[]) {
+            if (b.clase === 'fijo' || b.clase === 'nota' || b.clase === 'parrafo') {
+              codificado.push(b.texto);
+            }
+          }
+          rec(s.subsecciones ?? []);
+        }
+      };
+      rec(p.secciones);
+      const todo = codificado.join(String.fromCharCode(10));
+      for (const [enElDocx, enLaPlantilla] of IMPRESCINDIBLES) {
+        if (fuente.includes(enElDocx) && !todo.includes(enLaPlantilla)) {
+          problema(`${p.id}: su .docx dice "${enElDocx}…" y la plantilla no lo recoge`);
+          huecos++;
+        }
+      }
+    }
+    console.log(`   ${huecos === 0 ? '✅' : '❌'} ninguna plantilla se deja un texto obligatorio de su formato`);
   }
 
   // ── Todo lo accesorio cuelga del mismo interruptor ────────────────
