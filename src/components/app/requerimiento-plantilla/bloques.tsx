@@ -31,7 +31,12 @@ import type {
   BloqueTabla,
   BloqueParrafo,
 } from '@/lib/generadores/plantilla-tipos';
-import { OPCION_PROPIA } from '@/lib/generadores/ensamblador';
+import {
+  MARCADORES,
+  OPCION_PROPIA,
+  marcaDeLista,
+  type MarcadorLista,
+} from '@/lib/generadores/ensamblador';
 
 /**
  * Nota al pie de un control, con la instrucción literal de la plantilla.
@@ -467,19 +472,54 @@ function EditorLista({
   valor,
   onChange,
   etiqueta,
+  marcador,
+  onMarcador,
 }: {
   valor: string;
   onChange: (v: string) => void;
   etiqueta: string;
+  marcador: MarcadorLista;
+  /** Cambia la marca de TODA la lista; no se mezclan dentro de un apartado. */
+  onMarcador: (m: MarcadorLista) => void;
 }) {
   const lineas = valor ? valor.split('\n') : [''];
   const escribir = (ls: string[]) => onChange(ls.join('\n'));
 
+  const NOMBRE: Record<MarcadorLista, string> = {
+    vineta: 'Viñetas',
+    literal: 'a) b) c)',
+    numero: '1. 2. 3.',
+  };
+
   return (
     <div className="mt-2 space-y-1.5">
+      {/* Cómo se numera. Los objetivos específicos suelen ir con
+          literales y las actividades con viñetas, y el formato no lo
+          impone: lo elige cada entidad. */}
+      <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+        <span className="mr-1">Marcar con:</span>
+        {MARCADORES.map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => onMarcador(m)}
+            className={cn(
+              'rounded-md border px-2 py-0.5 transition',
+              marcador === m
+                ? 'border-primary bg-primary/5 font-medium text-primary'
+                : 'border-transparent hover:border-border',
+            )}
+          >
+            {NOMBRE[m]}
+          </button>
+        ))}
+      </div>
+
       {lineas.map((l, i) => (
         <div key={i} className="flex items-start gap-2">
-          <span className="mt-2 select-none text-muted-foreground">•</span>
+          <span className="mt-2 w-6 shrink-0 select-none text-right text-muted-foreground">
+            {marcaDeLista(marcador, i).replace(/^-$/, '•')}
+          </span>
           <Textarea
             value={l}
             onChange={(e) => escribir(lineas.map((x, k) => (k === i ? e.target.value : x)))}
@@ -535,11 +575,16 @@ export function ControlRedactado({
   bloque,
   valor,
   onChange,
+  marcador,
+  onMarcador,
   onRedactar,
 }: {
   bloque: BloqueRedactado;
   valor: string;
   onChange: (v: string) => void;
+  /** Marca de la lista, cuando el apartado va en lista. */
+  marcador: MarcadorLista;
+  onMarcador: (m: MarcadorLista) => void;
   /**
    * Devuelve el texto redactado; el usuario decide si lo acepta.
    *
@@ -595,7 +640,13 @@ export function ControlRedactado({
       )}
 
       {bloque.extension === 'lista' ? (
-        <EditorLista valor={valor} onChange={onChange} etiqueta={bloque.etiqueta} />
+        <EditorLista
+          valor={valor}
+          onChange={onChange}
+          etiqueta={bloque.etiqueta}
+          marcador={marcador}
+          onMarcador={onMarcador}
+        />
       ) : (
         <Textarea
           id={bloque.id}

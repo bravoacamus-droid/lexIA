@@ -47,6 +47,7 @@ import type {
   Aviso,
   ApartadoExtra,
   DestinoRespuesta,
+  MarcadorLista,
 } from '@/lib/generadores/ensamblador';
 import {
   apartadosOrdenados,
@@ -330,6 +331,12 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
     marcarSucio();
   };
 
+  /** Con qué se marca una lista. Es del documento, así que se guarda. */
+  const setMarcador = (k: string, v: MarcadorLista) => {
+    setR((p) => ({ ...p, marcadores: { ...p.marcadores, [k]: v } }));
+    marcarSucio();
+  };
+
   const setCondicion = (k: string, v: boolean) => {
     setR((p) => ({ ...p, condiciones: { ...p.condiciones, [k]: v } }));
     marcarSucio();
@@ -418,6 +425,8 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
             bloque={b}
             valor={r.redacciones[b.id] ?? ''}
             onChange={(v) => setRedaccion(b.id, v)}
+            marcador={r.marcadores[b.id] ?? 'vineta'}
+            onMarcador={(m) => setMarcador(b.id, m)}
             onRedactar={(aporte, textoActual) => redactar(b.id, aporte, textoActual)}
           />
         );

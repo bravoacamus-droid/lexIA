@@ -55,6 +55,7 @@ function limpiarRespuestas(
         texto: limpiarTexto(e.texto),
       })),
     orden: r.orden,
+    marcadores: r.marcadores,
   };
 }
 
@@ -88,6 +89,8 @@ const ActualizarSchema = z.object({
         .optional(),
       /** Orden de los apartados de primer nivel, por id. */
       orden: z.array(z.string().min(1).max(80)).max(200).optional(),
+      /** Con qué se marca cada apartado que va en lista. */
+      marcadores: z.record(z.enum(['vineta', 'literal', 'numero'])).optional(),
     })
     .optional(),
 });
@@ -226,6 +229,7 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
       // nadie.
       extras: nuevas.extras ?? previas.extras,
       orden: nuevas.orden ?? previas.orden,
+      marcadores: { ...previas.marcadores, ...(nuevas.marcadores ?? {}) },
     };
   }
 

@@ -53,6 +53,15 @@ export interface RespuestasRequerimiento {
    */
   extras: ApartadoExtra[];
   /**
+   * Con qué se marca cada apartado que va en lista.
+   *
+   * id del bloque → viñeta, literal (a, b, c) o número. Lo eligió cada
+   * entidad: los objetivos específicos se suelen numerar con literales
+   * y las actividades con viñetas, y el formato no lo impone. Petición
+   * de César del 19/08/2026. Lo que no figure aquí va con viñeta.
+   */
+  marcadores: Record<string, MarcadorLista>;
+  /**
    * Orden de los apartados de primer nivel, por id.
    *
    * Lo que no figure aquí conserva el orden del formato y se coloca
@@ -63,6 +72,11 @@ export interface RespuestasRequerimiento {
    */
   orden: string[];
 }
+
+/** Con qué se marca cada elemento de una lista. */
+export type MarcadorLista = 'vineta' | 'literal' | 'numero';
+
+export const MARCADORES: MarcadorLista[] = ['vineta', 'literal', 'numero'];
 
 /** Apartado escrito enteramente por la entidad. */
 export interface ApartadoExtra {
@@ -165,6 +179,7 @@ export const respuestasVacias = (): RespuestasRequerimiento => ({
   condiciones: {},
   extras: [],
   orden: [],
+  marcadores: {},
 });
 
 /**
@@ -199,6 +214,7 @@ export function normalizarRespuestas(
     condiciones: { ...(r?.condiciones ?? {}) },
     extras: [...(r?.extras ?? [])],
     orden: [...(r?.orden ?? [])],
+    marcadores: { ...(r?.marcadores ?? {}) },
   };
 }
 
@@ -484,7 +500,10 @@ export function ensamblarRequerimiento(
         case 'redactado': {
           const texto = (respuestas.redacciones[b.id] ?? '').trim();
           if (texto) {
-            partes.push(b.extension === 'lista' ? enLista(texto) : texto, '');
+            partes.push(
+              b.extension === 'lista' ? enLista(texto, respuestas.marcadores[b.id]) : texto,
+              '',
+            );
           } else {
             faltantes.push({
               seccion,
@@ -593,12 +612,41 @@ export function ensamblarRequerimiento(
   };
 }
 
-/** Convierte un texto de varias líneas en viñetas de Markdown. */
-function enLista(texto: string): string {
+/**
+ * Etiqueta de un elemento según el marcador elegido.
+ *
+ * Pasada la z se sigue con aa, ab… No es un capricho: un apartado de
+ * actividades con treinta puntos existe, y quedarse sin letras a mitad
+ * de lista sería peor que numerarlas.
+ */
+export function marcaDeLista(marcador: MarcadorLista, i: number): string {
+  if (marcador === 'numero') return `${i + 1}.`;
+  if (marcador !== 'literal') return '-';
+  let n = i;
+  let letras = '';
+  do {
+    letras = String.fromCharCode(97 + (n % 26)) + letras;
+    n = Math.floor(n / 26) - 1;
+  } while (n >= 0);
+  return `${letras})`;
+}
+
+/**
+ * Convierte un texto de varias líneas en la lista que toque.
+ *
+ * Las viñetas y los números los entiende el exportador a Word como
+ * lista de verdad; los literales viajan como texto —"a) …"— porque es
+ * la forma que pide el documento, no una lista de procesador de
+ * textos.
+ */
+function enLista(texto: string, marcador: MarcadorLista = 'vineta'): string {
   return texto
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean)
-    .map((l) => (/^[-*•]\s/.test(l) ? `- ${l.replace(/^[-*•]\s*/, '')}` : `- ${l}`))
+    // Se quita la marca que el usuario o el modelo hayan puesto
+    // delante: la pone el documento, no el texto.
+    .map((l) => l.replace(/^(?:[-*•]|\d+[.)]|[a-z]{1,2}\))\s+/i, ''))
+    .map((l, i) => `${marcaDeLista(marcador, i)} ${l}`)
     .join('\n');
 }
