@@ -246,14 +246,35 @@ export async function POST(req: Request) {
     // Se limita a dos documentos por turno: pedir tres o más resúmenes a
     // la vez desborda el contexto y ninguno sale bien.
     for (const ref of referencias.slice(0, 2)) {
+      // Por el correlativo numérico, no por la cadena: "01727-2026-TCP-S2"
+      // y "Resolución N° 1727-2026-S2" son el mismo documento, y
+      // compararlos como texto fallaba por un cero de relleno.
       let q = supabase
         .from('normative_documents')
-        .select('id, type, number, title')
-        .ilike('number', ref.patron)
-        .limit(4);
+        .select('id, type, number, title, date')
+        .eq('correlativo_num', ref.correlativo)
+        .limit(30);
       if (ref.tipo) q = q.eq('type', ref.tipo);
-      const { data: docs } = await q;
-      if (!docs || docs.length === 0) continue;
+      const { data: candidatos } = await q;
+
+      // El correlativo se repite cada año, así que el año decide.
+      let docs = (candidatos ?? []).filter((d) => {
+        const numero = String((d as { number: string }).number ?? '');
+        const fecha = String((d as { date: string | null }).date ?? '');
+        return numero.includes(ref.anio) || fecha.startsWith(ref.anio);
+      });
+
+      // Respaldo para los pocos documentos sin correlativo cargado.
+      if (docs.length === 0) {
+        let alterna = supabase
+          .from('normative_documents')
+          .select('id, type, number, title, date')
+          .ilike('number', ref.patron)
+          .limit(4);
+        if (ref.tipo) alterna = alterna.eq('type', ref.tipo);
+        docs = (await alterna).data ?? [];
+      }
+      if (docs.length === 0) continue;
 
       // Con sufijo se puede desambiguar entre salas: "8902-2025-S2" no es
       // "8902-2025-S5".

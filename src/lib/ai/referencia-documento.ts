@@ -24,12 +24,37 @@ export interface ReferenciaDocumento {
   textoOriginal: string;
   /** Núcleo del identificador: "8902-2025". */
   numero: string;
-  /** Sufijo de sala o dirección: "S2", "DTN", "OSCE-DGR". Puede faltar. */
+  /**
+   * El correlativo como número, sin ceros de relleno.
+   *
+   * Es la clave buena. La biblioteca guarda "Resolución N° 1727-2026-S2"
+   * y César escribió "01727-2026-TCP-S2": comparar cadenas fallaba por
+   * un cero. `correlativo_num` está poblado en las 15 399 resoluciones,
+   * en las 726 opiniones y en 2 418 de los 2 422 pronunciamientos, y ya
+   * normaliza los rellenos —"D000028-2026-OECE-DTN" es el 28—.
+   */
+  correlativo: number;
+  /** Año de cuatro cifras: "2026". */
+  anio: string;
+  /**
+   * Sufijo de sala o dirección: "S2", "DTN", "OSCE-DGR". Puede faltar.
+   *
+   * Se le quita el acrónimo del Tribunal cuando precede a la sala: la
+   * gente escribe "TCP-S2" y la biblioteca guarda "S2". Lo que no se
+   * toca es un sufijo con significado propio, como "OSCE-DGR".
+   */
   sufijo: string | null;
   /** Tipo deducido de la palabra que precede al número, si la hay. */
   tipo: string | null;
   /** Patrón para comparar contra `normative_documents.number`. */
   patron: string;
+}
+
+/** "TCP-S2" y "TCE-S4" son la sala 2 y la 4; el acrónimo sobra. */
+function limpiarSufijo(sufijo: string | undefined): string | null {
+  if (!sufijo) return null;
+  const limpio = sufijo.replace(/^(?:TCP|TCE)[-–]?(?=S\d)/i, '');
+  return limpio || null;
 }
 
 /** Palabra que nombra el documento → tipo en la biblioteca. */
@@ -80,11 +105,13 @@ export function detectarReferencias(texto: string): ReferenciaDocumento[] {
     encontradas.push({
       textoOriginal: completo.trim(),
       numero,
-      sufijo: sufijo ?? null,
+      correlativo: Number(num),
+      anio: anio,
+      sufijo: limpiarSufijo(sufijo),
       tipo,
-      // El número se guarda con formato variable ("Resolución N° 8902-2025-S2"),
-      // así que se compara por el núcleo, que es lo estable.
-      patron: `%${numero}%`,
+      // Queda como respaldo para los pocos documentos sin correlativo:
+      // se compara por el núcleo, sin los ceros de relleno.
+      patron: `%${Number(num)}-${anio}%`,
     });
   }
 
