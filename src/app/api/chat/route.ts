@@ -14,6 +14,7 @@ import {
   detectarReferencias,
   seleccionarFragmentos,
 } from '@/lib/ai/referencia-documento';
+import { detectarEnumeracion } from '@/lib/ai/enumeracion';
 import { rewriteToLegalQueries } from '@/lib/ai/query-rewrite';
 import { fetchNeighborChunks, mergeNeighbors } from '@/lib/ai/neighbor-chunks';
 import {
@@ -316,6 +317,67 @@ export async function POST(req: Request) {
         encontrado: meta.number,
         fragmentos: chunksCitados.length,
       });
+    }
+  }
+
+  /**
+   * Preguntas que piden enumerar casos sobre un tema con nombre propio.
+   *
+   * "Dame diez casos sobre la 'Integridad en la contratación pública'"
+   * no se responde con quince fragmentos parecidos: se responde con diez
+   * DOCUMENTOS distintos que traten esa figura. Se buscan por la frase
+   * literal y se traen los más recientes; el modelo recibe además el
+   * aviso de que hay más, para que no dé a entender que son todos.
+   */
+  const enumeracion = detectarEnumeracion(lastUser.content);
+  let avisoEnumeracion = '';
+  if (enumeracion) {
+    for (const frase of enumeracion.frases) {
+      const { data, error } = await supabase.rpc('buscar_frase', {
+        frase,
+        filtro_tipo: null,
+        tope: enumeracion.cantidad,
+        fragmentos_por_documento: 2,
+      });
+      if (error) {
+        console.error('[chat] buscar_frase falló:', error.message);
+        continue;
+      }
+      const filas = (data ?? []) as Array<{
+        chunk_id: string;
+        document_id: string;
+        content: string;
+        doc_title: string;
+        doc_type: NormativeDocType;
+        doc_number: string | null;
+        hay_mas: boolean;
+      }>;
+      for (const f of filas) {
+        chunksCitados.push({
+          chunk_id: f.chunk_id,
+          document_id: f.document_id,
+          content: f.content,
+          doc_title: f.doc_title,
+          doc_type: f.doc_type,
+          doc_number: f.doc_number,
+          // Como el documento pedido por su número: se buscó a
+          // propósito, no es un candidato más del parecido.
+          similarity: 1,
+        });
+      }
+      const documentos = new Set(filas.map((f) => f.document_id)).size;
+      if (documentos > 0) {
+        avisoEnumeracion +=
+          `
+
+SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa expresión literal, ` +
+          `de los más recientes hacia atrás${filas[0]?.hay_mas ? ', y hay más en la biblioteca' : ' (no hay más en la biblioteca)'}. ` +
+          'Enuméralos como casos distintos, uno por documento, citando su número. ' +
+          (filas[0]?.hay_mas
+            ? 'Advierte que existen más y que estos son los más recientes, no todos.'
+            : '');
+      }
+      console.log('[chat] enumeracion', { frase, documentos, hay_mas: filas[0]?.hay_mas });
     }
   }
 
@@ -809,12 +871,17 @@ export async function POST(req: Request) {
   //    Las Q&A del balotario (si hay) se pasan como material adicional
   //    para que el modelo produzca respuestas alineadas con el criterio
   //    OECE de Certificación.
-  const systemPrompt = buildChatSystemPrompt(
-    sources,
-    userRole,
-    trainingQA,
-    panoramic ? { topic: panoramicTopic, facets: panoramicFacets } : null,
-  );
+  const systemPrompt =
+    buildChatSystemPrompt(
+      sources,
+      userRole,
+      trainingQA,
+      panoramic ? { topic: panoramicTopic, facets: panoramicFacets } : null,
+    ) +
+    // Cuando la pregunta pedía enumerar casos, el modelo tiene que saber
+    // cuántos documentos se le han traído y que hay más: si no, contesta
+    // como si esos fueran todos los que existen.
+    avisoEnumeracion;
   const trimmedHistory = messages.slice(-MAX_HISTORY);
 
   // 5. Stream
