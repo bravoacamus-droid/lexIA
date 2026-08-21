@@ -691,6 +691,17 @@ export const PLANTILLA_VASO_DE_LECHE: PlantillaRequerimiento = {
                 },
               ],
             },
+            {
+              clase: 'redactado',
+              id: 'conformidad_accesorias',
+              etiqueta: 'Conformidad de las prestaciones accesorias',
+              instruccion:
+                'Señalar quién otorga la conformidad de cada prestación accesoria, qué se verifica y en qué plazo, cuando corresponda',
+              extension: 'parrafo',
+              // El formato lo pide "cuando corresponda": sin prestaciones
+              // accesorias no hay conformidad accesoria que regular.
+              visibleSi: { condicion: 'tiene_prestaciones_accesorias' },
+            },
           ],
         },
         {

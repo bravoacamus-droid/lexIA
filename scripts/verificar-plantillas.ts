@@ -410,6 +410,44 @@ async function main() {
     console.log(`   ${huecos === 0 ? '✅' : '❌'} ninguna plantilla se deja un texto obligatorio de su formato`);
   }
 
+  // ── Apartados que el .docx trae y la plantilla debe tener ─────────
+  // La comprobación anterior mira frases sueltas; esta mira apartados
+  // enteros. Por aquí se colaron los entregables, los anexos técnicos,
+  // la conformidad de las accesorias y las verificaciones técnicas: el
+  // formato los trae y la plantilla no los tenía.
+  console.log('\n── Apartados que el formato exige ──');
+  {
+    const APARTADOS: Array<[string, string, string]> = [
+      ['conformidad de las prestaciones accesorias', 'conformidad_accesorias', 'la conformidad de las accesorias'],
+      ['^Verificaciones técnicas', 'verificaciones', 'las verificaciones técnicas'],
+      ['^Anexos técnicos', 'anexos_tecnicos', 'los anexos técnicos'],
+    ];
+    let huecos = 0;
+    for (const p of listarPlantillas()) {
+      const ruta = join('docs', 'estructura-requerimiento', p.origen.replace(/\.docx$/i, '.md'));
+      if (!existsSync(ruta)) continue;
+      const fuente = readFileSync(ruta, 'utf8');
+      const ids: string[] = [];
+      const rec = (ss: Seccion[]) => {
+        for (const s of ss) {
+          for (const b of s.bloques as Bloque[]) if ('id' in b) ids.push(String(b.id));
+          rec(s.subsecciones ?? []);
+        }
+      };
+      rec(p.secciones);
+      for (const [enElDocx, id, nombre] of APARTADOS) {
+        const estaEnLaFuente = enElDocx.startsWith('^')
+          ? new RegExp(enElDocx, 'm').test(fuente)
+          : fuente.includes(enElDocx);
+        if (estaEnLaFuente && !ids.includes(id)) {
+          problema(`${p.id}: su formato trae ${nombre} y la plantilla no lo tiene`);
+          huecos++;
+        }
+      }
+    }
+    console.log(`   ${huecos === 0 ? '✅' : '❌'} ningún apartado del formato se queda fuera`);
+  }
+
   // ── Todo lo accesorio cuelga del mismo interruptor ────────────────
   // "Si NO hay prestaciones accesorias, no hay plazo, ni lugar, ni
   // requisitos de pago de la prestación accesoria" —César, 19/08/2026—.

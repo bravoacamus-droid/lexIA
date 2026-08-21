@@ -486,6 +486,7 @@ export const PLANTILLA_EXPERTOS_GERENTES: PlantillaRequerimiento = {
         {
           id: 'verificaciones',
           titulo: 'Verificaciones técnicas, validaciones o revisiones para la conformidad del servicio',
+          condicion: 'requiere_verificaciones',
           bloques: [
             {
               clase: 'redactado',

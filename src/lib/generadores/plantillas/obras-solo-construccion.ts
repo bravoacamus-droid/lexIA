@@ -829,6 +829,7 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
         {
           id: 'verificaciones',
           titulo: 'Verificaciones técnicas, validaciones o revisiones',
+          condicion: 'requiere_verificaciones',
           bloques: [
             {
               clase: 'redactado',

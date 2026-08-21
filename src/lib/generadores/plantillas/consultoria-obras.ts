@@ -681,6 +681,21 @@ export const PLANTILLA_CONSULTORIA_OBRAS: PlantillaRequerimiento = {
           ],
         },
         {
+          id: 'verificaciones',
+          titulo: 'Verificaciones técnicas, validaciones o revisiones para la conformidad del servicio',
+          condicion: 'requiere_verificaciones',
+          bloques: [
+            {
+              clase: 'redactado',
+              id: 'verificaciones',
+              etiqueta: 'Verificaciones para la conformidad',
+              instruccion:
+                'Precisar las verificaciones técnicas, pruebas funcionales, ensayos, inspecciones, validaciones operativas o revisiones documentarias que la Entidad realizará para comprobar el cumplimiento de las obligaciones contractuales, los términos de referencia y los niveles de servicio. La conformidad solo se emite cuando esas verificaciones acrediten el cumplimiento',
+              extension: 'lista',
+            },
+          ],
+        },
+        {
           id: 'forma_pago',
           titulo: 'Forma y requisitos de pago',
           bloques: [

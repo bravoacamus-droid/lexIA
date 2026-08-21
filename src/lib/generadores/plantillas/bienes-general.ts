@@ -907,6 +907,32 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
                 'Precisar quién otorga la conformidad, qué se verifica y en qué plazo',
               extension: 'parrafo',
             },
+            {
+              clase: 'redactado',
+              id: 'conformidad_accesorias',
+              etiqueta: 'Conformidad de las prestaciones accesorias',
+              instruccion:
+                'Señalar quién otorga la conformidad de cada prestación accesoria, qué se verifica y en qué plazo, cuando corresponda',
+              extension: 'parrafo',
+              // El formato lo pide "cuando corresponda": sin prestaciones
+              // accesorias no hay conformidad accesoria que regular.
+              visibleSi: { condicion: 'tiene_prestaciones_accesorias' },
+            },
+          ],
+        },
+        {
+          id: 'verificaciones',
+          titulo: 'Verificaciones técnicas, pruebas o ensayos para la conformidad del bien',
+          condicion: 'requiere_verificaciones',
+          bloques: [
+            {
+              clase: 'redactado',
+              id: 'verificaciones',
+              etiqueta: 'Verificaciones para la conformidad',
+              instruccion:
+                'Indicar la relación de pruebas o ensayos requeridos para la conformidad del bien y la cantidad de muestras que debe entregar el contratista, en función de la naturaleza de los bienes',
+              extension: 'lista',
+            },
           ],
         },
       ],

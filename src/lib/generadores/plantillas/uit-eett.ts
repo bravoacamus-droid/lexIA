@@ -577,6 +577,17 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
                 'Indicar las pruebas o ensayos requeridos para la conformidad del bien, los parámetros de aceptación, quién las realiza y quién asume su costo',
               extension: 'parrafo',
             },
+            {
+              clase: 'redactado',
+              id: 'conformidad_accesorias',
+              etiqueta: 'Conformidad de las prestaciones accesorias',
+              instruccion:
+                'Señalar quién otorga la conformidad de cada prestación accesoria, qué se verifica y en qué plazo, cuando corresponda',
+              extension: 'parrafo',
+              // El formato lo pide "cuando corresponda": sin prestaciones
+              // accesorias no hay conformidad accesoria que regular.
+              visibleSi: { condicion: 'tiene_prestaciones_accesorias' },
+            },
           ],
         },
         {

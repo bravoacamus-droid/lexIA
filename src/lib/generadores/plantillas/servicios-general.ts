@@ -787,6 +787,32 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
                 },
               ],
             },
+            {
+              clase: 'redactado',
+              id: 'conformidad_accesorias',
+              etiqueta: 'Conformidad de las prestaciones accesorias',
+              instruccion:
+                'Señalar quién otorga la conformidad de cada prestación accesoria, qué se verifica y en qué plazo, cuando corresponda',
+              extension: 'parrafo',
+              // El formato lo pide "cuando corresponda": sin prestaciones
+              // accesorias no hay conformidad accesoria que regular.
+              visibleSi: { condicion: 'tiene_prestaciones_accesorias' },
+            },
+          ],
+        },
+        {
+          id: 'verificaciones',
+          titulo: 'Verificaciones técnicas, validaciones o revisiones para la conformidad del servicio',
+          condicion: 'requiere_verificaciones',
+          bloques: [
+            {
+              clase: 'redactado',
+              id: 'verificaciones',
+              etiqueta: 'Verificaciones para la conformidad',
+              instruccion:
+                'Precisar las verificaciones técnicas, pruebas funcionales, ensayos, inspecciones, validaciones operativas o revisiones documentarias que la Entidad realizará para comprobar el cumplimiento de las obligaciones contractuales, los términos de referencia y los niveles de servicio. La conformidad solo se emite cuando esas verificaciones acrediten el cumplimiento',
+              extension: 'lista',
+            },
           ],
         },
         {

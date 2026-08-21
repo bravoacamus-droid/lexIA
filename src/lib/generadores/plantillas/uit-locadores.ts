@@ -301,6 +301,21 @@ export const PLANTILLA_UIT_LOCADORES: PlantillaRequerimiento = {
           ],
         },
         {
+          id: 'verificaciones',
+          titulo: 'Verificaciones técnicas, pruebas o ensayos para la conformidad del bien',
+          condicion: 'requiere_verificaciones',
+          bloques: [
+            {
+              clase: 'redactado',
+              id: 'verificaciones',
+              etiqueta: 'Verificaciones para la conformidad',
+              instruccion:
+                'Indicar la relación de pruebas o ensayos requeridos para la conformidad del bien y la cantidad de muestras que debe entregar el contratista, en función de la naturaleza de los bienes',
+              extension: 'lista',
+            },
+          ],
+        },
+        {
           id: 'forma_pago',
           titulo: 'Forma y requisitos de pago',
           bloques: [
