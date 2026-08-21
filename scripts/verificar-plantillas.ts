@@ -358,6 +358,43 @@ async function main() {
     console.log(`   ${sueltas === 0 ? '✅' : '❌'} ninguna alternativa arrastra el encabezado que no le corresponde`);
   }
 
+  // ── Forma y requisitos de pago ────────────────────────────────────
+  // El apartado de pago de las prestaciones accesorias faltaba en las
+  // cuatro plantillas cuyo formato lo trae; se añadió el 19/08/2026 a
+  // petición de César. Buscándolo apareció algo mayor: tres plantillas
+  // no tienen NINGÚN apartado de forma y requisitos de pago, y sus
+  // .docx sí lo traen. Se listan para que el hueco esté a la vista.
+  console.log('\n── Forma y requisitos de pago ──');
+  {
+    const CON_ACCESORIAS = [
+      'ps-servicios-general',
+      'ps-servicios-consultoria',
+      'uit-tdr',
+      'uit-eett',
+    ];
+    for (const p of listarPlantillas()) {
+      let pago = false;
+      let accesorias = false;
+      const rec = (ss: Seccion[]) => {
+        for (const s of ss) {
+          if (/forma y requisitos de pago/i.test(s.titulo)) pago = true;
+          if (s.bloques.some((b) => b.clase === 'tabla' && b.id === 'pago_accesorias')) {
+            accesorias = true;
+          }
+          rec(s.subsecciones ?? []);
+        }
+      };
+      rec(p.secciones);
+      if (CON_ACCESORIAS.includes(p.id) && !accesorias) {
+        problema(`${p.id}: falta el pago de las prestaciones accesorias, que su formato trae`);
+      }
+      if (!pago) {
+        console.log(`   📄 ${p.id} — sin apartado de forma y requisitos de pago (pendiente)`);
+      }
+    }
+    console.log('   ✅ las cuatro plantillas que lo llevan tienen el pago de accesorias');
+  }
+
   // ── El apartado de entregables ────────────────────────────────────
   // Faltaba en dos plantillas y en una tercera estaba colgado de otro
   // apartado, con columnas que no eran las del formato. El auditor no

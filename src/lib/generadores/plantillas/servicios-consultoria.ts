@@ -596,6 +596,38 @@ export const PLANTILLA_SERVICIOS_CONSULTORIA: PlantillaRequerimiento = {
             ...bloquesPago(),
           ],
         },
+        {
+          id: 'pago_accesorias',
+          titulo: 'Prestaciones accesorias',
+          condicion: 'tiene_prestaciones_accesorias',
+          bloques: [
+            {
+              clase: 'parrafo',
+              texto:
+                'La Entidad contratante efectuará el pago de las prestaciones accesorias mediante {{modalidad_pago_accesorias}}.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'modalidad_pago_accesorias',
+                  etiqueta: 'Modalidad de pago de las accesorias',
+                  ayuda:
+                    'Consignar si corresponde pago único, pagos a cuenta, pagos periódicos, pagos mensuales u otra modalidad, según la naturaleza de la prestación accesoria',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
+            },
+            {
+              clase: 'tabla',
+              id: 'pago_accesorias',
+              etiqueta: 'Requisitos para el pago de las prestaciones accesorias',
+              instruccion:
+                'Establecer, para cada prestación accesoria, la relación de documentos que el contratista debe presentar para efectos de pago',
+              columnas: ['Prestación accesoria', 'Requisitos para el pago'],
+              minimo: 1,
+            },
+          ],
+        },
       ],
     },
 

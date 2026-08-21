@@ -557,6 +557,22 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
             ...bloquesPago(),
           ],
         },
+        {
+          id: 'pago_accesorias',
+          titulo: 'Prestaciones accesorias',
+          condicion: 'tiene_prestaciones_accesorias',
+          bloques: [
+            {
+              clase: 'tabla',
+              id: 'pago_accesorias',
+              etiqueta: 'Requisitos para el pago de las prestaciones accesorias',
+              instruccion:
+                'Establecer, para cada prestación accesoria, la relación de documentos que el contratista debe presentar para efectos de pago',
+              columnas: ['Prestación accesoria', 'Requisitos para el pago'],
+              minimo: 1,
+            },
+          ],
+        },
       ],
     },
 
