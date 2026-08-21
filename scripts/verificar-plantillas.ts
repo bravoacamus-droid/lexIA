@@ -26,6 +26,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { listarPlantillas, obtenerPlantilla } from '../src/lib/generadores/plantillas';
+import { condicionesPorApartado } from '../src/lib/generadores/indice';
 import {
   ensamblarRequerimiento,
   respuestasVacias,
@@ -408,6 +409,74 @@ async function main() {
       }
     }
     console.log(`   ${huecos === 0 ? '✅' : '❌'} ninguna plantilla se deja un texto obligatorio de su formato`);
+  }
+
+  // ── Integridad de la plantilla ────────────────────────────────────
+  // Tres cosas que no se ven mirando el documento y rompen la pantalla:
+  // un id repetido —el índice lleva a un sitio y el usuario acaba en
+  // otro—, un bloque que depende de una opción inexistente, y un bloque
+  // atado a un interruptor que nadie ofrece. El tercero fue real: el
+  // pago anticipado y la conformidad de las accesorias quedaron
+  // invisibles en nueve plantillas porque el panel solo recogía los
+  // interruptores de las secciones.
+  console.log('\n── Integridad de la plantilla ──');
+  {
+    let malos = 0;
+    for (const p of listarPlantillas()) {
+      const idsBloque: string[] = [];
+      const idsSeccion: string[] = [];
+      const ofrecidos = new Set<string>();
+      const usados = new Set<string>();
+      const opciones = new Set<string>();
+      const opcionesReferidas: string[] = [];
+      const rec = (ss: Seccion[]) => {
+        for (const s of ss) {
+          idsSeccion.push(s.id);
+          if (s.condicion) ofrecidos.add(s.condicion);
+          for (const b of s.bloques as Bloque[]) {
+            if (b.clase === 'parrafo') idsBloque.push(...b.campos.map((c) => c.id));
+            else if ('id' in b) idsBloque.push(String(b.id));
+            if (b.clase === 'opcion') opciones.add(b.id);
+            const v = 'visibleSi' in b ? b.visibleSi : undefined;
+            if (v?.condicion) usados.add(v.condicion);
+            if (v?.opcion) opcionesReferidas.push(v.opcion);
+          }
+          rec(s.subsecciones ?? []);
+        }
+      };
+      rec(p.secciones);
+      // Lo que de verdad puede encender el usuario: lo que ofrece el
+      // panel. Se pregunta a la misma función que lo construye, no a una
+      // copia, porque el fallo estuvo justo en que eran dos.
+      for (const g of condicionesPorApartado(p.secciones)) {
+        for (const c of g.condiciones) ofrecidos.add(c.id);
+      }
+      const repetidos = (xs: string[]) => {
+        const vistos = new Set<string>();
+        const dobles = new Set<string>();
+        for (const x of xs) (vistos.has(x) ? dobles : vistos).add(x);
+        return [...dobles];
+      };
+      for (const [que, dobles] of [['bloques', repetidos(idsBloque)], ['secciones', repetidos(idsSeccion)]] as const) {
+        if (dobles.length > 0) {
+          problema(`${p.id}: ${que} con id repetido: ${dobles.join(", ")}`);
+          malos++;
+        }
+      }
+      for (const o of opcionesReferidas) {
+        if (!opciones.has(o)) {
+          problema(`${p.id}: un bloque depende de la opción "${o}", que no existe`);
+          malos++;
+        }
+      }
+      for (const c of usados) {
+        if (!ofrecidos.has(c)) {
+          problema(`${p.id}: el interruptor "${c}" no se puede encender desde ninguna parte`);
+          malos++;
+        }
+      }
+    }
+    console.log(`   ${malos === 0 ? '✅' : '❌'} ids únicos, opciones existentes e interruptores alcanzables`);
   }
 
   // ── Apartados que el .docx trae y la plantilla debe tener ─────────

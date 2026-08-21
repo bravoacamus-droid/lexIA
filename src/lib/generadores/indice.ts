@@ -249,6 +249,54 @@ export function construirIndice(
   return grupos;
 }
 
+/**
+ * Los apartados "de corresponder", agrupados por el numeral del que
+ * cuelgan.
+ *
+ * Vive aquí y no en el formulario porque es la única lista que decide
+ * qué puede encender el usuario. Cuando la construía la pantalla, un
+ * bloque atado a un interruptor que ninguna sección declaraba —el pago
+ * anticipado, la conformidad de las accesorias— quedaba invisible para
+ * siempre: escrito en la plantilla y fuera del alcance de nadie. Ahora
+ * se comprueba en las quince plantillas.
+ */
+export interface GrupoCondiciones {
+  titulo: string;
+  condiciones: Array<{ id: string; titulo: string }>;
+}
+
+export function condicionesPorApartado(secciones: Seccion[]): GrupoCondiciones[] {
+  const grupos: GrupoCondiciones[] = [];
+  const vistas = new Set<string>();
+
+  const recoger = (ss: Seccion[], grupo: GrupoCondiciones) => {
+    for (const s of ss) {
+      if (s.condicion && !vistas.has(s.condicion)) {
+        vistas.add(s.condicion);
+        grupo.condiciones.push({ id: s.condicion, titulo: s.titulo });
+      }
+      // Los bloques sueltos también pueden depender de un interruptor.
+      for (const b of s.bloques) {
+        const condicion = 'visibleSi' in b ? b.visibleSi?.condicion : undefined;
+        if (!condicion || vistas.has(condicion)) continue;
+        vistas.add(condicion);
+        grupo.condiciones.push({
+          id: condicion,
+          titulo: 'etiqueta' in b && b.etiqueta ? String(b.etiqueta) : s.titulo,
+        });
+      }
+      if (s.subsecciones) recoger(s.subsecciones, grupo);
+    }
+  };
+
+  for (const s of secciones) {
+    const grupo: GrupoCondiciones = { titulo: s.titulo, condiciones: [] };
+    recoger([s], grupo);
+    if (grupo.condiciones.length > 0) grupos.push(grupo);
+  }
+  return grupos;
+}
+
 /** Cuentas del documento entero, para la cabecera del índice. */
 export function resumenIndice(grupos: GrupoIndice[]) {
   const entradas = grupos.flatMap((g) => g.entradas);

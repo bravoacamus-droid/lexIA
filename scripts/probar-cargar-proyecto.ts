@@ -244,9 +244,18 @@ async function main() {
     /12|doce/.test(texto('plazo_servicio') + texto('caracteristicas_tecnicas')) ||
     reparto.sin_ubicar.some((s) => /12|doce/.test(s) && /plazo/i.test(s));
   comprobar('el plazo de doce meses no se pierde', plazoEnAlgunSitio);
+  // Lo que importa es que la visita previa del proyecto acabe en el
+  // apartado de la visita y con contenido de verdad. Exigir la palabra
+  // "visita" dentro del texto comprueba el estilo del modelo, no el
+  // reparto: una redacción por "Objeto / Lugar / Oportunidad" es
+  // correcta y no la contiene.
   comprobar(
     'coloca la visita en su apartado',
-    tiene('visita') && /visita/i.test(texto('visita')),
+    tiene('visita') && texto('visita').trim().length > 30,
+  );
+  comprobar(
+    'y enciende la sección de la visita, que estaba apagada',
+    reparto.condiciones.includes('prevé_visita'),
   );
   comprobar(
     'lleva la experiencia a su apartado, no a otro',
@@ -288,8 +297,16 @@ async function main() {
     for (const c of a.condiciones) aplicadas.condiciones[c] = true;
   }
   const doc = ensamblarRequerimiento(plantilla, aplicadas, { cuantia: 117_600 });
-  const perdidos = reparto.asignaciones.filter(
-    (a) => !doc.markdown.includes(a.texto.slice(0, 60)),
+  // Se compara línea a línea, no por un trozo del texto: los apartados
+  // de lista se emiten con su marca por renglón —"- Barrido y…"— desde
+  // que la entidad puede elegir viñetas, literales o números, así que un
+  // recorte que cruce un salto de línea ya no coincide nunca.
+  const perdidos = reparto.asignaciones.filter((a) =>
+    a.texto
+      .split('\n')
+      .map((l) => l.replace(/^\s*(?:[-*•]|\d+[.)]|[a-z]{1,2}\))\s+/i, '').trim())
+      .filter((l) => l.length > 15)
+      .some((l) => !doc.markdown.includes(l)),
   );
   comprobar(
     'ningún texto repartido se queda fuera del documento',

@@ -60,6 +60,7 @@ import {
 import {
   anclaApartado,
   anclaBloque,
+  condicionesPorApartado,
   construirIndice,
   resumenIndice,
 } from '@/lib/generadores/indice';
@@ -95,43 +96,6 @@ interface Props {
 }
 
 /** Reúne las condiciones declaradas en la plantilla, con su título. */
-/**
- * Los apartados "de corresponder", agrupados por el numeral del que
- * cuelgan.
- *
- * En una lista plana de veinte interruptores no se sabe a qué pertenece
- * cada uno: "Soporte técnico" y "Capacidad legal" parecen del mismo
- * rango cuando uno es una prestación accesoria y el otro un requisito
- * de calificación. Petición de César del 19/08/2026: "poner el título
- * general y recién los subtítulos".
- */
-interface GrupoCondiciones {
-  titulo: string;
-  condiciones: Array<{ id: string; titulo: string }>;
-}
-
-function condicionesPorApartado(secciones: Seccion[]): GrupoCondiciones[] {
-  const grupos: GrupoCondiciones[] = [];
-  const vistas = new Set<string>();
-
-  const recoger = (ss: Seccion[], grupo: GrupoCondiciones) => {
-    for (const s of ss) {
-      if (s.condicion && !vistas.has(s.condicion)) {
-        vistas.add(s.condicion);
-        grupo.condiciones.push({ id: s.condicion, titulo: s.titulo });
-      }
-      if (s.subsecciones) recoger(s.subsecciones, grupo);
-    }
-  };
-
-  for (const s of secciones) {
-    const grupo: GrupoCondiciones = { titulo: s.titulo, condiciones: [] };
-    recoger([s], grupo);
-    if (grupo.condiciones.length > 0) grupos.push(grupo);
-  }
-  return grupos;
-}
-
 export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial }: Props) {
   const [denominacion, setDenominacion] = useState(inicial.denominacion);
   const [cuantia, setCuantia] = useState(inicial.cuantia?.toString() ?? '');

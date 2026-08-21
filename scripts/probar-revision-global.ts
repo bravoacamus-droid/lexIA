@@ -74,6 +74,10 @@ const RESPUESTAS: RespuestasRequerimiento = {
   ...respuestasVacias(),
   campos: {
     organo: 'Oficina de Tecnologías de la Información',
+    // Nueve veces la cuantía: el tope es tres. El aviso lo calcula el
+    // ensamblador y el modelo no debe repetirlo, pero sí puede señalar
+    // que la cifra es desproporcionada.
+    experiencia_monto: 'S/ 900,000.00 (novecientos mil con 00/100 soles)',
     denominacion: 'Servicio de soporte técnico para los equipos informáticos de la sede central',
     plazo_respuesta: '5',
     solicitante_nombre: 'Ana Quispe Ramírez',
@@ -89,8 +93,6 @@ const RESPUESTAS: RespuestasRequerimiento = {
       'El contratista realizará el diagnóstico, la reparación y la configuración de los equipos. Todas las actividades deberán quedar concluidas dentro del plazo de treinta (30) días calendario contados desde el inicio del servicio.',
     procedimiento_penalidades:
       'En caso de retraso injustificado en la atención de un requerimiento de soporte, la Entidad aplicará al contratista una penalidad equivalente al 20% del monto del contrato por cada día de retraso, la cual se descontará de los pagos a cuenta.',
-    capacidad_tecnica_requisito:
-      'El postor deberá acreditar una facturación acumulada de S/ 900,000.00 (novecientos mil con 00/100 soles) por la prestación de servicios iguales o similares al objeto de la convocatoria.',
   },
   // Todas las secciones "de corresponder" encendidas: si no, tres de los
   // apartados con defecto quedan fuera del documento y no hay nada que
@@ -211,7 +213,7 @@ async function main() {
     'caracteristicas_tecnicas',
     'actividades',
     'procedimiento_penalidades',
-    'capacidad_tecnica_requisito',
+    'experiencia_monto',
     'organo',
   ]) {
     comprobar(`recoge "${id}"`, inventario.some((a) => a.id === id));
@@ -282,7 +284,14 @@ async function main() {
     'detecta la penalidad que vulnera la norma',
     hallazgos.some((h) => h.tipo === 'norma' && /penalidad/i.test(h.detalle)),
   );
-  comprobar('señala algo sobre la experiencia exigida', /900|facturaci/.test(texto));
+  // La experiencia desproporcionada la caza la aritmética, no el modelo:
+  // 900 000 sobre una cuantía de 100 000 supera el tope de tres veces.
+  // Y el prompt le pide que NO repita lo que el sistema ya calculó, así
+  // que aquí lo correcto es que el aviso exista y el modelo calle.
+  comprobar(
+    'el tope de experiencia lo detecta el cálculo, no el modelo',
+    doc.avisos.some((a) => a.validacion === 'experiencia_max' && a.nivel === 'error'),
+  );
   comprobar(
     'señala la finalidad mal redactada',
     hallazgos.some((h) => h.apartado_id === 'finalidad'),
