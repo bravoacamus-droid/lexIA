@@ -1073,34 +1073,36 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
                 'Sin perjuicio de lo anterior, los postores deben llenar y presentar el Anexo Nº 11 referido a la Experiencia del Postor en la Especialidad.',
             },
           ],
-        },
-        {
-          id: 'experiencia_mype',
-          titulo: 'Régimen para micro y pequeña empresa',
-          condicion: 'aplica_mype',
-          bloques: [
-            {
-              clase: 'nota',
-              texto:
-                'Este texto se incluye en procedimientos por relación de ítems cuando la cuantía de algún ítem corresponda al monto de un Concurso Público Abreviado.',
-            },
-            {
-              clase: 'parrafo',
-              texto:
-                'En el caso de postores que declaren en el Anexo N° 1 tener la condición de micro y pequeña empresa, se acredita una experiencia de {{experiencia_monto_mype}}, por la contratación de servicios iguales o similares al objeto de la convocatoria, durante los quince años anteriores a la fecha de la presentación de ofertas que se computa desde la fecha de la conformidad o emisión del comprobante de pago, según corresponda. En el caso de consorcios, todos los integrantes deben contar con la condición de micro y pequeña empresa.',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'experiencia_monto_mype',
-                  etiqueta: 'Monto exigido a micro y pequeña empresa',
-                  ayuda:
-                    'Consignar el monto de facturación expresado en números y letras en la moneda de la convocatoria, monto que no debe superar el 25% de la cuantía de la contratación del ítem',
-                  tipo: 'moneda',
-                  obligatorio: true,
-                  validacion: 'experiencia_mype',
-                },
-              ],
-            },
+          subsecciones: [
+          {
+            id: 'experiencia_mype',
+            titulo: 'Régimen para micro y pequeña empresa',
+            condicion: 'aplica_mype',
+            bloques: [
+              {
+                clase: 'nota',
+                texto:
+                  'Este texto se incluye en procedimientos por relación de ítems cuando la cuantía de algún ítem corresponda al monto de un Concurso Público Abreviado.',
+              },
+              {
+                clase: 'parrafo',
+                texto:
+                  'En el caso de postores que declaren en el Anexo N° 1 tener la condición de micro y pequeña empresa, se acredita una experiencia de {{experiencia_monto_mype}}, por la contratación de servicios iguales o similares al objeto de la convocatoria, durante los quince años anteriores a la fecha de la presentación de ofertas que se computa desde la fecha de la conformidad o emisión del comprobante de pago, según corresponda. En el caso de consorcios, todos los integrantes deben contar con la condición de micro y pequeña empresa.',
+                campos: [
+                  {
+                    clase: 'campo',
+                    id: 'experiencia_monto_mype',
+                    etiqueta: 'Monto exigido a micro y pequeña empresa',
+                    ayuda:
+                      'Consignar el monto de facturación expresado en números y letras en la moneda de la convocatoria, monto que no debe superar el 25% de la cuantía de la contratación del ítem',
+                    tipo: 'moneda',
+                    obligatorio: true,
+                    validacion: 'experiencia_mype',
+                  },
+                ],
+              },
+            ],
+          },
           ],
         },
         {
@@ -1113,21 +1115,156 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
               texto:
                 'Pueden ser personal clave los profesionales especialistas esenciales para ejecutar la prestación; no lo son quienes brinden labores de asistencia administrativa, técnica u operativa. El tiempo de experiencia mínimo debe ser razonable y congruente con el periodo en que el personal ejecutará las actividades, de forma que no restrinja la participación de postores. Tratándose de un ASISTE, la formación académica y la experiencia del personal clave se incorporan obligatoriamente en las Bases.',
             },
+          ],
+          subsecciones: [
+          {
+            id: 'capacidad_tecnica_experiencia',
+            titulo: 'Experiencia del personal clave',
+            condicion: 'exige_personal_clave',
+            bloques: [
             {
-              clase: 'redactado',
-              id: 'capacidad_tecnica_requisito',
+              clase: 'tabla',
+              id: 'experiencia_personal_clave',
               etiqueta: 'Requisitos',
-              instruccion:
-                'Precisar la experiencia y formación del personal clave, el equipamiento estratégico o la infraestructura exigida como requisito adicional de calificación',
-              extension: 'parrafo',
+              columnas: ['Cargo y/o responsabilidad', 'Cant.', 'Tiempo de experiencia', 'Cargo desempeñado', 'Cómputo de experiencia'],
+              minimo: 1,
             },
             {
-              clase: 'redactado',
-              id: 'capacidad_tecnica_acreditacion',
-              etiqueta: 'Acreditación',
-              instruccion: 'Precisar los documentos con los que se acredita el requisito',
-              extension: 'parrafo',
+              clase: 'fijo',
+              texto:
+                'El postor debe señalar la denominación del puesto, cargo y/o posición, y tiempo de experiencia del personal clave propuesto (años, meses y días) en el Anexo N° 19, adjuntando en su oferta, copia simple de cualquiera de los siguientes documentos: (i) contratos y su respectiva conformidad; (ii) constancias; (iii) certificados; o (iv) cualquier otra documentación que, de manera fehaciente, demuestre la experiencia del personal propuesto.',
+              fundamento: 'Plantilla — requisitos de calificación',
             },
+            {
+              clase: 'fijo',
+              texto:
+                'Estos documentos deben señalar los nombres y apellidos del personal clave; el cargo desempeñado indicando el día, mes y año de inicio y culminación; el nombre de la entidad u organización que emite el documento; la fecha de emisión y nombres y apellidos de quien suscribe el documento.',
+              fundamento: 'Plantilla — requisitos de calificación',
+            },
+            {
+              clase: 'fijo',
+              texto:
+                'En caso los documentos que acreditan la experiencia establezcan está en meses sin especificar los días se debe considerar el mes completo. Se considera aquella experiencia que no tenga una antigüedad mayor a veinticinco años anteriores a la fecha de la presentación de ofertas. De presentarse experiencia ejecutada paralelamente (traslape), para el cómputo de la misma solo se considera una vez el periodo traslapado. En ningún caso corresponde exigir que el mismo personal clave acredite experiencia en más de un cargo.',
+              fundamento: 'Plantilla — requisitos de calificación',
+            },
+            ],
+          },
+          {
+            id: 'capacidad_tecnica_formacion',
+            titulo: 'Formación académica del personal clave',
+            condicion: 'exige_formacion_academica',
+            bloques: [
+            {
+              clase: 'nota',
+              texto:
+                '[Como requisito de calificación solo puede consignarse “grado de bachiller” o “título profesional”, según el perfil del personal clave definido por el área usuaria considerando, entre otros aspectos, la normativa que resulte aplicable.',
+            },
+            {
+              clase: 'nota',
+              texto:
+                'De acuerdo con el artículo 16 de la Ley N° 30512, Ley de Institutos y Escuelas de Educación Superior y de la Carrera Pública de sus Docentes, los títulos que se otorgan de acuerdo al nivel del programa formativo son título profesional, título profesional técnico y título de segunda especialidad.]',
+            },
+            {
+              clase: 'tabla',
+              id: 'formacion_personal_clave',
+              etiqueta: 'Requisitos',
+              columnas: ['Cargo y/o responsabilidad', 'Profesión', 'Grado o título profesional requerido'],
+              minimo: 1,
+            },
+            {
+              clase: 'fijo',
+              texto:
+                'El postor debe señalar los nombres y apellidos, documento de identidad, el nombre de la universidad o institución educativa que expidió el grado de título profesional, y el grado o título profesional obtenido en el Anexo N° 19, adjuntando en su oferta copia del grado de bachiller o título profesional. En caso se acredite estudios en el extranjero del personal clave, debe presentarse, adicionalmente, copia simple de la revalidación o reconocimiento del grado o título ante la SUNEDU.',
+              fundamento: 'Plantilla — requisitos de calificación',
+            },
+            {
+              clase: 'fijo',
+              texto:
+                'Los evaluadores o la DEC, según corresponda, verifican los grados o títulos profesionales en el Registro Nacional de Grados Académicos y Títulos Profesionales de la Superintendencia Nacional de Educación Superior Universitaria – SUNEDU, a través del siguiente link: https://enlinea.sunedu.gob.pe/ o en el Registro Nacional de Certificados, Grados y Títulos del Ministerio de Educación, a través del siguiente link: https://titulosinstitutos.minedu.gob.pe/ según corresponda.',
+              fundamento: 'Plantilla — requisitos de calificación',
+            },
+            ],
+          },
+          {
+            id: 'capacidad_tecnica_capacitacion',
+            titulo: 'Capacitación del personal clave',
+            condicion: 'exige_capacitacion_clave',
+            bloques: [
+            {
+              clase: 'nota',
+              texto:
+                '[Consignar la cantidad de horas, hasta un máximo de 120 horas, la cual debe estar específicamente relacionada con las actividades que realizará el personal clave.',
+            },
+            {
+              clase: 'nota',
+              texto:
+                'Las horas indicadas pueden ser lectivas, académicas y/o pedagógicas sin distinción entre estas.]',
+            },
+            {
+              clase: 'tabla',
+              id: 'capacitacion_personal_clave',
+              etiqueta: 'Requisitos',
+              columnas: ['Cargo y/o responsabilidad', 'Materia o área de capacitación', 'Cantidad de horas'],
+              minimo: 1,
+            },
+            {
+              clase: 'fijo',
+              texto:
+                'Se acredita con copia simple de [consignar constancias, certificados u otros documentos, según corresponda].',
+              fundamento: 'Plantilla — requisitos de calificación',
+            },
+            ],
+          },
+          {
+            id: 'capacidad_tecnica_equipamiento',
+            titulo: 'Equipamiento estratégico',
+            condicion: 'exige_equipamiento_estrategico',
+            bloques: [
+            {
+              clase: 'nota',
+              texto:
+                '[consignar solo el equipamiento clasificado como estratégico para ejecutar la prestación objeto de la convocatoria, según la estrategia de contratación, que debe ser acreditada].',
+            },
+            {
+              clase: 'tabla',
+              id: 'equipamiento_estrategico',
+              etiqueta: 'Requisitos',
+              columnas: ['Equipamiento estratégico', 'Cant.', 'Características mínimas del equipamiento'],
+              minimo: 1,
+            },
+            {
+              clase: 'fijo',
+              texto:
+                'Copia simple de los documentos que sustenten la propiedad, la posesión, el compromiso de compraventa o alquiler, u otro documento que acredite la disponibilidad del equipamiento estratégico requerido para la ejecución del contrato.',
+              fundamento: 'Plantilla — requisitos de calificación',
+            },
+            ],
+          },
+          {
+            id: 'capacidad_tecnica_infraestructura',
+            titulo: 'Infraestructura estratégica',
+            condicion: 'exige_infraestructura',
+            bloques: [
+            {
+              clase: 'nota',
+              texto:
+                '[Consignar solo la infraestructura clasificada como estratégica para ejecutar la prestación objeto de la convocatoria, según la estrategia de contratación, que debe ser acreditada].',
+            },
+            {
+              clase: 'tabla',
+              id: 'infraestructura_estrategica',
+              etiqueta: 'Requisitos',
+              columnas: ['Infraestructura estratégica', 'Cant.', 'Características mínimas de la infraestructura'],
+              minimo: 1,
+            },
+            {
+              clase: 'fijo',
+              texto:
+                'Copia simple de los documentos que sustenten la propiedad, la posesión, el compromiso de compraventa o alquiler, u otro documento que acredite la disponibilidad de la infraestructura estratégica requerida para la ejecución del contrato.',
+              fundamento: 'Plantilla — requisitos de calificación',
+            },
+            ],
+          },
           ],
         },
       ],

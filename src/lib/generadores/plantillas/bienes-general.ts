@@ -1035,34 +1035,36 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
               fundamento: 'Plantilla — acreditación de experiencia, texto invariable',
             },
           ],
-        },
-        {
-          id: 'experiencia_mype',
-          titulo: 'Régimen para micro y pequeña empresa',
-          condicion: 'aplica_mype',
-          bloques: [
-            {
-              clase: 'nota',
-              texto:
-                'Este texto se incluye en procedimientos de selección por relación de ítems, cuando la cuantía de la contratación de algún ítem corresponda al monto de una Licitación Pública abreviada de bienes.',
-            },
-            {
-              clase: 'parrafo',
-              texto:
-                'En el caso de postores que declaren en el Anexo N° 1 tener la condición de micro y pequeña empresa, se acredita una experiencia de {{experiencia_monto_mype}}, por la venta de bienes iguales o similares al objeto de la convocatoria, durante los diez años anteriores a la fecha de la presentación de ofertas que se computarán desde la fecha de la conformidad o emisión del comprobante de pago, según corresponda. En el caso de consorcios, todos los integrantes deben contar con la condición de micro y pequeña empresa.',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'experiencia_monto_mype',
-                  etiqueta: 'Monto exigido a micro y pequeña empresa',
-                  ayuda:
-                    'Consignar el monto de facturación expresado en números y letras en la moneda de la convocatoria, monto que no debe superar el 25% de la cuantía de la contratación del ítem',
-                  tipo: 'moneda',
-                  obligatorio: true,
-                  validacion: 'experiencia_mype',
-                },
-              ],
-            },
+          subsecciones: [
+          {
+            id: 'experiencia_mype',
+            titulo: 'Régimen para micro y pequeña empresa',
+            condicion: 'aplica_mype',
+            bloques: [
+              {
+                clase: 'nota',
+                texto:
+                  'Este texto se incluye en procedimientos de selección por relación de ítems, cuando la cuantía de la contratación de algún ítem corresponda al monto de una Licitación Pública abreviada de bienes.',
+              },
+              {
+                clase: 'parrafo',
+                texto:
+                  'En el caso de postores que declaren en el Anexo N° 1 tener la condición de micro y pequeña empresa, se acredita una experiencia de {{experiencia_monto_mype}}, por la venta de bienes iguales o similares al objeto de la convocatoria, durante los diez años anteriores a la fecha de la presentación de ofertas que se computarán desde la fecha de la conformidad o emisión del comprobante de pago, según corresponda. En el caso de consorcios, todos los integrantes deben contar con la condición de micro y pequeña empresa.',
+                campos: [
+                  {
+                    clase: 'campo',
+                    id: 'experiencia_monto_mype',
+                    etiqueta: 'Monto exigido a micro y pequeña empresa',
+                    ayuda:
+                      'Consignar el monto de facturación expresado en números y letras en la moneda de la convocatoria, monto que no debe superar el 25% de la cuantía de la contratación del ítem',
+                    tipo: 'moneda',
+                    obligatorio: true,
+                    validacion: 'experiencia_mype',
+                  },
+                ],
+              },
+            ],
+          },
           ],
         },
         {

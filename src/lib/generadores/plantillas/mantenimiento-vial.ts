@@ -740,34 +740,36 @@ export const PLANTILLA_MANTENIMIENTO_VIAL: PlantillaRequerimiento = {
                 'Sin perjuicio de lo anterior, los postores deben llenar y presentar el Anexo Nº 11 referido a la Experiencia del Postor en la Especialidad.',
             },
           ],
-        },
-        {
-          id: 'experiencia_mype',
-          titulo: 'Régimen para micro y pequeña empresa',
-          condicion: 'aplica_mype',
-          bloques: [
-            {
-              clase: 'nota',
-              texto:
-                'Este texto se incluye en procedimientos por relación de ítems cuando la cuantía de algún ítem corresponda al monto de un Concurso Público Abreviado.',
-            },
-            {
-              clase: 'parrafo',
-              texto:
-                'En el caso de postores que declaren en el Anexo N° 1 tener la condición de micro y pequeña empresa, se acredita una experiencia de {{experiencia_monto_mype}}, por la contratación de servicios iguales o similares al objeto de la convocatoria, durante los veinticinco (25) años anteriores a la fecha de la presentación de ofertas que se computa desde la fecha de la conformidad o emisión del comprobante de pago, según corresponda. En el caso de consorcios, todos los integrantes deben contar con la condición de micro y pequeña empresa.',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'experiencia_monto_mype',
-                  etiqueta: 'Monto exigido a micro y pequeña empresa',
-                  ayuda:
-                    'Consignar el monto de facturación expresado en números y letras en la moneda de la convocatoria, monto que no debe superar el 25% de la cuantía de la contratación del ítem',
-                  tipo: 'moneda',
-                  obligatorio: true,
-                  validacion: 'experiencia_mype',
-                },
-              ],
-            },
+          subsecciones: [
+          {
+            id: 'experiencia_mype',
+            titulo: 'Régimen para micro y pequeña empresa',
+            condicion: 'aplica_mype',
+            bloques: [
+              {
+                clase: 'nota',
+                texto:
+                  'Este texto se incluye en procedimientos por relación de ítems cuando la cuantía de algún ítem corresponda al monto de un Concurso Público Abreviado.',
+              },
+              {
+                clase: 'parrafo',
+                texto:
+                  'En el caso de postores que declaren en el Anexo N° 1 tener la condición de micro y pequeña empresa, se acredita una experiencia de {{experiencia_monto_mype}}, por la contratación de servicios iguales o similares al objeto de la convocatoria, durante los veinticinco (25) años anteriores a la fecha de la presentación de ofertas que se computa desde la fecha de la conformidad o emisión del comprobante de pago, según corresponda. En el caso de consorcios, todos los integrantes deben contar con la condición de micro y pequeña empresa.',
+                campos: [
+                  {
+                    clase: 'campo',
+                    id: 'experiencia_monto_mype',
+                    etiqueta: 'Monto exigido a micro y pequeña empresa',
+                    ayuda:
+                      'Consignar el monto de facturación expresado en números y letras en la moneda de la convocatoria, monto que no debe superar el 25% de la cuantía de la contratación del ítem',
+                    tipo: 'moneda',
+                    obligatorio: true,
+                    validacion: 'experiencia_mype',
+                  },
+                ],
+              },
+            ],
+          },
           ],
         },
         {
