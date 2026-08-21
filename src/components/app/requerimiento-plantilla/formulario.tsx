@@ -223,11 +223,23 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
     marcarSucio();
   };
 
-  const anadirExtra = () => {
+  /**
+   * Crea un apartado propio.
+   *
+   * Sin `dentroDe` es de primer nivel y se coloca al final del orden,
+   * desde donde el usuario lo sube. Con `dentroDe` cuelga de esa
+   * sección y no entra en el orden de primer nivel: su sitio es el de
+   * su madre.
+   */
+  const anadirExtra = (dentroDe?: string) => {
     setR((p) => {
-      const extra: ApartadoExtra = { id: nuevoIdExtra(p.extras), titulo: '', texto: '' };
-      // Se coloca al final del orden vigente; desde ahí el usuario lo
-      // sube a donde quiera.
+      const extra: ApartadoExtra = {
+        id: nuevoIdExtra(p.extras),
+        titulo: '',
+        texto: '',
+        ...(dentroDe ? { dentroDe } : {}),
+      };
+      if (dentroDe) return { ...p, extras: [...p.extras, extra] };
       const orden = apartadosOrdenados(plantilla, p).map((a) => a.id);
       return { ...p, extras: [...p.extras, extra], orden: [...orden, extra.id] };
     });
@@ -509,13 +521,45 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
             })}
           </div>
         )}
-        {s.subsecciones && s.subsecciones.length > 0 && (
-          <div className="mt-4 space-y-5">
-            {s.subsecciones
-              .filter((h) => !h.condicion || r.condiciones[h.condicion])
-              .map((h, i) => pintarSeccion(h, `${numero}.${i + 1}`, nivel + 1))}
-          </div>
-        )}
+        {(() => {
+          const hijas = (s.subsecciones ?? []).filter(
+            (h) => !h.condicion || r.condiciones[h.condicion],
+          );
+          const propias = r.extras.filter((e) => e.dentroDe === s.id);
+          // Solo se ofrece añadir donde el formato ya agrupa apartados:
+          // las prestaciones accesorias del formato son tres, pero hay
+          // más —monitoreo, asistencia técnica— y cada entidad tiene las
+          // suyas.
+          const admiteAnadir = (s.subsecciones?.length ?? 0) > 0;
+          if (hijas.length === 0 && propias.length === 0 && !admiteAnadir) return null;
+          return (
+            <div className="mt-4 space-y-5">
+              {hijas.map((h, i) => pintarSeccion(h, `${numero}.${i + 1}`, nivel + 1))}
+              {propias.map((e, i) => (
+                <div key={e.id} id={anclaApartado(e.id)} className="scroll-mt-24 border-l pl-4">
+                  <ApartadoPropio
+                    extra={e}
+                    numero={`${numero}.${hijas.length + i + 1}`}
+                    onChange={(cambio) => cambiarExtra(e.id, cambio)}
+                    onBorrar={() => borrarExtra(e.id)}
+                  />
+                </div>
+              ))}
+              {admiteAnadir && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => anadirExtra(s.id)}
+                >
+                  <Plus className="mr-1 h-3.5 w-3.5" />
+                  Añadir un apartado dentro de &ldquo;{s.titulo.toLowerCase()}&rdquo;
+                </Button>
+              )}
+            </div>
+          );
+        })()}
       </div>
     );
   };
@@ -726,7 +770,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
             })}
 
             <div className="flex flex-wrap items-center gap-2 border-t pt-4">
-              <Button type="button" variant="outline" size="sm" onClick={anadirExtra}>
+              <Button type="button" variant="outline" size="sm" onClick={() => anadirExtra()}>
                 <Plus className="mr-1.5 h-4 w-4" />
                 Añadir un apartado propio
               </Button>

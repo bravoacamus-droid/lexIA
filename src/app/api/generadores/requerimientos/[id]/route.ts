@@ -53,6 +53,7 @@ function limpiarRespuestas(
         id: e.id,
         titulo: limpiarTexto(e.titulo),
         texto: limpiarTexto(e.texto),
+        ...(e.dentroDe ? { dentroDe: e.dentroDe } : {}),
       })),
     orden: r.orden,
     marcadores: r.marcadores,
@@ -83,6 +84,8 @@ const ActualizarSchema = z.object({
             id: z.string().min(1).max(40),
             titulo: z.string().max(300),
             texto: z.string().max(20000),
+            /** Sección dentro de la que vive, si no es de primer nivel. */
+            dentroDe: z.string().min(1).max(80).optional(),
           }),
         )
         .max(30)

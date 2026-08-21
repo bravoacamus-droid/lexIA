@@ -84,6 +84,16 @@ export interface ApartadoExtra {
   id: string;
   titulo: string;
   texto: string;
+  /**
+   * Sección dentro de la que vive, si no es de primer nivel.
+   *
+   * Las prestaciones accesorias más comunes —mantenimiento, soporte,
+   * capacitación— vienen en el formato, pero hay otras: monitoreo,
+   * asistencia técnica especializada. Con esto la entidad las añade
+   * donde corresponde en vez de al final del documento. Petición de
+   * César del 19/08/2026.
+   */
+  dentroDe?: string;
 }
 
 /**
@@ -242,9 +252,9 @@ export function apartadosOrdenados(
     ...plantilla.secciones.map(
       (seccion) => ({ tipo: 'seccion', id: seccion.id, seccion }) as ApartadoOrdenado,
     ),
-    ...respuestas.extras.map(
-      (extra) => ({ tipo: 'extra', id: extra.id, extra }) as ApartadoOrdenado,
-    ),
+    ...respuestas.extras
+      .filter((extra) => !extra.dentroDe)
+      .map((extra) => ({ tipo: 'extra', id: extra.id, extra }) as ApartadoOrdenado),
   ];
   const porId = new Map(base.map((a) => [a.id, a]));
   const out: ApartadoOrdenado[] = [];
@@ -567,6 +577,27 @@ export function ensamblarRequerimiento(
       }
       sub++;
       escribirSeccion(hija, `${numero}.${sub}`, nivel + 1);
+    }
+
+    // Los apartados que la entidad añadió dentro de esta sección van
+    // detrás de los del formato, numerados con ellos.
+    for (const extra of respuestas.extras) {
+      if (extra.dentroDe !== s.id) continue;
+      sub++;
+      const titulo = extra.titulo.trim() || 'Apartado adicional';
+      const texto = extra.texto.trim();
+      partes.push(`${'#'.repeat(Math.min(nivel + 3, 6))} ${numero}.${sub}. ${titulo}`, '');
+      if (texto) {
+        partes.push(texto, '');
+      } else {
+        partes.push(pendiente(titulo), '');
+        faltantes.push({
+          seccion: s.titulo,
+          bloque: extra.id,
+          etiqueta: titulo,
+          ayuda: 'Apartado añadido por la entidad; está sin escribir.',
+        });
+      }
     }
   };
 

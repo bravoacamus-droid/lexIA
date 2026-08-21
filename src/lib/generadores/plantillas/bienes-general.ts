@@ -449,6 +449,21 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
             },
           ],
         },
+        {
+          id: 'anexos_tecnicos',
+          titulo: 'Anexos técnicos',
+          condicion: 'tiene_anexos',
+          bloques: [
+            {
+              clase: 'redactado',
+              id: 'anexos_tecnicos',
+              etiqueta: 'Anexos técnicos',
+              instruccion:
+                'Indicar la relación de los anexos que se van a adjuntar al requerimiento',
+              extension: 'lista',
+            },
+          ],
+        },
       ],
       bloques: [],
     },

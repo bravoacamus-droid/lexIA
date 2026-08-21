@@ -178,6 +178,60 @@ comprobar(
   ensamblarRequerimiento(plantilla, viejo, {}).markdown.length > 1000,
 );
 
+// ── 4 bis. Un apartado propio DENTRO de otra sección ─────────────────
+// Las prestaciones accesorias del formato son tres —mantenimiento,
+// soporte, capacitación— pero hay más: monitoreo, asistencia técnica
+// especializada. La entidad las añade ahí dentro, no al final del
+// documento.
+console.log('\n── Un apartado propio dentro de otra sección ──');
+{
+  const dentro: RespuestasRequerimiento = {
+    ...base,
+    condiciones: { tiene_prestaciones_accesorias: true },
+    extras: [
+      {
+        id: 'extra:9',
+        titulo: 'Monitoreo y seguimiento',
+        texto: 'El contratista remitirá un tablero de seguimiento con periodicidad semanal.',
+        dentroDe: 'prestaciones_accesorias',
+      },
+    ],
+  };
+  const doc = ensamblarRequerimiento(plantilla, dentro, {});
+  comprobar('su título sale en el documento', doc.markdown.includes('Monitoreo y seguimiento'));
+  comprobar(
+    'y su contenido',
+    doc.markdown.includes('tablero de seguimiento con periodicidad semanal'),
+  );
+  comprobar(
+    'se numera como subapartado, no como apartado suelto',
+    /#{4,6} \d+(?:\.\d+)+\. Monitoreo y seguimiento/.test(doc.markdown),
+  );
+  comprobar(
+    'NO aparece entre los apartados de primer nivel',
+    !apartadosOrdenados(plantilla, dentro).some((a) => a.id === 'extra:9'),
+  );
+  comprobar(
+    'la revisión global lo mira igual',
+    inventarioRevisable(plantilla, dentro).some((a) => a.id === 'extra:9'),
+  );
+  const enBlanco = ensamblarRequerimiento(
+    plantilla,
+    { ...dentro, extras: [{ ...dentro.extras[0], texto: '' }] },
+    {},
+  );
+  comprobar(
+    'vacío cuenta como pendiente',
+    enBlanco.faltantes.some((f) => f.bloque === 'extra:9'),
+  );
+  comprobar(
+    'si su sección está apagada, no sale',
+    !ensamblarRequerimiento(plantilla, { ...dentro, condiciones: {} }, {}).markdown.includes(
+      'Monitoreo y seguimiento',
+    ),
+  );
+}
+
 // ── 5. El apartado propio no se queda fuera de lo demás ───────────────
 console.log('\n── Lo ve el revisor y lo ve el reparto ──');
 const inventario = inventarioRevisable(plantilla, conExtra);

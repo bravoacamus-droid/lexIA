@@ -184,6 +184,32 @@ export function construirIndice(
       sub++;
       recorrer(h, `${numero}.${sub}`, nivel + 1, raiz);
     }
+
+    // Y los que añadió la entidad dentro de esta sección.
+    for (const extra of respuestas.extras) {
+      if (extra.dentroDe !== s.id) continue;
+      sub++;
+      const titulo = extra.titulo.trim() || 'Apartado adicional';
+      const completo = !!extra.texto.trim();
+      grupos.push({
+        id: extra.id,
+        numero: `${numero}.${sub}`,
+        titulo,
+        nivel: nivel + 1,
+        raiz,
+        ancla: anclaApartado(extra.id),
+        entradas: [
+          {
+            id: extra.id,
+            etiqueta: titulo,
+            estado: completo ? 'completo' : 'pendiente',
+            ancla: anclaApartado(extra.id),
+          },
+        ],
+        completas: completo ? 1 : 0,
+        pendientes: completo ? 0 : 1,
+      });
+    }
   };
 
   let n = 0;
