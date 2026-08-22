@@ -335,7 +335,10 @@ export async function POST(req: Request) {
     for (const frase of enumeracion.frases) {
       const { data, error } = await supabase.rpc('buscar_frase', {
         frase,
-        filtro_tipo: null,
+        // Si nombró al órgano, se le devuelve lo de ese órgano: pidió
+        // casos del Tribunal y se le colaban pronunciamientos de la
+        // DSAT, que tratan el tema pero no son lo que pidió.
+        filtro_tipo: enumeracion.tipo ?? null,
         tope: enumeracion.cantidad,
         fragmentos_por_documento: 2,
       });

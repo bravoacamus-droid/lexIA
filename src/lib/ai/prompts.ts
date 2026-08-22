@@ -1,5 +1,5 @@
 import type { ChatSource } from '@/lib/supabase/types';
-import { BLOQUE_JERARQUIA, etiquetaJerarquia, ordenarPorJerarquia } from '@/lib/ai/jerarquia';
+import { BLOQUE_JERARQUIA, etiquetaFuente } from '@/lib/ai/jerarquia';
 import type { ProfileRole } from '@/lib/auth/session';
 
 /**
@@ -252,16 +252,24 @@ ${qaBlock ? 'Aunque no hay fragmentos normativos directos, tienes el criterio OE
   // riesgo de finishReason='RECITATION' del filter de Google.
   // Snippet completo cuando es respuesta puntual (mejor recall).
   const snippetLimit = panoramic ? 1200 : Infinity;
-  // La norma primero, el criterio después y la orientación al final. El
-  // modelo lee en orden y lo que ve antes pesa más: con las fuentes
-  // mezcladas, una opinión escrita bajo la norma anterior le ganó al
-  // Reglamento vigente y respondió siete días donde el numeral 142.3
-  // dice diez.
-  const ordenados = ordenarPorJerarquia(chunks);
-
-  const context = ordenados
+  // El orden es el de llegada, y a propósito.
+  //
+  // El 21/08/2026 se reordenaba el contexto por jerarquía para que la
+  // norma se leyera antes que el criterio. Medido con la Q8 del banco
+  // —qué ocurre hoy si un postor no firma el contrato—, aquello bajó la
+  // respuesta de un 92 % constante a una horquilla de 58 a 92: barajar
+  // veinte resoluciones que ya venían ordenadas por relevancia dispersa
+  // los detalles que solo aparecen en dos o tres de ellas. Sin
+  // reordenar: 92, 92 y 100.
+  //
+  // La norma llega delante igualmente, y por un camino que no rompe
+  // nada: la ruta la pide expresamente y la antepone a las fuentes
+  // (`route.ts`). Lo que sí se conserva de la jerarquía es lo que no
+  // baraja nada: la etiqueta de cada fragmento con su capa y el aviso
+  // de régimen derogado.
+  const context = chunks
     .map((c, i) => {
-      const header = `[${i + 1}] ${etiquetaJerarquia(c.doc_type)} — ${formatDocLabel(c)}`;
+      const header = `[${i + 1}] ${etiquetaFuente(c)} — ${formatDocLabel(c)}`;
       const body =
         c.snippet.length > snippetLimit
           ? c.snippet.slice(0, snippetLimit) + '\n[…]'
@@ -270,6 +278,10 @@ ${qaBlock ? 'Aunque no hay fragmentos normativos directos, tienes el criterio OE
     })
     .join('\n\n---\n\n');
 
+  // La MISMA lista que el contexto y en el mismo orden. Mientras el
+  // contexto fue ordenado y esta no, el [3] que escribía el modelo
+  // señalaba un documento en el contexto y otro en la whitelist, y de
+  // esta numeración sale el enlace que pulsa el usuario.
   const whitelist = chunks
     .map((c, i) => `  [${i + 1}] ${formatDocLabel(c)}`)
     .join('\n');
@@ -286,6 +298,7 @@ REGLA — uso correcto de la whitelist:
 1. Como FUENTE PRIMARIA que citas con [N] usa solo los documentos de la whitelist arriba — son los que están cargados en el pool actual del contexto.
 2. Si dentro del texto de un fragmento aparece OTRO documento normativo mencionado por su número (una directiva, opinión, pronunciamiento o resolución que NO está en la whitelist actual), ese documento SÍ puede existir en nuestra base normativa pero no está cargado en esta pregunta. Puedes mencionarlo diciendo "según se hace referencia en la [Fuente N de la whitelist]" o "el fragmento cita también la Directiva/Opinión X". NO afirmes que tienes acceso al texto completo de esos documentos referenciados.
 3. Cuando cites artículos de Ley o Reglamento por número, solo transcribe el CONTENIDO del artículo si su texto aparece dentro del fragmento. Si el fragmento solo lo menciona sin transcribirlo, di: "el fragmento hace referencia al artículo X" sin inventar su contenido.
+4. NO ESCRIBAS NUNCA el número de una resolución, opinión, pronunciamiento o directiva que no esté (a) en la whitelist de arriba o (b) escrito dentro del texto de algún fragmento. Ni siquiera como ejemplo, ni para ilustrar un criterio, ni aunque recuerdes que existe: un número que no puedas señalar en uno de esos dos sitios está inventado aunque el criterio que ilustra sea correcto, y el usuario lo va a buscar. Si quieres apoyarte en jurisprudencia que no tienes, di "el Tribunal se ha pronunciado en ese sentido" SIN número.
 ${panoramicBlock}
 ${BLOQUE_JERARQUIA}
 ═══════════════════════════════════════════════════════

@@ -79,6 +79,19 @@ void (async () => {
     detectarEnumeracion('Dame 10 casos sobre "contratación pública"') === null,
   );
 
+  comprobar(
+    `y que los casos los pidió al Tribunal, no a la DSAT (${peticion?.tipo})`,
+    peticion?.tipo === 'resolucion_tce',
+  );
+  comprobar(
+    'una pregunta por opiniones pide opiniones',
+    detectarEnumeracion('Dame 5 opiniones sobre la "prestación adicional de obra"')?.tipo === 'opinion',
+  );
+  comprobar(
+    'y sin órgano nombrado no se filtra nada',
+    detectarEnumeracion('Dame 5 ejemplos sobre la "prestación adicional de obra"')?.tipo === undefined,
+  );
+
   if (!peticion) {
     console.log('\n❌ sin petición no se puede seguir');
     process.exit(1);
@@ -88,7 +101,7 @@ void (async () => {
   const t0 = Date.now();
   const { data, error } = await admin.rpc('buscar_frase', {
     frase: peticion.frases[0],
-    filtro_tipo: null,
+    filtro_tipo: peticion.tipo ?? null,
     tope: peticion.cantidad,
     fragmentos_por_documento: 2,
   });

@@ -53,7 +53,11 @@ async function main() {
   const expansionTests: Array<[string, boolean]> = [
     // [query, deberíaExpandir]
     ['¿los impedimentos aplican a consorcios?', true], // impedimento → sí
-    ['quiero registrar mi empresa en el RNP', false],
+    // Antes se esperaba que NO expandiera, por miedo a sobre-disparar.
+    // El 18/08/2026 se cambió a propósito: César pidió que una consulta
+    // sobre el RNP traiga la Directiva que lo regula, y sin expandir la
+    // Directiva de Trámites ante el RNP no llegaba al modelo.
+    ['quiero registrar mi empresa en el RNP', true],
     ['¿cómo funciona la garantía de fiel cumplimiento?', false],
     ['si el ganador no firma el contrato qué pasa', true], // no firma → sí
   ];

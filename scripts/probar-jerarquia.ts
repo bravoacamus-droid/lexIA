@@ -23,8 +23,9 @@ import { createClient } from '@supabase/supabase-js';
 import { embedOne } from '../src/lib/ai/embeddings';
 import {
   BLOQUE_JERARQUIA,
+  etiquetaFuente,
   etiquetaJerarquia,
-  ordenarPorJerarquia,
+  regimenDe,
   rangoDe,
   TIPOS_CAPA_1,
 } from '../src/lib/ai/jerarquia';
@@ -53,22 +54,14 @@ for (const [tipo, capa] of [
 comprobar('un tipo desconocido cae en orientación, no en norma', rangoDe('lo_que_sea').capa === 3);
 comprobar('la capa 1 se puede pedir a la búsqueda', TIPOS_CAPA_1.includes('reglamento'));
 
-console.log('\n── El orden con el que lee el modelo ──');
-const mezcla = [
-  { doc_type: 'opinion', similarity: 0.9 },
-  { doc_type: 'guia', similarity: 0.95 },
-  { doc_type: 'reglamento', similarity: 0.4 },
-  { doc_type: 'resolucion_tce', similarity: 0.8 },
-  { doc_type: 'ley', similarity: 0.3 },
-];
-const ordenada = ordenarPorJerarquia(mezcla);
-comprobar('la Ley va primera aunque se parezca menos', ordenada[0].doc_type === 'ley');
-comprobar('el Reglamento va segundo', ordenada[1].doc_type === 'reglamento');
-comprobar('la opinión queda por detrás del Tribunal', 
-  ordenada.findIndex((x) => x.doc_type === 'opinion') >
-  ordenada.findIndex((x) => x.doc_type === 'resolucion_tce'));
-comprobar('la guía va la última pese a ser la más parecida', ordenada[4].doc_type === 'guia');
+console.log('\n── Quién decide el orden ──');
+// Ya no se reordena el contexto. Medido: barajar veinte resoluciones que
+// venían por relevancia perdía los detalles que solo estaban en dos o
+// tres de ellas, y la Q8 del banco de César caía del 92 % al 58 %. La
+// norma va delante porque la ruta la pide aparte y la antepone, no
+// porque se reordene lo demás.
 comprobar('la etiqueta dice la capa', etiquetaJerarquia('opinion').startsWith('CAPA 2'));
+comprobar('y la Ley es capa 1', rangoDe('ley').capa === 1);
 
 console.log('\n── Las reglas que recibe el modelo ──');
 // El bloque va formateado a columna, así que las frases se cortan en
@@ -77,7 +70,12 @@ const reglas = BLOQUE_JERARQUIA.replace(/\s+/g, ' ');
 for (const frase of [
   'Ningún criterio interpretativo',
   'contradecir una norma de superior jerarquía',
-  'Un plazo, un requisito o un umbral se responden SIEMPRE con la capa 1',
+  'Un plazo, un requisito o un umbral se responden con la capa 1',
+  // Y la otra mitad de esa regla, que se añadió el 22/08/2026 al medir
+  // que la cautela hacía callar datos correctos: si el dato solo está en
+  // un criterio que aplica la norma vigente, se da igual, atribuido.
+  'DALO IGUALMENTE',
+  'RÉGIMEN ANTERIOR interpretan la Ley N° 30225',
   'NO elijas automáticamente el más reciente',
   'Ley N° 30225',
 ]) {
@@ -114,7 +112,8 @@ void (async () => {
   );
   const ya = new Set(base.map((c) => c.chunk_id));
   const norma = dirigida.flat().filter((c) => !ya.has(c.chunk_id));
-  const todas = ordenarPorJerarquia([...norma, ...base]);
+  // Igual que la ruta: la norma se antepone y el resto no se toca.
+  const todas = [...norma, ...base];
 
   comprobar('la búsqueda dirigida añade norma', norma.length > 0);
   comprobar(
@@ -150,7 +149,45 @@ void (async () => {
     norma2.some((c) => plazoCorrecto.test(c.content)),
   );
 
-  console.log(
+  console.log('\n── La marca de régimen ──');
+{
+  // Lo que consta: un documento de 2023 no puede interpretar una ley que
+  // entró en vigencia en 2025, y el que nombra la 30225 lo dice él solo.
+  const anteriores = [
+    { doc_type: 'opinion', doc_title: 'Opinión N° 098-2023/DTN', doc_number: 'Opinión N° 098-2023/DTN' },
+    { doc_type: 'opinion', doc_title: 'Opinión N° 037-2024/DTN', doc_number: 'Opinión N° 037-2024/DTN' },
+    { doc_type: 'guia', doc_title: 'Preguntas Frecuentes sobre la Ley N° 30225 y su Reglamento', doc_number: null },
+  ];
+  for (const d of anteriores) {
+    comprobar(`"${String(d.doc_title).slice(0, 46)}" es del régimen anterior`, regimenDe(d) === 'anterior');
+  }
+  const noMarcados = [
+    { doc_type: 'ley', doc_title: 'Ley General de Contrataciones Públicas N° 32069', doc_number: null },
+    { doc_type: 'resolucion_tce', doc_title: 'Resolución N° 7384-2026-S1', doc_number: 'Resolución N° 7384-2026-S1' },
+    { doc_type: 'pronunciamiento', doc_title: 'Pronunciamiento N° 134-2026/OECE-DSAT', doc_number: 'Pronunciamiento N° 134-2026/OECE-DSAT' },
+  ];
+  for (const d of noMarcados) {
+    comprobar(`"${String(d.doc_title).slice(0, 46)}" no se marca`, regimenDe(d) !== 'anterior');
+  }
+  comprobar(
+    'el número de la ley no se confunde con un año',
+    regimenDe({ doc_type: 'ley', doc_title: 'Ley N° 32069', doc_number: null }) !== 'anterior',
+  );
+  comprobar(
+    'una norma de 2024 que sigue vigente NO se marca',
+    regimenDe({
+      doc_type: 'reglamento',
+      doc_title: 'Texto Único Ordenado del DS N° 206-2024-EF — Reactivación de obras públicas',
+      doc_number: null,
+    }) !== 'anterior',
+  );
+  comprobar(
+    'la etiqueta avisa de la norma derogada',
+    etiquetaFuente(anteriores[0]).includes('RÉGIMEN ANTERIOR'),
+  );
+}
+
+console.log(
     fallos === 0
       ? '\n✅ La norma llega, va primera y las reglas de jerarquía están en el prompt.'
       : `\n❌ ${fallos} problema(s).`,

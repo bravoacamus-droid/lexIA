@@ -150,7 +150,14 @@ interface CitationCheck {
   in_sources: boolean;
   exists_in_db: boolean;
   db_match?: { doc_type?: string; doc_number?: string | null; doc_title?: string };
-  verdict: 'OK_LINKED' | 'OK_IN_SOURCES' | 'OK_DB_ONLY' | 'HALLUCINATION' | 'AMBIGUOUS';
+  verdict:
+    | 'OK_LINKED'
+    | 'OK_IN_SOURCES'
+    | 'OK_DB_ONLY'
+    /** La nombra para decir que no la tiene. */
+    | 'OK_DENIED'
+    | 'HALLUCINATION'
+    | 'AMBIGUOUS';
 }
 
 interface TestResult {
@@ -168,13 +175,91 @@ interface TestResult {
 // Helper: verificar existencia de una cita en la BD.
 // ────────────────────────────────────────────────────
 
-function normalize(s: string): string {
+export function normalize(s: string): string {
   return s
     .toLowerCase()
     .replace(/n\.?°/gi, '')
     .replace(/[\s\.]/g, '')
-    .replace(/[\/]/g, '-')
+    // Los guiones no distinguen un documento de otro: la biblioteca
+    // guarda "003-2025-OECECD" y la gente cita "003-2025-OECE-CD". Sin
+    // esto, una directiva que SÍ existe se marcaba como inventada.
+    .replace(/[\/\-‐-―]/g, '')
     .trim();
+}
+
+/**
+ * ¿La respuesta nombra ese documento para NEGARLO?
+ *
+ * "En los fragmentos disponibles no aparece ninguna referencia a la
+ * Directiva N° 999-2027-OECE-CD" es exactamente lo que queremos que haga
+ * el chat ante un documento inventado. Contarlo como alucinación
+ * castigaba la conducta correcta, y así se marcaron tres falsas en el
+ * grupo de trampas.
+ *
+ * La búsqueda es normalizada —no literal— porque el modelo reescribe la
+ * numeración a su manera ("Directiva 999-2027" por "Directiva N.°
+ * 999-2027-OECE-CD") y comparar cadenas exactas dejaba fuera justo el
+ * caso que se quiere reconocer.
+ */
+/** Formas de decir que un documento no está: 'no aparece', 'no he
+ * encontrado', 'no consta', 'no figura entre los fragmentos'. */
+const NIEGA =
+  /\bno\b[^.;:]{0,40}?(?:encuent|encontr|halle|hallo|hallad|dispong|tengo|existe|aparec|figur|consta|registr|localiz|identific|cuento|obran?|hay)/i;
+
+/**
+ * Lo que da la vuelta a una negación: 'no hay plazo en la Ley, PERO la
+ * Opinión X sí lo fija' afirma la Opinión, no la niega.
+ */
+const ADVERSATIVO = /\b(?:pero|sin embargo|no obstante|aunque|aun as[i\u00ed]|s[i\u00ed] (?:lo|la|se|figura|consta))\b/i;
+
+export function comoPatron(aguja: string): RegExp | null {
+  // Las piezas con contenido: 'Directiva N.° 999-2027-OECE-CD' son
+  // Directiva / 999 / 2027 / OECE / CD. Entre ellas el modelo pone lo que
+  // quiere —guión, barra, 'N°', nada— y todas las formas nombran al
+  // mismo documento.
+  const piezas = aguja.match(/[a-z0-9áéíóúñ]+/gi)?.filter((t) => !/^n[oº]?$/i.test(t));
+  if (!piezas || piezas.length === 0) return null;
+  const separador = '(?:[\\s.,;:°º/-]|n(?![a-z]))*';
+  return new RegExp(piezas.join(separador), 'gi');
+}
+
+/** La oración que rodea a una posición, sin invadir las vecinas. */
+function oracionEn(texto: string, desde: number, hasta: number): [string, string] {
+  const corte = /[.;:\n]/;
+  let i = desde;
+  while (i > 0 && !corte.test(texto[i - 1])) i--;
+  let j = hasta;
+  while (j < texto.length && !corte.test(texto[j])) j++;
+  return [texto.slice(i, desde), texto.slice(hasta, j)];
+}
+
+/**
+ * ¿La respuesta nombra ese documento para NEGARLO?
+ *
+ * 'En los fragmentos disponibles no aparece ninguna referencia a la
+ * Directiva N° 999-2027-OECE-CD' es exactamente lo que queremos que haga
+ * el chat ante un documento inventado. Contarlo como alucinación
+ * castigaba la conducta correcta, y así se marcaron tres falsas.
+ *
+ * Se mira la oración, no una ventana de caracteres: la negación puede ir
+ * delante ('no consta la Opinión X') o detrás ('la Resolución X no
+ * figura'), pero una negación de la frase anterior no cuenta.
+ */
+export function enContextoNegado(respuesta: string, aguja: string): boolean {
+  const patron = comoPatron(aguja);
+  if (!patron) return false;
+  const apariciones = [...respuesta.matchAll(patron)];
+  if (apariciones.length === 0) return false;
+  // Basta con que una aparición se afirme para que no valga.
+  return apariciones.every((m) => {
+    const desde = m.index ?? 0;
+    const [antes, despues] = oracionEn(respuesta, desde, desde + m[0].length);
+    const negaciones = [...antes.matchAll(new RegExp(NIEGA.source, 'gi'))];
+    const ultima = negaciones[negaciones.length - 1];
+    // 'no hay plazo en la Ley, pero la Opinión X sí lo fija' afirma.
+    const negadaAntes = !!ultima && !ADVERSATIVO.test(antes.slice(ultima.index ?? 0));
+    return negadaAntes || NIEGA.test(despues);
+  });
 }
 
 async function verifyCitationInDb(
@@ -286,6 +371,9 @@ async function runOne(
       verdict = 'OK_IN_SOURCES';
     } else if (!inSources && dbCheck.found) {
       verdict = 'OK_DB_ONLY'; // existe pero no fue devuelto por RAG — no es alucinación
+    } else if (enContextoNegado(response, m.text) || enContextoNegado(response, m.number)) {
+      // La nombra para decir que no la tiene: es lo que debe hacer.
+      verdict = 'OK_DENIED';
     } else {
       verdict = 'HALLUCINATION';
       hallucinations++;
@@ -309,25 +397,21 @@ async function runOne(
 
   // 6. Comprobación especial para grupo C (trampas)
   if (tc.invented_traps && tc.invented_traps.length > 0) {
-    for (const trap of tc.invented_traps) {
-      const norm = normalize(trap);
-      // ¿La respuesta cita el número de la trampa como si existiera?
-      const respNorm = normalize(response);
-      if (respNorm.includes(norm)) {
-        // Verificar que NO sea "no encuentro" o similar
-        const context = extractContext(response, trap, 100);
-        const isDeniedContext = /no\s*(encuent|halle|hallo|dispong|tengo|existe)|no\s*aparece|no\s*hay/i.test(
-          context,
-        );
-        if (!isDeniedContext) {
-          notes.push(`❌ Trampa activada: cita "${trap}" sin admitir que no existe.`);
-          hallucinations++;
-        } else {
-          notes.push(`✅ Trampa "${trap}" detectada correctamente (admite no tenerla).`);
-        }
-      } else {
-        notes.push(`✅ No mencionó la trampa "${trap}".`);
-      }
+    // Las trampas de un caso son variantes de UN documento inventado
+    // ("Directiva 999-2027-OECE-CD" y "Directiva N° 999-2027-OECE-CD").
+    // Juzgarlas por separado daba dos notas contrarias sobre lo mismo y
+    // sumaba dos alucinaciones donde había una sola mención.
+    const mencionadas = tc.invented_traps.filter((t) =>
+      normalize(response).includes(normalize(t)),
+    );
+    const etiqueta = tc.invented_traps[0];
+    if (mencionadas.length === 0) {
+      notes.push(`✅ No mencionó la trampa "${etiqueta}".`);
+    } else if (mencionadas.every((t) => enContextoNegado(response, t))) {
+      notes.push(`✅ Trampa "${etiqueta}" detectada correctamente (admite no tenerla).`);
+    } else {
+      notes.push(`❌ Trampa activada: cita "${etiqueta}" sin admitir que no existe.`);
+      hallucinations++;
     }
   }
 
@@ -465,7 +549,12 @@ async function main() {
   console.log('\n═══════════════════════════════════════════════════════════\n');
 }
 
-main().catch((e) => {
-  console.error('Fatal:', e);
-  process.exit(1);
-});
+// Solo cuando se lanza a mano: `probar-verificador-citas.ts` importa de
+// aquí la regla que decide qué es una cita inventada, y no quiere de
+// paso una tanda de diez llamadas al modelo.
+if (/test-rag-strict/.test(process.argv[1] ?? '')) {
+  main().catch((e) => {
+    console.error('Fatal:', e);
+    process.exit(1);
+  });
+}

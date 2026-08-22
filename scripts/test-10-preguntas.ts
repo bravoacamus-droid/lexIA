@@ -144,12 +144,22 @@ async function main() {
         similarity: r.similarity,
       })),
     );
-    const { text: voiceText } = await generateText({
+    // El prompt de la voz declara la herramienta `search_normativa`, que
+    // aquí no existe: su resultado ya va pegado abajo. Cuando el modelo
+    // decide llamarla igualmente, la librería lanza y se llevaba por
+    // delante el banco entero a mitad de la tercera pregunta. Una
+    // pregunta que no se puede medir se anota y se sigue.
+    let voiceText = '';
+    try {
+      ({ text: voiceText } = await generateText({
       model: chatModel,
       system: `${VOICE_SYSTEM_PROMPT}\n\n==== TOOL search_normativa RESULT ====\n${voiceRag}`,
       prompt: q.q,
       temperature: 0.2,
-    });
+    }));
+    } catch (e) {
+      console.log(`     ⚠️  voz no medida: ${String(e).slice(0, 90)}`);
+    }
 
     const r: Result = {
       id: q.id,

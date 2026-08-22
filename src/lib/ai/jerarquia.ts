@@ -78,6 +78,93 @@ const RANGOS: Record<string, Rango> = {
 
 const POR_DEFECTO: Rango = { capa: 3, orden: 9, etiqueta: 'Documento de orientación' };
 
+/**
+ * El 22 de abril de 2025 entró en vigencia la Ley N° 32069 y su
+ * Reglamento. Lo dice, entre otras, la Resolución N° 7505-2026-S4 del
+ * Tribunal, y de ahí sale esta fecha: no es una suposición.
+ *
+ * Antes de ese día regía la Ley N° 30225 y su Reglamento. Todo criterio
+ * emitido bajo aquella norma sigue siendo útil para entender una figura,
+ * pero sus plazos, umbrales y porcentajes pueden estar cambiados.
+ */
+export const VIGENCIA_32069 = '2025-04-22';
+
+/** Normas derogadas, tal como se las nombra en los documentos. */
+const NORMAS_DEROGADAS = /30225|082-2019-EF|344-2018-EF|350-2015-EF|30114/;
+
+/**
+ * El año de un documento, sacado de cómo se le nombra: "Opinión N°
+ * 098-2023/DTN", "Resolución N° 4377-2025-S3", "D000016-2026-OECE-DTN".
+ *
+ * Se exige que empiece por 19 o 20 para no confundir el año con el
+ * número de la ley: en "Ley N° 32069" no hay ningún año.
+ */
+function anioDe(texto: string): number | null {
+  const anios = [...texto.matchAll(/\b(?:19|20)\d\d\b/g)].map((m) => Number(m[0]));
+  return anios.length > 0 ? Math.max(...anios) : null;
+}
+
+export interface FuenteJerarquia {
+  doc_type: string;
+  doc_title?: string | null;
+  doc_number?: string | null;
+  /** El texto del fragmento, cuando se tiene: dice bajo qué norma habla. */
+  snippet?: string | null;
+  similarity?: number;
+}
+
+/**
+ * ¿Este documento habla de la norma vigente o de la derogada?
+ *
+ * Solo se marca lo que consta: un documento de 2023 interpreta la Ley N°
+ * 30225 porque la otra no existía, y uno que nombra la 30225 en su
+ * título tampoco deja dudas. Del resto no se dice nada, que es distinto
+ * de decir que es vigente.
+ *
+ * POR QUÉ HACE FALTA
+ *
+ * Medido el 22/08/2026 con la pregunta de César sobre la ampliación de
+ * plazo en obras: de veinticuatro fragmentos recuperados, DOCE decían
+ * "quince (15) días" —opiniones de 2020 a 2024 y unas preguntas
+ * frecuentes de la Ley N° 30225— y uno solo, el del artículo 200 del
+ * Reglamento vigente, decía diez. Con esa mayoría el modelo respondió
+ * quince. Ordenar por capas no basta cuando doce voces repiten la cifra
+ * vieja: hay que decirle cuáles son viejas.
+ */
+export function regimenDe(fuente: FuenteJerarquia): 'anterior' | 'indeterminado' {
+  const nombre = `${fuente.doc_title ?? ''} ${fuente.doc_number ?? ''}`;
+  // Que se nombre a sí mismo bajo una norma derogada vale para
+  // cualquier capa.
+  if (NORMAS_DEROGADAS.test(nombre)) return 'anterior';
+  // La fecha, en cambio, solo dice algo de los criterios. Una norma no
+  // caduca por ser vieja: el Texto Único Ordenado del DS N° 206-2024-EF
+  // —reactivación de obras paralizadas— es de 2024 y sigue vigente, y
+  // marcarlo como derogado habría hecho que el modelo lo descartara.
+  if (rangoDe(fuente.doc_type).capa === 1) return 'indeterminado';
+
+  // Lo que dice el propio fragmento manda sobre la fecha del documento.
+  //
+  // Una resolución de 2026 puede estar juzgando hechos de 2023 y aplicar
+  // la Ley N° 30225 —"norma vigente al momento de la ocurrencia de los
+  // hechos", escriben—. Medido con la pregunta del banco sobre
+  // contrataciones de emergencia: de los diez fragmentos que daban el
+  // plazo de regularización, nueve decían diez días y solo el artículo
+  // 289.2 del Reglamento vigente decía veinte; entre esos nueve había
+  // resoluciones de 2025 que por fecha no se marcaban.
+  //
+  // Si el fragmento nombra las dos normas está explicando el tránsito de
+  // una a otra, y entonces no se marca: esa comparación es justo lo que
+  // se quiere leer.
+  const texto = fuente.snippet ?? '';
+  if (texto && NORMAS_DEROGADAS.test(texto) && !/32069|009-2025-EF/.test(texto)) {
+    return 'anterior';
+  }
+
+  const anio = anioDe(nombre);
+  if (anio !== null && anio < 2025) return 'anterior';
+  return 'indeterminado';
+}
+
 export function rangoDe(tipo: string): Rango {
   return RANGOS[tipo] ?? POR_DEFECTO;
 }
@@ -87,30 +174,25 @@ export const TIPOS_CAPA_1 = Object.entries(RANGOS)
   .filter(([, r]) => r.capa === 1)
   .map(([tipo]) => tipo);
 
-/**
- * Ordena las fuentes por jerarquía y, dentro de cada rango, por lo bien
- * que responden a la pregunta.
- *
- * Que el Reglamento vaya el primero no es cosmético: el modelo lee en
- * orden y lo que ve antes pesa más en lo que escribe.
- */
-export function ordenarPorJerarquia<T extends { doc_type: string; similarity?: number }>(
-  fuentes: T[],
-): T[] {
-  return [...fuentes].sort((a, b) => {
-    const ra = rangoDe(a.doc_type);
-    const rb = rangoDe(b.doc_type);
-    if (ra.capa !== rb.capa) return ra.capa - rb.capa;
-    if (ra.orden !== rb.orden) return ra.orden - rb.orden;
-    return (b.similarity ?? 0) - (a.similarity ?? 0);
-  });
-}
-
 /** Etiqueta que precede a cada fuente en el contexto del modelo. */
 export function etiquetaJerarquia(tipo: string): string {
   const r = rangoDe(tipo);
   const nombre = r.capa === 1 ? 'NORMA' : r.capa === 2 ? 'CRITERIO' : 'ORIENTACIÓN';
   return `CAPA ${r.capa} · ${nombre}`;
+}
+
+/**
+ * La etiqueta completa, con el aviso de norma derogada cuando toca.
+ *
+ * El aviso va en la cabecera del fragmento y no en una nota al pie
+ * porque el modelo lee la cabecera junto al texto: si la advertencia
+ * está lejos, se le olvida al llegar a la cifra.
+ */
+export function etiquetaFuente(fuente: FuenteJerarquia): string {
+  const base = etiquetaJerarquia(fuente.doc_type);
+  return regimenDe(fuente) === 'anterior'
+    ? `${base} · RÉGIMEN ANTERIOR (Ley N° 30225, derogada el 22/04/2025)`
+    : base;
 }
 
 /**
@@ -139,12 +221,16 @@ REGLAS QUE NO PUEDES ROMPER:
    informe, lineamiento o resolución puede utilizarse para contradecir
    una norma de superior jerarquía.
 
-2. Un plazo, un requisito o un umbral se responden SIEMPRE con la capa 1
-   cuando la tengas entre los fragmentos, citando el artículo o numeral.
-   Si solo tienes una fuente de capa 2 o 3 para ese dato, dilo
-   expresamente: "no consta en la Ley ni el Reglamento entre los
-   fragmentos recuperados; lo siguiente proviene de [tipo de documento],
-   que interpreta la norma y debe verificarse contra el texto vigente".
+2. Un plazo, un requisito o un umbral se responden con la capa 1 cuando
+   la tengas entre los fragmentos, citando el artículo o numeral.
+
+   Si el dato solo consta en fuentes de capa 2 o 3 que aplican la norma
+   VIGENTE —una resolución de este año que cita el artículo, por
+   ejemplo—, DALO IGUALMENTE y di de dónde sale: "según la Resolución
+   N° …, que aplica el artículo …; conviene contrastarlo con el texto
+   vigente". Callarse un dato correcto por prudencia es tan malo como
+   dar uno equivocado: el usuario se queda sin la mitad de la respuesta
+   y no se entera.
 
 3. Si una fuente de capa 2 o 3 dice una cifra distinta de la que dice la
    capa 1, manda la capa 1. Explica la discrepancia en una línea: es
@@ -158,4 +244,16 @@ REGLAS QUE NO PUEDES ROMPER:
 
 5. Antes de aplicar un criterio, identifica su naturaleza jurídica,
    órgano emisor, fundamento normativo, ámbito de aplicación, vigencia y
-   eventual carácter vinculante.`;
+   eventual carácter vinculante.
+
+6. Los fragmentos marcados RÉGIMEN ANTERIOR interpretan la Ley N° 30225,
+   derogada el 22 de abril de 2025. NO tomes de ellos un plazo, un
+   umbral, un porcentaje ni una cifra para darla como respuesta, por
+   muchos fragmentos que la repitan: que doce documentos digan lo mismo
+   no los hace vigentes, los hace igual de antiguos. Sirven para explicar
+   una figura, no para fijar un número.
+
+   Si la cifra que te piden solo aparece en fragmentos de régimen
+   anterior, dilo así: "el dato proviene de criterios emitidos bajo la
+   Ley N° 30225, derogada; bajo la Ley N° 32069 debe verificarse en el
+   artículo correspondiente del Reglamento vigente".`;

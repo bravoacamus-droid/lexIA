@@ -31,6 +31,27 @@ export interface PeticionEnumeracion {
    * comillas, ha escrito el nombre exacto de la figura.
    */
   frases: string[];
+  /**
+   * El tipo de documento que pidió el usuario, cuando lo nombra.
+   *
+   * "casos que resolvió el tribunal frente a un recurso de apelación"
+   * son resoluciones del Tribunal, no pronunciamientos de la DSAT.
+   * Medido el 22/08/2026 con la pregunta de César: de los diez casos que
+   * se le devolvieron, cuatro eran pronunciamientos —correctos sobre el
+   * tema, pero no era lo que había pedido—.
+   */
+  tipo?: 'resolucion_tce' | 'pronunciamiento' | 'opinion';
+}
+
+/**
+ * A quién le pide los casos. Manda el órgano cuando lo nombra, porque es
+ * más explícito que el sustantivo genérico "casos".
+ */
+function tipoPedido(texto: string): PeticionEnumeracion['tipo'] {
+  if (/\btribunal\b|resoluciones|recurso de apelación/i.test(texto)) return 'resolucion_tce';
+  if (/pronunciamientos?\b|DSAT/i.test(texto)) return 'pronunciamiento';
+  if (/opiniones|\bDTN\b/i.test(texto)) return 'opinion';
+  return undefined;
 }
 
 /** Verbos y sustantivos con los que se pide una lista de casos. */
@@ -95,5 +116,5 @@ export function detectarEnumeracion(texto: string): PeticionEnumeracion | null {
   // esta vía solo aporta cuando hay un nombre exacto que perseguir.
   if (frases.length === 0) return null;
 
-  return { cantidad, frases: frases.slice(0, 2) };
+  return { cantidad, frases: frases.slice(0, 2), tipo: tipoPedido(texto) };
 }
