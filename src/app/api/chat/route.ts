@@ -778,6 +778,55 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
         snippet: c.content,
       }));
     }
+    /**
+     * La norma tiene que estar, aunque el parecido no la traiga.
+     *
+     * Medido con la pregunta de César sobre la ampliación de plazo: de
+     * quince fragmentos recuperados, CATORCE eran opiniones de entre
+     * 2021 y 2024 —todas de la norma anterior— y uno solo era norma
+     * vigente. Cinco decían "siete (7) días" y dos "diez (10) días". Con
+     * esa mayoría el modelo respondió siete; el numeral 142.3 del
+     * Reglamento dice diez.
+     *
+     * Por eso se pide expresamente lo que manda: unos pocos fragmentos
+     * de la Ley y del Reglamento para la misma consulta. No sustituyen a
+     * nada —se añaden— y el orden por jerarquía los pone delante.
+     */
+    if (queryEmbedding) {
+      const deCapa1 = await Promise.all(
+        (['ley', 'reglamento', 'directiva'] as const).map(async (tipo) => {
+          const { data, error } = await supabase.rpc('hybrid_search', {
+            query_text: lastUser.content.slice(0, 400),
+            query_embedding: queryEmbedding as unknown as number[],
+            match_count: 3,
+            filter_type: tipo,
+          });
+          if (error) {
+            console.error('[chat] búsqueda de capa 1 falló:', tipo, error.message);
+            return [];
+          }
+          return (data ?? []) as HybridSearchRow[];
+        }),
+      );
+
+      const yaEstan = new Set(sources.map((s) => s.chunk_id));
+      const norma = deCapa1
+        .flat()
+        .filter((c) => !yaEstan.has(c.chunk_id))
+        .map((c) => ({
+          chunk_id: c.chunk_id,
+          doc_id: c.document_id,
+          doc_title: c.doc_title,
+          doc_type: c.doc_type,
+          doc_number: c.doc_number,
+          snippet: c.content,
+        }));
+      if (norma.length > 0) {
+        sources = [...norma, ...sources];
+        console.log('[chat] capa_1_anadida', { fragmentos: norma.length });
+      }
+    }
+
     // Log diagnóstico: registra el resultado del retrieval por request.
     // Útil cuando el usuario reporta "no vienen fuentes" — permite
     // distinguir 0 chunks (retrieval vacío) vs. chunks OK pero header

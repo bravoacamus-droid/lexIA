@@ -1,4 +1,5 @@
 import type { ChatSource } from '@/lib/supabase/types';
+import { BLOQUE_JERARQUIA, etiquetaJerarquia, ordenarPorJerarquia } from '@/lib/ai/jerarquia';
 import type { ProfileRole } from '@/lib/auth/session';
 
 /**
@@ -251,9 +252,16 @@ ${qaBlock ? 'Aunque no hay fragmentos normativos directos, tienes el criterio OE
   // riesgo de finishReason='RECITATION' del filter de Google.
   // Snippet completo cuando es respuesta puntual (mejor recall).
   const snippetLimit = panoramic ? 1200 : Infinity;
-  const context = chunks
+  // La norma primero, el criterio después y la orientación al final. El
+  // modelo lee en orden y lo que ve antes pesa más: con las fuentes
+  // mezcladas, una opinión escrita bajo la norma anterior le ganó al
+  // Reglamento vigente y respondió siete días donde el numeral 142.3
+  // dice diez.
+  const ordenados = ordenarPorJerarquia(chunks);
+
+  const context = ordenados
     .map((c, i) => {
-      const header = `[${i + 1}] ${formatDocLabel(c)}`;
+      const header = `[${i + 1}] ${etiquetaJerarquia(c.doc_type)} — ${formatDocLabel(c)}`;
       const body =
         c.snippet.length > snippetLimit
           ? c.snippet.slice(0, snippetLimit) + '\n[…]'
@@ -279,8 +287,9 @@ REGLA — uso correcto de la whitelist:
 2. Si dentro del texto de un fragmento aparece OTRO documento normativo mencionado por su número (una directiva, opinión, pronunciamiento o resolución que NO está en la whitelist actual), ese documento SÍ puede existir en nuestra base normativa pero no está cargado en esta pregunta. Puedes mencionarlo diciendo "según se hace referencia en la [Fuente N de la whitelist]" o "el fragmento cita también la Directiva/Opinión X". NO afirmes que tienes acceso al texto completo de esos documentos referenciados.
 3. Cuando cites artículos de Ley o Reglamento por número, solo transcribe el CONTENIDO del artículo si su texto aparece dentro del fragmento. Si el fragmento solo lo menciona sin transcribirlo, di: "el fragmento hace referencia al artículo X" sin inventar su contenido.
 ${panoramicBlock}
+${BLOQUE_JERARQUIA}
 ═══════════════════════════════════════════════════════
-CONTEXTO NORMATIVO RECUPERADO:
+CONTEXTO NORMATIVO RECUPERADO (ordenado por jerarquía):
 ═══════════════════════════════════════════════════════
 
 ${context}
