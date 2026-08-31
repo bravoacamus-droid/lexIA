@@ -528,7 +528,16 @@ export function ensamblarRequerimiento(
           break;
 
         case 'fijo':
-          partes.push(b.texto, '');
+          if (b.lista) {
+            // Una enumeración del formato: cada renglón, su viñeta.
+            for (const linea of b.texto.split('\n')) {
+              const t = linea.trim();
+              if (t) partes.push(`- ${t}`);
+            }
+            partes.push('');
+          } else {
+            partes.push(b.texto, '');
+          }
           break;
 
         case 'nota':

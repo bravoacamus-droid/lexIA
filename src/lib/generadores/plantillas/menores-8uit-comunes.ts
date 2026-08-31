@@ -189,6 +189,7 @@ export function seccionesRegimenContratoMenor(): Seccion[] {
           clase: 'fijo',
           texto:
             'Ocurre un caso fortuito o fuerza mayor que imposibilita la continuación del contrato.\nSe produce el incumplimiento de obligaciones contractuales, por causa atribuible a la parte que incumple.\nSe presenta un hecho sobreviniente al perfeccionamiento del contrato, de supuesto distinto al caso fortuito o fuerza mayor, no imputable a ninguna de las partes, que imposibilite la continuidad del contrato.\nPor incumplimiento la cláusula anticorrupción.\nPor la presentación de documentación falsa o inexacta durante la ejecución contractual.\nSe configura una condición de terminación anticipada establecida en el contrato, de acuerdo con los supuestos que se establezcan en el reglamento para su aplicación.\nSe alcanza el monto máximo permitido por penalidades por mora y otras penalidades, durante la ejecución de la prestación a cargo del contratista.\nCuando la entidad sustente de manera objetiva que, la situación de incumplimiento ya no pueda ser revertida.',
+                  lista: true,
         },
         {
           clase: 'fijo',
@@ -217,11 +218,13 @@ export function seccionConfidencialidad(conIncumplimiento = false): Seccion {
       clase: 'fijo',
       texto:
         'Se considera información confidencial, sin carácter limitativo:\nInformación técnica relacionada con infraestructura tecnológica, sistemas, configuraciones, diagramas, redes o equipamiento.\nDocumentación administrativa o contractual.\nDatos personales o información de acceso restringido.\nInformación verbal, escrita, digital, magnética o en cualquier otro soporte.',
+          lista: true,
     },
     {
       clase: 'fijo',
       texto:
         'Utilizar la información única y exclusivamente para la ejecución del contrato.\nNo divulgarla, transferirla, reproducirla ni ponerla a disposición de terceros sin autorización previa y expresa de la Entidad.\nAdoptar las medidas de seguridad necesarias para evitar su pérdida, alteración, acceso no autorizado o uso indebido.',
+          lista: true,
     },
   ];
   const subsecciones: Seccion[] = [
@@ -264,6 +267,7 @@ export function seccionConfidencialidad(conIncumplimiento = false): Seccion {
           clase: 'fijo',
           texto:
             'Aplicar las penalidades que correspondan.\nResolver el contrato por incumplimiento.\nExigir la indemnización por los daños y perjuicios ocasionados.\nIniciar las acciones administrativas, civiles o penales que resulten pertinentes.',
+                  lista: true,
         },
       ],
     });

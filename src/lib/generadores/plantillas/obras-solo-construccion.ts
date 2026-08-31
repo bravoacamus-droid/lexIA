@@ -165,6 +165,7 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
               texto:
                 'Seguro Complementario de Trabajo de Riesgo (SCTR Salud y SCTR Pensiones) para el personal que participe en la ejecución de la obra.\nSeguro de Responsabilidad Civil Extracontractual que cubra daños personales y materiales ocasionados a terceros.\nSeguro Todo Riesgo Construcción (CAR), cuando corresponda por la naturaleza y magnitud de la obra.',
               fundamento: 'Plantilla — seguros mínimos en obras',
+                          lista: true,
             },
             {
               clase: 'redactado',
@@ -935,6 +936,7 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
               texto:
                 'Contar con RUC activo y habido en la SUNAT.\nRealizar actividades en el objeto de la contratación.\nPersona natural y/o jurídica.\nNo debe tener impedimentos para contratar con el Estado.\nContar con inscripción vigente en el RNP como Ejecutor de Obras, con una capacidad libre de contratación suficiente para la ejecución de la obra objeto de contratación.',
               fundamento: 'Plantilla — requisitos del proveedor en obras',
+                          lista: true,
             },
           ],
         },

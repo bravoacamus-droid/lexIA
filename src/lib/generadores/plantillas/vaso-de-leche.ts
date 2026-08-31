@@ -799,6 +799,7 @@ export const PLANTILLA_VASO_DE_LECHE: PlantillaRequerimiento = {
               texto:
                 'Contar con RUC activo y habido en la SUNAT.\nRealizar actividades en el objeto de la contratación.\nPersona natural y/o jurídica.\nNo debe tener impedimentos para contratar con el Estado.',
               fundamento: 'Plantilla — requisitos del proveedor',
+                          lista: true,
             },
           ],
         },

@@ -319,15 +319,31 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
           id: 'visitas_muestras',
           titulo: 'Visitas y muestras',
           condicion: 'requiere_muestras',
+          // Son dos cosas distintas y el formato las separa: la visita
+          // al lugar y la muestra del producto. Observación de César
+          // (agosto de 2026): "la visita y muestra, cada aspecto es de
+          // manera independiente y el ejemplo debe mostrarse completo".
           bloques: [
+            { clase: 'titulo', texto: 'Visitas', nivel: 3 },
             {
               clase: 'redactado',
-              id: 'visitas_muestras',
-              etiqueta: 'Visitas y muestras',
+              id: 'visitas',
+              etiqueta: 'Visitas',
               instruccion:
-                'Precisar si se exigen visitas o muestras y en qué condiciones. Señalar de manera literal y objetiva que la visita es facultativa. Para las muestras, precisar qué características serán objeto de verificación',
+                'En caso el área usuaria prevea una visita del proveedor al lugar de entrega, de instalación o de puesta en funcionamiento, indicar: el objeto de la visita, su oportunidad y el personal del área usuaria con el cual debe realizarse el contacto. Precisar de manera literal y objetiva que esta condición es facultativa',
               ejemplo:
-                'Tipo y calidad de la tela.\nColor institucional.\nTipo y calidad de las costuras.\nAcabado de la prenda.\nCalidad de los bordados o estampados institucionales, de corresponder.',
+                'En el caso de la adquisición e instalación de equipos de aire acondicionado, la Entidad podrá prever una visita facultativa al lugar donde se ejecutará la prestación, con la finalidad de que los postores conozcan las condiciones físicas de los ambientes, las características de las instalaciones existentes y demás aspectos que resulten necesarios para la adecuada formulación de su oferta. La visita se realizará antes de la presentación de ofertas, en la fecha y horario establecidos en las Bases del procedimiento de selección, previa coordinación con el área usuaria.',
+              extension: 'varios_parrafos',
+            },
+            { clase: 'titulo', texto: 'Muestras', nivel: 3 },
+            {
+              clase: 'redactado',
+              id: 'muestras',
+              etiqueta: 'Muestras',
+              instruccion:
+                'Cuando, de manera excepcional y con el debido sustento en la estrategia de contratación, se requiera la presentación de muestras, precisar como mínimo: las características y/o requisitos funcionales que serán objeto de verificación; la metodología y las pruebas objetivas que se utilizarán para su evaluación; el número de muestras requeridas por cada producto; el órgano responsable de su evaluación; y el lugar, dirección, fecha y horario para su presentación',
+              ejemplo:
+                'En el caso de la adquisición de uniformes institucionales, y siempre que dicha exigencia se encuentre debidamente sustentada en la estrategia de contratación, la Entidad podrá requerir la presentación de una (1) muestra por cada tipo de prenda requerida (camisa, pantalón, saco, chaleco, entre otros), la cual deberá ser presentada conjuntamente con la oferta. La muestra tendrá por finalidad verificar únicamente las siguientes características: tipo y calidad de la tela; color institucional; tipo y calidad de las costuras; acabado de la prenda; y calidad de los bordados o estampados institucionales, de corresponder.',
               extension: 'varios_parrafos',
             },
           ],
@@ -545,36 +561,6 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
               ],
             },
             {
-              clase: 'parrafo',
-              texto:
-                'El contratista debe solicitar los adelantos dentro de los {{adelanto_plazo_solicitud}} días siguientes de perfeccionamiento del contrato, adjuntando a su solicitud la garantía por adelantos acompañada del comprobante de pago correspondiente. Vencido dicho plazo no procede la solicitud del adelanto.',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'adelanto_plazo_solicitud',
-                  etiqueta: 'Plazo para solicitar el adelanto',
-                  ayuda: 'Consignar plazo en días',
-                  tipo: 'dias',
-                  obligatorio: true,
-                },
-              ],
-            },
-            {
-              clase: 'parrafo',
-              texto:
-                'La Entidad otorgará el adelanto dentro de los {{adelanto_plazo_entrega}} días calendario siguientes a la presentación de la solicitud, siempre que esta cumpla con los requisitos establecidos en el contrato y en la normativa vigente.',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'adelanto_plazo_entrega',
-                  etiqueta: 'Plazo para entregar el adelanto',
-                  ayuda: 'Consignar plazo en días calendario',
-                  tipo: 'dias',
-                  obligatorio: true,
-                },
-              ],
-            },
-            {
               clase: 'nota',
               texto:
                 'Cuando la contratación contemple un sistema de entrega —llave en mano, llave en mano con mantenimiento o suministro con comodato— debe establecerse de manera independiente el plazo de cada prestación, precisando el evento que determina el inicio de su ejecución. En suministros, indicar el número de entregas, su periodicidad y el cronograma.',
@@ -687,14 +673,65 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
                 'Aplica únicamente cuando corresponda otorgar adelantos directos y así se haya previsto y sustentado en la estrategia de contratación, conforme al artículo 137 del Reglamento. En caso contrario, consignar "NO APLICA". Si se otorga adelanto, el contratista debe presentar previamente una garantía por idéntico monto.',
             },
             {
-              clase: 'campo',
-              id: 'adelanto_porcentaje',
-              etiqueta: 'Porcentaje de adelanto directo',
-              ayuda:
-                'Consignar porcentaje, considerando que los adelantos directos no pueden exceder en conjunto del 30% del monto del contrato original',
-              tipo: 'numero',
-              obligatorio: true,
-              validacion: 'adelanto_directo_max',
+              // El formato trae los tres párrafos redactados y solo deja
+              // cuatro huecos: cuántos adelantos, qué porcentaje y los
+              // dos plazos. Aquí había un campo suelto con el
+              // porcentaje. Observación de César (agosto de 2026): "el
+              // adelanto directo debe ser adecuado según modelo
+              // alcanzado".
+              clase: 'parrafo',
+              texto:
+                'La entidad contratante otorgará {{adelanto_cantidad}} adelantos directos por el {{adelanto_porcentaje}} del monto del contrato original.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'adelanto_cantidad',
+                  etiqueta: 'Número de adelantos',
+                  ayuda: 'Consignar número de adelantos a otorgarse',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+                {
+                  clase: 'campo',
+                  id: 'adelanto_porcentaje',
+                  etiqueta: 'Porcentaje de adelanto directo',
+                  ayuda:
+                    'Consignar porcentaje, considerando que los adelantos directos no pueden exceder en conjunto del 30% del monto del contrato original',
+                  tipo: 'numero',
+                  obligatorio: true,
+                  validacion: 'adelanto_directo_max',
+                },
+              ],
+            },
+            {
+              clase: 'parrafo',
+              texto:
+                'El contratista debe solicitar los adelantos dentro de los {{adelanto_plazo_solicitud}} días siguientes de perfeccionamiento del contrato, adjuntando a su solicitud la garantía por adelantos acompañada del comprobante de pago correspondiente. Vencido dicho plazo no procede la solicitud del adelanto.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'adelanto_plazo_solicitud',
+                  etiqueta: 'Plazo para solicitar el adelanto',
+                  ayuda: 'Consignar plazo',
+                  tipo: 'dias',
+                  obligatorio: true,
+                },
+              ],
+            },
+            {
+              clase: 'parrafo',
+              texto:
+                'La Entidad otorgará el adelanto dentro de los {{adelanto_plazo_entrega}} días calendario siguientes a la presentación de la solicitud, siempre que esta cumpla con los requisitos establecidos en el contrato y en la normativa vigente.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'adelanto_plazo_entrega',
+                  etiqueta: 'Plazo para entregar el adelanto',
+                  ayuda: 'Consignar plazo',
+                  tipo: 'dias',
+                  obligatorio: true,
+                },
+              ],
             },
           ],
         },
@@ -894,6 +931,7 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
               texto:
                 'Contar con RUC activo y habido en la SUNAT.\nRealizar actividades en el objeto de la contratación.\nRegistro Nacional de Proveedores en los casos que la contratación supere una (1) UIT.\nCódigo de cuenta interbancario (CCI) vinculado al RUC.\nPersona natural y/o jurídica.',
               fundamento: 'Plantilla — requisitos del proveedor en contratos menores',
+                          lista: true,
             },
           ],
         },

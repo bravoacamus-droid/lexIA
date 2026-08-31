@@ -709,6 +709,78 @@ function hoja9() {
   );
 }
 
+// ── Pendientes: visita y muestra, adelanto directo ───────────────────
+function visitasYAdelanto() {
+  console.log("\n── Obs. 27: la visita y la muestra son dos cosas ──");
+  const p = obtenerPlantilla('uit-eett')!;
+  const bloques = todosLosBloques(p.secciones);
+  const visita = bloques.find((b) => 'id' in b && b.id === 'visitas') as { ejemplo?: string } | undefined;
+  const muestra = bloques.find((b) => 'id' in b && b.id === 'muestras') as { ejemplo?: string } | undefined;
+  comprobar('la visita tiene su propio apartado', !!visita);
+  comprobar('y la muestra el suyo', !!muestra);
+  comprobar('ya no están en un solo campo', !bloques.some((b) => 'id' in b && b.id === 'visitas_muestras'));
+  // "El ejemplo debe mostrarse completo": los del formato pasan de
+  // trescientos caracteres, no son media frase.
+  comprobar(`el ejemplo de la visita va entero (${visita?.ejemplo?.length ?? 0})`, (visita?.ejemplo?.length ?? 0) > 300);
+  comprobar(`y el de la muestra también (${muestra?.ejemplo?.length ?? 0})`, (muestra?.ejemplo?.length ?? 0) > 300);
+
+  console.log("\n── Obs. 32: el adelanto directo, según el modelo ──");
+  const r = normalizarRespuestas(respuestasVacias(), 'Adquisición de bienes');
+  r.condiciones.otorga_adelanto = true;
+  r.campos.adelanto_cantidad = 'un (1)';
+  r.campos.adelanto_porcentaje = '20';
+  r.campos.adelanto_plazo_solicitud = 'ocho (8)';
+  r.campos.adelanto_plazo_entrega = 'siete (7)';
+  const doc = ensamblarRequerimiento(p, r, { cuantia: 30_000 });
+  comprobar(
+    'sale el párrafo con el número de adelantos y el porcentaje',
+    doc.markdown.includes('La entidad contratante otorgará un (1) adelantos directos por el 20'),
+  );
+  comprobar(
+    'el plazo para solicitarlo',
+    doc.markdown.includes('El contratista debe solicitar los adelantos dentro de los ocho (8) días'),
+  );
+  comprobar(
+    'y el plazo en que la Entidad lo entrega',
+    doc.markdown.includes('La Entidad otorgará el adelanto dentro de los siete (7) días calendario'),
+  );
+  // Estaban duplicados: los dos párrafos vivían también dentro del
+  // plazo de entrega, donde no pintan nada.
+  const veces = (doc.markdown.match(/El contratista debe solicitar los adelantos/g) ?? []).length;
+  comprobar('y el adelanto sale una sola vez en el documento', veces === 1, `${veces} veces`);
+}
+
+// ── Obs. 37: los requisitos del proveedor, ordenados ─────────────────
+function requisitosDelProveedor() {
+  console.log("\n── Obs. 37: \"en LexIA no está ordenado, está todo el texto junto\" ──");
+  let comoParrafo = 0;
+  const sueltos: string[] = [];
+  for (const p of listarPlantillas()) {
+    const r = normalizarRespuestas(respuestasVacias(), 'Contratación de prueba');
+    const doc = ensamblarRequerimiento(p, r, { cuantia: 30_000 });
+    // Los siete requisitos del proveedor salían en un solo párrafo.
+    const i = doc.markdown.indexOf('Contar con RUC activo');
+    if (i < 0) continue;
+    const linea = doc.markdown.slice(i - 2, doc.markdown.indexOf('\n', i));
+    if (!linea.trimStart().startsWith('- ')) {
+      comoParrafo++;
+      sueltos.push(p.id);
+    }
+  }
+  comprobar(
+    'los requisitos del proveedor salen como enumeración, no como párrafo',
+    comoParrafo === 0,
+    sueltos.join(', '),
+  );
+
+  const p = obtenerPlantilla('uit-tdr')!;
+  const doc = ensamblarRequerimiento(p, normalizarRespuestas(respuestasVacias(), 'x'), {
+    cuantia: 20_000,
+  });
+  const renglones = (doc.markdown.match(/^- (Contar con RUC|Realizar actividades|Registro Nacional|Código de cuenta|Persona natural|No tener impedimento|Contar con correo)/gm) ?? []).length;
+  comprobar(`y son los siete del formato (${renglones})`, renglones === 7);
+}
+
 void (async () => {
   await tipografia();
   repartoACuadros();
@@ -724,6 +796,8 @@ void (async () => {
   hoja7();
   hoja8();
   hoja9();
+  visitasYAdelanto();
+  requisitosDelProveedor();
 
   console.log(
     fallos === 0

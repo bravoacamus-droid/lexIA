@@ -31,6 +31,18 @@ export interface BloqueFijo {
   texto: string;
   /** Norma que obliga a este texto, si la plantilla la cita. */
   fundamento?: string;
+  /**
+   * El texto es una enumeración: cada renglón, una viñeta.
+   *
+   * Observación de César (agosto de 2026) sobre los requisitos del
+   * proveedor: "debe ser adecuado conforme al texto modelo (en LexIA no
+   * está ordenado), está todo el texto junto". Son siete requisitos y
+   * salían como un párrafo corrido.
+   *
+   * Se marca aquí y no se parte en siete bloques para que la auditoría
+   * siga cotejando un solo texto contra el Word.
+   */
+  lista?: boolean;
 }
 
 /** Título de sección o subsección. */

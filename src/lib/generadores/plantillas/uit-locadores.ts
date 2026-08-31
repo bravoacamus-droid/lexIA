@@ -348,6 +348,7 @@ export const PLANTILLA_UIT_LOCADORES: PlantillaRequerimiento = {
               texto:
                 'Contar con RUC activo y habido en la SUNAT.\nRealizar actividades en el objeto de la contratación.\nRegistro Nacional de Proveedores en los casos que la contratación supere una (1) UIT.\nCódigo de cuenta interbancario (CCI) vinculado al RUC.\nPersona natural y/o jurídica.\nNo tener impedimento para contratar con el Estado.\nContar con correo electrónico para efectos de notificación en la fase de ejecución contractual durante la vigencia del contrato.',
               fundamento: 'Plantilla — requisitos del proveedor en contratos menores',
+                          lista: true,
             },
           ],
         },
@@ -361,6 +362,7 @@ export const PLANTILLA_UIT_LOCADORES: PlantillaRequerimiento = {
               texto:
                 'Ejecutar el servicio conforme a los Términos de Referencia, la orden de servicio o contrato y la propuesta presentada, cuando corresponda.\nDesarrollar las actividades en los plazos establecidos, observando criterios de calidad, eficiencia y oportunidad.\nAplicar los conocimientos técnicos o profesionales necesarios para alcanzar los resultados esperados del servicio.\nElaborar y presentar los informes, productos, entregables o documentación técnica previstos en los plazos establecidos.\nAsistir a las reuniones de coordinación convocadas por la Entidad cuando ello resulte necesario para la ejecución del servicio.\nMantener comunicación permanente con el responsable designado por la Entidad respecto al avance del servicio y comunicar oportunamente cualquier situación que pueda afectar su ejecución.\nAtender y subsanar, dentro del plazo otorgado por la Entidad, las observaciones formuladas respecto de los entregables o productos presentados, siempre que sean atribuibles al contratista.\nGuardar absoluta reserva y confidencialidad respecto de toda la información, documentación y datos a los que tenga acceso durante la ejecución del servicio, aun después de concluida la contratación.',
               fundamento: 'Plantilla — obligaciones mínimas del locador',
+                          lista: true,
             },
           ],
         },

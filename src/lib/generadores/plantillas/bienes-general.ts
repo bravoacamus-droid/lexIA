@@ -798,6 +798,7 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
               clase: 'fijo',
               texto:
                 'Las controversias que surjan entre las partes durante la ejecución del contrato se resuelven mediante conciliación, cuando se haya pactado, y arbitraje.\n\nPara el caso del arbitraje, el postor ganador de la buena pro selecciona una de las siguientes Instituciones Arbitrales para administrarlo:',
+                          lista: true,
             },
             {
               clase: 'tabla',

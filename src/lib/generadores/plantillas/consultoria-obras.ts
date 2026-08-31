@@ -509,6 +509,7 @@ export const PLANTILLA_CONSULTORIA_OBRAS: PlantillaRequerimiento = {
               clase: 'fijo',
               texto: 'Solicitud de adelanto.\nComprobante de pago correspondiente.',
               fundamento: 'Plantilla — documentos para el adelanto',
+                          lista: true,
             },
           ],
         },
@@ -720,6 +721,7 @@ export const PLANTILLA_CONSULTORIA_OBRAS: PlantillaRequerimiento = {
               texto:
                 'Contar con RUC activo y habido en la SUNAT.\nRealizar actividades en el objeto de la contratación.\nPersona natural y/o jurídica.',
               fundamento: 'Plantilla — requisitos del proveedor',
+                          lista: true,
             },
           ],
         },

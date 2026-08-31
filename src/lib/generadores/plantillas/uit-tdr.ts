@@ -751,6 +751,7 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
               texto:
                 'Contar con RUC activo y habido en la SUNAT.\nRealizar actividades en el objeto de la contratación.\nRegistro Nacional de Proveedores en los casos que la contratación supere una (1) UIT.\nCódigo de cuenta interbancario (CCI) vinculado al RUC.\nPersona natural y/o jurídica.\nNo tener impedimento para contratar con el Estado.\nContar con correo electrónico para efectos de notificación en la fase de ejecución contractual durante la vigencia del contrato.',
               fundamento: 'Plantilla — requisitos del proveedor en contratos menores',
+                          lista: true,
             },
           ],
         },

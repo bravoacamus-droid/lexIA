@@ -860,6 +860,7 @@ export const PLANTILLA_OBRAS_DISENO_CONSTRUCCION: PlantillaRequerimiento = {
               texto:
                 'Contar con RUC activo y habido en la SUNAT.\nRealizar actividades en el objeto de la contratación.\nPersona natural y/o jurídica.',
               fundamento: 'Plantilla — requisitos del proveedor',
+                          lista: true,
             },
           ],
         },
