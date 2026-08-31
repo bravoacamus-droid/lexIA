@@ -49,6 +49,11 @@ data/cache
 spec.txt
 spec_tables.txt
 *.docx
+# …salvo los seis que entregó César el 22/08/2026 para la evaluación de
+# ofertas: de ellos sale `src/lib/evaluacion/criterios.generado.ts`, y sin
+# la fuente no se puede regenerar ni comprobar que el troceo no perdió
+# criterios del Tribunal.
+!Evaluados de Ofertas/*.docx
 
 # carpetas que el cliente comparte localmente — no versionar
 DIRECTIVAS, LINEAMIENTOS Y OTROS/
