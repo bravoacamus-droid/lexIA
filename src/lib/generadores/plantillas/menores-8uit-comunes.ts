@@ -223,7 +223,7 @@ export function seccionConfidencialidad(conIncumplimiento = false): Seccion {
     {
       clase: 'fijo',
       texto:
-        'Utilizar la información única y exclusivamente para la ejecución del contrato.\nNo divulgarla, transferirla, reproducirla ni ponerla a disposición de terceros sin autorización previa y expresa de la Entidad.\nAdoptar las medidas de seguridad necesarias para evitar su pérdida, alteración, acceso no autorizado o uso indebido.',
+        'El contratista se compromete a:\nUtilizar la información única y exclusivamente para la ejecución del contrato.\nNo divulgarla, transferirla, reproducirla ni ponerla a disposición de terceros sin autorización previa y expresa de la Entidad.\nAdoptar las medidas de seguridad necesarias para evitar su pérdida, alteración, acceso no autorizado o uso indebido.\nExtender esta obligación a su personal, técnicos, subcontratistas o cualquier tercero vinculado a la ejecución del servicio, siendo responsable solidariamente por su incumplimiento.',
           lista: true,
     },
   ];

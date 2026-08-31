@@ -855,6 +855,39 @@ function ultimosPendientes() {
   }
 }
 
+// ── Obs. 35: resolución y confidencialidad, ordenadas ────────────────
+function resolucionYConfidencialidad() {
+  console.log("\n── Obs. 35: \"no está ordenado, está todo el texto seguido\" ──");
+  const p = obtenerPlantilla('uit-tdr')!;
+  const doc = ensamblarRequerimiento(p, normalizarRespuestas(respuestasVacias(), 'x'), {
+    cuantia: 20_000,
+  });
+
+  // Las ocho causales de resolución, una por renglón.
+  const causales = (
+    doc.markdown.match(
+      /^- (Ocurre un caso fortuito|Se produce el incumplimiento|Se presenta un hecho|Por incumplimiento|Por la presentación|Se configura una condición|Se alcanza el monto|Cuando la entidad sustente)/gm,
+    ) ?? []
+  ).length;
+  comprobar(`las causales de resolución salen enumeradas (${causales})`, causales === 8);
+
+  // El encabezado de una enumeración no es un elemento de ella.
+  comprobar(
+    'el encabezado de la lista no lleva viñeta',
+    doc.markdown.includes('Se considera información confidencial, sin carácter limitativo:') &&
+      !doc.markdown.includes('- Se considera información confidencial'),
+  );
+  comprobar(
+    'y la segunda lista tiene el suyo, que faltaba',
+    doc.markdown.includes('El contratista se compromete a:') &&
+      !doc.markdown.includes('- El contratista se compromete a:'),
+  );
+  comprobar(
+    'con la obligación de extenderla a su personal, que también faltaba',
+    doc.markdown.includes('Extender esta obligación a su personal, técnicos, subcontratistas'),
+  );
+}
+
 void (async () => {
   await tipografia();
   repartoACuadros();
@@ -873,6 +906,7 @@ void (async () => {
   visitasYAdelanto();
   requisitosDelProveedor();
   ultimosPendientes();
+  resolucionYConfidencialidad();
 
   console.log(
     fallos === 0

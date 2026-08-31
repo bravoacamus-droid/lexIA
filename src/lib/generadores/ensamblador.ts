@@ -530,9 +530,15 @@ export function ensamblarRequerimiento(
         case 'fijo':
           if (b.lista) {
             // Una enumeración del formato: cada renglón, su viñeta.
-            for (const linea of b.texto.split('\n')) {
-              const t = linea.trim();
-              if (t) partes.push(`- ${t}`);
+            //
+            // Salvo el encabezado. "Se considera información
+            // confidencial, sin carácter limitativo:" no es un elemento
+            // de la lista: es lo que la abre, y salía con viñeta como si
+            // fuera uno más. Se reconoce porque termina en dos puntos.
+            const renglones = b.texto.split('\n').map((l) => l.trim()).filter(Boolean);
+            for (const [i, t] of renglones.entries()) {
+              if (i === 0 && t.endsWith(':')) partes.push(t, '');
+              else partes.push(`- ${t}`);
             }
             partes.push('');
           } else {
