@@ -221,27 +221,43 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
               clase: 'opcion',
               id: 'modalidad_pago',
               etiqueta: 'Modalidad de pago',
-              instruccion: 'Precisar el sistema de contratación que corresponda',
+              instruccion:
+                'Precisar la modalidad de pago que corresponda. Suma alzada: cuando las cantidades, magnitudes y calidades de la prestación estén definidas en los términos de referencia. Precios unitarios: cuando no puede conocerse con exactitud o precisión las cantidades o magnitudes requeridas. Tarifas: cuando no puede conocerse con precisión el tiempo de prestación del servicio. Pago por consumo: cuando se paga por lo efectivamente consumido. Esquema mixto: cuando la entidad puede utilizar más de una modalidad en un mismo contrato',
               opciones: [
+                // La redacción del formato: "El contrato se rige por la
+                // modalidad de pago de […], de conformidad con el
+                // artículo 130 del Reglamento". Observación de César
+                // (agosto de 2026): "en la modalidad de pago, debe
+                // adecuarse los textos según el modelo proporcionado",
+                // con el ejemplo escrito así.
+                //
+                // Cuándo aplica cada una no va en el documento —el
+                // formato lo pone entre corchetes, como guía para el
+                // área usuaria—: vive en la instrucción de arriba.
                 {
                   valor: 'suma_alzada',
                   texto:
-                    'De acuerdo con el objeto contractual, la modalidad de pago es Suma Alzada. Es aplicable cuando las cantidades, magnitudes y calidades de la prestación están definidas en los términos de referencia.',
+                    'El contrato se rige por la modalidad de pago de SUMA ALZADA, de conformidad con el artículo 130 del Reglamento.',
                 },
                 {
                   valor: 'precios_unitarios',
                   texto:
-                    'De acuerdo con el objeto contractual, la modalidad de pago es Precios Unitarios. Es aplicable cuando no puede conocerse con exactitud o precisión las cantidades o magnitudes requeridas.',
+                    'El contrato se rige por la modalidad de pago de PRECIOS UNITARIOS, de conformidad con el artículo 130 del Reglamento.',
                 },
                 {
                   valor: 'tarifas',
                   texto:
-                    'De acuerdo con el objeto contractual, la modalidad de pago es Tarifas. Es aplicable cuando no puede conocerse con precisión el tiempo de prestación del servicio.',
+                    'El contrato se rige por la modalidad de pago de TARIFAS, de conformidad con el artículo 130 del Reglamento.',
+                },
+                {
+                  valor: 'pago_consumo',
+                  texto:
+                    'El contrato se rige por la modalidad de pago de PAGO POR CONSUMO, de conformidad con el artículo 130 del Reglamento.',
                 },
                 {
                   valor: 'esquema_mixto',
                   texto:
-                    'De acuerdo con el objeto contractual, la modalidad de pago es un Esquema mixto, aplicable cuando la entidad contratante puede utilizar más de una modalidad de pago en un mismo contrato.',
+                    'El contrato se rige por la modalidad de pago de ESQUEMA MIXTO, de conformidad con el artículo 130 del Reglamento.',
                 },
               ],
             },
@@ -260,11 +276,11 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
                 { valor: 'no_aplica', texto: 'No aplica ningún sistema de entrega.' },
                 {
                   valor: 'diseno_operacion',
-                  texto: 'El contrato se rige por el sistema de entrega de Diseño de la operación y mantenimiento.',
+                  texto: 'El contrato se rige por el sistema de entrega de Diseño de la operación y mantenimiento, de conformidad con el artículo 129 del Reglamento.',
                 },
                 {
                   valor: 'gestion_instalaciones',
-                  texto: 'El contrato se rige por el sistema de entrega de Gestión de instalaciones.',
+                  texto: 'El contrato se rige por el sistema de entrega de Gestión de instalaciones, de conformidad con el artículo 129 del Reglamento.',
                 },
               ],
             },
@@ -274,13 +290,32 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
           id: 'plazo_prestacion',
           titulo: 'Plazo de prestación del servicio',
           bloques: [
+            { clase: 'titulo', texto: 'Prestación principal', nivel: 3 },
             {
-              clase: 'campo',
-              id: 'plazo_servicio',
-              etiqueta: 'Plazo de la prestación principal',
-              ayuda: 'Consignar los días de ejecución del servicio y el hito desde el que se computa',
-              tipo: 'texto',
-              obligatorio: true,
+              // El formato trae el párrafo escrito y solo deja los días.
+              // LexIA pedía redactar el plazo entero. Observación de
+              // César (agosto de 2026): "en la opción de Plazo de la
+              // prestación principal, debe adecuarse según el modelo
+              // proporcionado".
+              clase: 'parrafo',
+              texto:
+                'Los servicios materia de la presente convocatoria se prestan en el plazo de {{plazo_servicio}} días calendario, computados a partir del día siguiente de la notificación de la orden de servicio o suscripción del contrato o del cumplimiento de la condición establecida en los Términos de Referencia, según corresponda.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'plazo_servicio',
+                  etiqueta: 'Plazo de la prestación principal',
+                  ayuda: 'Consignar los días de ejecución del servicio',
+                  tipo: 'dias',
+                  obligatorio: true,
+                },
+              ],
+            },
+            {
+              clase: 'titulo',
+              texto: 'Prestación accesoria',
+              nivel: 3,
+              visibleSi: { condicion: 'tiene_prestaciones_accesorias' },
             },
             {
               clase: 'tabla',
@@ -300,15 +335,57 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
         {
           id: 'lugar_prestacion',
           titulo: 'Lugar de prestación del servicio',
+          // Dividido en principal y accesoria, como el formato.
+          // Observaciones de César (agosto de 2026): la ventana "debe ser
+          // redimensionable desde una esquina o borde" —que ya lo es para
+          // todos los campos— y "debe incorporarse la opción de lugar de
+          // prestación para prestación accesoria".
           bloques: [
+            { clase: 'titulo', texto: 'Prestación principal', nivel: 3 },
             {
-              clase: 'campo',
-              id: 'lugar_servicio',
-              etiqueta: 'Lugar de prestación',
-              ayuda:
-                'Indicar el detalle del lugar o los lugares en que se prestará el servicio considerando el distrito, provincia y departamento',
-              tipo: 'texto',
-              obligatorio: true,
+              clase: 'parrafo',
+              texto: 'El servicio se presta en {{lugar_servicio}}',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'lugar_servicio',
+                  etiqueta: 'Lugar de prestación',
+                  ayuda:
+                    'Indicar el detalle del lugar o los lugares en que se prestará el servicio considerando el distrito, provincia y departamento',
+                  tipo: 'texto_largo',
+                  obligatorio: true,
+                },
+              ],
+            },
+            {
+              clase: 'nota',
+              texto:
+                'En caso se establezca que las prestaciones se van a realizar en varios lugares, se recomienda incorporar un cuadro con las direcciones exactas de cada lugar.',
+            },
+            {
+              clase: 'tabla',
+              id: 'lugares_prestacion',
+              etiqueta: 'Lugares de prestación',
+              instruccion:
+                'Cuando el servicio se preste en varios lugares: el lugar, su dirección exacta y la referencia que permita ubicarlo',
+              columnas: ['Lugar', 'Dirección', 'Referencia'],
+              minimo: 0,
+              complementaria: true,
+            },
+            {
+              clase: 'titulo',
+              texto: 'Prestación accesoria',
+              nivel: 3,
+              visibleSi: { condicion: 'tiene_prestaciones_accesorias' },
+            },
+            {
+              clase: 'redactado',
+              id: 'lugar_prestacion_accesoria',
+              etiqueta: 'Lugar de ejecución de las prestaciones accesorias',
+              instruccion:
+                'Señalar de manera independiente el lugar donde se ejecutará cada prestación accesoria, con el distrito, la provincia y el departamento. Si se ejecutan en un lugar distinto al de la prestación principal, precisarlo expresamente. Si no corresponde, consignar NO APLICA',
+              extension: 'parrafo',
+              visibleSi: { condicion: 'tiene_prestaciones_accesorias' },
             },
           ],
         },

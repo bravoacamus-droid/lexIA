@@ -590,6 +590,58 @@ function hoja7() {
   }
 }
 
+// ── Hoja 8 (servicios): pago, sistema de entrega, plazo y lugar ──────
+function hoja8() {
+  console.log("\n── Hoja 8: los textos de servicios, según el modelo ──");
+  const p = obtenerPlantilla('uit-tdr')!;
+  const r = normalizarRespuestas(respuestasVacias(), 'Servicio de mantenimiento');
+  r.condiciones.tiene_prestaciones_accesorias = true;
+  r.opciones.modalidad_pago = 'suma_alzada';
+  r.opciones.sistema_entrega = 'diseno_operacion';
+  r.campos.plazo_servicio = 'trescientos sesenta y cinco (365)';
+  r.campos.lugar_servicio = 'Av. Abancay N.° 491, Cercado de Lima';
+  const doc = ensamblarRequerimiento(p, r, { cuantia: 30_000 });
+
+  comprobar(
+    'la modalidad de pago cita el artículo 130, como el formato',
+    doc.markdown.includes(
+      'El contrato se rige por la modalidad de pago de SUMA ALZADA, de conformidad con el artículo 130 del Reglamento.',
+    ),
+  );
+  comprobar(
+    'el sistema de entrega cita el artículo 129',
+    doc.markdown.includes('sistema de entrega de Diseño de la operación y mantenimiento, de conformidad con el artículo 129 del Reglamento.'),
+  );
+  comprobar(
+    'el plazo sale con el párrafo del formato, no como campo suelto',
+    doc.markdown.includes(
+      'Los servicios materia de la presente convocatoria se prestan en el plazo de trescientos sesenta y cinco (365) días calendario',
+    ),
+  );
+  comprobar(
+    'y con el hito de cómputo que trae el formato',
+    doc.markdown.includes('notificación de la orden de servicio o suscripción del contrato'),
+  );
+  comprobar('el lugar también', doc.markdown.includes('El servicio se presta en Av. Abancay'));
+  comprobar(
+    'y hay lugar y plazo para la prestación accesoria',
+    (doc.markdown.match(/Prestación accesoria/g) ?? []).length >= 2,
+  );
+
+  // Las cinco modalidades del formato, incluida la que faltaba.
+  const modalidad = todosLosBloques(p.secciones).find(
+    (b) => 'id' in b && b.id === 'modalidad_pago',
+  ) as { opciones?: Array<{ valor: string }> } | undefined;
+  comprobar(
+    `están las cinco modalidades de pago (${modalidad?.opciones?.length ?? 0})`,
+    (modalidad?.opciones?.length ?? 0) === 5,
+  );
+  comprobar(
+    'incluido el pago por consumo, que faltaba',
+    !!modalidad?.opciones?.some((o) => o.valor === 'pago_consumo'),
+  );
+}
+
 void (async () => {
   await tipografia();
   repartoACuadros();
@@ -603,6 +655,7 @@ void (async () => {
   hoja5();
   hoja6();
   hoja7();
+  hoja8();
 
   console.log(
     fallos === 0
