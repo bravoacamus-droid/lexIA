@@ -695,9 +695,22 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
           id: 'forma_pago',
           titulo: 'Forma y requisitos de pago',
           bloques: [
+            { clase: 'titulo', texto: 'Prestación principal', nivel: 3 },
             { clase: 'fijo', texto: 'El pago se realiza de conformidad con lo establecido en el artículo 67 de la Ley.' },
             ...bloquesPago(),
             ...bloquesPagoAnticipado(),
+            {
+              // El pago de las accesorias tiene su propio numeral más
+              // abajo —"Prestaciones accesorias"—, con su modalidad y su
+              // cuadro de requisitos. Aquí solo se avisa, para que quien
+              // lea el apartado sepa dónde está. Observación de César
+              // (agosto de 2026): el formato divide la forma de pago en
+              // prestación principal y accesoria.
+              clase: 'nota',
+              texto:
+                'La forma y los requisitos de pago de las prestaciones accesorias se establecen de manera independiente en el numeral "Prestaciones accesorias".',
+              visibleSi: { condicion: 'tiene_prestaciones_accesorias' },
+            },
           ],
         },
         {
@@ -741,6 +754,59 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
       bloques: [],
       subsecciones: [
         {
+          // El formato pide aquí el personal, clave y no clave, y no
+          // estaba. Observación de César (agosto de 2026): "personal
+          // clave y no clave del numeral REQUISITOS Y RECURSOS
+          // PROVISTOS POR EL PROVEEDOR" y "adecuar a la opción de
+          // personal clave y no clave conforme al modelo".
+          id: 'personal_clave',
+          titulo: 'Personal clave',
+          condicion: 'exige_personal_clave',
+          bloques: [
+            {
+              clase: 'nota',
+              texto:
+                'El personal clave son los profesionales o especialistas cuya participación resulta determinante para el cumplimiento de los objetivos del servicio. Su experiencia mínima se establece en los Requisitos de Calificación. Los grados académicos o títulos profesionales no se acreditan durante el procedimiento de selección: se presentan para el perfeccionamiento del contrato o el inicio de la prestación, según corresponda.',
+            },
+            {
+              clase: 'tabla',
+              id: 'personal_clave',
+              etiqueta: 'Personal clave',
+              instruccion:
+                'Para cada cargo o función: las actividades principales que realizará y la capacitación exigida, de corresponder',
+              columnas: ['Cargo y/o responsabilidad', 'Actividades principales', 'Capacitación'],
+              minimo: 1,
+            },
+          ],
+        },
+        {
+          id: 'personal_no_clave',
+          titulo: 'Personal no clave',
+          condicion: 'exige_personal_no_clave',
+          bloques: [
+            {
+              clase: 'nota',
+              texto:
+                'Cuando la ejecución del servicio requiera personal de apoyo, operativo, técnico o administrativo que complemente las actividades del personal clave. Las exigencias deben ser objetivas, razonables y proporcionales a la naturaleza del servicio.',
+            },
+            {
+              clase: 'tabla',
+              id: 'personal_no_clave',
+              etiqueta: 'Personal no clave',
+              instruccion:
+                'Para cada cargo: la cantidad requerida, la formación académica o técnica exigida, la experiencia mínima y la capacitación necesaria',
+              columnas: [
+                'Cargo y/o responsabilidad',
+                'Cant.',
+                'Profesión y grado o título profesional requerido',
+                'Experiencia mínima',
+                'Capacitación',
+              ],
+              minimo: 1,
+            },
+          ],
+        },
+        {
           id: 'requisitos_proveedor',
           titulo: 'Requisitos del proveedor',
           bloques: [
@@ -780,6 +846,40 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
               etiqueta: 'Equipamiento',
               instruccion: 'Detallar el equipamiento requerido que no tiene condición de estratégico',
               columnas: ['Equipamiento', 'Cant.', 'Características mínimas'],
+              minimo: 1,
+            },
+            {
+              // El cierre que el formato pone bajo el cuadro y faltaba.
+              clase: 'fijo',
+              texto:
+                'Este requisito no materia de evaluación al momento de la recepción de las cotizaciones.',
+            },
+          ],
+        },
+        {
+          // La infraestructura estratégica no estaba. Observación de
+          // César (agosto de 2026): "adecuar la infraestructura y
+          // equipamiento estratégico, según modelo".
+          id: 'infraestructura',
+          titulo: 'Infraestructura estratégica',
+          condicion: 'exige_infraestructura',
+          bloques: [
+            {
+              clase: 'nota',
+              texto:
+                'Las características y condiciones que se exijan a la infraestructura no deben constituir exigencias desproporcionadas, irrazonables o innecesarias.',
+            },
+            {
+              clase: 'tabla',
+              id: 'infraestructura',
+              etiqueta: 'Infraestructura estratégica',
+              instruccion:
+                'Detallar la infraestructura clasificada como estratégica para ejecutar la prestación objeto de la contratación',
+              columnas: [
+                'Infraestructura estratégica',
+                'Cant.',
+                'Características mínimas de la infraestructura',
+              ],
               minimo: 1,
             },
           ],
@@ -922,6 +1022,22 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
               etiqueta: 'Experiencia del personal clave',
               columnas: ['Cargo y/o responsabilidad', 'Tiempo de experiencia', 'Cargo desempeñado'],
               minimo: 1,
+            },
+            {
+              // Lo que el formato dice bajo el cuadro y no estaba.
+              // Observación de César (agosto de 2026): "adecuar a la
+              // opción de Experiencia del personal clave conforme al
+              // modelo (cuadro); asimismo, la forma de acreditación ya
+              // está definido".
+              clase: 'fijo',
+              texto:
+                'El tiempo de experiencia mínimo debe ser razonable y congruente con el periodo en el cual el personal ejecuta las actividades para las que se le requiere, de forma tal que no constituya una restricción a la participación de postores. Al calificar la experiencia del personal, se debe valorar de manera integral los documentos presentados por el postor para acreditar dicha experiencia. En tal sentido, aun cuando en los documentos presentados la denominación del cargo o puesto no coincida literalmente con aquella prevista en las bases, se debe validar la experiencia si las actividades que realizó el personal corresponden con la función propia del cargo o puesto requerido en las bases.',
+            },
+            { clase: 'titulo', texto: 'Acreditación:', nivel: 3 },
+            {
+              clase: 'fijo',
+              texto:
+                'La experiencia del personal clave se acreditará con cualquiera de los siguientes documentos: (i) copia simple de contratos y su respectiva conformidad o (ii) constancias o (iii) certificados o (iv) cualquier otra documentación que, de manera fehaciente demuestre la experiencia del personal propuesto. Los documentos que acreditan la experiencia deben incluir los nombres y apellidos del personal clave, el cargo desempeñado, el plazo de la prestación indicando el día, mes y año de inicio y culminación, el nombre de la entidad u organización que emite el documento, la fecha de emisión y nombres y apellidos de quien suscribe el documento. En caso los documentos para acreditar la experiencia establezcan el plazo de la experiencia adquirida por el personal clave en meses sin especificar los días se debe considerar el mes completo. De presentarse experiencia ejecutada paralelamente (traslape), para el cómputo del tiempo de dicha experiencia sólo se considerará una vez el periodo traslapado.',
             },
             {
               clase: 'tabla',

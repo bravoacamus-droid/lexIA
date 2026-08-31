@@ -890,10 +890,23 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
           id: 'forma_pago',
           titulo: 'Forma y requisitos de pago',
           bloques: [
+            { clase: 'titulo', texto: 'Prestación principal', nivel: 3 },
             { clase: 'fijo', texto: 'El pago se realiza de conformidad con lo establecido en el artículo 67 de la Ley.' },
             // Su .docx dice "responsable de", no "del".
             ...bloquesPago('de'),
             ...bloquesPagoAnticipado(),
+            {
+              // El pago de las accesorias tiene su propio numeral más
+              // abajo —"Prestaciones accesorias"—, con su modalidad y su
+              // cuadro de requisitos. Aquí solo se avisa, para que quien
+              // lea el apartado sepa dónde está. Observación de César
+              // (agosto de 2026): el formato divide la forma de pago en
+              // prestación principal y accesoria.
+              clase: 'nota',
+              texto:
+                'La forma y los requisitos de pago de las prestaciones accesorias se establecen de manera independiente en el numeral "Prestaciones accesorias".',
+              visibleSi: { condicion: 'tiene_prestaciones_accesorias' },
+            },
           ],
         },
         {

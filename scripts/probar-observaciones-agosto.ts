@@ -781,6 +781,80 @@ function requisitosDelProveedor() {
   comprobar(`y son los siete del formato (${renglones})`, renglones === 7);
 }
 
+// ── Últimos pendientes: pago, personal, infraestructura, MYPE ────────
+function ultimosPendientes() {
+  console.log("\n── Pago, personal, infraestructura y acreditación ──");
+  const p = obtenerPlantilla('uit-tdr')!;
+  const r = normalizarRespuestas(respuestasVacias(), 'Servicio de prueba');
+  r.condiciones.tiene_prestaciones_accesorias = true;
+  r.condiciones.exige_personal_clave = true;
+  r.condiciones.exige_personal_no_clave = true;
+  r.condiciones.exige_infraestructura = true;
+  r.condiciones.exige_equipamiento = true;
+  r.condiciones.exige_capacidad_tecnica = true;
+  const doc = ensamblarRequerimiento(p, r, { cuantia: 30_000 });
+
+  // Forma y requisitos de pago: principal y accesoria.
+  comprobar('la forma de pago se rotula como prestación principal', doc.markdown.includes('Prestación principal'));
+  comprobar(
+    'y remite al numeral donde se detalla la accesoria',
+    doc.markdown.includes('se establecen de manera independiente en el numeral'),
+  );
+
+  // Personal clave y no clave, con los cuadros del formato.
+  comprobar('está el personal clave', doc.markdown.includes('Personal clave'));
+  comprobar('y el personal no clave', doc.markdown.includes('Personal no clave'));
+  comprobar(
+    'con las cinco columnas del no clave',
+    doc.markdown.includes('| Cargo y/o responsabilidad | Cant. | Profesión y grado o título profesional requerido | Experiencia mínima | Capacitación |'),
+  );
+
+  // Infraestructura estratégica y cierre del equipamiento.
+  comprobar('está la infraestructura estratégica', doc.markdown.includes('Infraestructura estratégica'));
+  comprobar(
+    'y el equipamiento cierra con su advertencia',
+    doc.markdown.includes('no materia de evaluación al momento de la recepción de las cotizaciones'),
+  );
+
+  // La acreditación del personal clave, que "ya está definida".
+  comprobar(
+    'la experiencia del personal clave trae su regla de valoración',
+    doc.markdown.includes('se debe valorar de manera integral'),
+  );
+  comprobar(
+    'y su acreditación, con el traslape y los meses sin días',
+    doc.markdown.includes('La experiencia del personal clave se acreditará') &&
+      doc.markdown.includes('sólo se considerará una vez el periodo traslapado'),
+  );
+
+  // El MYPE: está donde el modelo lo trae y no donde no.
+  const conMype = ['ps-servicios-general', 'ps-mantenimiento-vial', 'ps-servicios-comparacion-precios'];
+  for (const id of conMype) {
+    const plantilla = obtenerPlantilla(id);
+    if (!plantilla) continue;
+    // Unas plantillas lo ponen como subsección y otras como un párrafo
+    // dentro de la experiencia, según lo traiga su formato. Lo que
+    // importa es que el monto exigido a la MYPE se pueda fijar.
+    const tieneMype = todosLosBloques(plantilla.secciones).some(
+      (b) =>
+        ('id' in b && b.id === 'experiencia_monto_mype') ||
+        (b.clase === 'parrafo' && b.campos.some((c) => c.id === 'experiencia_monto_mype')),
+    );
+    comprobar(`${id}: tiene el régimen para micro y pequeña empresa`, tieneMype);
+  }
+  const sinMype = obtenerPlantilla('ps-servicios-consultoria');
+  if (sinMype) {
+    comprobar(
+      'y consultoría no, porque su formato no lo trae',
+      !todosLosBloques(sinMype.secciones).some(
+        (b) =>
+          ('id' in b && b.id === 'experiencia_monto_mype') ||
+          (b.clase === 'parrafo' && b.campos.some((c) => c.id === 'experiencia_monto_mype')),
+      ),
+    );
+  }
+}
+
 void (async () => {
   await tipografia();
   repartoACuadros();
@@ -798,6 +872,7 @@ void (async () => {
   hoja9();
   visitasYAdelanto();
   requisitosDelProveedor();
+  ultimosPendientes();
 
   console.log(
     fallos === 0
