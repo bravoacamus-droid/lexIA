@@ -453,12 +453,40 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
           titulo: 'Conformidad de la prestación',
           bloques: [
             {
-              clase: 'redactado',
-              id: 'conformidad',
-              etiqueta: 'Órgano que brindará la conformidad',
-              instruccion:
-                'Precisar el órgano competente para emitir la conformidad, qué se verifica y en qué plazo',
-              extension: 'varios_parrafos',
+              // El formato no deja esto a la redacción: trae los dos
+              // párrafos escritos y solo dos huecos —el área usuaria y
+              // qué se recibe—. Observación de César (agosto de 2026):
+              // "en el Órgano quien brindará la conformidad, debe ser
+              // adecuado según modelo alcanzado".
+              clase: 'parrafo',
+              texto:
+                'El {{area_conformidad}} en calidad de área usuaria, es el competente para emitir la conformidad. Donde, en caso corresponda deberá señalar los días de retraso injustificado u otras penalidades que incurrió el contratista, para efectos la Dependencia Encargada de Contrataciones (DEC) proceda con la determinación el importe a penalizar.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'area_conformidad',
+                  etiqueta: 'Área usuaria que emite la conformidad',
+                  ayuda: 'Consignar el área usuaria',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
+            },
+            {
+              clase: 'parrafo',
+              texto:
+                'La conformidad se emite en un plazo máximo de siete (7) días calendario contabilizados desde el día siguiente de recibido {{objeto_conformidad}}',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'objeto_conformidad',
+                  etiqueta: 'Qué se recibe',
+                  ayuda:
+                    'Consignar el entregable, o finalizado el/los servicio/s que fue materia de contratación, completar según corresponda',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
             },
             {
               clase: 'redactado',

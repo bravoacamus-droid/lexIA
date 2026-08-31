@@ -654,7 +654,9 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
           ],
         },
 
-        seccionPenalidades8Uit(),
+        // El ANEXO 1 abre el cuadro de otras penalidades con una
+        // frase que los otros dos formatos no traen.
+        seccionPenalidades8Uit({ encabezaOtrasPenalidades: true }),
 
         {
           id: 'subcontratacion',
@@ -766,6 +768,20 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
                   obligatorio: true,
                 },
               ],
+            },
+            {
+              // Observación de César (agosto de 2026): "en el Órgano
+              // quien brindará la conformidad, debe agregarse al final
+              // de esta opción una ventana para poder agregar las
+              // condiciones de conformidad". El formato deja el plazo
+              // fijado y no dice más; las condiciones concretas las pone
+              // el área usuaria y varían con cada contratación.
+              clase: 'redactado',
+              id: 'condiciones_conformidad',
+              etiqueta: 'Condiciones de la conformidad',
+              instruccion:
+                'Precisar, de corresponder, qué se verifica antes de emitir la conformidad, qué documentos debe presentar el contratista y qué ocurre si se observa la prestación',
+              extension: 'varios_parrafos',
             },
             {
               clase: 'redactado',

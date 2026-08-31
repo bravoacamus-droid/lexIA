@@ -33,7 +33,19 @@ export const PENALIDAD_DEDUCCION_8UIT =
 export const PENALIDAD_MORA_8UIT_FORMULA =
   'En caso de retraso injustificado del contratista en la ejecución de las prestaciones objeto del contrato, la entidad contratante le aplica automáticamente una penalidad por mora por cada día de atraso que le sea imputable. La penalidad se aplica automáticamente y se calcula de acuerdo con la siguiente fórmula:';
 
-export function seccionPenalidades8Uit(): Seccion {
+/**
+ * Las penalidades de los contratos menores.
+ *
+ * `encabezaOtrasPenalidades` existe porque el ANEXO 1 —bienes— abre el
+ * cuadro de otras penalidades con una frase que el ANEXO 2 —servicios—
+ * y el ANEXO 3 —locadores— no traen. César pidió esa frase en agosto
+ * de 2026, y se pone donde el formato la tiene: añadirla donde no está
+ * sería inventar texto en un documento que se firma, y la auditoría
+ * contra sus Word lo cazaría.
+ */
+export function seccionPenalidades8Uit(
+  opciones: { encabezaOtrasPenalidades?: boolean } = {},
+): Seccion {
   return {
     id: 'penalidades',
     titulo: 'Penalidades',
@@ -56,6 +68,19 @@ export function seccionPenalidades8Uit(): Seccion {
             texto:
               'Penalidad diaria = (0.10 × Monto vigente) / (F × Plazo vigente en días), donde F = 0.40.',
           },
+          {
+            // El párrafo con que el formato cierra la fórmula, y que no
+            // estaba. Observación de César (agosto de 2026): "a la
+            // penalidad por mora, faltó agregar el siguiente texto".
+            //
+            // No es un detalle: dice sobre qué monto y qué plazo se
+            // calcula la penalidad —el del contrato, el del componente,
+            // el del ítem o el del entregable retrasado—, que es
+            // justamente lo que se discute cuando se aplica.
+            clase: 'fijo',
+            texto:
+              'Tanto el monto como el plazo se refieren, según corresponda, al monto vigente del contrato, componente o ítem que debió ejecutarse o, en caso de que estos involucren entregables cuantificables en monto y plazo, al monto y plazo del entregable que fuera materia de retraso.',
+          },
         ],
       },
       {
@@ -63,6 +88,19 @@ export function seccionPenalidades8Uit(): Seccion {
         titulo: 'Otras penalidades aplicables',
         condicion: 'tiene_otras_penalidades',
         bloques: [
+          ...(opciones.encabezaOtrasPenalidades
+            ? [
+                {
+                  // El encabezado con que el formato de bienes abre el
+                  // cuadro, y que faltaba. Observación de César (agosto
+                  // de 2026): "a las otras penalidades le faltó
+                  // considerar el siguiente texto".
+                  clase: 'fijo' as const,
+                  texto:
+                    'Adicionalmente a la penalidad por mora, se aplicarán las siguientes penalidades:',
+                },
+              ]
+            : []),
           {
             clase: 'tabla',
             id: 'otras_penalidades',

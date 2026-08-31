@@ -478,6 +478,63 @@ function hoja5() {
   }
 }
 
+// ── Observaciones 33, 34 y 36: penalidades y conformidad ─────────────
+function hoja6() {
+  console.log("\n── Obs. 33 y 34: los textos que faltaban en las penalidades ──");
+  const cierre =
+    'Tanto el monto como el plazo se refieren, según corresponda, al monto vigente del contrato';
+  for (const id of ['uit-eett', 'uit-tdr', 'uit-locadores']) {
+    const p = obtenerPlantilla(id)!;
+    const r = normalizarRespuestas(respuestasVacias(), 'Contratación de prueba');
+    const doc = ensamblarRequerimiento(p, r, { cuantia: 20_000 });
+    comprobar(`${id}: la penalidad por mora cierra como el formato`, doc.markdown.includes(cierre));
+  }
+
+  // El encabezado del cuadro de otras penalidades va SOLO donde el
+  // formato lo trae: está en el ANEXO 1 y no en el 2 ni en el 3.
+  // Añadirlo donde no está sería inventar texto en un documento que se
+  // firma, y la auditoría contra los Word lo cazaría.
+  const encabezado = 'Adicionalmente a la penalidad por mora, se aplicarán las siguientes penalidades:';
+  for (const [id, deberia] of [
+    ['uit-eett', true],
+    ['uit-tdr', false],
+    ['uit-locadores', false],
+  ] as const) {
+    const p = obtenerPlantilla(id)!;
+    const r = normalizarRespuestas(respuestasVacias(), 'Contratación de prueba');
+    r.condiciones.tiene_otras_penalidades = true;
+    r.tablas.otras_penalidades = [['1', 'Incumple el uniforme', '0.5 UIT', 'Informe del supervisor']];
+    const doc = ensamblarRequerimiento(p, r, { cuantia: 20_000 });
+    comprobar(
+      `${id}: ${deberia ? 'abre' : 'no abre'} el cuadro con la frase del formato`,
+      doc.markdown.includes(encabezado) === deberia,
+    );
+  }
+
+  console.log("\n── Obs. 36: el órgano que da la conformidad ──");
+  const p = obtenerPlantilla('uit-tdr')!;
+  const r = normalizarRespuestas(respuestasVacias(), 'Servicio de prueba');
+  r.campos.area_conformidad = 'Unidad de Tecnologías de la Información';
+  r.campos.objeto_conformidad = 'el informe mensual del servicio';
+  const doc = ensamblarRequerimiento(p, r, { cuantia: 20_000 });
+  comprobar(
+    'en servicios ya no se redacta: sale el texto del formato',
+    doc.markdown.includes('en calidad de área usuaria, es el competente para emitir la conformidad'),
+  );
+  comprobar(
+    'con el plazo de siete días del formato',
+    doc.markdown.includes('plazo máximo de siete (7) días calendario'),
+  );
+  comprobar('y los dos huecos rellenos', doc.markdown.includes('Unidad de Tecnologías de la Información') && doc.markdown.includes('el informe mensual del servicio'));
+
+  const bienes = obtenerPlantilla('uit-eett')!;
+  const bloques = todosLosBloques(bienes.secciones);
+  comprobar(
+    'en bienes hay ventana para las condiciones de la conformidad',
+    bloques.some((b) => 'id' in b && b.id === 'condiciones_conformidad'),
+  );
+}
+
 void (async () => {
   await tipografia();
   repartoACuadros();
@@ -489,6 +546,7 @@ void (async () => {
   await opcionesYCampos();
   hoja4();
   hoja5();
+  hoja6();
 
   console.log(
     fallos === 0
