@@ -29,6 +29,9 @@ import {
   type GeneratorPerfil,
 } from '@/lib/ai/generator-perfiles';
 import { GENERATOR_FILE_LIMITS } from '@/lib/ai/gemini-files';
+import { adelgazarDocx, esDocx } from '@/lib/subidas/adelgazar-docx';
+import { LIMITE_CUERPO_BYTES, enMegas } from '@/lib/subidas/limites';
+import { leerRespuesta } from '@/lib/subidas/leer-respuesta';
 
 interface DbMessage {
   id: string;
@@ -142,14 +145,30 @@ export function GeneratorChatView({
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const list = e.target.files;
     if (!list || list.length === 0) return;
-    const file = list[0];
+    const original = list[0];
     // reset input to allow re-selecting same file
     e.target.value = '';
 
-    if (file.size > GENERATOR_FILE_LIMITS.MAX_FILE_SIZE_BYTES) {
-      toast.error(
-        `El archivo excede el máximo (${GENERATOR_FILE_LIMITS.MAX_FILE_SIZE_BYTES / (1024 * 1024)} MB)`,
-      );
+    // Un Word con las tipografías incrustadas pesa como un vídeo aunque
+    // su texto ocupe cuarenta veces menos, y el envío no llega al
+    // servidor: se le quita lo que no se lee antes de mandarlo.
+    let file = original;
+    if (file.size > LIMITE_CUERPO_BYTES && esDocx(file)) {
+      const aligerado = await adelgazarDocx(file);
+      file = aligerado.archivo;
+      if (aligerado.quitado.length > 0 && file.size < original.size) {
+        toast.info('Se aligeró el Word para poder enviarlo', {
+          description: `Se quitaron ${aligerado.quitado.join(' y ')} y pasó de ${enMegas(
+            aligerado.bytesAntes,
+          )} a ${enMegas(aligerado.bytesDespues)}. El texto es el mismo.`,
+        });
+      }
+    }
+
+    if (file.size > LIMITE_CUERPO_BYTES) {
+      toast.error('El archivo es demasiado grande para enviarlo', {
+        description: `Pesa ${enMegas(file.size)} y el máximo es ${enMegas(LIMITE_CUERPO_BYTES)}.`,
+      });
       return;
     }
     if (files.length >= GENERATOR_FILE_LIMITS.MAX_FILES_PER_CONVERSATION) {
@@ -167,8 +186,16 @@ export function GeneratorChatView({
         `/api/generator-chat/conversations/${conversationId}/files`,
         { method: 'POST', body: form },
       );
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.detail || json?.error || 'Upload failed');
+      // Con tolerancia: si el envío no llegó al servidor, quien
+      // contesta es la plataforma y lo hace en HTML, no en JSON.
+      const leida = await leerRespuesta<{
+        id: string;
+        name: string;
+        mimeType: string;
+        size: number;
+      }>(res);
+      if (!leida.ok || !leida.datos) throw new Error(leida.mensaje);
+      const json = leida.datos;
       setFiles((prev) => [
         ...prev,
         {

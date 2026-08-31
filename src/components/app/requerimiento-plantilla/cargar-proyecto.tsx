@@ -28,6 +28,9 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import type { DestinoRespuesta } from '@/lib/generadores/ensamblador';
+import { adelgazarDocx, esDocx } from '@/lib/subidas/adelgazar-docx';
+import { LIMITE_CUERPO_BYTES, enMegas } from '@/lib/subidas/limites';
+import { leerRespuesta } from '@/lib/subidas/leer-respuesta';
 
 interface Asignacion {
   apartado_id: string;
@@ -88,14 +91,16 @@ export function CargarProyecto({
         body: cuerpo,
         ...(headers ? { headers } : {}),
       });
-      const j = await res.json();
-      if (!res.ok) {
-        toast.error('No se pudo leer el proyecto', {
-          description: j?.sugerencia ?? j?.detail ?? j?.error ?? `HTTP ${res.status}`,
-        });
+      // Se lee con tolerancia: cuando el envío no llega al servidor,
+      // quien contesta es la plataforma y lo hace en HTML. Leerlo como
+      // JSON a ciegas es lo que producía "JSON.parse: unexpected
+      // character at line 1 column 1", que no dice nada.
+      const leida = await leerRespuesta<Reparto>(res);
+      if (!leida.ok || !leida.datos) {
+        toast.error('No se pudo leer el proyecto', { description: leida.mensaje });
         return;
       }
-      const r = j as Reparto;
+      const r = leida.datos;
       setReparto(r);
       setAplicado(false);
       // Lo que iría a un apartado vacío se marca solo; lo que pisaría
@@ -111,10 +116,41 @@ export function CargarProyecto({
     }
   }
 
-  function subir(f: File) {
+  async function subir(original: File) {
+    // Un Word con las tipografías incrustadas pesa como un vídeo y no
+    // pasa por el envío, aunque su texto ocupe cuarenta veces menos. Se
+    // le quita lo que no se lee antes de mandarlo. El TDR de César:
+    // 5,6 MB de archivo, 0,7 MB después, el mismo texto.
+    let f = original;
+    if (original.size > LIMITE_CUERPO_BYTES && esDocx(original)) {
+      setCargando(true);
+      try {
+        const aligerado = await adelgazarDocx(original);
+        f = aligerado.archivo;
+        if (aligerado.quitado.length > 0 && f.size < original.size) {
+          toast.info('Se aligeró el Word para poder enviarlo', {
+            description: `Se quitaron ${aligerado.quitado.join(' y ')} —que no se leen— y pasó de ${enMegas(
+              aligerado.bytesAntes,
+            )} a ${enMegas(aligerado.bytesDespues)}. El texto es el mismo.`,
+          });
+        }
+      } finally {
+        setCargando(false);
+      }
+    }
+
+    if (f.size > LIMITE_CUERPO_BYTES) {
+      toast.error('El archivo es demasiado grande para enviarlo', {
+        description: `Pesa ${enMegas(f.size)} y el máximo es ${enMegas(
+          LIMITE_CUERPO_BYTES,
+        )}. Guárdalo sin imágenes, o pega el texto en el recuadro de abajo.`,
+      });
+      return;
+    }
+
     const form = new FormData();
     form.append('file', f);
-    void analizar(form);
+    await analizar(form);
   }
 
   const apartadoDe = (aid: string) => reparto?.apartados.find((a) => a.id === aid);
@@ -187,7 +223,7 @@ export function CargarProyecto({
               className="hidden"
               onChange={(e) => {
                 const f = e.target.files?.[0];
-                if (f) subir(f);
+                if (f) void subir(f);
                 e.target.value = '';
               }}
             />

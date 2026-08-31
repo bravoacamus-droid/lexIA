@@ -1,3 +1,4 @@
+import { LIMITE_CUERPO_BYTES } from '@/lib/subidas/limites';
 /**
  * Helper para Gemini Files API — sube PDFs y otros documentos a
  * Google para que el modelo los procese NATIVAMENTE (sin OCR previo,
@@ -178,7 +179,16 @@ export function fileDataPart(file: { uri: string; mimeType: string }) {
 /** Límites que aplicamos en el generador para controlar costos. */
 export const GENERATOR_FILE_LIMITS = {
   MAX_FILES_PER_CONVERSATION: 5,
-  MAX_FILE_SIZE_BYTES: 10 * 1024 * 1024, // 10 MB
+  /**
+   * El que de verdad deja pasar la plataforma.
+   *
+   * Antes decía 10 MB, y la pantalla se lo prometía al usuario: "adjunta
+   * hasta 5 archivos × 10 MB". Un archivo de entre cuatro y diez megas
+   * no llegaba nunca al servidor —lo corta la plataforma antes— y la
+   * pantalla mostraba un error de JSON que no explicaba nada. Prometer
+   * un tope que no se cumple es peor que no ponerlo.
+   */
+  MAX_FILE_SIZE_BYTES: LIMITE_CUERPO_BYTES,
   ACCEPTED_MIME_TYPES: [
     'application/pdf',
     'text/plain',

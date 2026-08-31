@@ -8,6 +8,7 @@ import {
   extraerTextoDocumento,
   DocumentoIlegibleError,
 } from '@/lib/ai/texto-documento';
+import { LIMITE_CUERPO_BYTES, enMegas } from '@/lib/subidas/limites';
 import { obtenerPlantilla } from '@/lib/generadores/plantillas';
 import { normalizarRespuestas, type RespuestasRequerimiento } from '@/lib/generadores/ensamblador';
 import {
@@ -21,8 +22,14 @@ import {
 export const runtime = 'nodejs';
 export const maxDuration = 180;
 
-/** 10 MB, el mismo tope que el resto del generador. */
-const MAX_BYTES = 10 * 1024 * 1024;
+/**
+ * El tope es el de la plataforma, no uno inventado aquí.
+ *
+ * Este archivo decía 10 MB y nunca llegó a comprobarlo: un envío mayor
+ * que el corte de la plataforma no alcanza esta función. Ver
+ * `src/lib/subidas/limites.ts`.
+ */
+const MAX_BYTES = LIMITE_CUERPO_BYTES;
 
 /**
  * Tope del texto que se manda al modelo.
@@ -91,7 +98,12 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
       }
       if (archivo.size > MAX_BYTES) {
         return NextResponse.json(
-          { error: 'file_too_large', detail: 'El archivo supera los 10 MB.' },
+          {
+            error: 'file_too_large',
+            detail: `El archivo pesa ${enMegas(archivo.size)} y el máximo es ${enMegas(MAX_BYTES)}.`,
+            sugerencia:
+              'Si es un Word con imágenes o tipografías incrustadas, guárdalo sin ellas; o pega el texto del proyecto en el recuadro.',
+          },
           { status: 413 },
         );
       }
