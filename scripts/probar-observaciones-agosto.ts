@@ -412,6 +412,72 @@ function hoja4() {
   );
 }
 
+// ── Observaciones 29 y 31: plazos por sistema y cierre del entregable ─
+function hoja5() {
+  console.log("\n── Obs. 29: los cuadros de plazo según el sistema de entrega ──");
+  const p = obtenerPlantilla('uit-eett')!;
+  const esperado: Record<string, { filas: number; mantenimiento: boolean }> = {
+    llave_en_mano: { filas: 3, mantenimiento: false },
+    llave_en_mano_mantenimiento: { filas: 4, mantenimiento: true },
+    suministro_comodato: { filas: 2, mantenimiento: false },
+  };
+
+  for (const [sistema, quePide] of Object.entries(esperado)) {
+    const r = normalizarRespuestas(respuestasVacias(), 'Adquisición de bienes');
+    r.opciones.sistema_entrega = sistema;
+    const doc = ensamblarRequerimiento(p, r, { cuantia: 30_000 });
+    const cuadros = [...doc.markdown.matchAll(/\| N\.° \| Prestación \| Plazo \| Inicio del cómputo \|/g)].length;
+    const filas = (doc.markdown.match(/\| 0\d \| /g) ?? []).length;
+    comprobar(`${sistema}: abre un solo cuadro`, cuadros === 1, `${cuadros}`);
+    comprobar(`${sistema}: con sus ${quePide.filas} prestaciones`, filas === quePide.filas, `${filas}`);
+    comprobar(
+      `${sistema}: ${quePide.mantenimiento ? 'incluye' : 'no incluye'} el mantenimiento`,
+      /\| Mantenimiento \|/.test(doc.markdown) === quePide.mantenimiento,
+    );
+  }
+
+  // Sin sistema elegido no hay cuadro que abrir.
+  const sinSistema = normalizarRespuestas(respuestasVacias(), 'Adquisición de bienes');
+  sinSistema.opciones.sistema_entrega = 'no_aplica';
+  const doc = ensamblarRequerimiento(p, sinSistema, { cuantia: 30_000 });
+  comprobar(
+    'con "no aplica" no se abre ninguno',
+    !/\| Prestación \| Plazo \|/.test(doc.markdown),
+  );
+
+  // Y el inicio del cómputo viene escrito del formato: no lo redacta
+  // nadie.
+  const conSistema = normalizarRespuestas(respuestasVacias(), 'Adquisición de bienes');
+  conSistema.opciones.sistema_entrega = 'llave_en_mano';
+  const conFilas = ensamblarRequerimiento(p, conSistema, { cuantia: 30_000 });
+  comprobar(
+    'el inicio del cómputo ya viene escrito',
+    conFilas.markdown.includes('A partir del día siguiente de la recepción de los bienes.'),
+  );
+
+  console.log("\n── Obs. 31: la condición que faltaba en el entregable ──");
+  for (const [id, cierre] of [
+    ['uit-eett', 'las EETT'],
+    ['uit-tdr', 'los Términos de Referencia'],
+  ] as const) {
+    const plantilla = obtenerPlantilla(id)!;
+    const r = normalizarRespuestas(respuestasVacias(), 'Contratación de prueba');
+    r.condiciones.tiene_entregables = true;
+    r.tablas.entregables = [['1', 'Informe final', '10 días', 'Detalle']];
+    r.campos.entregables_canal = 'mesadepartes@entidad.gob.pe';
+    const salida = ensamblarRequerimiento(plantilla, r, { cuantia: 30_000 });
+    comprobar(
+      `${id}: el entregable cierra con la condición del formato`,
+      salida.markdown.includes('Mesa de Partes virtual de la Entidad y/o correo electrónico'),
+    );
+    comprobar(`${id}: y remite a ${cierre}`, salida.markdown.includes(cierre));
+    comprobar(
+      `${id}: con el canal que puso la entidad`,
+      salida.markdown.includes('mesadepartes@entidad.gob.pe'),
+    );
+  }
+}
+
 void (async () => {
   await tipografia();
   repartoACuadros();
@@ -422,6 +488,7 @@ void (async () => {
   cuadrosPorBien();
   await opcionesYCampos();
   hoja4();
+  hoja5();
 
   console.log(
     fallos === 0

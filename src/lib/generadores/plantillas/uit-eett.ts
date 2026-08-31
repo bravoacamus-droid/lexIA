@@ -441,6 +441,85 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
           id: 'plazo_entrega',
           titulo: 'Plazo de entrega',
           bloques: [
+            // Los cuadros que el formato abre según el sistema de
+            // entrega elegido. Observación de César (agosto de 2026):
+            // "en el plazo de entrega, adicional a lo que ya está
+            // establecido en LexIA, debe agregar los cuadros según el
+            // sistema de entrega".
+            //
+            // Vienen con las filas y el inicio del cómputo que trae el
+            // formato: lo que la entidad rellena es el plazo.
+            {
+              clase: 'tabla',
+              id: 'plazos_llave_en_mano',
+              etiqueta: 'Plazos por prestación (llave en mano)',
+              instruccion: 'En caso el sistema de entrega sea llave en mano, consignar lo siguiente',
+              columnas: ['N.°', 'Prestación', 'Plazo', 'Inicio del cómputo'],
+              minimo: 0,
+              complementaria: true,
+              visibleSi: { opcion: 'sistema_entrega', valor: 'llave_en_mano' },
+              filasIniciales: [
+                ['01', 'Entrega de los bienes', '', 'A partir del día siguiente de la notificación de la orden de compra o del perfeccionamiento del contrato, según corresponda.'],
+                ['02', 'Instalación', '', 'A partir del día siguiente de la recepción de los bienes.'],
+                ['03', 'Puesta en funcionamiento', '', 'A partir del día siguiente de culminada la instalación.'],
+              ],
+            },
+            {
+              clase: 'tabla',
+              id: 'plazos_llave_en_mano_mantenimiento',
+              etiqueta: 'Plazos por prestación (llave en mano con mantenimiento)',
+              instruccion:
+                'En caso el sistema de entrega sea llave en mano con mantenimiento, consignar lo siguiente',
+              columnas: ['N.°', 'Prestación', 'Plazo', 'Inicio del cómputo'],
+              minimo: 0,
+              complementaria: true,
+              visibleSi: { opcion: 'sistema_entrega', valor: 'llave_en_mano_mantenimiento' },
+              filasIniciales: [
+                ['01', 'Entrega de los bienes', '', 'A partir del día siguiente de la notificación de la orden de compra o del perfeccionamiento del contrato, según corresponda.'],
+                ['02', 'Instalación', '', 'A partir del día siguiente de la recepción de los bienes.'],
+                ['03', 'Puesta en funcionamiento', '', 'A partir del día siguiente de culminada la instalación.'],
+                [
+                  '04',
+                  'Mantenimiento',
+                  '',
+                  'Precisar el evento a partir del cual inicia el mantenimiento, por ejemplo, desde la conformidad de la puesta en funcionamiento.',
+                ],
+              ],
+            },
+            {
+              clase: 'tabla',
+              id: 'plazos_suministro_comodato',
+              etiqueta: 'Plazos por prestación (suministro con comodato)',
+              instruccion:
+                'En caso el sistema de entrega sea suministro con comodato, consignar lo siguiente',
+              columnas: ['N.°', 'Prestación', 'Plazo', 'Inicio del cómputo'],
+              minimo: 0,
+              complementaria: true,
+              visibleSi: { opcion: 'sistema_entrega', valor: 'suministro_comodato' },
+              filasIniciales: [
+                ['01', 'Entrega de los bienes', '', 'A partir del día siguiente de la notificación de la orden de compra o del perfeccionamiento del contrato, según corresponda.'],
+                [
+                  '02',
+                  'Entrega de los bienes otorgados en comodato',
+                  '',
+                  'Precisar la condición de inicio, de corresponder.',
+                ],
+              ],
+            },
+            {
+              // Solo para suministros, como dice el formato.
+              clase: 'tabla',
+              id: 'cronograma_entregas',
+              etiqueta: 'Cronograma de entregas',
+              instruccion: 'Solo para suministros: detallar cada entrega, su cantidad y su plazo o fecha',
+              columnas: ['Entrega', 'Cantidad', 'Plazo o fecha de entrega'],
+              minimo: 0,
+              complementaria: true,
+              filasIniciales: [
+                ['Primera', '', ''],
+                ['Segunda', '', ''],
+              ],
+            },
             {
               clase: 'parrafo',
               texto:
@@ -530,6 +609,25 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
                 'Señalar los documentos que el contratista debe entregar, la oportunidad o plazo de entrega y el medio de entrega',
               columnas: ['N°', 'Entregable', 'Plazo', 'Contenido'],
               minimo: 1,
+            },
+            {
+              // La condición que cierra el apartado en el formato
+              // y no estaba. Observación de César (agosto de 2026):
+              // "al entregable le falta añadir la siguiente
+              // condición". El canal lo rellena la entidad.
+              clase: 'parrafo',
+              texto:
+                'Todos los entregables deberán ser presentados a través de Mesa de Partes virtual de la Entidad y/o correo electrónico {{entregables_canal}}, en los plazos y fechas establecidas en las EETT.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'entregables_canal',
+                  etiqueta: 'Mesa de partes virtual y/o correo electrónico',
+                  ayuda: 'Consignar el link de la mesa de partes y/o el correo electrónico',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
             },
           ],
         },

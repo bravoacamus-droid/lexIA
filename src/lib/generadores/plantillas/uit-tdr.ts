@@ -326,6 +326,25 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
               columnas: ['N°', 'Entregable', 'Plazo', 'Contenido'],
               minimo: 1,
             },
+            {
+              // La condición que cierra el apartado en el formato
+              // y no estaba. Observación de César (agosto de 2026):
+              // "al entregable le falta añadir la siguiente
+              // condición". El canal lo rellena la entidad.
+              clase: 'parrafo',
+              texto:
+                'Los entregables deberán ser presentados a través de Mesa de Partes virtual de la Entidad y/o correo electrónico {{entregables_canal}}, en los plazos y fechas establecidas en los Términos de Referencia.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'entregables_canal',
+                  etiqueta: 'Mesa de partes virtual y/o correo electrónico',
+                  ayuda: 'Consignar el link de la mesa de partes y/o el correo electrónico',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
+            },
           ],
         },
         {

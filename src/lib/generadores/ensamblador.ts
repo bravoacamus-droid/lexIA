@@ -597,7 +597,9 @@ export function ensamblarRequerimiento(
         }
 
         case 'tabla': {
-          const filas = respuestas.tablas[b.id] ?? [];
+          // Lo que haya escrito la entidad; si no ha tocado nada, las
+          // filas que el formato ya trae.
+          const filas = respuestas.tablas[b.id] ?? b.filasIniciales ?? [];
           const minimo = b.minimo ?? 0;
           // Se cuentan las filas con algo escrito: pulsar "agregar fila"
           // y dejarla en blanco no completa nada, y el índice lateral

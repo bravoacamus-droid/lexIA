@@ -532,7 +532,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
           <ControlTablaRepetible
             key={clave}
             bloque={b}
-            filas={r.tablas[b.id] ?? []}
+            filas={r.tablas[b.id] ?? b.filasIniciales ?? []}
             grupos={r.gruposTabla[b.id] ?? []}
             onChangeFilas={(f) => setTabla(b.id, f)}
             onChangeGrupos={(g) => setGruposTabla(b.id, g)}
@@ -542,7 +542,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
           <ControlTabla
             key={clave}
             bloque={b}
-            filas={r.tablas[b.id] ?? []}
+            filas={r.tablas[b.id] ?? b.filasIniciales ?? []}
             onChange={(f) => setTabla(b.id, f)}
             onRevisar={(f) => revisarTabla(b.id, f)}
           />

@@ -186,6 +186,20 @@ export interface BloqueTabla {
    * texto de al lado. Si no se llena, no existe.
    */
   complementaria?: boolean;
+  /**
+   * Filas que el formato ya trae escritas y el usuario solo completa.
+   *
+   * Observación de César (agosto de 2026) sobre el plazo de entrega:
+   * "adicional a lo que ya está establecido en LexIA, debe agregar los
+   * cuadros según el sistema de entrega". Esos cuadros no están vacíos
+   * en el formato: para llave en mano trae tres filas —entrega de los
+   * bienes, instalación, puesta en funcionamiento—, cada una con su
+   * inicio del cómputo redactado, y solo deja el plazo por rellenar.
+   *
+   * Si la entidad no toca nada, el documento sale con estas filas. En
+   * cuanto edita una, se guarda lo suyo y estas dejan de aplicar.
+   */
+  filasIniciales?: string[][];
 }
 
 /** Advertencia normativa que la plantilla incrusta entre corchetes. */
