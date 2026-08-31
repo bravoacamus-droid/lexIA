@@ -2,6 +2,10 @@ import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { EvaluationResultView } from '@/components/app/evaluator/result-view';
 import { EvaluationPendingView } from '@/components/app/evaluator/pending-view';
+import {
+  ResultadoEtapasView,
+  type ResultadoEtapas,
+} from '@/components/app/evaluator/resultado-etapas';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,6 +50,14 @@ export default async function EvaluationPage({ params }: Props) {
         offers={ev.offer_files || []}
       />
     );
+  }
+
+  // La evaluación por etapas y la de antes se distinguen por la marca que
+  // deja cada una en el resultado. Así conviven sin migrar nada: lo
+  // evaluado hasta hoy se sigue viendo como se veía.
+  const guardado = ev.result as { version?: string } | null;
+  if (guardado?.version === 'etapas-1') {
+    return <ResultadoEtapasView id={ev.id} resultado={ev.result as ResultadoEtapas} />;
   }
 
   return (

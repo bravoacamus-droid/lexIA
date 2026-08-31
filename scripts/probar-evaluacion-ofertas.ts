@@ -26,6 +26,7 @@
  * Uso:
  *   npx tsx scripts/probar-evaluacion-ofertas.ts          (todo)
  *   npx tsx scripts/probar-evaluacion-ofertas.ts reglas   (sin modelo)
+ *   npx tsx scripts/probar-evaluacion-ofertas.ts escaneo  (+ la oferta escaneada real)
  */
 import { config } from 'dotenv';
 import { join } from 'node:path';
@@ -38,9 +39,12 @@ import {
   type FichaRequisito,
   type ResultadoPostor,
 } from '../src/lib/evaluacion/etapas';
+import { markdownToDocxBuffer } from '../src/lib/docx-from-markdown';
+import { extraerTextoDocumento } from '../src/lib/ai/texto-documento';
 import { construirActa } from '../src/lib/evaluacion/acta';
 import {
   criteriosParaEtapa,
+  evaluarEtapa,
   evaluarProcedimiento,
   leerBases,
   normalizarFichas,
@@ -50,6 +54,7 @@ import {
 config({ path: join(process.cwd(), '.env.local'), override: true });
 
 const SOLO_REGLAS = process.argv[2] === 'reglas';
+const CON_ESCANEO = process.argv[2] === 'escaneo';
 const BASES = 'tmp/ofertas/BASES-CPA-008-2026.txt';
 
 let fallos = 0;
@@ -343,6 +348,24 @@ async function probarReal() {
     cabeceras.length > 0,
   );
 
+  // El acta se entrega en Word: hay que comprobar que sobrevive a la
+  // conversión, porque una tabla mal cerrada se pierde ahí y no antes.
+  const docx = await markdownToDocxBuffer(acta, {
+    title: 'Acta de Evaluación de Ofertas',
+    subtitle: bases.procedimiento.denominacion ?? '',
+  });
+  const releido = await extraerTextoDocumento(
+    new File([new Uint8Array(docx)], 'acta.docx', {
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    }),
+  );
+  console.log(`   Word: ${(docx.length / 1024).toFixed(0)} KB · ${releido.texto.length} caracteres al releerlo`);
+  comprobar(
+    'el acta en Word conserva la comparación entre postores',
+    postores.every((x) => releido.texto.includes(x.postor)) &&
+      releido.texto.includes('RESULTADO CONSOLIDADO DE LA EVALUACIÓN'),
+  );
+
   comprobar(
     'toda decisión desfavorable trae evidencia o hallazgo',
     postores
@@ -449,11 +472,82 @@ OFERTA ECONÓMICA: S/ 980,000.00 (novecientos ochenta mil con 00/100 soles).`;
   ];
 }
 
+/**
+ * La oferta escaneada de verdad, leída y evaluada.
+ *
+ * `OFERTAIVP2026.pdf` son 66 páginas escaneadas sin una letra
+ * extraíble: el postor imprimió, firmó, selló y escaneó. Es como llegan
+ * las ofertas. Se transcribe con el modelo y se evalúa la admisión.
+ *
+ * Ojo con lo que NO se comprueba aquí: esa oferta es de otro
+ * procedimiento —mantenimiento vial del IVP Mariscal Nieto— y las Bases
+ * son las del MEF. No se juzga si acierta el fondo, sino que lee el
+ * documento real y sostiene cada conclusión en evidencia que está
+ * dentro: el nombre del postor, sus anexos y sus páginas.
+ */
+async function probarEscaneada() {
+  console.log('\n══ Con la oferta escaneada real (66 páginas, sin texto) ══');
+  const ruta =
+    '2. DOCUMENTOS PARA PROCEDIMIENTOS DE SELECCIÓN/5. OFERTA ARMADA/OFERTAIVP2026.pdf';
+  const buf = await readFile(ruta).catch(() => null);
+  if (!buf) {
+    console.log('   ⚠️  no está la oferta de ejemplo; se salta');
+    return;
+  }
+  const archivo = new File([new Uint8Array(buf)], 'OFERTAIVP2026.pdf', { type: 'application/pdf' });
+
+  let rechazada = false;
+  try {
+    await extraerTextoDocumento(archivo);
+  } catch {
+    rechazada = true;
+  }
+  comprobar('sin transcripción, el PDF escaneado se rechaza', rechazada);
+
+  const t0 = Date.now();
+  const leida = await extraerTextoDocumento(archivo, { ocr: true });
+  console.log(
+    `   transcrita en ${((Date.now() - t0) / 1000).toFixed(0)} s · ${leida.paginas} páginas · ${leida.texto.length} caracteres`,
+  );
+  comprobar('con transcripción, se lee', leida.texto.length > 20_000);
+  comprobar('y consta que es transcripción, no lectura', leida.transcrito === true);
+  comprobar('sin tramos perdidos', (leida.tramosVacios ?? 0) === 0, String(leida.tramosVacios));
+  const marcadas = [...leida.texto.matchAll(/=== Página (\d+) ===/g)].length;
+  comprobar(`vienen todas las páginas (${marcadas})`, marcadas >= (leida.paginas ?? 0) - 1);
+  comprobar('trae el nombre del postor', /TICSANI/i.test(leida.texto));
+
+  const textoBases = await readFile(BASES, 'utf8');
+  const bases = await leerBases(textoBases);
+  const et = await evaluarEtapa({
+    etapa: 'admision',
+    exigencias: bases.admision,
+    textoOferta: leida.texto,
+    nombrePostor: 'TICSANI INGENIEROS E.I.R.L.',
+    textoBases,
+  });
+  console.log(`   admisión: ${et.resultado} · ${et.fichas.length} fichas`);
+  for (const f of et.fichas.slice(0, 3)) {
+    console.log(`      · ${f.requisito.slice(0, 46)} → ${f.resultado} (${f.documentoPresentado.slice(0, 48)})`);
+  }
+
+  const conEvidencia = et.fichas.filter((f) => f.evidencia.length > 0);
+  comprobar('las fichas citan evidencia del documento', conEvidencia.length >= 3);
+  comprobar(
+    'y la evidencia es de ESTA oferta, no inventada',
+    conEvidencia.some((f) => f.evidencia.some((e) => /TICSANI|CONDORI|11052885/i.test(e.cita))),
+  );
+  comprobar(
+    'los requisitos que no le aplican se resuelven como tales',
+    et.fichas.some((f) => /consorcio|desafectaci/i.test(f.requisito) && /no aplica/i.test(f.documentoPresentado)),
+  );
+}
+
 void (async () => {
   probarCatalogo();
   probarEmparejamiento();
   probarReglas();
   if (!SOLO_REGLAS) await probarReal();
+  if (CON_ESCANEO) await probarEscaneada();
 
   console.log(
     fallos === 0

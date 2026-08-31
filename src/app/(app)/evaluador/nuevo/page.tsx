@@ -33,7 +33,13 @@ export default async function NuevaEvaluacionPage() {
 
   return (
     <div className="container max-w-3xl py-8">
-      <EvaluatorWizard />
+      {/*
+        El comité evalúa en las tres etapas que pidió César: admisión,
+        calificación y evaluación con puntaje. La auto-revisión del
+        proveedor (/revision-oferta) sigue con la pasada única, que es lo
+        que necesita quien solo quiere saber si su oferta está completa.
+      */}
+      <EvaluatorWizard porEtapas />
     </div>
   );
 }

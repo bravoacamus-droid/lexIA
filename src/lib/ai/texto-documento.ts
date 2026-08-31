@@ -54,15 +54,34 @@ function clasificar(nombre: string, mime: string): Clase | null {
   return null;
 }
 
+export interface OpcionesExtraccion {
+  /**
+   * Leer con el modelo los PDF escaneados, en vez de rechazarlos.
+   *
+   * Va apagado por defecto y se enciende donde hace falta: transcribir
+   * trescientas páginas son veinte llamadas al modelo, y no todos los
+   * flujos quieren pagarlas sin avisar. Lo encienden la evaluación de
+   * ofertas y la carga de proyectos, que es donde llegan escaneos.
+   */
+  ocr?: boolean;
+  /** Para los avisos y para nombrar el archivo subido. */
+  nombre?: string;
+}
+
 export interface TextoExtraido {
   texto: string;
   /** Para poder decírselo al usuario: "leí 12 páginas". */
   paginas?: number;
   origen: Clase;
+  /** El texto se obtuvo transcribiendo un escaneo, no leyéndolo. */
+  transcrito?: boolean;
+  /** Tramos del escaneo que no se pudieron transcribir. */
+  tramosVacios?: number;
 }
 
 export async function extraerTextoDocumento(
   archivo: File,
+  opciones: OpcionesExtraccion = {},
 ): Promise<TextoExtraido> {
   const clase = clasificar(archivo.name, archivo.type || '');
   if (!clase) {
@@ -88,17 +107,38 @@ export async function extraerTextoDocumento(
   }
 
   if (clase === 'pdf') {
+    // La copia se guarda ANTES de leer: pdf.js transfiere el buffer que
+    // recibe y, si el PDF resulta ser un escaneo, el OCR se encontraría
+    // con un buffer vacío.
+    const paraOcr = Buffer.from(buffer);
     try {
       const { text, pages } = await extractPdfText(buffer);
       return { texto: text.trim(), paginas: pages, origen: 'pdf' };
     } catch (e) {
-      if (e instanceof PdfHasNoTextError) {
-        throw new DocumentoIlegibleError(
-          'El PDF no tiene texto: parece escaneado.',
-          'Pásalo por OCR, o sube el Word original si lo tienes.',
-        );
+      if (!(e instanceof PdfHasNoTextError)) throw e;
+
+      // Es un escaneo. Así llegan las ofertas: el postor imprime, firma,
+      // sella y escanea. Si quien llama lo permite, se transcribe.
+      if (opciones.ocr) {
+        const { transcribirPdfEscaneado } = await import('./ocr-pdf');
+        const t = await transcribirPdfEscaneado(paraOcr, {
+          nombre: opciones.nombre ?? archivo.name,
+        });
+        if (t.texto.trim().length > 0) {
+          return {
+            texto: t.texto.trim(),
+            paginas: t.paginas,
+            origen: 'pdf',
+            transcrito: true,
+            tramosVacios: t.tramosVacios,
+          };
+        }
       }
-      throw e;
+
+      throw new DocumentoIlegibleError(
+        'El PDF no tiene texto: parece escaneado.',
+        'Pásalo por OCR, o sube el Word original si lo tienes.',
+      );
     }
   }
 

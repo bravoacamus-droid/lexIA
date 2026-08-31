@@ -41,11 +41,21 @@ interface EvaluatorWizardProps {
   mode?: EvalMode;
   /** Ruta de retorno tras crear (default /evaluador/[id]). */
   resultPathPrefix?: string;
+  /**
+   * Evaluar en las tres etapas —admisión, calificación y evaluación con
+   * puntaje— en vez de la pasada única de requisitos de calificación.
+   *
+   * Va como opción y no reemplaza a la anterior porque son dos trabajos
+   * distintos: el comité evalúa un procedimiento entero y el postor se
+   * revisa a sí mismo antes de presentar.
+   */
+  porEtapas?: boolean;
 }
 
 export function EvaluatorWizard({
   mode = 'committee',
   resultPathPrefix = '/evaluador',
+  porEtapas = false,
 }: EvaluatorWizardProps = {}) {
   const router = useRouter();
   const [step, setStep] = useState<Step>(1);
@@ -74,8 +84,11 @@ export function EvaluatorWizard({
       }
       const { evaluation } = await createRes.json();
       setStep('processing');
-      // Fire-and-forget el process; el componente Processing poll-ea estado
-      fetch(`/api/evaluations/${evaluation.id}/process`, { method: 'POST' }).catch(() => null);
+      // Fire-and-forget; el componente Processing consulta el estado.
+      // La evaluación por etapas tarda minutos —una oferta escaneada son
+      // noventa segundos solo de transcripción—, así que no se espera.
+      const ruta = porEtapas ? 'etapas' : 'process';
+      fetch(`/api/evaluations/${evaluation.id}/${ruta}`, { method: 'POST' }).catch(() => null);
 
       // Polling para detectar fin
       const pollId = setInterval(async () => {
