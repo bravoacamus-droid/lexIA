@@ -614,7 +614,10 @@ export function ensamblarRequerimiento(
               ayuda: b.instruccion,
             });
           }
-          if (filas.length === 0 && minimo === 0) {
+          if (conContenido === 0 && b.complementaria) {
+            // Cuadro que acompaña a un texto: si no se llena, no sale.
+            // Ni siquiera el "no aplica", que aquí sería ruido.
+          } else if (filas.length === 0 && minimo === 0) {
             // Tabla opcional y vacía: una cabecera suelta sin filas se ve
             // como un error de armado en el Word. Se omite y se deja
             // constancia de por qué.

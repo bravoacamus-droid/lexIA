@@ -172,6 +172,20 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
               extension: 'varios_parrafos',
             },
             {
+              // El formato trae aquí un cuadro y LexIA solo el texto.
+              // Observación de César de agosto: el cuadro se añade "en
+              // caso el área usuaria lo amerite" y el campo de
+              // redacción no se elimina.
+              clase: 'tabla',
+              id: 'envase_cuadro',
+              etiqueta: 'Envase (cuadro, si lo prefieres al texto)',
+              instruccion:
+                'Peso neto del producto, tipo de envase, material del envase y demás aspectos que corresponda precisar',
+              columnas: ['Aspecto a precisar', 'Descripción'],
+              minimo: 0,
+              complementaria: true,
+            },
+            {
               clase: 'redactado',
               id: 'embalaje',
               etiqueta: 'Embalaje',
@@ -223,14 +237,66 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
         {
           id: 'garantia_comercial',
           titulo: 'Garantía comercial',
+          // El formato ya trae escritos el alcance y las condiciones, y
+          // del período solo deja un hueco. LexIA pedía redactarlo todo.
+          //
+          // Observación de César (agosto de 2026): "en la garantía
+          // comercial (alcance de la garantía, condiciones de la
+          // garantía) las condiciones ya están establecidas por lo que
+          // no hay necesidad de redactar. Con respecto al periodo de la
+          // garantía, solo una parte falta precisar".
           bloques: [
             {
-              clase: 'redactado',
-              id: 'garantia_alcance',
-              etiqueta: 'Alcance, condiciones y período de la garantía',
-              instruccion:
-                'Precisar el alcance de la garantía, sus condiciones de atención —teléfono, plazo de reposición— y el período de vigencia',
-              extension: 'varios_parrafos',
+              clase: 'titulo',
+              texto: 'Alcance de la garantía',
+              nivel: 3,
+            },
+            {
+              clase: 'fijo',
+              texto:
+                'La garantía comercial, comprende contra defectos de diseño y/o fabricación, averías o fallas de funcionamiento, o pérdida total de los bienes contratados, ajenos al uso normal o habitual de los bienes y no detectables al momento que se otorgó la conformidad.',
+            },
+            {
+              clase: 'titulo',
+              texto: 'Condiciones de la garantía',
+              nivel: 3,
+            },
+            {
+              clase: 'fijo',
+              texto:
+                'Para la atención de la garantía, el contratista deberá contar con una línea telefónica fija o móvil para las coordinaciones que correspondan, cuyo horario de atención debe ser de lunes a viernes de 8:30 - 18:00 horas.',
+            },
+            {
+              clase: 'fijo',
+              texto:
+                'El plazo máximo para la entrega de los bienes a reemplazar, serán dentro de cinco (5) días calendario computados a partir del día siguiente de la notificación al contratista. La notificación será efectuada por el comprador público a través de correo electrónico que fue autorizado por el contratista.',
+            },
+            {
+              clase: 'fijo',
+              texto:
+                'Los bienes para remplazar deben ser nuevos y debe tener las mismas características del bien contratado. Todos los gastos deberán ser cubiertos por el contratista.',
+            },
+            {
+              clase: 'titulo',
+              texto: 'Período de garantía',
+              nivel: 3,
+            },
+            {
+              // Lo único que se rellena: el plazo.
+              clase: 'parrafo',
+              texto:
+                'El período de garantía será de {{garantia_periodo}}, computado a partir del día siguiente del otorgamiento de la conformidad del bien.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'garantia_periodo',
+                  etiqueta: 'Período de garantía',
+                  ayuda:
+                    'Consignar el plazo, por ejemplo: treinta (30) días calendario, seis (6) meses o un (1) año',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
             },
           ],
         },
@@ -346,6 +412,28 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
                   texto: 'El contrato se rige por el sistema de entrega de Suministro con comodato.',
                 },
               ],
+            },
+            {
+              // El formato pide detallar en qué consiste el sistema
+              // elegido —"[En caso el sistema de entrega sea llave en
+              // mano, consignar lo siguiente]" y un cuadro de
+              // prestaciones—. Observación de César de agosto: "debe
+              // agregarse un cuadro para agregar y detallar respecto en
+              // qué consiste cada sistema".
+              clase: 'tabla',
+              id: 'sistema_entrega_detalle',
+              etiqueta: 'Detalle del sistema de entrega',
+              instruccion:
+                'En caso el sistema de entrega sea llave en mano u otro que lo amerite, precisar las prestaciones que comprende: instalación, montaje, puesta en funcionamiento, capacitación, mantenimiento y demás que correspondan',
+              columnas: ['N.°', 'Prestación', 'Detalle del servicio'],
+              minimo: 0,
+              complementaria: true,
+              // Solo cuando hay un sistema de verdad: con "no aplica"
+              // no hay prestaciones que detallar.
+              visibleSi: {
+                opcion: 'sistema_entrega',
+                valor: ['llave_en_mano', 'llave_en_mano_mantenimiento', 'suministro_comodato'],
+              },
             },
           ],
         },

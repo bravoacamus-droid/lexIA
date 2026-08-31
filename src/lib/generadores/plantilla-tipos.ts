@@ -172,6 +172,20 @@ export interface BloqueTabla {
    * N.° 01", "Ítem", "Servicio"…
    */
   repetible?: { etiquetaTitulo: string };
+  /**
+   * El cuadro acompaña a un texto y solo sale si se llena.
+   *
+   * Observación de César (agosto de 2026) sobre el envase: "debe añadir
+   * una opción adicional para insertar cuadro en caso el área usuaria lo
+   * amerite, el cuadro de redacción actual no debe eliminarse". Su
+   * formato trae ahí un cuadro —"Aspecto a precisar | Descripción"— y
+   * LexIA solo tenía el campo de texto.
+   *
+   * Un cuadro opcional normal deja escrito "No aplica: envase" cuando
+   * queda vacío, y aquí eso sobra: el apartado ya está resuelto con el
+   * texto de al lado. Si no se llena, no existe.
+   */
+  complementaria?: boolean;
 }
 
 /** Advertencia normativa que la plantilla incrusta entre corchetes. */

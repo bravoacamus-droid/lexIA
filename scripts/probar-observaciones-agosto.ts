@@ -345,6 +345,73 @@ async function opcionesYCampos() {
   comprobar('y ninguno del requerimiento lo tiene desactivado', !form.includes('resize-none'));
 }
 
+// ── Observaciones 25, 26 y 28: cuadros del formato y garantía ────────
+function hoja4() {
+  console.log("\n── Obs. 25 y 28: cuadros que el formato trae y LexIA no tenía ──");
+  const p = obtenerPlantilla('uit-eett')!;
+  const bloques = todosLosBloques(p.secciones);
+  const cuadro = (id: string) =>
+    bloques.find((b) => 'id' in b && b.id === id) as
+      | { clase: string; columnas?: string[]; complementaria?: boolean }
+      | undefined;
+
+  const envase = cuadro('envase_cuadro');
+  comprobar('el envase admite el cuadro del formato', envase?.clase === 'tabla');
+  comprobar(
+    'con sus columnas',
+    envase?.columnas?.join(' | ') === 'Aspecto a precisar | Descripción',
+    envase?.columnas?.join(' | '),
+  );
+  comprobar('y el campo de redacción sigue estando', !!cuadro('envase'));
+
+  const sistema = cuadro('sistema_entrega_detalle');
+  comprobar('el sistema de entrega admite detallar sus prestaciones', sistema?.clase === 'tabla');
+  comprobar(
+    'con las columnas del formato',
+    sistema?.columnas?.join(' | ') === 'N.° | Prestación | Detalle del servicio',
+    sistema?.columnas?.join(' | '),
+  );
+
+  // Vacíos no ensucian el documento: acompañan a un texto que ya lo
+  // resuelve.
+  const r = normalizarRespuestas(respuestasVacias(), 'Adquisición de bienes');
+  r.condiciones.requiere_envase = true;
+  const vacio = ensamblarRequerimiento(p, r, { cuantia: 30_000 });
+  comprobar(
+    'un cuadro complementario vacío no deja rastro en el documento',
+    !/No aplica: envase|No aplica: detalle/i.test(vacio.markdown),
+  );
+
+  r.tablas.envase_cuadro = [['Peso neto del producto', '500 g por envase']];
+  r.opciones.sistema_entrega = 'llave_en_mano';
+  r.tablas.sistema_entrega_detalle = [['01', 'Instalación', 'Montaje y pruebas preliminares']];
+  const lleno = ensamblarRequerimiento(p, r, { cuantia: 30_000 });
+  comprobar('y lleno sale con lo escrito', lleno.markdown.includes('500 g por envase'));
+  comprobar('lo mismo el del sistema de entrega', lleno.markdown.includes('Montaje y pruebas preliminares'));
+
+  console.log("\n── Obs. 26: la garantía comercial ya viene escrita en el formato ──");
+  const sinRedactar = normalizarRespuestas(respuestasVacias(), 'Adquisición de bienes');
+  sinRedactar.campos.garantia_periodo = 'doce (12) meses';
+  const doc = ensamblarRequerimiento(p, sinRedactar, { cuantia: 30_000 });
+  comprobar(
+    'el alcance sale sin que nadie lo redacte',
+    doc.markdown.includes('comprende contra defectos de diseño y/o fabricación'),
+  );
+  comprobar(
+    'y las condiciones también',
+    doc.markdown.includes('línea telefónica fija o móvil') &&
+      doc.markdown.includes('dentro de cinco (5) días calendario'),
+  );
+  comprobar(
+    'lo único que se rellena es el período',
+    doc.markdown.includes('El período de garantía será de doce (12) meses'),
+  );
+  comprobar(
+    'ya no se pide redactar la garantía entera',
+    !bloques.some((b) => 'id' in b && b.id === 'garantia_alcance'),
+  );
+}
+
 void (async () => {
   await tipografia();
   repartoACuadros();
@@ -354,6 +421,7 @@ void (async () => {
   ordenDeSubnumerales();
   cuadrosPorBien();
   await opcionesYCampos();
+  hoja4();
 
   console.log(
     fallos === 0
