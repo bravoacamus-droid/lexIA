@@ -194,6 +194,7 @@ export const PLANTILLA_SERVICIOS_CONSULTORIA: PlantillaRequerimiento = {
               id: 'asistencia_tecnica',
               titulo: 'Asistencia técnica especializada',
               condicion: 'accesoria_asistencia',
+              renombrable: true,
               bloques: [
                 {
                   clase: 'redactado',
@@ -211,6 +212,7 @@ export const PLANTILLA_SERVICIOS_CONSULTORIA: PlantillaRequerimiento = {
               id: 'soporte_metodologico',
               titulo: 'Soporte técnico o metodológico',
               condicion: 'accesoria_soporte',
+              renombrable: true,
               bloques: [
                 {
                   clase: 'redactado',
@@ -228,6 +230,7 @@ export const PLANTILLA_SERVICIOS_CONSULTORIA: PlantillaRequerimiento = {
               id: 'capacitacion',
               titulo: 'Capacitación y/o entrenamiento',
               condicion: 'accesoria_capacitacion',
+              renombrable: true,
               bloques: [
                 {
                   clase: 'redactado',

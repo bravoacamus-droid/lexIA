@@ -51,6 +51,7 @@ import type {
 } from '@/lib/generadores/ensamblador';
 import {
   apartadosOrdenados,
+  hijasOrdenadas,
   // Se renombra: aquí `bloqueVisible` ya es la función que PINTA un
   // bloque, y esta decide si el bloque existe.
   bloqueVisible as bloqueAplica,
@@ -70,6 +71,7 @@ import {
   ControlParrafo,
   ControlRedactado,
   ControlTabla,
+  ControlTablaRepetible,
   TextoFijo,
 } from './bloques';
 import { RevisionGlobal } from './revision-global';
@@ -252,6 +254,31 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
    * condición, saltársela es lo que el usuario espera —de lo contrario
    * pulsa y no se mueve nada—.
    */
+  /**
+   * Sube o baja una subsección dentro de su apartado.
+   *
+   * Observación de César (agosto de 2026): "la funcionalidad de subir y
+   * bajar debe añadirse para todos los numerales y no solo para los
+   * principales". Se salta lo que está apagado, igual que arriba: mover
+   * por encima de un apartado que no va a salir en el documento
+   * confunde, porque el número no cambia.
+   */
+  const moverHija = (madre: Seccion, idHija: string, direccion: -1 | 1) => {
+    setR((p) => {
+      const hijas = hijasOrdenadas(madre, p);
+      const visible = (h: Seccion) => !h.condicion || p.condiciones[h.condicion];
+      const i = hijas.findIndex((h) => h.id === idHija);
+      if (i < 0) return p;
+      let j = i + direccion;
+      while (j >= 0 && j < hijas.length && !visible(hijas[j])) j += direccion;
+      if (j < 0 || j >= hijas.length) return p;
+      const ids = hijas.map((h) => h.id);
+      [ids[i], ids[j]] = [ids[j], ids[i]];
+      return { ...p, ordenHijas: { ...p.ordenHijas, [madre.id]: ids } };
+    });
+    marcarSucio();
+  };
+
   const mover = (idApartado: string, direccion: -1 | 1) => {
     setR((p) => {
       const orden = apartadosOrdenados(plantilla, p);
@@ -342,6 +369,21 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
       for (const k of condicionesEncendidas) condiciones[k] = true;
       return { ...p, campos, redacciones, tablas, extras, condiciones };
     });
+    marcarSucio();
+  };
+
+  /** El título propio de un numeral que admite renombrarse. */
+  const setTitulo = (id: string, v: string) => {
+    setR((p) => ({ ...p, titulos: { ...p.titulos, [id]: v } }));
+    marcarSucio();
+  };
+
+  /** Los cuadros que la entidad añadió a un bloque repetible. */
+  const setGruposTabla = (
+    k: string,
+    v: Array<{ titulo: string; filas: string[][] }>,
+  ) => {
+    setR((p) => ({ ...p, gruposTabla: { ...p.gruposTabla, [k]: v } }));
     marcarSucio();
   };
 
@@ -484,7 +526,19 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
           />
         );
       case 'tabla':
-        return (
+        // Un cuadro que se puede repetir —las características por bien—
+        // se pinta con su envoltura; el resto, como siempre.
+        return b.repetible ? (
+          <ControlTablaRepetible
+            key={clave}
+            bloque={b}
+            filas={r.tablas[b.id] ?? []}
+            grupos={r.gruposTabla[b.id] ?? []}
+            onChangeFilas={(f) => setTabla(b.id, f)}
+            onChangeGrupos={(g) => setGruposTabla(b.id, g)}
+            onRevisar={(f) => revisarTabla(b.id, f)}
+          />
+        ) : (
           <ControlTabla
             key={clave}
             bloque={b}
@@ -552,15 +606,38 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
         className={cn('scroll-mt-24 transition', nivel > 1 && 'border-l pl-4')}
       >
         <div className="flex items-start justify-between gap-3">
-          <h3
-            className={cn(
-              'font-semibold',
-              nivel === 1 ? 'text-base' : 'text-sm text-muted-foreground',
-              apagado && 'text-muted-foreground/70',
-            )}
-          >
-            {numero}. {s.titulo}
-          </h3>
+          {s.renombrable ? (
+            // El formato propone tres prestaciones accesorias, pero hay
+            // más —monitoreo, asistencia técnica— y cada entidad tiene
+            // las suyas. Observación de César de agosto de 2026.
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <span
+                className={cn(
+                  'font-semibold',
+                  nivel === 1 ? 'text-base' : 'text-sm text-muted-foreground',
+                )}
+              >
+                {numero}.
+              </span>
+              <Input
+                value={r.titulos[s.id] ?? s.titulo}
+                onChange={(e) => setTitulo(s.id, e.target.value)}
+                placeholder={s.titulo}
+                aria-label={`Título del numeral ${numero}`}
+                className="h-8 max-w-md border-transparent bg-transparent px-1 font-semibold hover:border-input focus:border-input"
+              />
+            </div>
+          ) : (
+            <h3
+              className={cn(
+                'font-semibold',
+                nivel === 1 ? 'text-base' : 'text-sm text-muted-foreground',
+                apagado && 'text-muted-foreground/70',
+              )}
+            >
+              {numero}. {s.titulo}
+            </h3>
+          )}
           {s.condicion && (
             <label className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
               <span>{apagado ? 'No corresponde' : 'Corresponde'}</span>
@@ -625,7 +702,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
         {(() => {
           // Tampoco se esconden las hijas apagadas: cada una lleva su
           // interruptor. Lo que sí hacen es no consumir numeración.
-          const hijas = s.subsecciones ?? [];
+          const hijas = hijasOrdenadas(s, r);
           const propias = r.extras.filter((e) => e.dentroDe === s.id);
           // Solo se ofrece añadir donde el formato ya agrupa apartados:
           // las prestaciones accesorias del formato son tres, pero hay
@@ -639,10 +716,40 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
                 // La numeración de las hijas sigue la del documento: una
                 // subsección apagada no gasta número, igual que arriba.
                 let sub = 0;
-                return hijas.map((h) => {
+                return hijas.map((h, iHija) => {
                   const entra = !h.condicion || r.condiciones[h.condicion];
                   const suNumero = entra ? `${numero}.${++sub}` : '—';
-                  return pintarSeccion(h, suNumero, nivel + 1);
+                  return (
+                    <div key={h.id} className="group/hija relative">
+                      <div className="absolute -top-1 right-0 z-10 flex gap-1 opacity-0 transition focus-within:opacity-100 group-hover/hija:opacity-100">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 w-7 p-0"
+                          disabled={iHija === 0}
+                          title="Subir este numeral"
+                          aria-label={`Subir ${suNumero}`}
+                          onClick={() => moverHija(s, h.id, -1)}
+                        >
+                          <ChevronUp className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 w-7 p-0"
+                          disabled={iHija === hijas.length - 1}
+                          title="Bajar este numeral"
+                          aria-label={`Bajar ${suNumero}`}
+                          onClick={() => moverHija(s, h.id, 1)}
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      {pintarSeccion(h, suNumero, nivel + 1)}
+                    </div>
+                  );
                 });
               })()}
               {propias.map((e, i) => (

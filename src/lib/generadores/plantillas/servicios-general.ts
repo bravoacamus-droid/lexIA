@@ -201,6 +201,7 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
               id: 'mantenimiento',
               titulo: 'Mantenimiento preventivo y/o correctivo',
               condicion: 'accesoria_mantenimiento',
+              renombrable: true,
               bloques: [
                 {
                   clase: 'redactado',
@@ -218,6 +219,7 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
               id: 'soporte_tecnico',
               titulo: 'Soporte técnico',
               condicion: 'accesoria_soporte',
+              renombrable: true,
               bloques: [
                 {
                   clase: 'redactado',
@@ -235,6 +237,7 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
               id: 'capacitacion',
               titulo: 'Capacitación y/o entrenamiento',
               condicion: 'accesoria_capacitacion',
+              renombrable: true,
               bloques: [
                 {
                   clase: 'redactado',

@@ -87,6 +87,9 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
               instruccion: 'En caso de relación de ítems, detallar las características de cada bien',
               columnas: ['N.°', 'Característica', 'Especificación'],
               minimo: 0,
+              // El formato pone un cuadro por bien —"Bien N.° 01: XYZ"
+              // y debajo el suyo—. Observación de César de agosto.
+              repetible: { etiquetaTitulo: 'Bien N.° (denominación)' },
             },
           ],
         },

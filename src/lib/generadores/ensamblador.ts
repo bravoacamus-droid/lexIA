@@ -40,6 +40,37 @@ export interface RespuestasRequerimiento {
   opciones: Record<string, string>;
   /** id de tabla → filas (sin la cabecera). */
   tablas: Record<string, string[][]>;
+  /**
+   * Cuadros repetidos, cada uno con su título.
+   *
+   * Para las características técnicas: el formato pone un cuadro por
+   * bien —"Bien N.° 01: XYZ" y debajo su tabla— y LexIA tenía uno solo.
+   * Observación de César de agosto de 2026.
+   *
+   * El PRIMER cuadro sigue viviendo en `tablas`, sin título, para no
+   * romper lo que ya haya guardado ninguna entidad: aquí van los que se
+   * añaden después. Un requerimiento de un solo bien no cambia en nada.
+   */
+  gruposTabla: Record<string, Array<{ titulo: string; filas: string[][] }>>;
+  /**
+   * En qué orden van las subsecciones dentro de cada apartado.
+   *
+   * id de la sección madre → ids de sus hijas, en el orden que eligió la
+   * entidad. Lo que no figure va detrás, en el orden del formato.
+   *
+   * Observación de César (agosto de 2026): "la funcionalidad de subir y
+   * bajar debe añadirse para todos los numerales y no solo para los
+   * principales". Se podía reordenar el apartado 5 entero, pero no
+   * mover el 5.3 por delante del 5.2.
+   */
+  ordenHijas: Record<string, string[]>;
+  /**
+   * Títulos que la entidad cambió, en las secciones que lo admiten.
+   *
+   * id de la sección → título propio. Solo se aplica donde la plantilla
+   * declara `renombrable`; ver `Seccion`.
+   */
+  titulos: Record<string, string>;
   /** id de condición → si la sección aplica. */
   condiciones: Record<string, boolean>;
   /**
@@ -191,6 +222,9 @@ export const respuestasVacias = (): RespuestasRequerimiento => ({
   redacciones: {},
   opciones: {},
   tablas: {},
+  gruposTabla: {},
+  ordenHijas: {},
+  titulos: {},
   condiciones: {},
   extras: [],
   orden: [],
@@ -226,6 +260,9 @@ export function normalizarRespuestas(
     redacciones: { ...(r?.redacciones ?? {}) },
     opciones: { ...(r?.opciones ?? {}) },
     tablas: { ...(r?.tablas ?? {}) },
+    gruposTabla: { ...(r?.gruposTabla ?? {}) },
+    ordenHijas: { ...(r?.ordenHijas ?? {}) },
+    titulos: { ...(r?.titulos ?? {}) },
     condiciones: { ...(r?.condiciones ?? {}) },
     extras: [...(r?.extras ?? [])],
     orden: [...(r?.orden ?? [])],
@@ -249,6 +286,34 @@ export type ApartadoOrdenado =
  * borrado— simplemente se ignora, y lo que nadie colocó conserva el
  * orden del formato al final.
  */
+/**
+ * Las subsecciones de un apartado, en el orden que eligió la entidad.
+ *
+ * Lo que la entidad no haya movido conserva el orden del formato, y una
+ * hija que ya no exista en la plantilla se ignora: el orden guardado es
+ * una preferencia, no una fuente de verdad.
+ */
+export function hijasOrdenadas(
+  seccion: Seccion,
+  respuestas: RespuestasRequerimiento,
+): Seccion[] {
+  const hijas = seccion.subsecciones ?? [];
+  const orden = respuestas.ordenHijas[seccion.id];
+  if (!orden || orden.length === 0) return hijas;
+  const porId = new Map(hijas.map((h) => [h.id, h]));
+  const out: Seccion[] = [];
+  const vistos = new Set<string>();
+  for (const id of orden) {
+    const h = porId.get(id);
+    if (h && !vistos.has(id)) {
+      out.push(h);
+      vistos.add(id);
+    }
+  }
+  for (const h of hijas) if (!vistos.has(h.id)) out.push(h);
+  return out;
+}
+
 export function apartadosOrdenados(
   plantilla: PlantillaRequerimiento,
   respuestas: RespuestasRequerimiento,
@@ -560,6 +625,18 @@ export function ensamblarRequerimiento(
             // documento. El hueco ya quedó anotado en `faltantes`.
             partes.push(tablaMarkdown(b.columnas, filas), '');
           }
+
+          // Los cuadros que la entidad añadió después, cada uno con su
+          // título encima, como en el formato: "Bien N.° 02: ABC" y
+          // debajo su tabla.
+          if (b.repetible) {
+            for (const grupo of respuestas.gruposTabla[b.id] ?? []) {
+              const conAlgo = grupo.filas.filter((f) => f.some((c) => c.trim()));
+              if (conAlgo.length === 0 && !grupo.titulo.trim()) continue;
+              if (grupo.titulo.trim()) partes.push(`**${grupo.titulo.trim()}**`, '');
+              partes.push(tablaMarkdown(b.columnas, grupo.filas), '');
+            }
+          }
           break;
         }
       }
@@ -572,10 +649,11 @@ export function ensamblarRequerimiento(
       omitidas.push(s.titulo);
       return;
     }
-    partes.push(`${'#'.repeat(Math.min(nivel + 2, 6))} ${numero}. ${s.titulo}`, '');
+    const suTitulo = (s.renombrable && respuestas.titulos[s.id]?.trim()) || s.titulo;
+    partes.push(`${'#'.repeat(Math.min(nivel + 2, 6))} ${numero}. ${suTitulo}`, '');
     escribirBloques(s.bloques, s.titulo);
     let sub = 0;
-    for (const hija of s.subsecciones ?? []) {
+    for (const hija of hijasOrdenadas(s, respuestas)) {
       if (hija.condicion && !respuestas.condiciones[hija.condicion]) {
         omitidas.push(hija.titulo);
         continue;

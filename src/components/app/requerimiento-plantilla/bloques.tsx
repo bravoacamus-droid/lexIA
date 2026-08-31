@@ -287,7 +287,7 @@ function HuecoParrafo({
         onChange={(e) => onChange(e.target.value)}
         placeholder={campo.etiqueta}
         rows={1}
-        className="mx-1 my-1 inline-block min-h-0 w-full max-w-3xl resize-none overflow-hidden py-1.5 align-top text-sm"
+        className="mx-1 my-1 inline-block min-h-0 w-full max-w-3xl resize-y overflow-hidden py-1.5 align-top text-sm"
       />
 
       {conAyuda && (
@@ -613,7 +613,7 @@ function EditorLista({
             }}
             rows={1}
             placeholder={i === 0 ? `${etiqueta}: un punto por renglón…` : ''}
-            className="min-h-0 flex-1 resize-none py-1.5 text-sm"
+            className="min-h-0 flex-1 resize-y py-1.5 text-sm"
           />
           <Button
             type="button"
@@ -797,6 +797,94 @@ export function ControlRedactado({
 }
 
 // ── Tabla ─────────────────────────────────────────────────────────────
+
+/**
+ * Un cuadro que se puede repetir, cada vez con su título.
+ *
+ * POR QUÉ EXISTE
+ *
+ * Observación de César (agosto de 2026) sobre las características
+ * técnicas: "debe permitir ingresar cuadros independientes y en cada
+ * cuadro debe permitir poner un título, para poner el nombre de cada
+ * bien y en el cuadro poner sus características". Su formato pone "Bien
+ * N.° 01: XYZ" con su cuadro y "Bien N.° 02: ABC" con el suyo; LexIA
+ * tenía un único cuadro para todos los bienes de la contratación.
+ *
+ * El primero no lleva título y es el de siempre: un requerimiento de un
+ * solo bien se llena igual que antes y no ve nada nuevo salvo el botón.
+ */
+export function ControlTablaRepetible({
+  bloque,
+  filas,
+  grupos,
+  onChangeFilas,
+  onChangeGrupos,
+  onRevisar,
+}: {
+  bloque: BloqueTabla;
+  filas: string[][];
+  grupos: Array<{ titulo: string; filas: string[][] }>;
+  onChangeFilas: (filas: string[][]) => void;
+  onChangeGrupos: (grupos: Array<{ titulo: string; filas: string[][] }>) => void;
+  onRevisar: (filas: string[][]) => Promise<RevisionTabla | null>;
+}) {
+  const etiquetaTitulo = bloque.repetible?.etiquetaTitulo ?? 'Título del cuadro';
+  const cambiar = (i: number, cambio: Partial<{ titulo: string; filas: string[][] }>) =>
+    onChangeGrupos(grupos.map((g, k) => (k === i ? { ...g, ...cambio } : g)));
+
+  return (
+    <div className="space-y-4">
+      <ControlTabla bloque={bloque} filas={filas} onChange={onChangeFilas} onRevisar={onRevisar} />
+
+      {grupos.map((g, i) => (
+        <div key={i} className="rounded-lg border border-dashed p-3">
+          <div className="mb-2 flex items-end gap-2">
+            <div className="min-w-0 flex-1">
+              <Label className="text-xs font-medium text-muted-foreground">{etiquetaTitulo}</Label>
+              <Input
+                value={g.titulo}
+                placeholder={etiquetaTitulo}
+                onChange={(e) => cambiar(i, { titulo: e.target.value })}
+                className="mt-1"
+              />
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground"
+              title="Quitar este cuadro"
+              onClick={() => onChangeGrupos(grupos.filter((_, k) => k !== i))}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+          <ControlTabla
+            bloque={{ ...bloque, etiqueta: g.titulo.trim() || etiquetaTitulo, instruccion: undefined }}
+            filas={g.filas}
+            onChange={(f) => cambiar(i, { filas: f })}
+            onRevisar={onRevisar}
+          />
+        </div>
+      ))}
+
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() =>
+          onChangeGrupos([
+            ...grupos,
+            { titulo: '', filas: [Array(bloque.columnas.length).fill('')] },
+          ])
+        }
+      >
+        <Plus className="mr-1.5 h-3.5 w-3.5" />
+        Agregar otro cuadro
+      </Button>
+    </div>
+  );
+}
 
 export function ControlTabla({
   bloque,

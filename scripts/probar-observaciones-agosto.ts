@@ -19,6 +19,7 @@ import JSZip from 'jszip';
 import { listarPlantillas, obtenerPlantilla } from '../src/lib/generadores/plantillas';
 import {
   ensamblarRequerimiento,
+  hijasOrdenadas,
   normalizarRespuestas,
   respuestasVacias,
 } from '../src/lib/generadores/ensamblador';
@@ -236,12 +237,123 @@ function camposDelFormato() {
   }
 }
 
+// ── Observación 19: subir y bajar en todos los numerales ─────────────
+function ordenDeSubnumerales() {
+  console.log("\n── Obs. 19: \"subir y bajar… para todos los numerales\" ──");
+  const p = obtenerPlantilla('uit-tdr')!;
+  const madre = p.secciones.find((s) => (s.subsecciones?.length ?? 0) >= 4)!;
+  const r = normalizarRespuestas(respuestasVacias(), 'Servicio de prueba');
+
+  const original = hijasOrdenadas(madre, r).map((h) => h.id);
+  comprobar('sin tocar nada, manda el orden del formato', original.join() === (madre.subsecciones ?? []).map((h) => h.id).join());
+
+  // Lo que hace la flecha: intercambiar con la anterior.
+  r.ordenHijas[madre.id] = [original[1], original[0], ...original.slice(2)];
+  const movido = hijasOrdenadas(madre, r).map((h) => h.id);
+  comprobar('al mover, cambia el orden', movido[0] === original[1] && movido[1] === original[0]);
+
+  const doc = ensamblarRequerimiento(p, r, { cuantia: 20_000 });
+  const numerales = [...doc.markdown.matchAll(/^#### (\d+\.\d+)\. (.+)$/gm)].map((m) => m[2]);
+  comprobar(
+    'y el documento sale con el orden nuevo',
+    numerales[0]?.startsWith('Actividades'),
+    numerales.slice(0, 2).join(' | '),
+  );
+
+  // Un orden guardado que ya no cuadre con la plantilla no puede
+  // perder apartados: es una preferencia, no una fuente de verdad.
+  r.ordenHijas[madre.id] = ['ya_no_existe', original[2]];
+  const conBasura = hijasOrdenadas(madre, r).map((h) => h.id);
+  comprobar(
+    'un orden viejo no pierde ningún numeral',
+    conBasura.length === original.length && original.every((id) => conBasura.includes(id)),
+  );
+}
+
+// ── Observación 21: un cuadro por bien, con su título ────────────────
+function cuadrosPorBien() {
+  console.log("\n── Obs. 21: \"cuadros independientes… con un título\" ──");
+  const p = obtenerPlantilla('uit-eett')!;
+  const tabla = todosLosBloques(p.secciones).find(
+    (b) => 'id' in b && b.id === 'caracteristicas_por_item',
+  ) as { repetible?: { etiquetaTitulo: string } } | undefined;
+  comprobar('el cuadro de características admite repetirse', !!tabla?.repetible);
+
+  const r = normalizarRespuestas(respuestasVacias(), 'Adquisición de mobiliario');
+  r.tablas.caracteristicas_por_item = [['01', 'Material', 'Melamina de 18 mm']];
+  r.gruposTabla.caracteristicas_por_item = [
+    { titulo: 'Bien N.° 02: Silla ergonómica', filas: [['01', 'Respaldo', 'Malla transpirable']] },
+    { titulo: 'Bien N.° 03: Archivador', filas: [['01', 'Cuerpo', 'Metálico']] },
+  ];
+  const doc = ensamblarRequerimiento(p, r, { cuantia: 30_000 });
+  comprobar('cada cuadro sale con su título', doc.markdown.includes('**Bien N.° 02: Silla ergonómica**'));
+  comprobar('y con sus filas', doc.markdown.includes('Malla transpirable') && doc.markdown.includes('Metálico'));
+  comprobar('sin perder el primero', doc.markdown.includes('Melamina de 18 mm'));
+
+  // Un cuadro añadido y dejado en blanco no ensucia el documento.
+  r.gruposTabla.caracteristicas_por_item = [{ titulo: '', filas: [['', '', '']] }];
+  const limpio = ensamblarRequerimiento(p, r, { cuantia: 30_000 });
+  const cuadros = (limpio.markdown.match(/\| N\.° \| Caracter/g) ?? []).length;
+  comprobar('un cuadro vacío no se emite', cuadros === 1, `${cuadros} cuadros`);
+}
+
+// ── Observación 24: títulos cambiables y campos que se agrandan ──────
+async function opcionesYCampos() {
+  console.log("\n── Obs. 24: \"predeterminadas… deben permitir cambiar su texto\" ──");
+  const p = obtenerPlantilla('ps-servicios-general')!;
+  const accesorias = todasLasSecciones(p.secciones).filter((s) => s.condicion?.startsWith('accesoria_'));
+  comprobar(
+    `las prestaciones accesorias se pueden renombrar (${accesorias.length})`,
+    accesorias.length >= 3 && accesorias.every((s) => s.renombrable === true),
+  );
+
+  const r = normalizarRespuestas(respuestasVacias(), 'Servicio de vigilancia');
+  r.condiciones.tiene_prestaciones_accesorias = true;
+  r.condiciones.accesoria_mantenimiento = true;
+  r.redacciones.mantenimiento = 'Monitoreo permanente de las cámaras.';
+  r.titulos.mantenimiento = 'Monitoreo y seguimiento';
+  const doc = ensamblarRequerimiento(p, r, { cuantia: 500_000 });
+  comprobar('el documento sale con el título que puso la entidad', doc.markdown.includes('Monitoreo y seguimiento'));
+  comprobar(
+    'y no con el del formato',
+    !doc.markdown.includes('Mantenimiento preventivo y/o correctivo'),
+  );
+
+  // Sin renombrar, manda el formato: el título propio es una opción, no
+  // un requisito.
+  const r2 = normalizarRespuestas(respuestasVacias(), 'Servicio de vigilancia');
+  r2.condiciones.tiene_prestaciones_accesorias = true;
+  r2.condiciones.accesoria_mantenimiento = true;
+  r2.redacciones.mantenimiento = 'x';
+  const doc2 = ensamblarRequerimiento(p, r2, { cuantia: 500_000 });
+  comprobar('sin tocarlo, manda el título del formato', doc2.markdown.includes('Mantenimiento preventivo y/o correctivo'));
+
+  // Un numeral del formato oficial NO se renombra: es lo que la norma
+  // manda que diga.
+  const fijas = todasLasSecciones(p.secciones).filter((x) => !x.condicion?.startsWith('accesoria_'));
+  comprobar(
+    'los numerales del formato no se pueden renombrar',
+    fijas.every((x) => !x.renombrable),
+    fijas.filter((x) => x.renombrable).map((x) => x.id).join(', '),
+  );
+
+  // Y los campos, que se agrandan desde la esquina.
+  const { readFile } = await import('node:fs/promises');
+  const base = await readFile('src/components/ui/textarea.tsx', 'utf8');
+  comprobar('el campo de texto se puede agrandar desde la esquina', /'resize max-w-full'/.test(base));
+  const form = await readFile('src/components/app/requerimiento-plantilla/bloques.tsx', 'utf8');
+  comprobar('y ninguno del requerimiento lo tiene desactivado', !form.includes('resize-none'));
+}
+
 void (async () => {
   await tipografia();
   repartoACuadros();
   interruptores();
   numeralesDeCabecera();
   camposDelFormato();
+  ordenDeSubnumerales();
+  cuadrosPorBien();
+  await opcionesYCampos();
 
   console.log(
     fallos === 0

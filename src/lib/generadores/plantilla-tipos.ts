@@ -158,6 +158,20 @@ export interface BloqueTabla {
   ayudaColumnas?: string[];
   /** Filas mínimas a completar. */
   minimo?: number;
+  /**
+   * El cuadro se puede repetir, cada vez con su propio título.
+   *
+   * Observación de César (agosto de 2026) sobre las características
+   * técnicas: "debe permitir ingresar cuadros independientes y en cada
+   * cuadro debe permitir poner un título, para poner el nombre de cada
+   * bien y en el cuadro poner sus características". Su formato lo hace
+   * así —"Bien N.° 01: XYZ" con su cuadro, "Bien N.° 02: ABC" con el
+   * suyo— y LexIA tenía un único cuadro para todos los bienes.
+   *
+   * `etiquetaTitulo` es lo que se le pide al usuario en cada uno: "Bien
+   * N.° 01", "Ítem", "Servicio"…
+   */
+  repetible?: { etiquetaTitulo: string };
 }
 
 /** Advertencia normativa que la plantilla incrusta entre corchetes. */
@@ -193,6 +207,21 @@ export interface Seccion {
   condicion?: string;
   bloques: Bloque[];
   subsecciones?: Seccion[];
+  /**
+   * La entidad puede cambiarle el título.
+   *
+   * Observación de César (agosto de 2026): "las opciones remarcadas
+   * deben estar predeterminadas con los textos actuales, dichos textos
+   * deben permitir cambiar su texto". Lo dice de las prestaciones
+   * accesorias, donde el formato propone tres —mantenimiento, soporte y
+   * capacitación— pero hay más: monitoreo y seguimiento, asistencia
+   * técnica especializada…
+   *
+   * Va apartado por apartado y no en general, porque el título de un
+   * numeral del formato oficial no se toca: es lo que la norma manda que
+   * diga.
+   */
+  renombrable?: boolean;
 }
 
 /** Tope normativo que el generador verifica al armar el documento. */
