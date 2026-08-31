@@ -644,6 +644,11 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
           condicion: 'exige_experiencia',
           bloques: [
             {
+              clase: 'titulo',
+              texto: 'Requisitos:',
+              nivel: 3,
+            },
+            {
               clase: 'parrafo',
               texto:
                 'El postor debe acreditar un monto facturado acumulado equivalente a {{experiencia_monto}}, por la contratación de servicios iguales o similares al objeto de la convocatoria, durante los quince (15) años anteriores a la fecha de la presentación de ofertas que se computa desde la fecha de la conformidad o emisión del comprobante de pago, según corresponda.',
@@ -703,6 +708,15 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
                   obligatorio: true,
                 },
               ],
+            },
+            {
+              // Los rótulos con que el formato separa lo que se exige
+              // de cómo se acredita. Observación de César (agosto de
+              // 2026): "respecto a la experiencia del postor en la
+              // especialidad falta definir el texto 'Acreditación'".
+              clase: 'titulo',
+              texto: 'Acreditación:',
+              nivel: 3,
             },
             {
               clase: 'fijo',

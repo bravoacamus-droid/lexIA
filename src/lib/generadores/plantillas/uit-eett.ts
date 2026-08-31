@@ -584,15 +584,60 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
         {
           id: 'lugar_entrega',
           titulo: 'Lugar de entrega de los bienes',
+          // El formato lo separa en prestación principal y accesoria, y
+          // trae el párrafo escrito con un solo hueco. LexIA tenía un
+          // campo suelto. Observación de César (agosto de 2026): "el
+          // lugar de entrega (prestación principal y accesoria) debe ser
+          // adecuada según modelo".
           bloques: [
+            { clase: 'titulo', texto: 'Prestación principal', nivel: 3 },
             {
-              clase: 'campo',
-              id: 'lugar_entrega',
-              etiqueta: 'Lugar de entrega',
-              ayuda:
-                'Consignar la dirección exacta considerando distrito, provincia, departamento y horario de atención',
-              tipo: 'texto',
-              obligatorio: true,
+              clase: 'parrafo',
+              texto:
+                'Los bienes materia de la presente convocatoria se entregan en el almacén de la entidad, ubicada en {{lugar_entrega}}, salvo días feriados. previa coordinación con el responsable de almacén.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'lugar_entrega',
+                  etiqueta: 'Lugar de entrega',
+                  ayuda:
+                    'Consignar la dirección exacta donde será entregado el bien considerando distrito, provincia, departamento y horario de atención para la entrega de bienes',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
+            },
+            {
+              clase: 'nota',
+              texto:
+                'En caso se establezca más de un lugar de entrega, se recomienda incorporar un cuadro de distribución de lugares de entrega.',
+            },
+            {
+              // El cuadro que recomienda el formato cuando hay varios
+              // lugares. Solo sale si se llena.
+              clase: 'tabla',
+              id: 'lugares_entrega',
+              etiqueta: 'Distribución de lugares de entrega',
+              instruccion:
+                'Cuando haya más de un lugar de entrega: el lugar, su dirección exacta y su horario de atención',
+              columnas: ['Lugar de entrega', 'Dirección', 'Horario de atención'],
+              minimo: 0,
+              complementaria: true,
+            },
+            {
+              clase: 'titulo',
+              texto: 'Prestación accesoria',
+              nivel: 3,
+              visibleSi: { condicion: 'tiene_prestaciones_accesorias' },
+            },
+            {
+              clase: 'redactado',
+              id: 'lugar_entrega_accesoria',
+              etiqueta: 'Lugar de ejecución de las prestaciones accesorias',
+              instruccion:
+                'Señalar de manera independiente el lugar donde serán ejecutadas las prestaciones accesorias, indicando la dirección exacta, distrito, provincia y departamento, así como el horario de atención cuando corresponda. Si se ejecutan en un lugar distinto al de la prestación principal, precisarlo expresamente',
+              extension: 'parrafo',
+              visibleSi: { condicion: 'tiene_prestaciones_accesorias' },
             },
           ],
         },
@@ -880,8 +925,24 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
               clase: 'tabla',
               id: 'personal_clave',
               etiqueta: 'Personal clave',
-              columnas: ['Cargo y/o responsabilidad', 'Actividades principales', 'Formación académica'],
+              // La tercera columna se llamaba "Formación académica" y en
+              // el formato es "Profesión y grado o título profesional
+              // requerido", que no es lo mismo: pide el título, no los
+              // estudios. Observación de César (agosto de 2026):
+              // "adecuar a la opción de personal clave conforme a lo
+              // siguiente", con el cuadro del formato.
+              columnas: [
+                'Cargo y/o responsabilidad',
+                'Actividades principales',
+                'Profesión y grado o título profesional requerido',
+              ],
               minimo: 1,
+            },
+            {
+              // El cierre del cuadro en el formato, que faltaba.
+              clase: 'fijo',
+              texto:
+                'Este requisito no materia de evaluación al momento de la recepción de las cotizaciones.',
             },
           ],
         },
@@ -932,6 +993,11 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
           condicion: 'exige_experiencia',
           bloques: [
             {
+              clase: 'titulo',
+              texto: 'Requisitos:',
+              nivel: 3,
+            },
+            {
               clase: 'parrafo',
               texto:
                 'El postor debe acreditar un monto facturado acumulado equivalente a {{experiencia_monto}}, por la venta de bienes iguales o similares al objeto de la convocatoria, durante los diez (10) años anteriores a la fecha de la presentación de ofertas, que se computarán desde la fecha de la conformidad o emisión del comprobante de pago, según corresponda.',
@@ -961,6 +1027,15 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
                   obligatorio: true,
                 },
               ],
+            },
+            {
+              // Los rótulos con que el formato separa lo que se exige
+              // de cómo se acredita. Observación de César (agosto de
+              // 2026): "respecto a la experiencia del postor en la
+              // especialidad falta definir el texto 'Acreditación'".
+              clase: 'titulo',
+              texto: 'Acreditación:',
+              nivel: 3,
             },
             {
               clase: 'fijo',

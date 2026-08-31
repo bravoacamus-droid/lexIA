@@ -535,6 +535,61 @@ function hoja6() {
   );
 }
 
+// ── Observaciones 30, 38 y 40: lugar, personal clave y acreditación ──
+function hoja7() {
+  console.log("\n── Obs. 30: el lugar de entrega, según el modelo ──");
+  const p = obtenerPlantilla('uit-eett')!;
+  const r = normalizarRespuestas(respuestasVacias(), 'Adquisición de bienes');
+  r.condiciones.tiene_prestaciones_accesorias = true;
+  r.condiciones.exige_personal_clave = true;
+  r.condiciones.exige_experiencia = true;
+  r.campos.lugar_entrega = 'Av. Los Próceres N.° 1234, San Juan de Miraflores, Lima';
+  const doc = ensamblarRequerimiento(p, r, { cuantia: 30_000 });
+
+  comprobar('se separa en prestación principal', doc.markdown.includes('Prestación principal'));
+  comprobar(
+    'con el párrafo del formato, no un campo suelto',
+    doc.markdown.includes('se entregan en el almacén de la entidad') &&
+      doc.markdown.includes('salvo días feriados'),
+  );
+  comprobar('y con la prestación accesoria', doc.markdown.includes('Prestación accesoria'));
+
+  // El cuadro de varios lugares solo si se llena.
+  comprobar(
+    'sin varios lugares, no aparece el cuadro de distribución',
+    !doc.markdown.includes('| Lugar de entrega | Dirección |'),
+  );
+  r.tablas.lugares_entrega = [['Almacén Central', 'Av. Los Próceres 1234', 'L-V 8:30-17:30']];
+  const conVarios = ensamblarRequerimiento(p, r, { cuantia: 30_000 });
+  comprobar('y con ellos, sí', conVarios.markdown.includes('Almacén Central'));
+
+  // Sin prestaciones accesorias, ese apartado no se abre.
+  const sinAccesorias = normalizarRespuestas(respuestasVacias(), 'Adquisición de bienes');
+  sinAccesorias.campos.lugar_entrega = 'x';
+  const doc2 = ensamblarRequerimiento(p, sinAccesorias, { cuantia: 30_000 });
+  comprobar(
+    'sin prestaciones accesorias no se pregunta por su lugar',
+    !doc2.markdown.includes('Prestación accesoria'),
+  );
+
+  console.log("\n── Obs. 38 y 40: personal clave y acreditación ──");
+  comprobar(
+    'la tercera columna del personal clave es la del formato',
+    doc.markdown.includes('Profesión y grado o título profesional requerido'),
+  );
+  comprobar(
+    'y el cuadro cierra con su advertencia',
+    doc.markdown.includes('no materia de evaluación al momento de la recepción de las cotizaciones'),
+  );
+  for (const id of ['uit-eett', 'uit-tdr']) {
+    const plantilla = obtenerPlantilla(id)!;
+    const rr = normalizarRespuestas(respuestasVacias(), 'Contratación de prueba');
+    rr.condiciones.exige_experiencia = true;
+    const salida = ensamblarRequerimiento(plantilla, rr, { cuantia: 30_000 });
+    comprobar(`${id}: la experiencia separa requisitos de acreditación`, salida.markdown.includes('Acreditación:'));
+  }
+}
+
 void (async () => {
   await tipografia();
   repartoACuadros();
@@ -547,6 +602,7 @@ void (async () => {
   hoja4();
   hoja5();
   hoja6();
+  hoja7();
 
   console.log(
     fallos === 0
