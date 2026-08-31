@@ -60,7 +60,6 @@ import {
 import {
   anclaApartado,
   anclaBloque,
-  condicionesPorApartado,
   construirIndice,
   resumenIndice,
 } from '@/lib/generadores/indice';
@@ -95,7 +94,6 @@ interface Props {
   estadoInicial: Estado;
 }
 
-/** Reúne las condiciones declaradas en la plantilla, con su título. */
 export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial }: Props) {
   const [denominacion, setDenominacion] = useState(inicial.denominacion);
   const [cuantia, setCuantia] = useState(inicial.cuantia?.toString() ?? '');
@@ -104,7 +102,6 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
   const [guardando, setGuardando] = useState(false);
   const [guardado, setGuardado] = useState(true);
 
-  const condiciones = useMemo(() => condicionesPorApartado(plantilla.secciones), [plantilla]);
 
   // ── Guardado ────────────────────────────────────────────────────────
   // Se agrupa el guardado en vez de disparar uno por tecla: escribir un
@@ -316,21 +313,34 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
    * sueltas encadenan veinte pintadas y veinte guardados.
    */
   const aplicarLote = (
-    cambios: Array<{ destino: DestinoRespuesta; bloqueId: string; texto: string }>,
+    cambios: Array<{
+      destino: DestinoRespuesta;
+      bloqueId: string;
+      texto: string;
+      /** Cuando el apartado es un cuadro. */
+      filas?: string[][];
+    }>,
     condicionesEncendidas: string[],
   ) => {
     setR((p) => {
       const campos = { ...p.campos };
       const redacciones = { ...p.redacciones };
+      const tablas = { ...p.tablas };
       let extras = p.extras;
       for (const c of cambios) {
         if (c.destino === 'campos') campos[c.bloqueId] = c.texto;
         else if (c.destino === 'redacciones') redacciones[c.bloqueId] = c.texto;
-        else extras = extras.map((e) => (e.id === c.bloqueId ? { ...e, texto: c.texto } : e));
+        else if (c.destino === 'tablas') {
+          // El cuadro del proyecto se añade a lo que ya haya escrito la
+          // entidad, detrás y sin pisarlo: si alguien ya puso dos
+          // penalidades a mano, no se las borra el reparto.
+          const previas = (p.tablas[c.bloqueId] ?? []).filter((f) => f.some((x) => x.trim()));
+          tablas[c.bloqueId] = [...previas, ...(c.filas ?? [])];
+        } else extras = extras.map((e) => (e.id === c.bloqueId ? { ...e, texto: c.texto } : e));
       }
       const condiciones = { ...p.condiciones };
       for (const k of condicionesEncendidas) condiciones[k] = true;
-      return { ...p, campos, redacciones, extras, condiciones };
+      return { ...p, campos, redacciones, tablas, extras, condiciones };
     });
     marcarSucio();
   };
@@ -508,10 +518,30 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
   };
 
   const pintarSeccion = (s: Seccion, numero: string, nivel: number) => {
-    if (s.condicion && !r.condiciones[s.condicion]) return null;
+    // Un apartado "de corresponder" ya no desaparece de la pantalla: se
+    // muestra con su interruptor al lado del título, encendido o
+    // apagado. Es la observación de César de agosto: "el botón de
+    // activación y desactivación, lo mejor sería ponerlo al costado de
+    // cada condición del requerimiento. Esto facilita a la medida que
+    // uno va avanzando con el llenado".
+    //
+    // Antes vivían todos juntos en un panel al principio, lejos del
+    // apartado que encendían: había que recordar cuál era cuál.
+    const apagado = !!s.condicion && !r.condiciones[s.condicion];
     // Fuera los títulos, que ya los pinta la sección, y fuera lo que
     // depende de una opción que no se ha elegido.
-    const utiles = s.bloques.filter((b) => b.clase !== 'titulo' && bloqueAplica(b, r));
+    //
+    // Un bloque atado a un interruptor —el pago anticipado, la
+    // conformidad de las accesorias— se muestra igual, con el suyo al
+    // lado. Lo que sí se sigue ocultando es lo que depende de una OPCIÓN
+    // que el usuario aún no ha elegido: ahí no hay nada que encender.
+    const conInterruptor = (b: Bloque) =>
+      'visibleSi' in b && b.visibleSi?.condicion ? b.visibleSi.condicion : null;
+    const utiles = apagado
+      ? []
+      : s.bloques.filter(
+          (b) => b.clase !== 'titulo' && (conInterruptor(b) !== null || bloqueAplica(b, r)),
+        );
     return (
       <div
         key={s.id}
@@ -521,14 +551,33 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
         id={nivel > 1 ? anclaApartado(s.id) : undefined}
         className={cn('scroll-mt-24 transition', nivel > 1 && 'border-l pl-4')}
       >
-        <h3
-          className={cn(
-            'font-semibold',
-            nivel === 1 ? 'text-base' : 'text-sm text-muted-foreground',
+        <div className="flex items-start justify-between gap-3">
+          <h3
+            className={cn(
+              'font-semibold',
+              nivel === 1 ? 'text-base' : 'text-sm text-muted-foreground',
+              apagado && 'text-muted-foreground/70',
+            )}
+          >
+            {numero}. {s.titulo}
+          </h3>
+          {s.condicion && (
+            <label className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+              <span>{apagado ? 'No corresponde' : 'Corresponde'}</span>
+              <Switch
+                checked={!apagado}
+                onCheckedChange={(v) => setCondicion(s.condicion!, v)}
+                aria-label={`${s.titulo}: incluir en el documento`}
+              />
+            </label>
           )}
-        >
-          {numero}. {s.titulo}
-        </h3>
+        </div>
+        {apagado && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Este apartado no se incluirá en el documento. Enciéndelo si corresponde a esta
+            contratación.
+          </p>
+        )}
         {utiles.length > 0 && (
           <div className="mt-3 space-y-4">
             {utiles.map((b, i) => {
@@ -541,22 +590,42 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
                   : 'id' in b && typeof b.id === 'string'
                     ? b.id
                     : undefined;
+              const condicion = conInterruptor(b);
+              const bloqueApagado = !!condicion && !r.condiciones[condicion];
+              const etiqueta =
+                'etiqueta' in b && typeof b.etiqueta === 'string' ? b.etiqueta : s.titulo;
+
               return (
                 <div
                   key={`${s.id}-${i}`}
                   id={idBloque ? anclaBloque(idBloque) : undefined}
                   className="scroll-mt-24 transition"
                 >
-                  {bloqueVisible(b, `${s.id}-${i}`)}
+                  {condicion && (
+                    <label className="mb-2 flex items-center justify-between gap-3 rounded-md border border-dashed px-3 py-2 text-sm">
+                      <span className={cn(bloqueApagado && 'text-muted-foreground')}>
+                        {etiqueta}
+                      </span>
+                      <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {bloqueApagado ? 'No corresponde' : 'Corresponde'}
+                        <Switch
+                          checked={!bloqueApagado}
+                          onCheckedChange={(v) => setCondicion(condicion, v)}
+                          aria-label={`${etiqueta}: incluir en el documento`}
+                        />
+                      </span>
+                    </label>
+                  )}
+                  {!bloqueApagado && bloqueVisible(b, `${s.id}-${i}`)}
                 </div>
               );
             })}
           </div>
         )}
         {(() => {
-          const hijas = (s.subsecciones ?? []).filter(
-            (h) => !h.condicion || r.condiciones[h.condicion],
-          );
+          // Tampoco se esconden las hijas apagadas: cada una lleva su
+          // interruptor. Lo que sí hacen es no consumir numeración.
+          const hijas = s.subsecciones ?? [];
           const propias = r.extras.filter((e) => e.dentroDe === s.id);
           // Solo se ofrece añadir donde el formato ya agrupa apartados:
           // las prestaciones accesorias del formato son tres, pero hay
@@ -566,7 +635,16 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
           if (hijas.length === 0 && propias.length === 0 && !admiteAnadir) return null;
           return (
             <div className="mt-4 space-y-5">
-              {hijas.map((h, i) => pintarSeccion(h, `${numero}.${i + 1}`, nivel + 1))}
+              {(() => {
+                // La numeración de las hijas sigue la del documento: una
+                // subsección apagada no gasta número, igual que arriba.
+                let sub = 0;
+                return hijas.map((h) => {
+                  const entra = !h.condicion || r.condiciones[h.condicion];
+                  const suNumero = entra ? `${numero}.${++sub}` : '—';
+                  return pintarSeccion(h, suNumero, nivel + 1);
+                });
+              })()}
               {propias.map((e, i) => (
                 <div key={e.id} id={anclaApartado(e.id)} className="scroll-mt-24 border-l pl-4">
                   <ApartadoPropio
@@ -604,12 +682,18 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
    * saldrá en el Word.
    */
   const apartados = useMemo(() => {
+    // Ya no se filtran los apagados: se muestran con su interruptor al
+    // lado del título, y solo desaparecen del documento final.
+    //
+    // La numeración, en cambio, sí los salta: si el apartado no va a
+    // salir en el Word, no puede gastar un número, porque el que ve el
+    // usuario tiene que ser el que va a leer en el documento.
     let n = 0;
-    return apartadosOrdenados(plantilla, r)
-      .filter(
-        (a) => a.tipo === 'extra' || !a.seccion.condicion || r.condiciones[a.seccion.condicion],
-      )
-      .map((a) => ({ apartado: a, numero: String(++n) }));
+    return apartadosOrdenados(plantilla, r).map((a) => {
+      const entra =
+        a.tipo === 'extra' || !a.seccion.condicion || r.condiciones[a.seccion.condicion];
+      return { apartado: a, numero: entra ? String(++n) : '—' };
+    });
   }, [plantilla, r]);
 
   // El índice se calcula aquí y no en el servidor: tiene que ponerse en
@@ -698,37 +782,6 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
           <CargarProyecto id={id} onAplicar={aplicarLote} />
 
           {/* Qué apartados aplican */}
-          <Card className="p-5">
-            <h2 className="text-sm font-semibold">Qué apartados corresponden</h2>
-            <p className="mt-1 text-xs text-muted-foreground">
-              El formato oficial marca estos apartados como &ldquo;de corresponder&rdquo;. Los que
-              dejes apagados no aparecen en el documento.
-            </p>
-            <div className="mt-4 space-y-4">
-              {condiciones.map((g) => (
-                <div key={g.titulo}>
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {g.titulo}
-                  </h3>
-                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                    {g.condiciones.map((c) => (
-                      <label
-                        key={c.id}
-                        className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm"
-                      >
-                        <span>{c.titulo}</span>
-                        <Switch
-                          checked={r.condiciones[c.id] ?? false}
-                          onCheckedChange={(v) => setCondicion(c.id, v)}
-                        />
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-
           <Card className="space-y-8 p-5">
             {apartados.map(({ apartado, numero }, i) => {
               const plegado = plegados.has(apartado.id);

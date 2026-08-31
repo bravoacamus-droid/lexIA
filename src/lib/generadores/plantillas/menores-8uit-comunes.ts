@@ -240,11 +240,17 @@ export function seccionConfidencialidad(conIncumplimiento = false): Seccion {
 }
 
 /**
- * Cabecera de los formatos de 8 UIT.
+ * Cabecera de los formatos de 8 UIT: el cuadro de datos y nada más.
  *
- * Se diferencia de la de los procedimientos de selección en que la
- * finalidad pública y el objetivo van DENTRO del cuadro de datos, no
- * como secciones numeradas aparte.
+ * La finalidad, el objetivo y los antecedentes vivían aquí dentro. Los
+ * sacó la observación de César de agosto de 2026: "la finalidad pública,
+ * el objetivo y la justificación y los antecedentes, cada uno debe tener
+ * una numeración (2, 3 y 4 respectivamente), esto según modelo de
+ * requerimiento". En su ANEXO 1 y su ANEXO 2 son títulos de primer
+ * nivel, y en el documento que firma el área usuaria tienen que salir
+ * numerados como en el formato.
+ *
+ * Se construyen con `seccionesCabecera8Uit`, que devuelve las cuatro.
  */
 export function seccionEncabezado8Uit(ayudaDenominacion: string): Seccion {
   return {
@@ -283,24 +289,81 @@ export function seccionEncabezado8Uit(ayudaDenominacion: string): Seccion {
         tipo: 'texto',
         obligatorio: true,
       },
-      {
-        clase: 'redactado',
-        id: 'finalidad',
-        etiqueta: 'Finalidad pública',
-        instruccion:
-          'Detallar aquello que se busca satisfacer, mejorar y/o atender con la contratación requerida según las actividades previstas en el Plan Operativo Institucional (POI), así como las acciones y objetivos estratégicos del Plan Estratégico Institucional (PEI) de la Entidad',
-        extension: 'parrafo',
-      },
-      {
-        clase: 'redactado',
-        id: 'objetivo_general',
-        etiqueta: 'Objetivo de la contratación',
-        instruccion:
-          'Detallar el propósito de la contratación, respondiendo a "qué quiero contratar" y "para qué quiero contratar"',
-        extension: 'parrafo',
-      },
     ],
   };
+}
+
+/**
+ * Las cuatro secciones con que abre el formato de 8 UIT.
+ *
+ * Los textos entre corchetes y los ejemplos son los de los Word de
+ * César, copiados sin tocar una coma: es el mismo criterio que rige las
+ * quince plantillas —la plantilla manda, la IA solo rellena lo variable—
+ * y lo comprueba `auditar-plantilla-requerimiento.ts`.
+ *
+ * El ejemplo va completo, y no recortado, porque esa fue otra
+ * observación de agosto: "al desplegarse, no se muestran el ejemplo
+ * completo; al verse una parte del ejemplo no se entiende".
+ */
+export function seccionesCabecera8Uit(opciones: {
+  ayudaDenominacion: string;
+  /** "servicio" o "bien": el formato cambia la palabra y nada más. */
+  objeto: 'servicio' | 'bien';
+  ejemploFinalidad: string;
+  ejemploObjetivo: string;
+  ejemploAntecedentes: string;
+}): Seccion[] {
+  const { objeto } = opciones;
+  return [
+    seccionEncabezado8Uit(opciones.ayudaDenominacion),
+    {
+      id: 'finalidad_publica',
+      titulo: 'FINALIDAD PÚBLICA',
+      bloques: [
+        {
+          clase: 'redactado',
+          id: 'finalidad',
+          etiqueta: 'Finalidad pública',
+          instruccion:
+            'Detallar aquello que se busca satisfacer, mejorar y/o atender con la contratación requerida según las actividades previstas en el Plan Operativo Institucional (POI), así como las acciones y objetivos estratégicos del Plan Estratégico Institucional (PEI) de la Entidad',
+          ejemplo: opciones.ejemploFinalidad,
+          extension: 'parrafo',
+        },
+      ],
+    },
+    {
+      id: 'objetivo_contratacion',
+      titulo: 'OBJETIVO DE LA CONTRATACIÓN',
+      bloques: [
+        {
+          clase: 'redactado',
+          id: 'objetivo_general',
+          etiqueta: 'Objetivo de la contratación',
+          instruccion:
+            'Detallar el propósito de la contratación, o aquello que se espera lograr a través de la contratación requerida, por lo que el objetivo debe responder que se contratará y para qué',
+          ejemplo: opciones.ejemploObjetivo,
+          extension: 'parrafo',
+        },
+      ],
+    },
+    {
+      id: 'antecedentes_justificacion',
+      titulo: 'ANTECEDENTES Y/O JUSTIFICACIÓN DE LA NECESIDAD DE LA CONTRATACIÓN',
+      bloques: [
+        {
+          clase: 'redactado',
+          id: 'antecedentes',
+          etiqueta: 'Antecedentes y/o justificación de la necesidad de la contratación',
+          instruccion:
+            objeto === 'servicio'
+              ? 'Explicar de manera general respecto del motivo por el cual se efectúa el requerimiento de la contratación del servicio. (En el caso de existir documentos fuente de la contratación mencionarlos y adjuntarlos, por ejemplo: plan de bienestar, plan de capacitación)'
+              : 'Explicar de manera general respecto del motivo por el cual se efectúa el requerimiento de la contratación del bien. (En el caso de existir documentos fuente de la contratación mencionarlos y adjuntarlos)',
+          ejemplo: opciones.ejemploAntecedentes,
+          extension: 'parrafo',
+        },
+      ],
+    },
+  ];
 }
 
 /** Requisitos del proveedor en contratos menores: añade el CCI. */

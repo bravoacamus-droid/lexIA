@@ -77,7 +77,7 @@ export async function markdownToDocxBuffer(
           heading: HeadingLevel.HEADING_1,
           alignment: AlignmentType.CENTER,
           spacing: { before: 240, after: 200 },
-          children: parseInlineRuns(h1[1], { bold: true, size: 32 }),
+          children: parseInlineRuns(h1[1], { bold: true, size: 24, color: '000000' }),
         }),
       );
       continue;
@@ -88,7 +88,7 @@ export async function markdownToDocxBuffer(
         new Paragraph({
           heading: HeadingLevel.HEADING_2,
           spacing: { before: 280, after: 140 },
-          children: parseInlineRuns(h2[1], { bold: true, size: 26, color: '4338CA' }),
+          children: parseInlineRuns(h2[1], { bold: true, size: 22, color: '000000' }),
         }),
       );
       continue;
@@ -99,7 +99,7 @@ export async function markdownToDocxBuffer(
         new Paragraph({
           heading: HeadingLevel.HEADING_3,
           spacing: { before: 200, after: 100 },
-          children: parseInlineRuns(h3[1], { bold: true, size: 22 }),
+          children: parseInlineRuns(h3[1], { bold: true, size: 20, color: '000000' }),
         }),
       );
       continue;
@@ -223,14 +223,35 @@ export async function markdownToDocxBuffer(
         },
       ],
     },
+    /**
+     * Arial 10, que es la del formato oficial.
+     *
+     * Observación de César (agosto de 2026): "el tipo de letra, tamaño,
+     * la forma y estructura de cada uno de los requerimientos debe ser
+     * como los modelos proporcionados". Medido sobre sus Word —los de
+     * MENORES A 8 UIT y los de procedimientos de selección—: Arial en
+     * todo el documento, cuerpo a 10 puntos y secundarios a 9.
+     *
+     * Estaba en Georgia 11. Un requerimiento no es un documento de
+     * LexIA: lo firma el área usuaria y va al expediente, donde tiene
+     * que parecerse a los demás.
+     */
     styles: {
       default: {
         document: {
           run: {
-            font: 'Georgia',
-            size: 22,
+            font: 'Arial',
+            size: 20,
           },
         },
+        // Los encabezados heredan de la librería un azul y unos tamaños
+        // que no son los del formato. Se redefinen aquí para que el
+        // documento salga en negro aunque un párrafo no lleve color
+        // propio, y para que el panel de navegación de Word no muestre
+        // otra cosa.
+        heading1: { run: { font: 'Arial', size: 24, bold: true, color: '000000' } },
+        heading2: { run: { font: 'Arial', size: 22, bold: true, color: '000000' } },
+        heading3: { run: { font: 'Arial', size: 20, bold: true, color: '000000' } },
       },
     },
     sections: [

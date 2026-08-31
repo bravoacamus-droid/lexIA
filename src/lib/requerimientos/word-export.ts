@@ -62,9 +62,26 @@ interface ExportInput {
 // ════════════════════════════════════════════════════════════════════
 // Estilo común
 // ════════════════════════════════════════════════════════════════════
-const FONT = 'Calibri';
+/**
+ * La tipografía es la del formato oficial, no la de LexIA.
+ *
+ * Observación de César (agosto de 2026): "el tipo de letra, tamaño, la
+ * forma y estructura de cada uno de los requerimientos debe ser como los
+ * modelos proporcionados". Medido sobre sus Word —los de MENORES A 8 UIT
+ * y los de procedimientos de selección—: Arial en todo el documento,
+ * cuerpo a 10 puntos, secundarios a 9 y notas a 8, y el texto en negro.
+ *
+ * LexIA salía en Calibri 11 con los títulos en el azul de la marca. Un
+ * requerimiento no es un documento de LexIA: lo firma el área usuaria y
+ * va al expediente de contratación, donde tiene que parecerse a los
+ * demás.
+ */
+const FONT = 'Arial';
 const BLACK = '000000';
-const BRAND_DARK = '021D40'; // azul brand
+/** Diez puntos: el cuerpo del formato oficial. */
+const SIZE_BODY = 20;
+/** Nueve puntos, para tablas y textos secundarios. */
+const SIZE_SMALL = 18;
 const LIGHT_GRAY_SHADE = 'F2F2F2';
 const BORDER_GRAY = 'B0B0B0';
 
@@ -103,7 +120,7 @@ function inlineRuns(
             new TextRun({
               text: ' ',
               font: FONT,
-              size: 22,
+              size: SIZE_BODY,
               bold: style.bold,
               italics: style.italic,
               underline: style.underline ? {} : undefined,
@@ -116,7 +133,7 @@ function inlineRuns(
         new TextRun({
           text: text.replace(/\s+/g, ' '),
           font: FONT,
-          size: 22,
+          size: SIZE_BODY,
           bold: style.bold,
           italics: style.italic,
           underline: style.underline ? {} : undefined,
@@ -137,7 +154,7 @@ function inlineRuns(
             text: '',
             break: 1,
             font: FONT,
-            size: 22,
+            size: SIZE_BODY,
           }),
         );
       } else if (tag === 'span' || tag === 'a') {
@@ -158,7 +175,7 @@ function paragraphFromTag(
 ): Paragraph {
   const children = inlineRuns($, el);
   return new Paragraph({
-    children: children.length > 0 ? (children as ParagraphChild[]) : [new TextRun({ text: '', font: FONT, size: 22 })],
+    children: children.length > 0 ? (children as ParagraphChild[]) : [new TextRun({ text: '', font: FONT, size: SIZE_BODY })],
     heading: options.heading,
     bullet: options.bullet !== undefined ? { level: options.bullet } : undefined,
     numbering: options.numbering
@@ -199,7 +216,7 @@ function tableFromHtml(
                       const ro = (r as unknown as { options: IRunOptions }).options;
                       return new TextRun({ ...ro, bold: true });
                     }) as ParagraphChild[])
-                  : [new TextRun({ text: '', font: FONT, size: 22 })],
+                  : [new TextRun({ text: '', font: FONT, size: SIZE_BODY })],
             }),
           ],
         }),
@@ -262,7 +279,7 @@ function htmlToBlocks(
         blocks.push(
           new Paragraph({
             children: [
-              new TextRun({ text, font: FONT, size: 22 }),
+              new TextRun({ text, font: FONT, size: SIZE_BODY }),
             ],
             spacing: { after: 120 },
           }),
@@ -283,7 +300,7 @@ function safeHtmlToBlocks(html: string): Array<Paragraph | Table> {
             italics: true,
             color: '888888',
             font: FONT,
-            size: 22,
+            size: SIZE_BODY,
           }),
         ],
       }),
@@ -297,7 +314,7 @@ function safeHtmlToBlocks(html: string): Array<Paragraph | Table> {
       return [
         new Paragraph({
           children: [
-            new TextRun({ text: html.replace(/<[^>]+>/g, ''), font: FONT, size: 22 }),
+            new TextRun({ text: html.replace(/<[^>]+>/g, ''), font: FONT, size: SIZE_BODY }),
           ],
         }),
       ];
@@ -311,7 +328,7 @@ function safeHtmlToBlocks(html: string): Array<Paragraph | Table> {
             text: `(Error al convertir HTML: ${(e as Error).message})`,
             color: 'C00000',
             font: FONT,
-            size: 22,
+            size: SIZE_BODY,
           }),
         ],
       }),
@@ -329,8 +346,8 @@ function makeTitle(text: string): Paragraph {
         text,
         bold: true,
         font: FONT,
-        size: 32,
-        color: BRAND_DARK,
+        size: 24,
+        color: BLACK,
       }),
     ],
     alignment: AlignmentType.CENTER,
@@ -345,8 +362,8 @@ function makeSectionHeading(text: string): Paragraph {
         text,
         bold: true,
         font: FONT,
-        size: 26,
-        color: BRAND_DARK,
+        size: 22,
+        color: BLACK,
       }),
     ],
     spacing: { before: 320, after: 160 },
@@ -361,8 +378,8 @@ function makeClauseHeading(n: number, label: string): Paragraph {
         text: `${n}. ${label}`,
         bold: true,
         font: FONT,
-        size: 24,
-        color: BRAND_DARK,
+        size: SIZE_BODY,
+        color: BLACK,
       }),
     ],
     spacing: { before: 240, after: 120 },
@@ -394,7 +411,7 @@ function makeKeyValueTable(
                       text: r.label,
                       bold: true,
                       font: FONT,
-                      size: 22,
+                      size: SIZE_BODY,
                     }),
                   ],
                 }),
@@ -408,7 +425,7 @@ function makeKeyValueTable(
                     new TextRun({
                       text: r.value || '—',
                       font: FONT,
-                      size: 22,
+                      size: SIZE_BODY,
                     }),
                   ],
                 }),
@@ -433,7 +450,7 @@ export async function generateRequirementDocx(input: ExportInput): Promise<Buffe
           new TextRun({
             text: `LexIA · Requerimiento ${input.objeto} ${input.anio}`,
             font: FONT,
-            size: 18,
+            size: SIZE_SMALL,
             color: '888888',
           }),
         ],
@@ -449,25 +466,25 @@ export async function generateRequirementDocx(input: ExportInput): Promise<Buffe
           new TextRun({
             text: 'Página ',
             font: FONT,
-            size: 18,
+            size: SIZE_SMALL,
             color: '888888',
           }),
           new TextRun({
             children: [PageNumber.CURRENT],
             font: FONT,
-            size: 18,
+            size: SIZE_SMALL,
             color: '888888',
           }),
           new TextRun({
             text: ' de ',
             font: FONT,
-            size: 18,
+            size: SIZE_SMALL,
             color: '888888',
           }),
           new TextRun({
             children: [PageNumber.TOTAL_PAGES],
             font: FONT,
-            size: 18,
+            size: SIZE_SMALL,
             color: '888888',
           }),
         ],
@@ -512,7 +529,7 @@ export async function generateRequirementDocx(input: ExportInput): Promise<Buffe
               'Aún no se ha marcado ninguna cláusula. Vuelve al editor y activa al menos una cláusula del anexo.',
             italics: true,
             font: FONT,
-            size: 22,
+            size: SIZE_BODY,
             color: '888888',
           }),
         ],
@@ -527,7 +544,7 @@ export async function generateRequirementDocx(input: ExportInput): Promise<Buffe
     styles: {
       default: {
         document: {
-          run: { font: FONT, size: 22 },
+          run: { font: FONT, size: SIZE_BODY },
           paragraph: { spacing: { line: 300 } },
         },
       },

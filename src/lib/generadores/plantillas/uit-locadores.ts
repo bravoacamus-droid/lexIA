@@ -29,7 +29,7 @@ import {
   VALIDACION_PENALIDADES,
 } from './comunes';
 import {
-  seccionEncabezado8Uit,
+  seccionesCabecera8Uit,
   seccionPenalidades8Uit,
   seccionesRegimenContratoMenor,
   seccionConfidencialidad,
@@ -47,9 +47,17 @@ export const PLANTILLA_UIT_LOCADORES: PlantillaRequerimiento = {
   validaciones: [VALIDACION_PENALIDADES],
 
   secciones: [
-    seccionEncabezado8Uit(
-      'Indicar una breve descripción del requerimiento, mediante la denominación del (los) servicio(s) a ser contratado(s)',
-    ),
+    ...seccionesCabecera8Uit({
+      ayudaDenominacion:
+        'Indicar una breve descripción del requerimiento, mediante la denominación del (los) servicio(s) a ser contratado(s)',
+      objeto: 'servicio',
+      ejemploFinalidad:
+        'La contratación tiene por finalidad garantizar la continuidad de las actividades administrativas mediante el adecuado funcionamiento de los equipos informáticos, contribuyendo a una atención oportuna y eficiente de los servicios que brinda la Entidad.',
+      ejemploObjetivo:
+        'Contratar el servicio de mantenimiento preventivo y correctivo de computadoras e impresoras, con la finalidad de asegurar su adecuado funcionamiento y reducir la ocurrencia de fallas que afecten el desarrollo de las actividades institucionales.',
+      ejemploAntecedentes:
+        'Los equipos informáticos de la Entidad requieren mantenimiento periódico para preservar su operatividad, prevenir fallas y corregir desperfectos que puedan afectar la continuidad de las labores administrativas. En ese sentido, resulta necesario contratar el servicio de mantenimiento preventivo y correctivo a fin de asegurar el adecuado funcionamiento de dichos equipos durante su vida útil.',
+    }),
 
     {
       id: 'caracteristicas',

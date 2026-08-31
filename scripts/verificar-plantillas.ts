@@ -445,9 +445,16 @@ async function main() {
         }
       };
       rec(p.secciones);
-      // Lo que de verdad puede encender el usuario: lo que ofrece el
-      // panel. Se pregunta a la misma función que lo construye, no a una
-      // copia, porque el fallo estuvo justo en que eran dos.
+      // Lo que de verdad puede encender el usuario.
+      //
+      // Antes era el panel de "Qué apartados corresponden"; desde la
+      // observación de César de agosto, cada interruptor vive al lado de
+      // su apartado. Cambió dónde se pinta, no qué se puede encender:
+      // `condicionesPorApartado` sigue recorriendo secciones y bloques,
+      // y sigue siendo la única lista de lo alcanzable. Si una condición
+      // no sale de ahí, no hay forma de encenderla desde ninguna
+      // pantalla, y el apartado queda escrito y fuera del alcance de
+      // nadie —que es exactamente lo que pasó con el pago anticipado.
       for (const g of condicionesPorApartado(p.secciones)) {
         for (const c of g.condiciones) ofrecidos.add(c.id);
       }

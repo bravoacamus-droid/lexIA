@@ -35,6 +35,8 @@ import { leerRespuesta } from '@/lib/subidas/leer-respuesta';
 interface Asignacion {
   apartado_id: string;
   texto: string;
+  /** Filas, cuando el apartado del formato es un cuadro. */
+  filas?: string[][];
   confianza: 'alta' | 'media' | 'baja';
   ocupado: boolean;
   condiciones: string[];
@@ -71,7 +73,12 @@ export function CargarProyecto({
   id: string;
   /** Escribe el reparto aceptado en el formulario, de una sola vez. */
   onAplicar: (
-    cambios: Array<{ destino: Apartado['destino']; bloqueId: string; texto: string }>,
+    cambios: Array<{
+      destino: Apartado['destino'];
+      bloqueId: string;
+      texto: string;
+      filas?: string[][];
+    }>,
     condiciones: string[],
   ) => void;
 }) {
@@ -161,9 +168,11 @@ export function CargarProyecto({
       .filter((a) => elegidos.has(a.apartado_id))
       .map((a) => {
         const ap = apartadoDe(a.apartado_id);
-        return ap ? { destino: ap.destino, bloqueId: ap.id, texto: a.texto } : null;
+        return ap
+          ? { destino: ap.destino, bloqueId: ap.id, texto: a.texto, filas: a.filas }
+          : null;
       })
-      .filter((x): x is { destino: Apartado['destino']; bloqueId: string; texto: string } => !!x);
+      .filter((x): x is NonNullable<typeof x> => x !== null);
 
     if (cambios.length === 0) {
       toast.warning('No hay nada seleccionado');

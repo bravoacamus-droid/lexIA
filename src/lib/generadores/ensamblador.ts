@@ -119,7 +119,7 @@ export function bloqueVisible(
 }
 
 /** Dónde se guarda un texto del usuario. Lo comparten revisor y reparto. */
-export type DestinoRespuesta = 'redacciones' | 'campos' | 'extras';
+export type DestinoRespuesta = 'redacciones' | 'campos' | 'extras' | 'tablas';
 
 /**
  * Valor que marca "ninguna de las alternativas del formato me sirve".

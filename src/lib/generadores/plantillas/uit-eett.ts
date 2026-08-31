@@ -32,7 +32,7 @@ import {
   VALIDACION_PENALIDADES,
 } from './comunes';
 import {
-  seccionEncabezado8Uit,
+  seccionesCabecera8Uit,
   seccionPenalidades8Uit,
   seccionesRegimenContratoMenor,
   seccionConfidencialidad,
@@ -49,9 +49,17 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
   validaciones: [VALIDACION_ADELANTO, VALIDACION_EXPERIENCIA, VALIDACION_PENALIDADES],
 
   secciones: [
-    seccionEncabezado8Uit(
-      'Indicar una breve descripción del requerimiento, mediante la denominación del (los) bien(es) a ser contratado(s)',
-    ),
+    ...seccionesCabecera8Uit({
+      ayudaDenominacion:
+        'Indicar una breve descripción del requerimiento, mediante la denominación del (los) bien(es) a ser contratado(s)',
+      objeto: 'bien',
+      ejemploFinalidad:
+        'La contratación tiene por finalidad dotar a las áreas de la entidad de mobiliario adecuado que permita organizar la documentación y desarrollar las labores administrativas en condiciones apropiadas, contribuyendo a una atención eficiente de los ciudadanos.',
+      ejemploObjetivo:
+        'Adquirir muebles de melamina para equipar las oficinas de la entidad y mejorar la organización de los ambientes de trabajo.',
+      ejemploAntecedentes:
+        'Los muebles actualmente utilizados presentan un avanzado estado de deterioro y resultan insuficientes para almacenar la documentación y el material de trabajo, por lo que es necesario adquirir nuevo mobiliario para garantizar el adecuado funcionamiento de las actividades administrativas.',
+    }),
 
     {
       id: 'caracteristicas',

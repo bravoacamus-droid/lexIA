@@ -46,8 +46,8 @@ const google = createGoogleGenerativeAI({ apiKey: process.env.GOOGLE_GENERATIVE_
 const modelo = google(process.env.GEMINI_CHAT_MODEL ?? 'gemini-2.5-flash');
 
 let fallos = 0;
-const comprobar = (que: string, ok: boolean) => {
-  console.log(`   ${ok ? '✅' : '❌'} ${que}`);
+const comprobar = (que: string, ok: boolean, detalle?: string) => {
+  console.log(`   ${ok ? '✅' : '❌'} ${que}${!ok && detalle ? ` — ${detalle}` : ''}`);
   if (!ok) fallos++;
 };
 
@@ -121,7 +121,17 @@ anexo 118. Esta relación se adjunta para coordinaciones internas durante la eje
 
 9. PRESUPUESTO REFERENCIAL INTERNO
 Se ha estimado un gasto mensual de S/ 9,800.00 según la cotización recibida el 12 de agosto,
-lo que hace un total anual de S/ 117,600.00 que se afectará a la meta presupuestal 0034.`;
+lo que hace un total anual de S/ 117,600.00 que se afectará a la meta presupuestal 0034.
+
+10. PENALIDADES DISTINTAS A LA MORA
+Además de la penalidad por mora, aplicaremos estas penalidades:
+- Si el personal no usa el uniforme e identificación durante la jornada: 0.5 UIT por cada vez.
+  Se verifica con el informe del supervisor del servicio y el registro fotográfico.
+- Si el contratista no repone en 24 horas a un trabajador ausente: 1 UIT por cada día de ausencia,
+  verificado con el reporte de asistencia y la conformidad del área usuaria.
+- Si los insumos entregados no corresponden a las fichas técnicas ofertadas: 2 UIT por cada
+  entrega observada, según el acta de recepción y el informe del área usuaria.
+`;
 
 async function main() {
   if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
@@ -159,9 +169,37 @@ async function main() {
       anidado.condiciones.includes('tiene_prestaciones_accesorias') &&
       anidado.condiciones.includes('accesoria_mantenimiento'),
   );
+  // Los cuadros SÍ reciben contenido desde agosto de 2026. Era la
+  // observación de César: "al cargar un proyecto de requerimiento, LexIA
+  // no reparte el contenido: al cuadro de otras penalidades, experiencia
+  // del personal clave". Su proyecto los trae en cuadros y había que
+  // copiarlos a mano.
+  const cuadro = destinos.find((d) => d.id === 'otras_penalidades');
+  comprobar('los cuadros se ofrecen como destino', !!cuadro && cuadro.destino === 'tablas');
   comprobar(
-    'no ofrece como destino un texto invariable',
-    !destinos.some((d) => d.id === 'items' || d.id === 'otras_penalidades'),
+    `y se le dicen sus columnas, para que no corra las celdas (${cuadro?.columnas?.join(' | ') ?? '—'})`,
+    (cuadro?.columnas?.length ?? 0) >= 2,
+  );
+
+  // Lo que sigue sin recibir contenido: el texto que manda el formato y
+  // las opciones, que son una decisión del área usuaria y no un texto
+  // que se copie. Se comprueba por clase y no por un id concreto, que es
+  // lo que hacía esta prueba antes y se rompió al añadir los cuadros.
+  const porClase = new Map<string, string>();
+  const recorrer = (secciones: typeof plantilla.secciones) => {
+    for (const sec of secciones) {
+      for (const b of sec.bloques) {
+        if ('id' in b && typeof b.id === 'string') porClase.set(b.id, b.clase);
+      }
+      recorrer(sec.subsecciones ?? []);
+    }
+  };
+  recorrer(plantilla.secciones);
+  const intocables = destinos.filter((d) => ['fijo', 'opcion', 'nota', 'titulo'].includes(porClase.get(d.id) ?? ''));
+  comprobar(
+    'el texto invariable y las opciones siguen sin ser destino',
+    intocables.length === 0,
+    intocables.map((d) => `${d.id} (${porClase.get(d.id)})`).join(', '),
   );
 
   // ── Filtro, sin modelo ──────────────────────────────────────────────
@@ -214,6 +252,12 @@ async function main() {
   });
 
   const crudo = parseJsonLoose(res.text ?? '');
+  if (process.env.VOLCAR) {
+    const bruto = (crudo as { asignaciones?: unknown[] }).asignaciones ?? [];
+    for (const a of bruto as Array<Record<string, unknown>>) {
+      if (String(a.apartado_id).includes('penalidad')) console.log('   CRUDO:', JSON.stringify(a).slice(0, 400));
+    }
+  }
   const reparto = depurarDistribucion(crudo, destinos, condiciones);
 
   const etiqueta = new Map(destinos.map((d) => [d.id, d.etiqueta]));
@@ -230,6 +274,30 @@ async function main() {
   const tiene = (id: string) => reparto.asignaciones.some((a) => a.apartado_id === id);
   const texto = (id: string) =>
     reparto.asignaciones.find((a) => a.apartado_id === id)?.texto ?? '';
+
+  // El cuadro, que era la observación de César. No basta con que exista
+  // la asignación: tiene que traer FILAS con el ancho del formato, o la
+  // tabla sale corrida.
+  const penalidades = reparto.asignaciones.find((a) => a.apartado_id === 'otras_penalidades');
+  const anchoCuadro = destinos.find((d) => d.id === 'otras_penalidades')?.columnas?.length ?? 0;
+  console.log(
+    `   cuadro de otras penalidades: ${penalidades?.filas?.length ?? 0} fila(s) de ${anchoCuadro} columnas`,
+  );
+  comprobar('reparte al cuadro de otras penalidades', !!penalidades?.filas?.length);
+  comprobar(
+    'con las tres penalidades del proyecto',
+    (penalidades?.filas?.length ?? 0) >= 3,
+    `${penalidades?.filas?.length ?? 0} filas`,
+  );
+  comprobar(
+    'y cada fila con una celda por columna',
+    (penalidades?.filas ?? []).every((f) => f.length === anchoCuadro),
+  );
+  comprobar(
+    'las celdas traen lo que decía el proyecto',
+    (penalidades?.filas ?? []).some((f) => f.some((c) => /uniforme|identificaci/i.test(c))) &&
+      (penalidades?.filas ?? []).some((f) => f.some((c) => /UIT/i.test(c))),
+  );
 
   comprobar('llena los antecedentes', tiene('antecedentes'));
   comprobar('llena el objetivo general', tiene('objetivo_general'));
@@ -288,15 +356,29 @@ async function main() {
     ...respuestas,
     campos: { ...respuestas.campos },
     redacciones: { ...respuestas.redacciones },
+    tablas: { ...respuestas.tablas },
     condiciones: { ...respuestas.condiciones },
   };
   for (const a of reparto.asignaciones) {
     const d = destinos.find((x) => x.id === a.apartado_id)!;
     if (d.destino === 'campos') aplicadas.campos[a.apartado_id] = a.texto;
+    else if (d.destino === 'tablas') aplicadas.tablas[a.apartado_id] = a.filas ?? [];
     else aplicadas.redacciones[a.apartado_id] = a.texto;
     for (const c of a.condiciones) aplicadas.condiciones[c] = true;
   }
   const doc = ensamblarRequerimiento(plantilla, aplicadas, { cuantia: 117_600 });
+  // Y las filas del cuadro, que es lo nuevo: no basta con repartirlas,
+  // tienen que aparecer en el documento que se descarga.
+  const filasPenalidad = reparto.asignaciones.find((a) => a.apartado_id === 'otras_penalidades')?.filas ?? [];
+  const celdasPerdidas = filasPenalidad
+    .flat()
+    .filter((c) => c.trim().length > 15)
+    .filter((c) => !doc.markdown.includes(c.trim()));
+  comprobar(
+    'las filas del cuadro salen en el Word',
+    filasPenalidad.length > 0 && celdasPerdidas.length === 0,
+    celdasPerdidas.slice(0, 2).join(' | '),
+  );
   // Se compara línea a línea, no por un trozo del texto: los apartados
   // de lista se emiten con su marca por renglón —"- Barrido y…"— desde
   // que la entidad puede elegir viñetas, literales o números, así que un

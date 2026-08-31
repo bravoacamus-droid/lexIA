@@ -50,6 +50,17 @@ export interface DestinoDistribucion {
   /** Tipo del campo, para que el modelo no meta un párrafo en una fecha. */
   tipo?: BloqueCampo['tipo'];
   /**
+   * Columnas, cuando el destino es una tabla.
+   *
+   * Las tablas quedaban fuera del reparto porque "exigen una estructura
+   * que el reparto de texto libre no puede garantizar". César lo pidió
+   * en agosto: su proyecto trae las otras penalidades y la experiencia
+   * del personal clave en cuadros, y había que copiarlos a mano. Sí se
+   * puede garantizar la estructura: se le dan las columnas al modelo y
+   * se descarta la fila que no las respete.
+   */
+  columnas?: string[];
+  /**
    * Cadena completa de condiciones que hay que encender para que el
    * apartado aparezca en el documento, de la sección exterior a la
    * interior. Es la cadena y no solo la propia: "Mantenimiento" vive
@@ -64,6 +75,8 @@ export interface DestinoDistribucion {
 export interface Asignacion {
   apartado_id: string;
   texto: string;
+  /** Filas, cuando el apartado es una tabla. Una por fila, en orden. */
+  filas?: string[][];
   confianza: 'alta' | 'media' | 'baja';
   /** Si el apartado ya tenía contenido; la interfaz lo destaca. */
   ocupado: boolean;
@@ -130,11 +143,24 @@ export function destinosDistribucion(
             ocupado: !!(respuestas.redacciones[b.id] ?? '').trim(),
           });
           break;
+        case 'tabla':
+          out.push({
+            id: b.id,
+            etiqueta: b.etiqueta,
+            seccion,
+            instruccion:
+              b.instruccion ??
+              `Cuadro con las columnas: ${b.columnas.join(' | ')}. Una fila por elemento.`,
+            destino: 'tablas',
+            columnas: b.columnas,
+            condiciones,
+            ocupado: (respuestas.tablas[b.id] ?? []).some((f) => f.some((c) => c.trim())),
+          });
+          break;
         default:
-          // Los textos fijos, las tablas y las opciones no se rellenan
-          // desde un proyecto: los invariables no se tocan, y las tablas
-          // y las opciones exigen una estructura que el reparto de texto
-          // libre no puede garantizar.
+          // Los textos fijos y las opciones no se rellenan desde un
+          // proyecto: los invariables no se tocan, y una opción es una
+          // decisión del área usuaria, no un texto que se copie.
           break;
       }
     }
@@ -211,7 +237,7 @@ export function promptDistribucionUsuario(opts: {
       opts.destinos
         .map(
           (d) =>
-            `— id: ${d.id}${d.tipo && d.tipo !== 'texto_largo' && d.tipo !== 'texto' ? ` [${d.tipo}]` : ''}${d.ocupado ? ' [YA TIENE TEXTO]' : ''}\n  sección: ${d.seccion}\n  apartado: ${d.etiqueta}\n  pide: ${d.instruccion}`,
+            `— id: ${d.id}${d.columnas ? ' [CUADRO]' : d.tipo && d.tipo !== 'texto_largo' && d.tipo !== 'texto' ? ` [${d.tipo}]` : ''}${d.ocupado ? ' [YA TIENE TEXTO]' : ''}\n  sección: ${d.seccion}\n  apartado: ${d.etiqueta}\n  pide: ${d.instruccion}${d.columnas ? `\n  columnas, en este orden: ${d.columnas.join(' | ')}` : ''}`,
         )
         .join('\n\n'),
   );
@@ -249,6 +275,57 @@ export function condicionesDeclaradas(
  * textos vacíos y condiciones inventadas. Un reparto que apunta a un id
  * inexistente no es un aviso para el usuario, es ruido.
  */
+/**
+ * Deja en forma de tabla lo que el modelo devuelva para un cuadro.
+ *
+ * Se le pide `filas: [["celda", "celda"]]` y a veces lo manda así, pero
+ * también manda —comprobado con el cuadro de otras penalidades— un array
+ * de objetos con el nombre de la columna como clave:
+ *
+ *   "texto": [{ "N°": 1, "Supuestos de aplicación": "…", … }]
+ *
+ * Exigir una sola forma significaba tirar las tres penalidades que el
+ * modelo había extraído bien del proyecto. Se aceptan las dos, y lo que
+ * llegue como texto suelto se pone en la primera columna con contenido
+ * en vez de perderse.
+ *
+ * En todos los casos la fila sale con EXACTAMENTE una celda por columna:
+ * una celda de más corre el resto y la tabla del Word sale desplazada.
+ */
+function filasDe(valor: unknown, columnas: string[]): string[][] {
+  const ancho = columnas.length;
+  const celda = (v: unknown) =>
+    v === null || v === undefined ? '' : String(v).trim();
+
+  const deObjeto = (o: Record<string, unknown>): string[] => {
+    // Por nombre de columna, tolerando mayúsculas y acentos.
+    const normal = (x: string) =>
+      x.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+    const porClave = new Map(Object.entries(o).map(([k, v]) => [normal(k), v]));
+    return columnas.map((c) => celda(porClave.get(normal(c))));
+  };
+
+  const bruto = Array.isArray(valor) ? valor : valor ? [valor] : [];
+  const filas: string[][] = [];
+
+  for (const f of bruto) {
+    if (Array.isArray(f)) {
+      filas.push(Array.from({ length: ancho }, (_, i) => celda(f[i])));
+    } else if (f && typeof f === 'object') {
+      filas.push(deObjeto(f as Record<string, unknown>));
+    } else {
+      const t = celda(f);
+      if (!t) continue;
+      // Texto suelto: a la primera columna que no sea un ordinal, que es
+      // donde va el contenido en los cuadros del formato.
+      const destinoCelda = /^n\.?[°º]?$/i.test(columnas[0] ?? '') && ancho > 1 ? 1 : 0;
+      filas.push(Array.from({ length: ancho }, (_, i) => (i === destinoCelda ? t : '')));
+    }
+  }
+
+  return filas.filter((f) => f.some((c) => c.length > 0));
+}
+
 export function depurarDistribucion(
   crudo: unknown,
   destinos: DestinoDistribucion[],
@@ -272,13 +349,26 @@ export function depurarDistribucion(
     // modelo consideró principal.
     if (vistos.has(id)) continue;
 
+    // Un cuadro se rellena con filas; el resto, con texto.
+    //
+    // Las filas se recortan o se rellenan hasta el número de columnas
+    // del formato: una fila con una celda de más desplaza todo lo demás
+    // y la tabla sale corrida. Y se descarta la fila entera vacía, que
+    // es lo que devuelve el modelo cuando no encontró nada.
+    let filas: string[][] | undefined;
+    if (destino.columnas) {
+      filas = filasDe(a.filas ?? a.texto, destino.columnas);
+      if (filas.length === 0) continue;
+    }
+
     const texto = typeof a.texto === 'string' ? a.texto.trim() : '';
-    if (!texto) continue;
+    if (!filas && !texto) continue;
 
     vistos.add(id);
     asignaciones.push({
       apartado_id: id,
       texto,
+      filas,
       confianza: CONFIANZAS.includes(a.confianza as Asignacion['confianza'])
         ? (a.confianza as Asignacion['confianza'])
         : 'media',
