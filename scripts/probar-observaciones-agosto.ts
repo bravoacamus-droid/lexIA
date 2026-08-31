@@ -247,17 +247,30 @@ function ordenDeSubnumerales() {
   const original = hijasOrdenadas(madre, r).map((h) => h.id);
   comprobar('sin tocar nada, manda el orden del formato', original.join() === (madre.subsecciones ?? []).map((h) => h.id).join());
 
-  // Lo que hace la flecha: intercambiar con la anterior.
-  r.ordenHijas[madre.id] = [original[1], original[0], ...original.slice(2)];
+  // Lo que hace la flecha: intercambiar con la anterior. Se eligen dos
+  // que salgan siempre en el documento; una subsección "de
+  // corresponder" apagada no aparece y no se puede comparar.
+  const visibles = (madre.subsecciones ?? []).filter((h) => !h.condicion).map((h) => h.id);
+  const [a, b] = visibles;
+  const posA = original.indexOf(a);
+  const posB = original.indexOf(b);
+  const reordenado = [...original];
+  reordenado[posA] = b;
+  reordenado[posB] = a;
+  r.ordenHijas[madre.id] = reordenado;
   const movido = hijasOrdenadas(madre, r).map((h) => h.id);
-  comprobar('al mover, cambia el orden', movido[0] === original[1] && movido[1] === original[0]);
+  comprobar('al mover, cambia el orden', movido[posA] === b && movido[posB] === a);
 
   const doc = ensamblarRequerimiento(p, r, { cuantia: 20_000 });
   const numerales = [...doc.markdown.matchAll(/^#### (\d+\.\d+)\. (.+)$/gm)].map((m) => m[2]);
+  // Se compara con el título de la subsección que se movió, no con uno
+  // escrito a mano: al añadir apartados nuevos al formato, la primera
+  // subsección cambia y la prueba se caía sin que nada estuviera mal.
+  const titulos = new Map((madre.subsecciones ?? []).map((h) => [h.id, h.titulo]));
   comprobar(
     'y el documento sale con el orden nuevo',
-    numerales[0]?.startsWith('Actividades'),
-    numerales.slice(0, 2).join(' | '),
+    numerales[0] === titulos.get(b),
+    `${numerales[0]} ≠ ${titulos.get(b)}`,
   );
 
   // Un orden guardado que ya no cuadre con la plantilla no puede
@@ -642,6 +655,60 @@ function hoja8() {
   );
 }
 
+// ── Hoja 9 (servicios): los campos que faltaban y la garantía ────────
+function hoja9() {
+  console.log("\n── Hoja 9: campos del formato que no estaban en servicios ──");
+  const p = obtenerPlantilla('uit-tdr')!;
+  const r = normalizarRespuestas(respuestasVacias(), 'Servicio de mantenimiento');
+  r.condiciones.tiene_garantia_prestacion = true;
+  r.condiciones.requiere_documentacion_suscripcion = true;
+  r.condiciones.tiene_compatibilizacion = true;
+  r.campos.garantia_periodo = 'seis (6) meses';
+  r.campos.compatibilizacion = 'Informe N.° 012-2026-UTI';
+  r.redacciones.descripcion_general = 'Mantenimiento preventivo de equipos de aire acondicionado.';
+  r.redacciones.documentacion_suscripcion = 'Copia del certificado de habilitación vigente.';
+  const doc = ensamblarRequerimiento(p, r, { cuantia: 30_000 });
+
+  for (const apartado of [
+    'Descripción general del servicio a contratar',
+    'Documentación para la suscripción (perfeccionamiento) del contrato',
+    'Documento que aprobó la compatibilización del requerimiento',
+  ]) {
+    comprobar(`está "${apartado.slice(0, 48)}"`, doc.markdown.includes(apartado));
+  }
+  comprobar('y recogen lo que escribió la entidad', doc.markdown.includes('Informe N.° 012-2026-UTI'));
+
+  // Los dos que son "de corresponder" no salen si no se encienden.
+  const minimo = normalizarRespuestas(respuestasVacias(), 'Servicio de mantenimiento');
+  const doc2 = ensamblarRequerimiento(p, minimo, { cuantia: 30_000 });
+  comprobar(
+    'la suscripción y la compatibilización solo salen si corresponden',
+    !doc2.markdown.includes('Documentación para la suscripción') &&
+      !doc2.markdown.includes('compatibilización del requerimiento'),
+  );
+  comprobar(
+    'la descripción general, en cambio, va siempre',
+    doc2.markdown.includes('Descripción general del servicio a contratar'),
+  );
+
+  console.log("\n── Hoja 9: la garantía de servicios, como en bienes ──");
+  comprobar(
+    'las condiciones ya vienen escritas',
+    doc.markdown.includes('La Entidad comunicará las observaciones mediante correo electrónico') &&
+      doc.markdown.includes('dentro de los dos (2) días hábiles siguientes'),
+  );
+  comprobar(
+    'y del período solo se rellena el plazo',
+    doc.markdown.includes('El período de garantía será de seis (6) meses'),
+  );
+  comprobar(
+    'el alcance sigue redactándolo el área usuaria, que depende del servicio',
+    todosLosBloques(p.secciones).some(
+      (b) => 'id' in b && b.id === 'garantia_prestacion' && b.clase === 'redactado',
+    ),
+  );
+}
+
 void (async () => {
   await tipografia();
   repartoACuadros();
@@ -656,6 +723,7 @@ void (async () => {
   hoja6();
   hoja7();
   hoja8();
+  hoja9();
 
   console.log(
     fallos === 0

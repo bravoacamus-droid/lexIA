@@ -67,6 +67,66 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
       bloques: [],
       subsecciones: [
         {
+          // Los tres apartados del formato que no estaban. Observación
+          // de César (agosto de 2026): "en LexIA, no se consideró los
+          // siguientes campos del modelo de formato".
+          id: 'descripcion_general',
+          titulo: 'Descripción general del servicio a contratar',
+          bloques: [
+            {
+              clase: 'redactado',
+              id: 'descripcion_general',
+              etiqueta: 'Descripción general del servicio',
+              instruccion:
+                'Describir de manera general el servicio objeto de la contratación, indicando de forma resumida las prestaciones que serán ejecutadas',
+              extension: 'parrafo',
+            },
+            {
+              // Cuando hay varios ítems, el formato pide identificarlos
+              // uno a uno con su descripción.
+              clase: 'tabla',
+              id: 'descripcion_items',
+              etiqueta: 'Descripción por ítem',
+              instruccion:
+                'Cuando la contratación comprenda más de un ítem o paquete, identificar cada uno señalando su respectiva descripción',
+              columnas: ['Ítem', 'Descripción del servicio'],
+              minimo: 0,
+              complementaria: true,
+            },
+          ],
+        },
+        {
+          id: 'documentacion_suscripcion',
+          titulo: 'Documentación para la suscripción (perfeccionamiento) del contrato',
+          condicion: 'requiere_documentacion_suscripcion',
+          bloques: [
+            {
+              clase: 'redactado',
+              id: 'documentacion_suscripcion',
+              etiqueta: 'Documentación adicional para el perfeccionamiento del contrato',
+              instruccion:
+                'Señalar la documentación adicional que el adjudicatario debe presentar para perfeccionar el contrato. Debe estar directamente relacionada con el objeto de la contratación y resultar necesaria para su ejecución; no puede exigirse documentación que constituya un requisito de calificación ya evaluado',
+              extension: 'lista',
+            },
+          ],
+        },
+        {
+          id: 'compatibilizacion',
+          titulo: 'Documento que aprobó la compatibilización del requerimiento',
+          condicion: 'tiene_compatibilizacion',
+          bloques: [
+            {
+              clase: 'campo',
+              id: 'compatibilizacion',
+              etiqueta: 'Documento de compatibilización',
+              ayuda:
+                'En caso la autoridad de la gestión administrativa haya aprobado el proceso de compatibilización del requerimiento, consignar el documento mediante el cual se aprobó',
+              tipo: 'texto',
+              obligatorio: true,
+            },
+          ],
+        },
+        {
           id: 'caracteristicas_tecnicas',
           titulo: 'Características técnicas y condiciones de ejecución del servicio',
           bloques: [
@@ -165,14 +225,52 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
           id: 'garantia_prestacion',
           titulo: 'Garantía de la prestación',
           condicion: 'tiene_garantia_prestacion',
+          // Como en bienes: el formato trae las condiciones escritas y
+          // del período solo deja el plazo. Observación de César (agosto
+          // de 2026): "en la garantía comercial (alcance de la garantía,
+          // condiciones de la garantía) las condiciones ya están
+          // establecidas por lo que no hay necesidad de redactar".
           bloques: [
+            { clase: 'titulo', texto: 'Alcance de la garantía', nivel: 3 },
             {
+              // El alcance sí lo escribe el área usuaria: depende del
+              // servicio. El formato lo deja entre corchetes.
               clase: 'redactado',
               id: 'garantia_prestacion',
-              etiqueta: 'Alcance, condiciones y período de la garantía',
+              etiqueta: 'Alcance de la garantía',
               instruccion:
-                'Precisar el alcance de la garantía, las condiciones de subsanación y el período de vigencia contado desde la conformidad',
+                'Precisar qué comprende la garantía del servicio: la subsanación de deficiencias, fallas o incorrecta ejecución atribuibles al contratista y, de corresponder, el reemplazo de los repuestos instalados que presenten defectos, sin costo adicional para la Entidad',
+              ejemplo:
+                'El contratista garantizará la calidad de los trabajos ejecutados durante el mantenimiento preventivo y correctivo de los equipos de aire acondicionado. La garantía comprende la subsanación de cualquier deficiencia, falla o incorrecta ejecución del servicio atribuible al contratista, así como el reemplazo de los repuestos instalados que presenten defectos de fabricación o funcionamiento, sin costo adicional para la Entidad.',
               extension: 'varios_parrafos',
+            },
+            { clase: 'titulo', texto: 'Condiciones de la garantía', nivel: 3 },
+            {
+              clase: 'fijo',
+              texto:
+                'La Entidad comunicará las observaciones mediante correo electrónico u otro medio que permita acreditar su recepción. El contratista deberá iniciar las acciones de subsanación dentro de los dos (2) días hábiles siguientes de recibida la comunicación y culminarlas en un plazo máximo de cinco (5) días hábiles, salvo que el requerimiento establezca un plazo distinto por la naturaleza del servicio.',
+            },
+            {
+              clase: 'fijo',
+              texto:
+                'La subsanación comprenderá todos los recursos, materiales, equipos, personal y demás actividades necesarias para corregir las observaciones formuladas, sin generar costo adicional para la Entidad.',
+            },
+            { clase: 'titulo', texto: 'Período de garantía', nivel: 3 },
+            {
+              clase: 'parrafo',
+              texto:
+                'El período de garantía será de {{garantia_periodo}}, computado a partir del día siguiente del otorgamiento de la conformidad del servicio.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'garantia_periodo',
+                  etiqueta: 'Período de garantía',
+                  ayuda:
+                    'Consignar el plazo, por ejemplo: treinta (30) días calendario, seis (6) meses o un (1) año',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
             },
           ],
         },
