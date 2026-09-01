@@ -91,6 +91,28 @@ const CASOS: Caso[] = [
     debeCitarNorma: true,
   },
   {
+    id: 'pliego-jurado',
+    pregunta:
+      '¿Quién debe absolver las consultas y observaciones cuando un proceso de selección de ejecución de obras es conducido por un jurado?',
+    porque:
+      'reportada el 31/08/2026: contestó la enumeración del artículo 66 —«el oficial de compra o el comité o la DEC»— sin resolver el «según corresponda» que la pregunta plantea. Con jurado, el artículo 60 deja la conducción en la DEC: los jurados le remiten los puntajes y es ella quien elabora las bases',
+    debeDecir: [
+      /(?:corresponde a la DEC|est[áa] a cargo de la DEC|la DEC (?:es (?:la|quien)|asume|conduce|elabora)|recae en la DEC|responsabilidad de la DEC)/i,
+      /coordinaci[óo]n con (?:el|dicho) jurado/i,
+    ],
+    debeCitarNorma: true,
+  },
+  {
+    id: 'plazo-apelacion',
+    pregunta:
+      '¿Cuál es el plazo para interponer recurso de apelación contra el otorgamiento de la buena pro en una licitación pública?',
+    porque:
+      'reportada el 31/08/2026: contestó «tres (3) días hábiles» y le puso cita. El artículo 304.1 del Reglamento dice ocho días hábiles desde la notificación en la Pladicop',
+    debeDecir: [/(?:ocho|8)\s*(?:\(\s*8\s*\))?\s*d[ií]as h[áa]biles/i],
+    noDebeDecir: [/(?:tres|3)\s*(?:\(\s*3\s*\))?\s*d[ií]as h[áa]biles/i],
+    debeCitarNorma: true,
+  },
+  {
     id: 'plazo-entidad',
     pregunta:
       '¿En cuánto tiempo debe la entidad resolver y notificar una solicitud de ampliación de plazo en bienes y servicios?',
