@@ -14,6 +14,7 @@
  * se aplica al exportar.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import {
@@ -571,7 +572,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
     }
   };
 
-  const pintarSeccion = (s: Seccion, numero: string, nivel: number) => {
+  const pintarSeccion = (s: Seccion, numero: string, nivel: number, controles?: ReactNode) => {
     // Un apartado "de corresponder" ya no desaparece de la pantalla: se
     // muestra con su interruptor al lado del título, encendido o
     // apagado. Es la observación de César de agosto: "el botón de
@@ -635,26 +636,24 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
                 apagado && 'text-muted-foreground/70',
               )}
             >
-              {numero}. {s.titulo}
+              {apagado ? s.titulo : `${numero}. ${s.titulo}`}
             </h3>
           )}
-          {s.condicion && (
-            <label className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
-              <span>{apagado ? 'No corresponde' : 'Corresponde'}</span>
-              <Switch
-                checked={!apagado}
-                onCheckedChange={(v) => setCondicion(s.condicion!, v)}
-                aria-label={`${s.titulo}: incluir en el documento`}
-              />
-            </label>
-          )}
+          <div className="flex shrink-0 items-center gap-1">
+            {controles}
+            {s.condicion && (
+              <label className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                <span>{apagado ? 'No corresponde' : 'Corresponde'}</span>
+                <Switch
+                  checked={!apagado}
+                  onCheckedChange={(v) => setCondicion(s.condicion!, v)}
+                  aria-label={`${s.titulo}: incluir en el documento`}
+                />
+              </label>
+            )}
+          </div>
         </div>
-        {apagado && (
-          <p className="mt-1 text-xs text-muted-foreground">
-            Este apartado no se incluirá en el documento. Enciéndelo si corresponde a esta
-            contratación.
-          </p>
-        )}
+
         {utiles.length > 0 && (
           <div className="mt-3 space-y-4">
             {utiles.map((b, i) => {
@@ -720,34 +719,41 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
                   const entra = !h.condicion || r.condiciones[h.condicion];
                   const suNumero = entra ? `${numero}.${++sub}` : '—';
                   return (
-                    <div key={h.id} className="group/hija relative">
-                      <div className="absolute -top-1 right-0 z-10 flex gap-1 opacity-0 transition focus-within:opacity-100 group-hover/hija:opacity-100">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 w-7 p-0"
-                          disabled={iHija === 0}
-                          title="Subir este numeral"
-                          aria-label={`Subir ${suNumero}`}
-                          onClick={() => moverHija(s, h.id, -1)}
-                        >
-                          <ChevronUp className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 w-7 p-0"
-                          disabled={iHija === hijas.length - 1}
-                          title="Bajar este numeral"
-                          aria-label={`Bajar ${suNumero}`}
-                          onClick={() => moverHija(s, h.id, 1)}
-                        >
-                          <ChevronDown className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      {pintarSeccion(h, suNumero, nivel + 1)}
+                    <div key={h.id} className="group/hija">
+                      {pintarSeccion(
+                        h,
+                        suNumero,
+                        nivel + 1,
+                        // Van en la fila del título, no flotando sobre
+                        // ella: encima del interruptor le tapaban la
+                        // palabra «Corresponde».
+                        <span className="flex gap-1 opacity-0 transition focus-within:opacity-100 group-hover/hija:opacity-100">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0"
+                            disabled={iHija === 0}
+                            title="Subir este numeral"
+                            aria-label={`Subir ${suNumero}`}
+                            onClick={() => moverHija(s, h.id, -1)}
+                          >
+                            <ChevronUp className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0"
+                            disabled={iHija === hijas.length - 1}
+                            title="Bajar este numeral"
+                            aria-label={`Bajar ${suNumero}`}
+                            onClick={() => moverHija(s, h.id, 1)}
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </Button>
+                        </span>,
+                      )}
                     </div>
                   );
                 });
@@ -905,67 +911,86 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
                   {/* Plegar y colocar. Cada entidad ordena el documento
                       como le conviene, y no tiene por qué recorrerlo
                       entero para llegar a un apartado. */}
-                  <div className="absolute -top-1 right-0 z-10 flex gap-1 opacity-0 transition focus-within:opacity-100 group-hover/apartado:opacity-100">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 w-7 p-0"
-                      disabled={i === 0}
-                      title="Subir este apartado"
-                      aria-label={`Subir ${numero}`}
-                      onClick={() => mover(apartado.id, -1)}
-                    >
-                      <ChevronUp className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 w-7 p-0"
-                      disabled={i === apartados.length - 1}
-                      title="Bajar este apartado"
-                      aria-label={`Bajar ${numero}`}
-                      onClick={() => mover(apartado.id, 1)}
-                    >
-                      <ChevronDown className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  {plegado ? (
-                    <button
-                      type="button"
-                      onClick={() => alternarPliegue(apartado.id)}
-                      className="flex w-full items-center gap-2 rounded-md py-1 pr-16 text-left text-base font-semibold hover:text-primary"
-                    >
-                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      <span>
-                        {numero}. {titulo}
+                  {(() => {
+                    const colocacion = (
+                      <span className="flex gap-1 opacity-0 transition focus-within:opacity-100 group-hover/apartado:opacity-100">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 w-7 p-0"
+                          disabled={i === 0}
+                          title="Subir este apartado"
+                          aria-label={`Subir ${numero}`}
+                          onClick={() => mover(apartado.id, -1)}
+                        >
+                          <ChevronUp className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 w-7 p-0"
+                          disabled={i === apartados.length - 1}
+                          title="Bajar este apartado"
+                          aria-label={`Bajar ${numero}`}
+                          onClick={() => mover(apartado.id, 1)}
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
                       </span>
-                    </button>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => alternarPliegue(apartado.id)}
-                        title="Plegar este apartado"
-                        aria-label={`Plegar ${numero}`}
-                        className="absolute -left-5 top-1 hidden text-muted-foreground hover:text-foreground group-hover/apartado:block"
-                      >
-                        <ChevronDown className="h-4 w-4" />
-                      </button>
-                      {apartado.tipo === 'extra' ? (
-                        <ApartadoPropio
-                          extra={apartado.extra}
-                          numero={numero}
-                          onChange={(cambio) => cambiarExtra(apartado.id, cambio)}
-                          onBorrar={() => borrarExtra(apartado.id)}
-                        />
-                      ) : (
-                        pintarSeccion(apartado.seccion, numero, 1)
-                      )}
-                    </>
-                  )}
+                    );
+
+                    // Plegado o apartado propio no tienen fila de título
+                    // donde encajarlas, así que ahí flotan como antes; en
+                    // una sección normal van dentro de la fila para no
+                    // taparle el título.
+                    if (plegado)
+                      return (
+                        <>
+                          <div className="absolute -top-1 right-0 z-10 flex gap-1">{colocacion}</div>
+                          <button
+                            type="button"
+                            onClick={() => alternarPliegue(apartado.id)}
+                            className="flex w-full items-center gap-2 rounded-md py-1 pr-16 text-left text-base font-semibold hover:text-primary"
+                          >
+                            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            <span>
+                              {numero}. {titulo}
+                            </span>
+                          </button>
+                        </>
+                      );
+
+                    return (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => alternarPliegue(apartado.id)}
+                          title="Plegar este apartado"
+                          aria-label={`Plegar ${numero}`}
+                          className="absolute -left-5 top-1 hidden text-muted-foreground hover:text-foreground group-hover/apartado:block"
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </button>
+                        {apartado.tipo === 'extra' ? (
+                          <>
+                            <div className="absolute -top-1 right-0 z-10 flex gap-1">
+                              {colocacion}
+                            </div>
+                            <ApartadoPropio
+                              extra={apartado.extra}
+                              numero={numero}
+                              onChange={(cambio) => cambiarExtra(apartado.id, cambio)}
+                              onBorrar={() => borrarExtra(apartado.id)}
+                            />
+                          </>
+                        ) : (
+                          pintarSeccion(apartado.seccion, numero, 1, colocacion)
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               );
             })}

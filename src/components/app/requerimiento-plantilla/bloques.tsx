@@ -860,7 +860,9 @@ export function ControlTablaRepetible({
             </Button>
           </div>
           <ControlTabla
-            bloque={{ ...bloque, etiqueta: g.titulo.trim() || etiquetaTitulo, instruccion: undefined }}
+            // Sin etiqueta ni instrucción: el título ya está en el campo
+            // de arriba y la instrucción, en el cuadro principal.
+            bloque={{ ...bloque, etiqueta: '', instruccion: undefined }}
             filas={g.filas}
             onChange={(f) => cambiar(i, { filas: f })}
             onRevisar={onRevisar}
