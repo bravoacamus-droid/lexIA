@@ -25,13 +25,19 @@ const badgeVariants = cva(
 );
 
 export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends React.HTMLAttributes<HTMLSpanElement>,
     VariantProps<typeof badgeVariants> {}
 
+/**
+ * Es un `span`, no un `div`: la distinción importa porque la insignia
+ * también se usa dentro de un párrafo —"los puntos marcados como
+ * «revisión humana»"— y un `div` dentro de un `p` es HTML inválido: el
+ * navegador cierra el párrafo por su cuenta, el árbol deja de coincidir
+ * con el del servidor y React abandona la hidratación de esa parte de
+ * la página. Con `inline-flex` se ve exactamente igual.
+ */
 function Badge({ className, variant, ...props }: BadgeProps) {
-  return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
-  );
+  return <span className={cn(badgeVariants({ variant }), className)} {...props} />;
 }
 
 export { Badge, badgeVariants };
