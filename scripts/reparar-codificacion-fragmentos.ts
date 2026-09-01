@@ -43,40 +43,36 @@ const admin = createClient(
 );
 
 /**
- * Qué carácter produce MacRoman para cada byte alto, cuando difiere de
- * lo que produciría Latin-1. Deshacer el daño es leer la clave y
- * escribir el valor.
+ * Los nueve glifos que la avería produce a partir de una letra
+ * española, y qué letra era.
  *
- * Solo están las que devuelven un carácter propio del español: con la
- * tabla entera, una raya larga legítima se convertía en «Ð». Cuando el
- * cambio no es inequívocamente una reparación, no se toca.
+ * Es una lista corta a propósito. Con la tabla entera de MacRoman
+ * —ciento veintitrés posiciones— se reparaban los acentos, sí, pero de
+ * paso una raya larga legítima se volvía «Ð» y la comilla de cerrar
+ * «Ó». Y quedan fuera las reglas que PARTEN de un carácter español
+ * legítimo, porque en un fragmento medio sano convertirían texto bueno
+ * en basura: «N° 4» habría acabado como «N¡ 4».
  */
 const DESHACER: Record<string, string> = {
-  "°": "¡", "™": "ª", "∞": "°", "∫": "º", "ø": "¿", "¡": "Á", "…": "É",
-  "Õ": "Í", "—": "Ñ", "”": "Ó", "⁄": "Ú", "‹": "Ü", "·": "á", "È": "é",
-  "Ì": "í", "Ò": "ñ", "Û": "ó", "˙": "ú", "¸": "ü",
+  "∞": "°", "∫": "º", "⁄": "Ú", "·": "á", "È": "é", "Ì": "í", "Ò": "ñ",
+  "Û": "ó", "˙": "ú",
 };
 
-/** Los nueve documentos que entraron con el texto estropeado. */
-const DOCUMENTOS = [
-  'Directiva N° 001-2025-PERÚ COMPRAS - Lista de Fichas Técnicas',
-  'Directiva N° 002-2025-PERÚ COMPRAS - Compras por Encargo',
-  'Directiva N° 003-2025-PERÚ COMPRAS - Gestión del Proceso de Homologación de Requerimientos',
-  'Directiva N° 004-2025-PERÚ COMPRAS - Directiva para la Gestión de la Compra Corporativa Obligatoria',
-  'Resolución N° 2293-2025-S5 (Tribunal de Contrataciones)',
-  'Resolución N° 4691-2025-S4 (Tribunal de Contrataciones)',
-  'Resolución N° 4709-2025-S1 (Tribunal de Contrataciones)',
-  'Resolución N° 4957-2025-S2 (Tribunal de Contrataciones)',
-  'Resolución N° 593-2026-S5 (Tribunal de Contrataciones)',
-];
-
 /** La marca del daño: secuencias que solo salen de esta avería. */
-const MARCA = /(dÌas|h·biles|ResoluciÛn|selecciÛn|contrataciÛn|P·gina|N∞|PER⁄)/;
+const MARCA = /(dÌas|h·biles|ResoluciÛn|selecciÛn|contrataciÛn|P·gina|N∞|PER⁄|N∫|P˙blicas|InformaciÛn)/;
 
 /** Letras que el español usa y la avería destruye. */
 const ACENTUADAS = /[áéíóúñÁÉÍÓÚÑ°]/g;
-/** Símbolos que la avería introduce y el español no usa. */
-const RAROS = /[·Ì Û˙È∞⁄ÒÍÎÏÓÔ˘˚˝˛ˇ‰„‚‡ﬁﬂ‹›€◊∏∑∫≈√ƒ∆]/g;
+/**
+ * Símbolos que la avería introduce y el español no usa.
+ *
+ * Ojo con lo que se mete aquí: la primera versión incluía la Í y la Ó
+ * —que son letras españolas de pleno derecho— y hasta el espacio, así
+ * que reparar «ResoluciÛn» aumentaba la cuenta de rarezas y el guardián
+ * rechazaba su propia reparación. Solo van los que no pueden aparecer
+ * en un texto legal en español.
+ */
+const RAROS = /[·ÌÛ˙È∞⁄ÒÎÏÔ˘˚˝˛ˇ‰„‚‡ﬁﬂ‹›€◊∏∑∫≈√ƒ∆]/g;
 
 function reparar(texto: string): string {
   let salida = '';
@@ -104,26 +100,38 @@ interface Fila {
   content: string;
 }
 
+/**
+ * Los fragmentos con la marca del daño, por SQL directo: la misma
+ * búsqueda por PostgREST, con el comodín al principio y trescientos mil
+ * filas, agota el tiempo de la consulta.
+ */
+async function fragmentosDaniados(): Promise<string[]> {
+  const token = (process.env.SUPABASE_ACCESS_TOKEN ?? '').trim().replace(/[\r\n"']/g, '');
+  const ref = (process.env.SUPABASE_PROJECT_REF ?? '').trim().replace(/[\r\n"']/g, '');
+  const res = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query: `select id from normative_chunks where content ~ '${MARCA.source.replace(/'/g, "''")}'`,
+    }),
+  });
+  if (!res.ok) throw new Error(`consulta: HTTP ${res.status} ${await res.text()}`);
+  return ((await res.json()) as Array<{ id: string }>).map((f) => f.id);
+}
+
 async function main() {
   const aplicar = process.argv.includes('--aplicar');
   console.log(aplicar ? '\nESCRIBIENDO\n' : '\nEN SECO — nada se escribe. Añade --aplicar.\n');
 
-  // Los documentos dañados se localizan una vez; buscar el comodín
-  // sobre los trescientos mil fragmentos agota el tiempo de la consulta.
-  const { data: docs, error: eDocs } = await admin
-    .from('normative_documents')
-    .select('id, title')
-    .in('title', DOCUMENTOS);
-  if (eDocs) throw new Error(eDocs.message);
-  const ids = (docs ?? []).map((d) => (d as { id: string }).id);
-  console.log(`${ids.length} documento(s) con la codificación rota`);
+  const ids = await fragmentosDaniados();
+  console.log(`${ids.length} fragmento(s) con la marca del daño`);
 
   const data: Fila[] = [];
-  for (const id of ids) {
+  for (let k = 0; k < ids.length; k += 100) {
     const { data: trozos, error } = await admin
       .from('normative_chunks')
       .select('id, document_id, content')
-      .eq('document_id', id);
+      .in('id', ids.slice(k, k + 100));
     if (error) throw new Error(error.message);
     data.push(...((trozos ?? []) as Fila[]));
   }
@@ -140,6 +148,15 @@ async function main() {
     const nuevo = reparar(f.content);
     if (!mejora(f.content, nuevo)) {
       rechazados++;
+      if (process.argv.includes('--porque')) {
+        const i = Math.max(0, f.content.search(MARCA) - 60);
+        console.log(
+          `  descartado ${f.id}: acentos ${cuantos(f.content, ACENTUADAS)}→${cuantos(nuevo, ACENTUADAS)}` +
+            ` · raros ${cuantos(f.content, RAROS)}→${cuantos(nuevo, RAROS)}` +
+            ` · ¿cambia? ${nuevo !== f.content}`,
+        );
+        console.log(`     …${f.content.slice(i, i + 110).replace(/\s+/g, ' ')}…`);
+      }
       continue;
     }
     if (primera) {
