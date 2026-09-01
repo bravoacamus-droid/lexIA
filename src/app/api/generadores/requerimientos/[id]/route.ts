@@ -57,6 +57,19 @@ function limpiarRespuestas(
       })),
     orden: r.orden,
     marcadores: r.marcadores,
+    gruposTabla:
+      r.gruposTabla &&
+      Object.fromEntries(
+        Object.entries(r.gruposTabla).map(([k, grupos]) => [
+          k,
+          grupos.map((g) => ({
+            titulo: limpiarTexto(g.titulo),
+            filas: g.filas.map((f) => f.map(limpiarTexto)),
+          })),
+        ]),
+      ),
+    ordenHijas: r.ordenHijas,
+    titulos: mapa(r.titulos),
   };
 }
 
@@ -94,6 +107,27 @@ const ActualizarSchema = z.object({
       orden: z.array(z.string().min(1).max(80)).max(200).optional(),
       /** Con qué se marca cada apartado que va en lista. */
       marcadores: z.record(z.enum(['vineta', 'literal', 'numero'])).optional(),
+      /**
+       * Cuadros añadidos a un bloque repetible: cada uno con su título.
+       * El tope es el mismo criterio que en `extras`: cada cuadro se
+       * pinta entero en el documento.
+       */
+      gruposTabla: z
+        .record(
+          z
+            .array(
+              z.object({
+                titulo: z.string().max(300),
+                filas: z.array(z.array(z.string())).max(200),
+              }),
+            )
+            .max(30),
+        )
+        .optional(),
+      /** Orden de los subnumerales dentro de un apartado, por id. */
+      ordenHijas: z.record(z.array(z.string().min(1).max(80)).max(200)).optional(),
+      /** Título propio de un numeral que admite renombrarse. */
+      titulos: z.record(z.string().max(300)).optional(),
     })
     .optional(),
 });
@@ -233,6 +267,12 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
       extras: nuevas.extras ?? previas.extras,
       orden: nuevas.orden ?? previas.orden,
       marcadores: { ...previas.marcadores, ...(nuevas.marcadores ?? {}) },
+      // Los cuadros y el orden de los subnumerales son listas dentro de
+      // un diccionario: se fusiona por clave, pero cada lista se
+      // reemplaza entera, por lo mismo que `orden`.
+      gruposTabla: { ...previas.gruposTabla, ...(nuevas.gruposTabla ?? {}) },
+      ordenHijas: { ...previas.ordenHijas, ...(nuevas.ordenHijas ?? {}) },
+      titulos: { ...previas.titulos, ...(nuevas.titulos ?? {}) },
     };
   }
 
