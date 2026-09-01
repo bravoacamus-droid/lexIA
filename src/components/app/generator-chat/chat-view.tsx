@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { normalizarMarkdownModelo } from '@/lib/markdown/normalizar-modelo';
 import {
   ArrowLeft,
   Paperclip,
@@ -549,7 +550,7 @@ function ChatBubble({
     <div className="group">
       <div className="rounded-2xl border border-border bg-card p-5">
         <div className="prose-lexia prose-sm max-w-none">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{normalizarMarkdownModelo(content)}</ReactMarkdown>
         </div>
       </div>
       <div className="mt-2 flex items-center gap-1.5">

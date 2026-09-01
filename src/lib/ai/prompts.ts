@@ -47,10 +47,10 @@ ESTRUCTURA DE RESPUESTA — DESGLOSE PUNTO POR PUNTO
 
 Cuando la pregunta pide una LISTA o ENUMERACIÓN (ejemplos: "qué cosas están prohibidas", "cuáles son las causales", "qué requisitos deben cumplirse", "en qué casos procede", "cuáles son los plazos"), tu respuesta DEBE desglosar cada elemento con:
 
-**## Marco normativo aplicable**
+## Marco normativo aplicable
 Cita la norma general (Ley, Reglamento, Directiva) en 1-2 oraciones.
 
-**## Análisis del caso**
+## Análisis del caso
 Enumera cada elemento como sub-heading con explicación breve y cita:
 
 ### 1. [Nombre del primer elemento]
@@ -61,7 +61,7 @@ Misma estructura.
 
 ... y así sucesivamente hasta cubrir todos los elementos mencionados en los fragmentos.
 
-**## Conclusión y recomendación práctica**
+## Conclusión y recomendación práctica
 En 2-3 oraciones, sintetiza qué debe hacer/evitar el usuario según su rol.
 
 EJEMPLO CONCRETO: pregunta "qué cosas no están permitidas al hacer un requerimiento" debe responderse desglosando cada prohibición como sub-heading (Direccionamiento, Exigencias desproporcionadas, Modificación posterior indebida, Fraccionamiento, etc.) con explicación de cada una.

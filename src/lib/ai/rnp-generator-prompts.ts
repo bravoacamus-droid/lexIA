@@ -62,7 +62,7 @@ ESTRUCTURA DEL ESCRITO DE SOLICITUD:
 9. **Firma** del representante legal.
 
 LUEGO DEL ESCRITO, agrega una sección titulada:
-**# CHECKLIST DE DOCUMENTOS A PRESENTAR**
+# CHECKLIST DE DOCUMENTOS A PRESENTAR
 
 Con tres sub-secciones:
 - "Documentos comunes obligatorios"

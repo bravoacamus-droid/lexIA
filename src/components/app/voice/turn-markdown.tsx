@@ -1,6 +1,7 @@
 'use client';
 
 import ReactMarkdown from 'react-markdown';
+import { normalizarMarkdownModelo } from '@/lib/markdown/normalizar-modelo';
 import remarkGfm from 'remark-gfm';
 
 interface Props {
@@ -16,7 +17,7 @@ interface Props {
  * en listas markdown formales, y párrafos separados en párrafos reales.
  */
 export function TurnMarkdown({ text }: Props) {
-  const md = normalizeTurnText(text);
+  const md = normalizarMarkdownModelo(normalizeTurnText(text));
   return (
     <div className="prose-lexia">
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{md}</ReactMarkdown>

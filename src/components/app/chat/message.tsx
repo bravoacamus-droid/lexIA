@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { normalizarMarkdownModelo } from '@/lib/markdown/normalizar-modelo';
 import { detectTextCitations, type TextCitationMatch } from '@/lib/citations/detect';
 import { detectFocusHint } from '@/lib/citations/focus';
 import { extractSnippetRef } from '@/lib/citation-ref';
@@ -195,7 +196,13 @@ function AssistantMarkdown({
       focusByN[n] = hint?.value ?? null;
     }
     return {
-      transformed: content.replace(/\[(\d+)\]/g, `${sentinel}$1${sentinel}`),
+      // Se endereza antes de pintar: media base de respuestas guardadas
+      // trae los encabezados envueltos en negritas y markdown no los
+      // reconoce como tales.
+      transformed: normalizarMarkdownModelo(content).replace(
+        /\[(\d+)\]/g,
+        `${sentinel}$1${sentinel}`,
+      ),
       focusByN,
     };
   }, [content]);

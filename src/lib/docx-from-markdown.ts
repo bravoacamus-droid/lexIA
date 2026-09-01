@@ -1,3 +1,4 @@
+import { normalizarMarkdownModelo } from '@/lib/markdown/normalizar-modelo';
 import {
   Document,
   Packer,
@@ -22,7 +23,7 @@ export async function markdownToDocxBuffer(
   markdown: string,
   meta: { title: string; subtitle?: string },
 ): Promise<Buffer> {
-  const lines = markdown.split('\n');
+  const lines = normalizarMarkdownModelo(markdown).split('\n');
   const children: Array<Paragraph | Table> = [];
 
   // Title page header
