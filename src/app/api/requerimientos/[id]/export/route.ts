@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { nombreDeArchivo, cabeceraDescarga } from '@/lib/descargas/nombre-archivo';
 import { createClient } from '@/lib/supabase/server';
 import { generateRequirementDocx } from '@/lib/requerimientos/word-export';
 import {
@@ -77,22 +78,18 @@ export async function GET(req: Request, ctx: { params: { id: string } }) {
     clauses: row.clauses || [],
   });
 
-  const safeName = row.denominacion
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 70);
-
-  const filename = `requerimiento-${row.objeto}-${row.anio}-${safeName}.docx`;
+  const filename = `${nombreDeArchivo(
+    `Requerimiento ${row.objeto} ${row.anio} — ${row.denominacion ?? ''}`,
+    'Requerimiento',
+    80,
+  )}.docx`;
 
   return new NextResponse(buf as unknown as BodyInit, {
     status: 200,
     headers: {
       'Content-Type':
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Disposition': cabeceraDescarga(filename),
       'Content-Length': String(buf.length),
     },
   });

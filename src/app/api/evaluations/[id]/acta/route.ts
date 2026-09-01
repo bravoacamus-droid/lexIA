@@ -10,6 +10,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { markdownToDocxBuffer } from '@/lib/docx-from-markdown';
 import { construirActa } from '@/lib/evaluacion/acta';
+import { nombreDeArchivo, cabeceraDescarga } from '@/lib/descargas/nombre-archivo';
 import type { LecturaBases } from '@/lib/evaluacion/motor';
 import type { ResultadoPostor } from '@/lib/evaluacion/etapas';
 
@@ -53,11 +54,11 @@ export async function GET(_req: Request, ctx: { params: { id: string } }) {
     subtitle: denominacion,
   });
 
-  const nombre = `Acta de evaluación — ${denominacion}`.replace(/[^\w\s.-]/g, '').slice(0, 90);
+  const nombre = `${nombreDeArchivo(`Acta de evaluación — ${denominacion}`, 'Acta de evaluación')}.docx`;
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'Content-Disposition': `attachment; filename="${nombre}.docx"`,
+      'Content-Disposition': cabeceraDescarga(nombre),
     },
   });
 }

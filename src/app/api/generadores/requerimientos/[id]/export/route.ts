@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { nombreDeArchivo, cabeceraDescarga } from '@/lib/descargas/nombre-archivo';
 import { createClient } from '@/lib/supabase/server';
 import { obtenerPlantilla } from '@/lib/generadores/plantillas';
 import {
@@ -72,13 +73,7 @@ export async function GET(req: Request, ctx: { params: { id: string } }) {
     cuantia: fila.cuantia ?? undefined,
   });
 
-  const nombre = fila.denominacion
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 70);
+  const nombre = nombreDeArchivo(`Requerimiento — ${fila.denominacion}`, 'Requerimiento', 70);
 
   const cabeceras: Record<string, string> = {
     'X-Faltantes': String(doc.faltantes.length),
@@ -91,7 +86,7 @@ export async function GET(req: Request, ctx: { params: { id: string } }) {
       headers: {
         ...cabeceras,
         'Content-Type': 'text/markdown; charset=utf-8',
-        'Content-Disposition': `attachment; filename="requerimiento-${nombre}.md"`,
+        'Content-Disposition': cabeceraDescarga(`${nombre}.md`),
       },
     });
   }
@@ -107,7 +102,7 @@ export async function GET(req: Request, ctx: { params: { id: string } }) {
       ...cabeceras,
       'Content-Type':
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'Content-Disposition': `attachment; filename="requerimiento-${nombre}.docx"`,
+      'Content-Disposition': cabeceraDescarga(`${nombre}.docx`),
       'Content-Length': String(buf.length),
     },
   });

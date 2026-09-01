@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { nombreDeArchivo, cabeceraDescarga } from '@/lib/descargas/nombre-archivo';
 import { createClient } from '@/lib/supabase/server';
 import { markdownToDocxBuffer } from '@/lib/docx-from-markdown';
 import { GENERATOR_PERFILES } from '@/lib/ai/generator-perfiles';
@@ -59,13 +60,13 @@ export async function GET(
     subtitle: `Perfil: ${perfilLabel} · Generado el ${new Date().toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' })}`,
   });
 
-  const filename = `${(c.title || 'documento').replace(/[^a-z0-9áéíóúñü\-_ ]/gi, '').slice(0, 50).trim() || 'documento'}.docx`;
+  const filename = `${nombreDeArchivo(c.title || 'documento', 'documento', 60)}.docx`;
 
   return new Response(new Uint8Array(buffer), {
     headers: {
       'Content-Type':
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Disposition': cabeceraDescarga(filename),
       'Content-Length': String(buffer.length),
     },
   });

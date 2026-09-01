@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { nombreDeArchivo, cabeceraDescarga } from '@/lib/descargas/nombre-archivo';
 import {
   Document,
   Packer,
@@ -79,12 +80,12 @@ export async function GET(_req: Request, ctx: { params: { id: string } }) {
   const doc = buildDocx(row.title, row.result, row.completed_at);
   const buffer = await Packer.toBuffer(doc);
 
-  const safeTitle = (row.title || 'evaluacion').replace(/[^a-z0-9_-]+/gi, '_');
+  const nombre = `${nombreDeArchivo(`LexIA — Evaluación — ${row.title || 'evaluación'}`, 'LexIA — Evaluación')}.docx`;
   return new Response(new Uint8Array(buffer), {
     headers: {
       'Content-Type':
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'Content-Disposition': `attachment; filename="LexIA_Evaluacion_${safeTitle}.docx"`,
+      'Content-Disposition': cabeceraDescarga(nombre),
     },
   });
 }
