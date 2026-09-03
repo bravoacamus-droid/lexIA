@@ -82,6 +82,21 @@ comprobar('mide la que sí tiene clave', /Diez días calendario/.test(a4), a4);
 comprobar('y no cuenta nada de la que no la tiene', !/Tres días|Ocho días/.test(a4), a4);
 
 
+console.log('\nALTERNATIVAS EN MINÚSCULA Y CLAVE CON TEXTO — el formato real\n');
+
+const minusculas = `### 1. ¿Plazo para apelar?
+* a) Cinco (5) días hábiles.
+* b) Ocho (8) días hábiles desde la notificación en la Pladicop.
+* c) Tres (3) días hábiles.
+
+**Respuesta correcta:** b) Ocho (8) días hábiles desde la notificación en la Pladicop.
+**Sustento legal:** Artículo 304, numeral 304.1 del Reglamento.`;
+
+const a5 = loAfirmado(minusculas);
+comprobar('lee la alternativa en minúscula', /Ocho \(8\) días hábiles/.test(a5), a5);
+comprobar('y no las otras', !/Cinco \(5\)|Tres \(3\)/.test(a5), a5);
+
+
 console.log('\nLAS CIFRAS QUE SE EXTRAEN\n');
 
 const c = cifrasDe('El plazo es de ocho (8) días hábiles y la penalidad llega al 10 % del monto.');

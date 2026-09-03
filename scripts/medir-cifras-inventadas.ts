@@ -118,24 +118,37 @@ function estaRespaldada(c: Cifra, fragmentos: ChatSource[]): boolean {
  * definición —ese es su oficio— y contarlos daba cuatro falsos
  * positivos de siete la primera vez que se midió esto.
  */
-export function loAfirmado(texto: string): string {
-  const trozos: string[] = [];
+export interface RespuestaMarcada {
+  /** El enunciado, para saber de qué va. */
+  pregunta: string;
+  /** El texto de la alternativa que el chat da por correcta. */
+  marcada: string;
+  /** Lo que aduce para sostenerla. */
+  sustento: string;
+}
 
-  // Primero se parte por pregunta y solo después se busca dentro. Al
-  // revés —bloques delimitados por «Respuesta correcta»— bastaba con
-  // que el modelo rotulara una sola pregunta de otra manera para que el
-  // bloque abarcase dos y se colaran las alternativas de la vecina.
+/**
+ * Las respuestas que el chat da por buenas, cada una con su pregunta.
+ *
+ * Se parte por pregunta y solo después se busca dentro. Al revés
+ * —bloques delimitados por «Respuesta correcta»— bastaba con que el
+ * modelo rotulara una sola pregunta de otra manera para que el bloque
+ * abarcase dos y se colaran las alternativas de la vecina.
+ */
+export function respuestasMarcadas(texto: string): RespuestaMarcada[] {
+  const salida: RespuestaMarcada[] = [];
   const preguntas = texto.split(/(?=^#{1,4}\s|^\s*(?:\*\*)?Pregunta\s+\d)/m);
 
   for (const pregunta of preguntas) {
-    const marcada = pregunta.match(/Respuesta correcta:?[ *_]*([A-D])\b/i);
+    const clave = pregunta.match(/Respuesta correcta:?[ *_]*([A-Da-d])\b/i);
     // Sin marca no se adivina: una pregunta cuya clave no se reconoce
-    // se deja fuera de la medida en vez de contarla a ojo.
-    if (!marcada) continue;
-    const letra = marcada[1].toUpperCase();
-    const antesDeLaClave = pregunta.slice(0, marcada.index ?? 0);
+    // se deja fuera en vez de contarla a ojo.
+    if (!clave) continue;
+    const letra = clave[1].toUpperCase();
+    const antesDeLaClave = pregunta.slice(0, clave.index ?? 0);
 
-    const marcas = [...antesDeLaClave.matchAll(/(?:^|[\s*·-])([A-D])[).]\s/gm)];
+    const marcas = [...antesDeLaClave.matchAll(/(?:^|[\s\*·-])([A-Da-d])[).]\s/gm)];
+    const trozos: string[] = [];
     for (let k = 0; k < marcas.length; k++) {
       if (marcas[k][1].toUpperCase() !== letra) continue;
       const desde = (marcas[k].index ?? 0) + marcas[k][0].length;
@@ -144,10 +157,25 @@ export function loAfirmado(texto: string): string {
       trozos.push(antesDeLaClave.slice(desde, hasta));
     }
 
-    const sustento = pregunta.slice(marcada.index ?? 0).match(/Sustento[^:]{0,20}:([^]*)/i);
-    if (sustento) trozos.push(sustento[1]);
+    const trasLaClave = pregunta.slice(clave.index ?? 0);
+    const enLaMismaLinea = trasLaClave.split(/\n/)[0].slice(clave[0].length);
+    if (enLaMismaLinea.trim().length > 3) trozos.push(enLaMismaLinea);
+
+    const sustento = trasLaClave.match(/Sustento[^:]{0,20}:([^]*)/i);
+    salida.push({
+      pregunta: antesDeLaClave.slice(0, 400).trim(),
+      marcada: trozos.join(' ').trim(),
+      sustento: (sustento?.[1] ?? '').trim(),
+    });
   }
-  return trozos.join('\n');
+  return salida;
+}
+
+/** Todo lo afirmado, junto, para buscar cifras sin respaldo. */
+export function loAfirmado(texto: string): string {
+  return respuestasMarcadas(texto)
+    .flatMap((r) => [r.marcada, r.sustento])
+    .join('\n');
 }
 
 interface Medida {
