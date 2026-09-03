@@ -21,7 +21,10 @@ export type NormativeDocType =
   // Agregados en migración 0020 — normativa DGA / OECE / Perú Compras.
   | 'lineamiento'
   | 'codigo_etica'
-  | 'resolucion';
+  | 'resolucion'
+  // Agregado en migración 0056 — normas internas de una entidad, que
+  // obligan solo dentro de ella y no fijan la regla general.
+  | 'directiva_entidad';
 
 export interface Profile {
   id: string;

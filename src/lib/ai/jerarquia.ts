@@ -70,6 +70,21 @@ const RANGOS: Record<string, Rango> = {
   aviso: { capa: 3, orden: 3, etiqueta: 'Aviso' },
   nota_informativa: { capa: 3, orden: 4, etiqueta: 'Nota informativa' },
   guia: { capa: 3, orden: 5, etiqueta: 'Guía' },
+  /**
+   * Las normas internas de una entidad concreta.
+   *
+   * Obligan dentro de esa entidad y a nadie más, así que no pueden
+   * fijar cómo se llama una figura de alcance nacional. Fue el fallo
+   * que reportó César el 01/09/2026: las disposiciones de contratos
+   * menores de la SUNARP estaban como `directiva` —capa 1— y el chat
+   * dio su terminología interna en vez de la del artículo 228.2 del
+   * Reglamento, que también tenía delante.
+   */
+  directiva_entidad: {
+    capa: 3,
+    orden: 5,
+    etiqueta: 'Norma interna de una entidad (obliga solo dentro de ella)',
+  },
   manual_seace: { capa: 3, orden: 6, etiqueta: 'Manual del SEACE' },
   manual: { capa: 3, orden: 6, etiqueta: 'Manual' },
   tupa: { capa: 3, orden: 7, etiqueta: 'TUPA' },

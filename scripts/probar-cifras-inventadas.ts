@@ -96,7 +96,7 @@ async function recuperar(pregunta: string): Promise<ChatSource[]> {
       const { data: d } = await admin.rpc('hybrid_search', {
         query_text: pregunta.slice(0, 400),
         query_embedding: emb,
-        match_count: 3,
+        match_count: 8,
         filter_type: tipo,
       });
       return (d ?? []) as Fragmento[];

@@ -791,9 +791,17 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
      * esa mayoría el modelo respondió siete; el numeral 142.3 del
      * Reglamento dice diez.
      *
-     * Por eso se pide expresamente lo que manda: unos pocos fragmentos
-     * de la Ley y del Reglamento para la misma consulta. No sustituyen a
-     * nada —se añaden— y el orden por jerarquía los pone delante.
+     * Por eso se pide expresamente lo que manda: unos fragmentos de la
+     * Ley y del Reglamento para la misma consulta. No sustituyen a nada
+     * —se añaden— y el orden por jerarquía los pone delante.
+     *
+     * Eran tres por tipo hasta el 01/09/2026. César preguntó cómo se
+     * llama, en los contratos menores, la actuación con la que la DEC
+     * determina el precio; el artículo 228.2 del Reglamento lo dice
+     * —«solicita y recibe cotizaciones»— y salía en la posición siete
+     * de su tipo, así que no entraba y la respuesta se construía sobre
+     * fuentes de menor rango. Ocho es lo medido: con tres fallaba, con
+     * ocho entra y el resto de la batería no se mueve.
      */
     if (queryEmbedding) {
       const deCapa1 = await Promise.all(
@@ -801,7 +809,7 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
           const { data, error } = await supabase.rpc('hybrid_search', {
             query_text: lastUser.content.slice(0, 400),
             query_embedding: queryEmbedding as unknown as number[],
-            match_count: 3,
+            match_count: 8,
             filter_type: tipo,
           });
           if (error) {

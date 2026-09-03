@@ -113,6 +113,21 @@ const CASOS: Caso[] = [
     debeCitarNorma: true,
   },
   {
+    id: 'cotizaciones-contrato-menor',
+    pregunta:
+      'En los contratos menores, ¿cómo se denomina: indagación de mercado, interacción de mercado u otros?, cuando la DEC en las actuaciones preparatorias quiere determinar el precio del bien y/o servicio a contratar',
+    porque:
+      'reportada el 01/09/2026: contestó «indagación de condiciones competitivas del mercado», que es el nombre que usan las disposiciones internas de la SUNARP. El artículo 228.2 del Reglamento dice que la DEC, por la Pladicop, «solicita y recibe cotizaciones»; la indagación y la consulta al mercado son los dos tipos de interacción con el mercado (artículos 47 y 48), que es otra cosa y no aplica aquí',
+    debeDecir: [/cotizacion/i],
+    // Solo la terminología ajena, que es inequívoca. Se probó también a
+    // buscar «se denomina … indagación» y marcaba como error la
+    // respuesta buena: «NO se denomina indagación … sino solicitud y
+    // recepción de cotizaciones». Una expresión que no distingue la
+    // afirmación de la negación mide el chat al revés.
+    noDebeDecir: [/indagaci[óo]n de condiciones competitivas/i],
+    debeCitarNorma: true,
+  },
+  {
     id: 'plazo-entidad',
     pregunta:
       '¿En cuánto tiempo debe la entidad resolver y notificar una solicitud de ampliación de plazo en bienes y servicios?',
@@ -170,7 +185,7 @@ async function recuperar(pregunta: string): Promise<ChatSource[]> {
       const { data: d } = await admin.rpc('hybrid_search', {
         query_text: pregunta.slice(0, 400),
         query_embedding: emb,
-        match_count: 3,
+        match_count: 8,
         filter_type: tipo,
       });
       return (d ?? []) as Fragmento[];
