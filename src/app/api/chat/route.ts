@@ -804,8 +804,24 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
      * ocho entra y el resto de la batería no se mueve.
      */
     if (queryEmbedding) {
+      /**
+       * No se pide `reglamento`, y no es un olvido.
+       *
+       * El articulado del Reglamento de la Ley N° 32069 vive dentro del
+       * documento consolidado que Editora Perú publica junto con la
+       * Ley, y ese documento está guardado como `ley`. Los únicos
+       * documentos de tipo `reglamento` son dos decretos supremos de
+       * alcance estrecho —la reactivación de obras paralizadas y las
+       * equivalencias por la entrada en vigencia de la Ley—, así que
+       * pedir «tráeme el Reglamento» devolvía ocho fragmentos sobre
+       * obras paralizadas para cualquier pregunta, y llegaban
+       * etiquetados como norma que obliga. Medido el 01/09/2026 sobre
+       * ocho preguntas: los 64 puestos, los 64, eran de esas dos
+       * normas. Los dos siguen alcanzables por la búsqueda general
+       * cuando la pregunta va de lo suyo.
+       */
       const deCapa1 = await Promise.all(
-        (['ley', 'reglamento', 'directiva'] as const).map(async (tipo) => {
+        (['ley', 'directiva'] as const).map(async (tipo) => {
           const { data, error } = await supabase.rpc('hybrid_search', {
             query_text: lastUser.content.slice(0, 400),
             query_embedding: queryEmbedding as unknown as number[],

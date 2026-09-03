@@ -181,7 +181,7 @@ async function recuperar(pregunta: string): Promise<ChatSource[]> {
   let fuentes = ((data ?? []) as Fragmento[]).map(aFuente);
 
   const deCapa1 = await Promise.all(
-    (['ley', 'reglamento', 'directiva'] as const).map(async (tipo) => {
+    (['ley', 'directiva'] as const).map(async (tipo) => {
       const { data: d } = await admin.rpc('hybrid_search', {
         query_text: pregunta.slice(0, 400),
         query_embedding: emb,
