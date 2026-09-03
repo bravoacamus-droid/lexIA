@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { streamText, generateText } from 'ai';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import {
+  detectarGeneracionEnBloque,
+  temasDeLaPeticion,
+} from '@/lib/ai/generacion-en-bloque';
 import { embedOne } from '@/lib/ai/embeddings';
 import { chatModel, fastModel, CHAT_MODEL_ID, FAST_MODEL_ID } from '@/lib/ai/gemini';
 import { buildChatSystemPrompt, TITLE_SYSTEM_PROMPT } from '@/lib/ai/prompts';
@@ -851,6 +855,55 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
       if (norma.length > 0) {
         sources = [...norma, ...sources];
         console.log('[chat] capa_1_anadida', { fragmentos: norma.length });
+      }
+
+      /**
+       * Si piden quince preguntas, hay que buscar quince veces.
+       *
+       * Una sola búsqueda con «genérame quince preguntas sobre la fase
+       * de selección» trae fragmentos sobre generalidades, y el modelo
+       * tiene que escribir quince respuestas concretas: rellena con lo
+       * que recuerda. Es de donde salió la cifra inventada que reportó
+       * César el 31/08/2026.
+       */
+      const enBloque = detectarGeneracionEnBloque(lastUser.content);
+      if (enBloque) {
+        try {
+          const temas = await temasDeLaPeticion(lastUser.content, enBloque.cuantas ?? 8);
+          const porTema = await Promise.all(
+            temas.map(async (tema) => {
+              const emb = await embedOne(tema, 'RETRIEVAL_QUERY');
+              const { data } = await supabase.rpc('hybrid_search', {
+                query_text: tema,
+                query_embedding: emb as unknown as number[],
+                match_count: 4,
+                filter_type: null,
+              });
+              return (data ?? []) as HybridSearchRow[];
+            }),
+          );
+          const vistos = new Set(sources.map((s) => s.chunk_id));
+          const extra = porTema
+            .flat()
+            .filter((c) => !vistos.has(c.chunk_id) && (vistos.add(c.chunk_id), true))
+            .map((c) => ({
+              chunk_id: c.chunk_id,
+              doc_id: c.document_id,
+              doc_title: c.doc_title,
+              doc_type: c.doc_type,
+              doc_number: c.doc_number,
+              snippet: c.content,
+            }));
+          sources = [...sources, ...extra];
+          console.log('[chat] generacion_en_bloque', {
+            temas: temas.length,
+            fragmentos: extra.length,
+          });
+        } catch (e) {
+          // Si falla, se responde con lo que ya se tiene: es una mejora
+          // de la recuperación, no un requisito para contestar.
+          console.error('[chat] generacion_en_bloque falló', e);
+        }
       }
     }
 

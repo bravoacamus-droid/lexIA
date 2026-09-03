@@ -23,6 +23,10 @@ import { chatModel } from '../../src/lib/ai/gemini';
 import { buildChatSystemPrompt } from '../../src/lib/ai/prompts';
 import { embedOne } from '../../src/lib/ai/embeddings';
 import type { ChatSource } from '../../src/lib/supabase/types';
+import {
+  detectarGeneracionEnBloque,
+  temasDeLaPeticion,
+} from '../../src/lib/ai/generacion-en-bloque';
 
 config({ path: join(process.cwd(), '.env.local'), override: true });
 
@@ -170,6 +174,34 @@ export async function recuperar(pregunta: string): Promise<ChatSource[]> {
     .filter((c) => !yaEstan.has(c.chunk_id))
     .map(aFuente);
   if (norma.length > 0) fuentes = [...norma, ...fuentes];
+
+  // La descomposición en temas, igual que en la ruta: si se pide en
+  // bloque, se busca tema por tema.
+  // SIN_DESCOMPOSICION=1 mide el brazo de control: la recuperación de
+  // antes, para poder comparar los dos con el mismo número de vueltas.
+  const enBloque = process.env.SIN_DESCOMPOSICION ? null : detectarGeneracionEnBloque(pregunta);
+  if (enBloque) {
+    const temas = await temasDeLaPeticion(pregunta, enBloque.cuantas ?? 8);
+    const porTema = await Promise.all(
+      temas.map(async (tema) => {
+        const e = await embedOne(tema, 'RETRIEVAL_QUERY');
+        const { data } = await admin.rpc('hybrid_search', {
+          query_text: tema,
+          query_embedding: e,
+          match_count: 4,
+          filter_type: null,
+        });
+        return (data ?? []) as Fragmento[];
+      }),
+    );
+    const vistos = new Set(fuentes.map((f) => f.chunk_id));
+    const extra = porTema
+      .flat()
+      .filter((c) => !vistos.has(c.chunk_id) && (vistos.add(c.chunk_id), true))
+      .map(aFuente);
+    fuentes = [...fuentes, ...extra];
+  }
+
   return fuentes;
 }
 
