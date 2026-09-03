@@ -42,6 +42,22 @@ export interface Caso {
   porque: string;
   /** Tiene que aparecer alguna de estas. */
   debeDecir: RegExp[];
+  /**
+   * Tienen que aparecer TODAS estas, y solo se buscan en la conclusión.
+   *
+   * El cuerpo de la respuesta cita la norma —y hace bien: el artículo
+   * 66 enumera tres órganos—, así que buscar ahí no distingue una
+   * respuesta que resuelve el caso de otra que se limita a copiar la
+   * lista. La conclusión es donde el chat contesta lo que se le
+   * preguntó.
+   *
+   * `debeDecir` se conforma con una, y eso deja pasar respuestas a
+   * medias: en la del jurado bastaba con nombrar la «coordinación con
+   * el jurado» —que también dice la respuesta genérica— para dar el
+   * caso por bueno, sin comprobar lo que de verdad se preguntaba, que
+   * es a quién le corresponde.
+   */
+  debeDecirTodas?: RegExp[];
   /** No puede darse por buena ninguna de estas. */
   noDebeDecir?: RegExp[];
   /** Debe apoyarse en la norma, no solo en criterios. */
@@ -73,9 +89,15 @@ export const CASOS: Caso[] = [
       '¿Quién debe absolver las consultas y observaciones cuando un proceso de selección de ejecución de obras es conducido por un jurado?',
     porque:
       'reportada el 31/08/2026: contestó la enumeración del artículo 66 —«el oficial de compra o el comité o la DEC»— sin resolver el «según corresponda» que la pregunta plantea. Con jurado, el artículo 60 deja la conducción en la DEC: los jurados le remiten los puntajes y es ella quien elabora las bases',
-    debeDecir: [
-      /(?:corresponde a la DEC|est[áa] a cargo de la DEC|la DEC (?:es (?:la|quien)|asume|conduce|elabora)|recae en la DEC|responsabilidad de la DEC)/i,
-      /coordinaci[óo]n con (?:el|dicho) jurado/i,
+    // Las dos, no una: la respuesta genérica del artículo 66 ya dice
+    // «en coordinación con el jurado», así que sola no distingue una
+    // respuesta buena de una que no resuelve el caso preguntado.
+    debeDecir: [/\bDEC\b|Dependencia Encargada de las? Contrataciones/i],
+    debeDecirTodas: [
+      // Nombrar a la DEC, no «la instancia administrativa encargada».
+      /\bDEC\b|Dependencia Encargada/i,
+      // Y ligarla al jurado en la misma oración.
+      /(?:\bDEC\b|Dependencia Encargada)[^.]{0,140}jurado|jurado[^.]{0,140}(?:\bDEC\b|Dependencia Encargada)/i,
     ],
     debeCitarNorma: true,
   },
@@ -261,8 +283,24 @@ export interface Comprobacion {
  * estable —el mismo caso da siempre las mismas claves— para poder
  * sumarlas entre ejecuciones.
  */
+/** La conclusión, que es donde el chat contesta lo que se le preguntó. */
+export function conclusionDe(texto: string): string {
+  const i = texto.search(/Conclusi[óo]n/i);
+  return i >= 0 ? texto.slice(i) : texto.slice(-700);
+}
+
 export function juzgar(caso: Caso, texto: string): Comprobacion[] {
   const salida: Comprobacion[] = [];
+
+  const conclusion = conclusionDe(texto);
+  (caso.debeDecirTodas ?? []).forEach((r, i) => {
+    salida.push({
+      clave: `${caso.id}/tambien-dice-${i + 1}`,
+      nombre: 'resuelve el caso concreto en la conclusión',
+      ok: r.test(conclusion),
+      detalle: conclusion.slice(0, 190).replace(/\s+/g, ' '),
+    });
+  });
 
   salida.push({
     clave: `${caso.id}/dice-lo-que-manda`,
