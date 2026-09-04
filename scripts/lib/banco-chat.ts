@@ -137,7 +137,7 @@ export const CASOS: Caso[] = [
     // reconformarlo: la primera versión solo aceptaba la forma negada
     // y contaba como fallo una respuesta correcta dicha en afirmativo.
     debeDecirTodas: [
-      /no\s+(?:corresponde|es necesario|resulta necesario|procede|se requiere|hay que)[^.]{0,100}(?:dejar sin efecto la designaci|reconform|conformar (?:un|uno) nuevo|nuevo comit)|(?:el )?comit[ée][^.]{0,80}(?:contin[úu]a|se mantiene|mantiene su|conserva su|sigue a cargo)/i,
+      /no\s+(?:corresponde|es necesario|resulta necesario|procede|se requiere|hay que)[^.]{0,100}(?:dejar sin efecto[^.]{0,40}designaci|reconform|conformar (?:un|uno|un comit[ée]) nuevo|nuevo comit)|(?:el )?comit[ée][^.]{0,80}(?:contin[úu]a|se mantiene|mantiene su|conserva su|sigue a cargo)/i,
     ],
     debeCitarNorma: true,
   },
@@ -149,10 +149,28 @@ export const CASOS: Caso[] = [
       'reportada el 02/09/2026: contestó que NO es subsanable porque «compromete el contenido esencial de la oferta». Sí lo es. El artículo 78.1 permite subsanar una omisión o un error material o FORMAL mientras no se altere el contenido esencial; la firma que falta en un anexo ya presentado es justamente eso. Y la condición de fondo no la prueba el anexo: las Bases Estándar advierten que la entidad verifica el REMYPE en la web del Ministerio de Trabajo. La única regla que declaraba no subsanable una firma —régimen derogado, artículo 60 del DS 344-2018-EF— se refería a la oferta económica, no a los anexos',
     debeDecir: [/subsanable/i],
     debeDecirTodas: [
-      // «Sí es subsanable», en cualquiera de sus formas, y no la negada.
-      /(?:s[íi],?\s+(?:es|resulta|ser[íi]a)?\s*subsanable|es subsanable|resulta subsanable|s[íi] cabe (?:la )?subsanaci)/i,
+      // «Sí es subsanable», en cualquiera de sus formas. Incluye
+      // ordenar la subsanación —«otorgue al postor un plazo para que
+      // subsane»—, que es decir lo mismo sin usar el adjetivo: sin eso
+      // se contaban como fallo respuestas correctas.
+      /(?:s[íi],?\s+)?(?:es|resulta|constituye|califica como)\s+(?:un |una )?(?:defecto |error |vicio |omisi[óo]n )?subsanable|s[íi] cabe (?:la )?subsanaci|(?<!no )(?:otorg|conced|requer|requier|solicit|corresponde)\w*[^.]{0,70}subsan/i,
     ],
-    noDebeDecir: [/no (?:es|resulta|ser[íi]a|cabe)\s+[^.]{0,30}subsanable/i],
+    noDebeDecir: [
+      // La negativa, en sus dos formas: «no es subsanable» y «no
+      // corresponde otorgar plazo para subsanar». La primera versión
+      // solo veía la primera, y una respuesta equivocada dicha de la
+      // segunda manera pasaba las dos comprobaciones.
+      /no\s+(?:es|resulta|ser[íi]a|cabe|corresponde|procede)\s+[^.]{0,60}subsan/i,
+      // El plazo y el artículo del régimen derogado. Medido el
+      // 02/09/2026: dos de cinco respuestas daban «tres (3) días
+      // hábiles» y citaban el artículo 60, que son del Reglamento
+      // anterior. El vigente es el 78.4 y da dos días, prorrogables
+      // por otros dos. Y esa cifra no salía de los fragmentos: en la
+      // recuperación medida no aparecía ni una vez, así que la pone el
+      // modelo de memoria contra lo que tiene delante.
+      /(?:tres|\b3\b)\s*(?:\(\s*3\s*\))?\s*d[ií]as h[áa]biles/i,
+      /art[íi]culo 60 del Reglamento/i,
+    ],
     debeCitarNorma: true,
   },
   {

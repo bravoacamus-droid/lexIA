@@ -146,7 +146,7 @@ export interface FuenteJerarquia {
  * quince. Ordenar por capas no basta cuando doce voces repiten la cifra
  * vieja: hay que decirle cuáles son viejas.
  */
-export function regimenDe(fuente: FuenteJerarquia): 'anterior' | 'indeterminado' {
+export function regimenDe(fuente: FuenteJerarquia): 'anterior' | 'transito' | 'indeterminado' {
   const nombre = `${fuente.doc_title ?? ''} ${fuente.doc_number ?? ''}`;
   // Que se nombre a sí mismo bajo una norma derogada vale para
   // cualquier capa.
@@ -177,6 +177,19 @@ export function regimenDe(fuente: FuenteJerarquia): 'anterior' | 'indeterminado'
 
   const anio = anioDe(nombre);
   if (anio !== null && anio < 2025) return 'anterior';
+
+  // 2025 es el año de tránsito: la Ley N° 32069 rige desde el 22 de
+  // abril, así que una resolución de ese año puede estar juzgando
+  // hechos anteriores y aplicando la norma derogada. Cuando además no
+  // nombra la norma vigente por ninguna parte, se avisa.
+  //
+  // Salió midiendo la pregunta de la firma del anexo de bonificación
+  // (02/09/2026): el chat daba el plazo de subsanación en tres días
+  // hábiles y lo apoyaba en el «artículo 60 del Reglamento». Los dos
+  // datos son del régimen anterior —el vigente es el 78.4, dos días—,
+  // y venían de cinco resoluciones de 2025 que citan ese artículo sin
+  // nombrar la ley bajo la que fallan, así que ninguna llevaba aviso.
+  if (anio === 2025 && !/32069|009-2025-EF/.test(`${nombre} ${texto}`)) return 'transito';
   return 'indeterminado';
 }
 
@@ -205,9 +218,14 @@ export function etiquetaJerarquia(tipo: string): string {
  */
 export function etiquetaFuente(fuente: FuenteJerarquia): string {
   const base = etiquetaJerarquia(fuente.doc_type);
-  return regimenDe(fuente) === 'anterior'
-    ? `${base} · RÉGIMEN ANTERIOR (Ley N° 30225, derogada el 22/04/2025)`
-    : base;
+  const regimen = regimenDe(fuente);
+  if (regimen === 'anterior') {
+    return `${base} · RÉGIMEN ANTERIOR (Ley N° 30225, derogada el 22/04/2025)`;
+  }
+  if (regimen === 'transito') {
+    return `${base} · DE 2025, AÑO DE TRÁNSITO: comprueba si aplica la Ley N° 30225, derogada el 22/04/2025, antes de tomar de aquí un plazo o un número de artículo`;
+  }
+  return base;
 }
 
 /**
