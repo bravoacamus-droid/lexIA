@@ -133,8 +133,11 @@ export const CASOS: Caso[] = [
     porque:
       'reportada el 02/09/2026: contestó que SÍ corresponde reconformar el comité, «para garantizar un nuevo inicio con plena imparcialidad», que no es un motivo de la norma. No corresponde, y la cadena está verificada en la base: el artículo 313.1.d) dice que la nulidad precisa la etapa hasta la que se retrotrae LA FASE DE SELECCIÓN; el 63.2 dice que esa fase INICIA con la convocatoria, y el 63.1 exige que para convocar ya existan los evaluadores, porque las bases las elaboran ellos. La designación es un acto anterior, que la retroacción no alcanza. Y el 59.2 solo permite remover a un integrante por caso fortuito, fuerza mayor, cese, conflicto de intereses u otra situación justificada, con documento motivado',
     debeDecir: [/comit[ée]/i],
+    // Decir que el comité continúa es responder que no corresponde
+    // reconformarlo: la primera versión solo aceptaba la forma negada
+    // y contaba como fallo una respuesta correcta dicha en afirmativo.
     debeDecirTodas: [
-      /no\s+(?:corresponde|es necesario|resulta necesario|procede|se requiere|hay que)[^.]{0,100}(?:dejar sin efecto la designaci|reconform|conformar (?:un|uno) nuevo|nuevo comit)/i,
+      /no\s+(?:corresponde|es necesario|resulta necesario|procede|se requiere|hay que)[^.]{0,100}(?:dejar sin efecto la designaci|reconform|conformar (?:un|uno) nuevo|nuevo comit)|(?:el )?comit[ée][^.]{0,80}(?:contin[úu]a|se mantiene|mantiene su|conserva su|sigue a cargo)/i,
     ],
     debeCitarNorma: true,
   },
