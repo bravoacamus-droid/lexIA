@@ -142,6 +142,20 @@ export const CASOS: Caso[] = [
     debeCitarNorma: true,
   },
   {
+    id: 'firma-anexo-bonificacion',
+    pregunta:
+      'Un postor no firmó el Anexo de solicitud de bonificación del 5% por su condición de REMYPE. ¿Es subsanable la omisión de la firma?',
+    porque:
+      'reportada el 02/09/2026: contestó que NO es subsanable porque «compromete el contenido esencial de la oferta». Sí lo es. El artículo 78.1 permite subsanar una omisión o un error material o FORMAL mientras no se altere el contenido esencial; la firma que falta en un anexo ya presentado es justamente eso. Y la condición de fondo no la prueba el anexo: las Bases Estándar advierten que la entidad verifica el REMYPE en la web del Ministerio de Trabajo. La única regla que declaraba no subsanable una firma —régimen derogado, artículo 60 del DS 344-2018-EF— se refería a la oferta económica, no a los anexos',
+    debeDecir: [/subsanable/i],
+    debeDecirTodas: [
+      // «Sí es subsanable», en cualquiera de sus formas, y no la negada.
+      /(?:s[íi],?\s+(?:es|resulta|ser[íi]a)?\s*subsanable|es subsanable|resulta subsanable|s[íi] cabe (?:la )?subsanaci)/i,
+    ],
+    noDebeDecir: [/no (?:es|resulta|ser[íi]a|cabe)\s+[^.]{0,30}subsanable/i],
+    debeCitarNorma: true,
+  },
+  {
     id: 'plazo-entidad',
     pregunta:
       '¿En cuánto tiempo debe la entidad resolver y notificar una solicitud de ampliación de plazo en bienes y servicios?',
