@@ -174,6 +174,26 @@ export const CASOS: Caso[] = [
     debeCitarNorma: true,
   },
   {
+    id: 'apelacion-desde-cuando',
+    pregunta: `Marca la alternativa correcta. ¿Cuál es el plazo perentorio con el que cuentan los
+postores para interponer el recurso de apelación contra el otorgamiento de la buena pro en
+licitaciones públicas y concursos públicos?
+A) Tres (3) días hábiles contados desde el día siguiente de la notificación de los resultados en la Pladicop.
+B) Ocho (8) días hábiles siguientes al consentimiento de la buena pro.
+C) Cinco (5) días calendario perentorios.
+D) Diez (10) días hábiles improrrogables.`,
+    porque:
+      'reportada el 02/09/2026. Aquí no hay alternativa correcta y eso es lo que hay que decir: el artículo 304.1 cuenta los ocho días hábiles desde que se NOTIFICA EL OTORGAMIENTO por la Pladicop, y la alternativa B los cuenta desde el CONSENTIMIENTO. No es lo mismo ni puede serlo: el artículo 82.1 dice que el consentimiento se produce al día siguiente de vencido el plazo para apelar, así que contar el plazo desde el consentimiento sería circular. En la captura que mandó César el chat acertaba los ocho días y luego señalaba la alternativa C, que dice cinco días calendario',
+    debeDecir: [/(?:ocho|\b8\b)\s*(?:\(\s*8\s*\))?\s*d[ií]as h[áa]biles/i],
+    debeDecirTodas: [
+      // El punto de partida correcto, que es lo que se discute.
+      /notificaci[óo]n[^.]{0,80}otorgamiento|otorgamiento de la buena pro[^.]{0,80}Pladicop/i,
+    ],
+    // Y no dar por bueno el punto de partida de la alternativa B.
+    noDebeDecir: [/(?:contad\w*|comput\w*|siguientes)[^.]{0,40}(?:al|del) consentimiento/i],
+    debeCitarNorma: true,
+  },
+  {
     id: 'plazo-entidad',
     pregunta:
       '¿En cuánto tiempo debe la entidad resolver y notificar una solicitud de ampliación de plazo en bienes y servicios?',
