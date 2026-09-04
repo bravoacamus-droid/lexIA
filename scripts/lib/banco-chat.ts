@@ -127,6 +127,18 @@ export const CASOS: Caso[] = [
     debeCitarNorma: true,
   },
   {
+    id: 'comite-tras-nulidad',
+    pregunta:
+      'En el supuesto de que un procedimiento de selección sea declarado nulo y se disponga su retroacción hasta la etapa de convocatoria, previa reformulación del requerimiento, ¿corresponde dejar sin efecto la designación del Comité de Selección que condujo el procedimiento declarado nulo y conformar un nuevo Comité de Selección para continuar con el procedimiento desde la etapa a la que se retrotrae?',
+    porque:
+      'reportada el 02/09/2026: contestó que SÍ corresponde reconformar el comité, «para garantizar un nuevo inicio con plena imparcialidad», que no es un motivo de la norma. No corresponde, y la cadena está verificada en la base: el artículo 313.1.d) dice que la nulidad precisa la etapa hasta la que se retrotrae LA FASE DE SELECCIÓN; el 63.2 dice que esa fase INICIA con la convocatoria, y el 63.1 exige que para convocar ya existan los evaluadores, porque las bases las elaboran ellos. La designación es un acto anterior, que la retroacción no alcanza. Y el 59.2 solo permite remover a un integrante por caso fortuito, fuerza mayor, cese, conflicto de intereses u otra situación justificada, con documento motivado',
+    debeDecir: [/comit[ée]/i],
+    debeDecirTodas: [
+      /no\s+(?:corresponde|es necesario|resulta necesario|procede|se requiere|hay que)[^.]{0,100}(?:dejar sin efecto la designaci|reconform|conformar (?:un|uno) nuevo|nuevo comit)/i,
+    ],
+    debeCitarNorma: true,
+  },
+  {
     id: 'plazo-entidad',
     pregunta:
       '¿En cuánto tiempo debe la entidad resolver y notificar una solicitud de ampliación de plazo en bienes y servicios?',
