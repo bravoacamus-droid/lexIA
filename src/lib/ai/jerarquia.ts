@@ -189,7 +189,17 @@ export function regimenDe(fuente: FuenteJerarquia): 'anterior' | 'transito' | 'i
   // datos son del régimen anterior —el vigente es el 78.4, dos días—,
   // y venían de cinco resoluciones de 2025 que citan ese artículo sin
   // nombrar la ley bajo la que fallan, así que ninguna llevaba aviso.
-  if (anio === 2025 && !/32069|009-2025-EF/.test(`${nombre} ${texto}`)) return 'transito';
+  //
+  // `SIN_AVISO_TRANSITO=1` lo apaga. No es una opción de producto: es
+  // para poder medir el antes y el después con el mismo número de
+  // vueltas, que es como se decidió que este aviso valía la pena.
+  if (
+    !process.env.SIN_AVISO_TRANSITO &&
+    anio === 2025 &&
+    !/32069|009-2025-EF/.test(`${nombre} ${texto}`)
+  ) {
+    return 'transito';
+  }
   return 'indeterminado';
 }
 
