@@ -223,6 +223,19 @@ D) Diez (10) días hábiles improrrogables.`,
     debeCitarNorma: true,
   },
   {
+    id: 'ampliacion-cuantos-dias',
+    pregunta:
+      'Cuando un contratista solicita que se amplíe el plazo de su ejecución contractual, ¿qué aspectos debo tener en cuenta y cómo determino si corresponde ampliar dos o tres días, más, menos, o denegarle?',
+    porque:
+      'caso 3 del documento «Respondiendo casos reales» (02/09/2026). Aquí la respuesta del chat NO era incorrecta: se comprobó contra el artículo 200.1, literal a), y coincide punto por punto —diez días hábiles para notificar la solicitud, detalle de los días de inicio y fin de la causal, cuantificación, riesgos asociados, programa de ejecución actualizado, cuaderno de incidencias como sustento y las extemporáneas por no presentadas—. El caso queda en el banco para que esa respuesta no se pierda, no para arreglarla',
+    debeDecir: [/(?:diez|10)\s*(?:\(\s*10\s*\))?\s*d[ií]as h[áa]biles/i],
+    debeDecirTodas: [
+      // En obras, sin afectación de la ruta crítica no hay ampliación.
+      /ruta cr[íi]tica/i,
+    ],
+    debeCitarNorma: true,
+  },
+  {
     id: 'plazo-entidad',
     pregunta:
       '¿En cuánto tiempo debe la entidad resolver y notificar una solicitud de ampliación de plazo en bienes y servicios?',
