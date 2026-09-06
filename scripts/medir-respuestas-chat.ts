@@ -86,11 +86,22 @@ async function main() {
   const vueltas = Number(opcion('--vueltas') ?? 5);
   const guardarEn = opcion('--guardar');
   const compararCon = opcion('--comparar');
-  const soloCaso = opcion('--caso');
+  // Repetible y con comas: al añadir un criterio hay que medir el caso
+  // que se arregla Y el vecino del que puede contagiarse, y con un solo
+  // `--caso` se medía únicamente el primero, en silencio.
+  const pedidos = process.argv
+    .flatMap((a, i) => (a === '--caso' ? [process.argv[i + 1] ?? ''] : []))
+    .flatMap((v) => v.split(',').map((s) => s.trim()))
+    .filter(Boolean);
 
-  const casos = soloCaso ? CASOS.filter((c) => c.id === soloCaso) : CASOS;
+  const casos = pedidos.length ? CASOS.filter((c) => pedidos.includes(c.id)) : CASOS;
   if (casos.length === 0) {
-    console.error(`No hay ningún caso con id «${soloCaso}».`);
+    console.error(`No hay ningún caso con id «${pedidos.join(', ')}».`);
+    process.exit(1);
+  }
+  const sinRespuesta = pedidos.filter((p) => !CASOS.some((c) => c.id === p));
+  if (sinRespuesta.length) {
+    console.error(`Ojo: no existe ningún caso llamado ${sinRespuesta.join(', ')}.`);
     process.exit(1);
   }
 
@@ -112,15 +123,33 @@ async function main() {
       const comprobaciones = juzgar(caso, texto);
       hechos++;
       process.stdout.write(`\r   ${hechos}/${trabajos.length} respuestas`);
-      return { caso, comprobaciones };
+      return { caso, comprobaciones, texto };
     } catch (e) {
       fallosDeRed++;
       process.stdout.write(`\r   ${hechos}/${trabajos.length} respuestas (${fallosDeRed} fallidas)`);
-      return { caso, comprobaciones: [] as Comprobacion[] };
+      return { caso, comprobaciones: [] as Comprobacion[], texto: '' };
     }
   });
 
   process.stdout.write('\r' + ' '.repeat(60) + '\r');
+
+  // Un indicador que baja no dice si el chat empeoró o si el detector
+  // no reconoce cómo lo dijo, y distinguirlo exige leer el texto. Hasta
+  // ahora eso obligaba a escribir un script aparte y gastar otras doce
+  // respuestas. Se vuelcan aquí, con el nombre del indicador que falló.
+  const volcarEn = opcion('--fallos');
+  if (volcarEn) {
+    const fallidas = resultados
+      .filter((r) => r.texto && r.comprobaciones.some((c) => !c.ok))
+      .map((r) => ({
+        caso: r.caso.id,
+        fallo: r.comprobaciones.filter((c) => !c.ok).map((c) => c.clave),
+        respuesta: r.texto,
+      }));
+    await mkdir(dirname(volcarEn), { recursive: true });
+    await writeFile(volcarEn, JSON.stringify(fallidas, null, 2), 'utf8');
+    console.log(`   ${fallidas.length} respuesta(s) con algun fallo en ${volcarEn}`);
+  }
 
   for (const { caso, comprobaciones } of resultados) {
     for (const c of comprobaciones) {

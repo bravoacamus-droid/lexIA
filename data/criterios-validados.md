@@ -244,3 +244,70 @@ desde el día siguiente de recibida la solicitud (artículo 142.5). En
 obras, diez (10) días hábiles desde recibida la opinión de la supervisión
 o desde que venció su plazo para emitirla. Si la entidad no se pronuncia,
 se tiene por aprobado lo que informó la supervisión.
+
+---
+
+## Omisión del anexo de experiencia del postor: no presentarlo o presentarlo incompleto
+
+**Pregunta.** Un postor no presentó el Anexo N° 11 «Experiencia del postor
+en la especialidad». ¿Es subsanable?
+
+**Primero, cuál de los dos casos es.** Son distintos y se confunden:
+
+- **El anexo se presentó con datos incompletos** —falta una columna, un
+  campo, la firma—. **Sí es subsanable.**
+- **El anexo no se presentó en absoluto.** **No es subsanable**: no cabe
+  incorporarlo después.
+
+**Fundamento de la diferencia.** El artículo 78.1 del Reglamento permite
+subsanar «alguna omisión» o corregir «algún error material o formal **de
+los documentos** emitidos por privados o entidades públicas
+**presentados** en la precalificación y/o presentación de ofertas». Alcanza
+a los defectos de lo que sí está en la oferta.
+
+La falta de presentación solo se rescata por el artículo 78.2, y ese
+numeral tiene un límite expreso: «En el caso de errores u omisiones en
+documentos emitidos por **entidades públicas o privados ejerciendo función
+pública**, **o la omisión de su presentación**, estos son subsanables,
+siempre que hayan sido emitidos con anterioridad a la fecha establecida
+para la presentación de ofertas, tales como autorizaciones, permisos,
+títulos, constancias, certificaciones y/o documentos que acrediten estar
+inscrito o integrar un registro». El anexo lo emite el propio postor: no
+es documento de entidad pública ni de privado con función pública, así que
+no entra por ahí.
+
+**Plazo, cuando sí procede.** Dos (2) días hábiles desde el día siguiente
+de la notificación, prorrogables por dos más a solicitud del postor
+(artículo 78.4).
+
+**Qué acredita la experiencia, que no es el anexo.** El Tribunal lo tiene
+dicho en la Resolución N.° 6348-2026-TCP-S6: el Anexo N° 11 «constituye un
+formato destinado a sistematizar la información vinculada a la experiencia
+acreditada por el postor», su contenido «se limita a ordenar, sistematizar
+y resumir» y es «un formato de carácter referencial», sin que su estructura
+constituya «una regulación autónoma del requisito de calificación». Por eso
+la omisión de una columna —allí, la del «Importe»— «no determina, por sí
+sola, el incumplimiento del requisito de calificación». Lo que acredita la
+experiencia son los contratos u órdenes de compra o servicio con su
+conformidad o constancia de prestación, o los comprobantes de pago
+cancelados, según pidan las bases integradas.
+
+**Consecuencia práctica al descalificar.** La descalificación se motiva en
+que la experiencia no quedó acreditada, no en que falte la hoja resumen. Si
+el anexo no está pero la documentación sustentatoria sí, el asunto es
+discutible y el razonamiento de la Resolución N.° 6348-2026-TCP-S6 empuja a
+no descalificar sin examinar antes esa documentación.
+
+**Cuidado con el número del anexo.** No es el mismo en todas las Bases
+Estándar. La experiencia del postor en la especialidad es el **Anexo N° 11**
+en licitación pública, licitación pública abreviada, concurso público y
+concurso público abreviado de bienes, servicios y obras; pero es el **Anexo
+N° 10** en Consultoría de Obra y en Comparación de Precios, donde el
+Anexo N° 11 es el de experiencia transmitida por reorganización societaria.
+Conviene mirar las bases integradas antes de dar por hecho el número.
+
+**Supuesto vecino.** Es el mismo lindero que en la firma que falta: un
+defecto dentro de un documento presentado se subsana; un documento ausente
+no, porque incorporarlo añade una manifestación de voluntad que no existía
+al cierre de la presentación de ofertas (criterio de la Resolución
+N.° 7189-2026-S3).

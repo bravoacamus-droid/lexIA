@@ -70,6 +70,19 @@ export interface Caso {
    * buena al concluir.
    */
   noDebeDecirEnConclusion?: RegExp[];
+  /**
+   * Tiene que nombrar el supuesto vecino para separarlo de este.
+   *
+   * La mitad de los errores medidos venían de contestar el caso de al
+   * lado: la firma que falta por el documento que falta, la omisión de
+   * unos datos del anexo por el anexo no presentado. Una respuesta que
+   * acierta pero calla el lindero deja al lector a un paso de
+   * trasladarla al supuesto equivocado, así que se mide aparte.
+   *
+   * Se busca en el texto entero, no en la conclusión: el contraste se
+   * explica en el cuerpo y resumirlo al final sería repetirse.
+   */
+  debeDistinguir?: RegExp[];
   /** Debe apoyarse en la norma, no solo en criterios. */
   debeCitarNorma?: boolean;
 }
@@ -147,7 +160,7 @@ export const CASOS: Caso[] = [
     // reconformarlo: la primera versión solo aceptaba la forma negada
     // y contaba como fallo una respuesta correcta dicha en afirmativo.
     debeDecirTodas: [
-      /no\s+(?:corresponde|se debe|debe|es necesario|resulta necesario|procede|cabe|se requiere|hay que)[^.]{0,120}(?:dejar sin efecto|reconform|conformar|crear|designar|nuevo comit)|(?:el )?comit[ée][^.]{0,80}(?:contin\u00faa\b|contin\u00faan\b|se mantiene|mantiene su|conserva su|sigue a cargo|sigue siendo|vigente)|no constituye[^.]{0,90}causal/i,
+      /no\s+(?:corresponde|se debe|debe|es necesario|resulta necesario|procede|cabe|se requiere|hay que)[^.]{0,120}(?:dejar sin efecto|reconform|conformar|crear|designar|nuevo comit)|(?:el )?comit[ée][^.]{0,90}(?:contin[\u00fau]a\b|contin[\u00fau]an\b|contin[\u00fau]e\b|se mantiene|mantiene su|mantenerse|conserva su|sigue a cargo|sigue siendo|vigente|en funciones)|manten(?:er|erse)[^.]{0,60}comit[ée]|no constituye[^.]{0,90}causal/i,
     ],
     debeCitarNorma: true,
   },
@@ -163,7 +176,7 @@ export const CASOS: Caso[] = [
       // ordenar la subsanación —«otorgue al postor un plazo para que
       // subsane»—, que es decir lo mismo sin usar el adjetivo: sin eso
       // se contaban como fallo respuestas correctas.
-      /(?:s[íi],?\s+)?(?:es|resulta|constituye|califica como)\s+(?:un |una )?(?:defecto |error |vicio |omisi[óo]n )?subsanable|s[íi] cabe (?:la )?subsanaci|(?<!no )(?:otorg|conced|requer|requier|solicit|corresponde)\w*[^.]{0,70}subsan/i,
+      /(?:s[íi],?\s+)?(?:es|resulta|constituye|califica como)\s+(?:un |una )?(?:defecto |error |vicio |omisi[óo]n )?subsanable|s[íi] cabe (?:la )?subsanaci|(?<!no )(?:otorg|conced|requer|requier|solicit|corresponde|procede)\w*[^.]{0,70}subsan/i,
     ],
     noDebeDecir: [
       // La negativa, en sus dos formas: «no es subsanable» y «no
@@ -180,6 +193,40 @@ export const CASOS: Caso[] = [
       // modelo de memoria contra lo que tiene delante.
       /(?:tres|\b3\b)\s*(?:\(\s*3\s*\))?\s*d[ií]as h[áa]biles/i,
       /art[íi]culo 60 del Reglamento/i,
+    ],
+    debeCitarNorma: true,
+  },
+  {
+    id: 'anexo-experiencia-no-presentado',
+    pregunta:
+      'Un postor no presentó el Anexo N° 11 «Experiencia del postor en la especialidad». No es que le falten datos: no lo incluyo en su oferta. ¿Es subsanable esa omisión?',
+    porque:
+      'reportada por César el 06/09/2026: contestamos bien la pregunta de al lado. Dijimos que la omisión de ALGUNOS DATOS del anexo es subsanable —lo es—, pero lo preguntado era la omisión TOTAL, no haber presentado el anexo. El artículo 78.1 permite subsanar omisiones y errores «de los documentos (...) presentados»; la falta de presentación solo se rescata por el 78.2, y ese numeral alcanza únicamente a los documentos «emitidos por entidades públicas o privados ejerciendo función pública». Un anexo lo emite el propio postor, así que no entra',
+    debeDecir: [/subsanable|subsanaci/i],
+    debeDecirTodas: [
+      // Que concluya que no cabe subsanarlo. «No PUEDE ser reparada
+      // mediante subsanación» también es negarlo, y la primera versión
+      // lo contaba como fallo.
+      /no\s+(?:es|resulta|ser[íi]a|cabe|corresponde|procede|puede|podr[íi]a|amerita)[^.]{0,80}subsan|no\s+subsanable/i,
+    ],
+    noDebeDecirEnConclusion: [
+      // La conclusión del supuesto vecino, dada como si fuera esta.
+      /(?<!no )(?:s[íi],?\s+)?(?:es|resulta|ser[íi]a)\s+subsanable/i,
+    ],
+    debeCitarNorma: true,
+  },
+  {
+    id: 'anexo-experiencia-pregunta-ambigua',
+    pregunta:
+      '¿Es subsanable la omisión del Anexo N° 11 «Experiencia del postor en la especialidad» en una oferta?',
+    porque:
+      'así es como llega la pregunta de verdad, sin decir de cuál de los dos supuestos se trata, y es donde nos equivocamos: contestamos que sí —cierto para el anexo presentado al que le faltan datos— cuando preguntaban por el anexo no presentado. Con la pregunta ambigua no vale elegir una rama en silencio: hay que nombrar las dos y decir qué distingue una de otra',
+    debeDecir: [/subsanable|subsanaci/i],
+    debeDistinguir: [
+      // La rama del anexo presentado al que le falta algo.
+      /incomplet|campos? vac[íi]o|algunos? (?:de los )?datos|(?:una|la) columna|falta(?:n|ba)? (?:alg[úu]n|algunos|datos|campos)|omisi[óo]n parcial|error (?:material|formal)|defecto (?:de )?form|sin firma|no firm|s[íi] (?:se )?present[óo]/i,
+      // La rama del anexo que no se presentó.
+      /omisi[óo]n total|totalmente omitid|por completo|omiti[óo] incluir|no (?:lo )?(?:present|incluy|adjunt|incorpor)|no fue (?:present|incluid|adjuntad|incorporad)|ausencia (?:total )?del|en absoluto/i,
     ],
     debeCitarNorma: true,
   },
@@ -421,6 +468,15 @@ export function juzgar(caso: Caso, texto: string): Comprobacion[] {
     nombre: 'dice lo que manda la norma',
     ok: caso.debeDecir.some((r) => r.test(texto)),
     detalle: dondeHablaDePlazo(texto) || primeraLinea(texto),
+  });
+
+  (caso.debeDistinguir ?? []).forEach((r, i) => {
+    salida.push({
+      clave: `${caso.id}/distingue-${i + 1}`,
+      nombre: 'nombra los dos supuestos y los separa',
+      ok: r.test(texto),
+      detalle: primeraLinea(texto),
+    });
   });
 
   (caso.noDebeDecirEnConclusion ?? []).forEach((mal, i) => {
