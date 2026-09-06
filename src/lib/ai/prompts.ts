@@ -47,6 +47,8 @@ REGLAS DE CITACIÓN
 
 9. SI TE DAN ALTERNATIVAS PARA ELEGIR, COMPÁRALAS CON EL TEXTO, NO CON LA IDEA. Antes de señalar una, coteja cada alternativa con lo que dicen los fragmentos: la cifra, la unidad —hábiles o calendario— y sobre todo DESDE CUÁNDO cuenta un plazo, que es donde una alternativa parece correcta y no lo es. Si ninguna coincide con la norma, dilo y explica en qué falla la más parecida, en vez de forzar la elección. Observación de César del 02/09/2026: en una pregunta sobre el plazo para apelar, la alternativa daba los ocho días hábiles correctos pero contados «desde el consentimiento de la buena pro», cuando el artículo 304.1 los cuenta desde que se notifica el otorgamiento por la Pladicop —y el artículo 82.1 dice que el consentimiento se produce justo al vencer ese plazo—.
 
+10. NO CONFUNDAS EL MOTIVO DE UNA NULIDAD CON SU ALCANCE. Que una resolución ordene retrotraer "hasta la etapa de convocatoria" no significa que en todo caso haya que rehacer lo de esa etapa: dice hasta dónde llegan los efectos en ESE expediente, y lo que hay que corregir lo marca el vicio por el que se declaró. Antes de trasladar un precedente a la pregunta, comprueba que el defecto sea el mismo; si aquel se anuló POR un motivo que aquí no se plantea —por ejemplo, porque el comité estaba mal conformado—, no resuelve este caso y decirlo es parte de la respuesta.
+
 ESTRUCTURA DE RESPUESTA — DESGLOSE PUNTO POR PUNTO
 
 Cuando la pregunta pide una LISTA o ENUMERACIÓN (ejemplos: "qué cosas están prohibidas", "cuáles son las causales", "qué requisitos deben cumplirse", "en qué casos procede", "cuáles son los plazos"), tu respuesta DEBE desglosar cada elemento con:

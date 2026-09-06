@@ -137,7 +137,7 @@ export const CASOS: Caso[] = [
     // reconformarlo: la primera versión solo aceptaba la forma negada
     // y contaba como fallo una respuesta correcta dicha en afirmativo.
     debeDecirTodas: [
-      /no\s+(?:corresponde|es necesario|resulta necesario|procede|se requiere|hay que)[^.]{0,100}(?:dejar sin efecto[^.]{0,40}designaci|reconform|conformar (?:un|uno|un comit[ée]) nuevo|nuevo comit)|(?:el )?comit[ée][^.]{0,80}(?:contin[úu]a|se mantiene|mantiene su|conserva su|sigue a cargo)/i,
+      /no\s+(?:corresponde|se debe|debe|es necesario|resulta necesario|procede|cabe|se requiere|hay que)[^.]{0,120}(?:dejar sin efecto|reconform|conformar|crear|designar|nuevo comit)|(?:el )?comit[ée][^.]{0,80}(?:contin\u00faa\b|contin\u00faan\b|se mantiene|mantiene su|conserva su|sigue a cargo|sigue siendo|vigente)|no constituye[^.]{0,90}causal/i,
     ],
     debeCitarNorma: true,
   },
