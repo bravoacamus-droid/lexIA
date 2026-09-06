@@ -825,7 +825,7 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
        * cuando la pregunta va de lo suyo.
        */
       const deCapa1 = await Promise.all(
-        (['ley', 'directiva'] as const).map(async (tipo) => {
+        (['ley', 'directiva', 'criterio_validado'] as const).map(async (tipo) => {
           const { data, error } = await supabase.rpc('hybrid_search', {
             query_text: lastUser.content.slice(0, 400),
             query_embedding: queryEmbedding as unknown as number[],

@@ -24,7 +24,10 @@ export type NormativeDocType =
   | 'resolucion'
   // Agregado en migración 0056 — normas internas de una entidad, que
   // obligan solo dentro de ella y no fijan la regla general.
-  | 'directiva_entidad';
+  | 'directiva_entidad'
+  // Agregado en migración 0059 — casos ya resueltos y comprobados
+  // contra la norma, para que dejen de deducirse y se puedan buscar.
+  | 'criterio_validado';
 
 export interface Profile {
   id: string;

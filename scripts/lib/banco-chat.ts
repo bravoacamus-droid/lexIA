@@ -60,6 +60,16 @@ export interface Caso {
   debeDecirTodas?: RegExp[];
   /** No puede darse por buena ninguna de estas. */
   noDebeDecir?: RegExp[];
+  /**
+   * Como `noDebeDecir`, pero solo en la conclusión.
+   *
+   * Para preguntas con alternativas: el cuerpo cita cada opción para
+   * analizarla —«### B) Ocho días hábiles siguientes al consentimiento»—
+   * y buscar ahí la frase equivocada marca como error una respuesta que
+   * precisamente la está desmontando. Lo que cuenta es si la da por
+   * buena al concluir.
+   */
+  noDebeDecirEnConclusion?: RegExp[];
   /** Debe apoyarse en la norma, no solo en criterios. */
   debeCitarNorma?: boolean;
 }
@@ -189,8 +199,11 @@ D) Diez (10) días hábiles improrrogables.`,
       // El punto de partida correcto, que es lo que se discute.
       /notificaci[óo]n[^.]{0,80}otorgamiento|otorgamiento de la buena pro[^.]{0,80}Pladicop/i,
     ],
-    // Y no dar por bueno el punto de partida de la alternativa B.
-    noDebeDecir: [/(?:contad\w*|comput\w*|siguientes)[^.]{0,40}(?:al|del) consentimiento/i],
+    // Y no dar por bueno el punto de partida de la alternativa B. Solo
+    // en la conclusión: el cuerpo cita esa alternativa para desmontarla.
+    noDebeDecirEnConclusion: [
+      /(?:contad\w*|comput\w*|siguientes)[^.]{0,40}(?:al|del) consentimiento/i,
+    ],
     debeCitarNorma: true,
   },
   {
@@ -263,7 +276,7 @@ export async function recuperar(pregunta: string): Promise<ChatSource[]> {
   let fuentes = ((data ?? []) as Fragmento[]).map(aFuente);
 
   const deCapa1 = await Promise.all(
-    (['ley', 'directiva'] as const).map(async (tipo) => {
+    (['ley', 'directiva', 'criterio_validado'] as const).map(async (tipo) => {
       const { data: d } = await admin.rpc('hybrid_search', {
         query_text: pregunta.slice(0, 400),
         query_embedding: emb,
@@ -390,6 +403,15 @@ export function juzgar(caso: Caso, texto: string): Comprobacion[] {
     nombre: 'dice lo que manda la norma',
     ok: caso.debeDecir.some((r) => r.test(texto)),
     detalle: dondeHablaDePlazo(texto) || primeraLinea(texto),
+  });
+
+  (caso.noDebeDecirEnConclusion ?? []).forEach((mal, i) => {
+    salida.push({
+      clave: `${caso.id}/no-en-conclusion-${i + 1}`,
+      nombre: 'no da por buena la versión equivocada al concluir',
+      ok: !mal.test(conclusion),
+      detalle: conclusion.slice(0, 190).replace(/\s+/g, ' '),
+    });
   });
 
   (caso.noDebeDecir ?? []).forEach((mal, i) => {

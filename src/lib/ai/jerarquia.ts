@@ -63,6 +63,20 @@ const RANGOS: Record<string, Rango> = {
   resolucion: { capa: 2, orden: 3, etiqueta: 'Resolución' },
   pronunciamiento: { capa: 2, orden: 4, etiqueta: 'Pronunciamiento' },
   opinion: { capa: 2, orden: 5, etiqueta: 'Opinión' },
+  /**
+   * Los casos que ya resolvimos y comprobamos contra la norma.
+   *
+   * Van los últimos de la capa que interpreta: no obligan a nadie, así
+   * que no pueden citarse por delante del artículo que los sostiene.
+   * Pero van en esta capa y no en la que orienta porque su oficio es
+   * justamente salir: existen para que una pregunta que había que
+   * deducir se pueda buscar.
+   */
+  criterio_validado: {
+    capa: 2,
+    orden: 6,
+    etiqueta: 'Criterio ya resuelto y verificado (no sustituye a la norma que cita)',
+  },
 
   // ── Capa 3: orienta ───────────────────────────────────────────────
   lineamiento: { capa: 3, orden: 1, etiqueta: 'Lineamiento' },
