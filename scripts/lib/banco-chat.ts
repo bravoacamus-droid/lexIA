@@ -194,6 +194,22 @@ D) Diez (10) días hábiles improrrogables.`,
     debeCitarNorma: true,
   },
   {
+    id: 'operador-tributario-consorcio',
+    pregunta:
+      'En una promesa de consorcio para una obra, un consorciado se obligó a ser el «operador tributario» y se suscribió el contrato de consorcio con dicha obligación. Ahora, en ejecución contractual y antes del pago de la primera valorización, ¿se puede cambiar al operador tributario?',
+    porque:
+      'caso 1 del documento «Respondiendo casos reales» (02/09/2026). El chat contestó que NO se puede cambiar «ni en ningún otro momento de la ejecución contractual»; el otro sistema contestó que sí, y César le da la razón. Sí se puede, y la cadena está verificada: el artículo 89.1 dice que el contrato de consorcio mantiene el contenido respecto a LOS INTEGRANTES, LAS OBLIGACIONES Y EL PORCENTAJE consignados en la promesa, y las Bases Estándar (numeral 2.3.3) congelan exactamente esos tres —literales a), e) y f)—. El operador tributario no está entre ellos: las Bases lo piden aparte, como contenido del contrato de consorcio —«identificar al integrante a quien se efectúa el pago y emite la factura»— y admiten expresamente que ese contrato regule la administración interna. Cambiarlo no incorpora, sustituye ni separa a un integrante, así que cabe por adenda firmada por todos y comunicada a la entidad antes de facturar',
+    debeDecir: [/operador tributario|facturaci[óo]n/i],
+    debeDecirTodas: [
+      /(?:s[íi],?\s+)?(?:es|resulta)\s+(?:jur[íi]dicamente \s*)?(?:posible|viable|procedente)|procede (?:la modificaci|el cambio)|s[íi],?\s+(?:se puede|cabe|procede)/i,
+    ],
+    // La respuesta equivocada que dio y que reportó César.
+    noDebeDecir: [
+      /no (?:es|resulta)\s+(?:jur[íi]dicamente \s*)?(?:posible|viable)[^.]{0,60}(?:cambiar|modificar)|no se puede cambiar al operador/i,
+    ],
+    debeCitarNorma: true,
+  },
+  {
     id: 'plazo-entidad',
     pregunta:
       '¿En cuánto tiempo debe la entidad resolver y notificar una solicitud de ampliación de plazo en bienes y servicios?',
