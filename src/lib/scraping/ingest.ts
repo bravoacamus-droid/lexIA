@@ -100,7 +100,18 @@ export async function ingestPdfFromUrl(opts: {
     const data = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
     const pdf = await getDocumentProxy(data);
     const result = await extractText(pdf, { mergePages: true });
-    text = String(result.text).replace(/ /g, '').replace(/[ \t]+/g, ' ').trim();
+    // Ojo con esta línea: durante meses fue `.replace(/ /g, '')`, que
+    // borra TODOS los espacios. Nunca se notó porque el rastreador no
+    // llegó a ejecutarse —sus fuentes apuntaban a un portal que ya no
+    // existía—, y salió a la luz el 06/09/2026 al arreglarlas: la
+    // primera resolución ingerida se guardó como
+    // «TribunaldeContratacionesPúblicasResolución…», 41.843 caracteres
+    // sin un solo espacio, en un único fragmento. Lo que hace falta es
+    // unificar los blancos, no eliminarlos.
+    text = String(result.text)
+      .replace(/\u00a0/g, ' ')
+      .replace(/[ \t]+/g, ' ')
+      .trim();
     pages = pdf.numPages;
   } catch (e) {
     return { inserted: false, reason: `extract: ${(e as Error).message.slice(0, 120)}` };

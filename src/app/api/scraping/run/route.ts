@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient as createAdmin } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
-import { discoverLinks } from '@/lib/scraping/discover';
+import { discoverLinks, resolverPdfDeFicha } from '@/lib/scraping/discover';
 import { ingestPdfFromUrl } from '@/lib/scraping/ingest';
 
 export const runtime = 'nodejs';
@@ -22,6 +22,12 @@ interface Source {
   label: string;
   link_selector: string;
   link_filter_regex: string | null;
+  /**
+   * Selector del enlace al PDF dentro de la ficha. Cuando está, el
+   * índice no enlaza el PDF sino una ficha por documento, y hay que
+   * entrar a buscarlo. Es como quedó gob.pe tras pasar el OSCE a OECE.
+   */
+  pdf_selector: string | null;
   active: boolean;
 }
 
@@ -132,10 +138,23 @@ async function handleRun(req: Request, body: unknown): Promise<NextResponse> {
       let processedInThisRun = 0;
       for (const link of links) {
         if (processedInThisRun >= limit_per_source) break;
+
+        // Con `pdf_selector` el enlace del índice es una ficha, no el
+        // documento: hay que entrar a por el PDF. Si la ficha no lo
+        // tiene, se salta sin romper la corrida.
+        let url = link.url;
+        let texto = link.text;
+        if (src.pdf_selector) {
+          const ficha = await resolverPdfDeFicha(link.url, src.pdf_selector);
+          if (!ficha) continue;
+          url = ficha.url;
+          texto = ficha.titulo || link.text;
+        }
+
         const r = await ingestPdfFromUrl({
-          url: link.url,
+          url,
           docType: src.doc_type,
-          linkText: link.text,
+          linkText: texto,
           supabaseUrl: SUPABASE_URL,
           serviceKey: SERVICE_KEY,
           geminiKey: GEMINI_KEY,
