@@ -134,8 +134,14 @@ export const CLASSIFICATION_RULES: ClassifyRule[] = [
   },
   {
     type: 'resolucion_tce',
-    urlPattern: /resoluciones[-_]tce|\d+[-_]\d{4}[-_]tce[-_]s\d|resolucion[-_]n[-_°º]?\s?\d+.*tce/i,
-    textPattern: /^resoluci[oó]n\s+n[°º.]?\s*\d+.*tce|sala\s+plena.*tce/i,
+    // TCE y TCP: el Tribunal de Contrataciones del Estado pasó a
+    // llamarse Tribunal de Contrataciones Públicas con la Ley N° 32069,
+    // y sus resoluciones se nombran ahora «…-2026-TCP-S4». Con la regla
+    // mirando solo «tce», las veintiocho que se trajeron el 06/09/2026
+    // entraron como `resolucion` genérica en vez de `resolucion_tce`,
+    // que es lo que la jerarquía y los filtros esperan.
+    urlPattern: /resoluciones[-_]tc[ep]|\d+[-_]\d{4}[-_]tc[ep][-_]s\d|resolucion[-_]n[-_°º]?\s?\d+.*tc[ep]/i,
+    textPattern: /^resoluci[oó]n\s+n[°º.]?\s*\d+.*tc[ep]|sala\s+plena.*tc[ep]/i,
     label: 'Resolución TCE',
   },
 

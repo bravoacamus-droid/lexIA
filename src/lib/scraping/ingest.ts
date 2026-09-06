@@ -180,11 +180,25 @@ export async function ingestPdfFromUrl(opts: {
     embedding: embeddings[i] as never,
     metadata: { source: number, heading: c.heading } as never,
   }));
-  const { error: chunkErr } = await supabase
-    .from('normative_chunks')
-    .insert(rows as never);
-  if (chunkErr) {
-    return { inserted: false, reason: `insert chunks: ${chunkErr.message}` };
+  // De cincuenta en cincuenta, no todos de golpe: dos resoluciones del
+  // Tribunal —la 8010 y la 8012 de 2026, de más de cuarenta fragmentos
+  // con su vector cada uno— agotaban el tiempo de la sentencia y se
+  // quedaban a medias, dejando el documento registrado y sin contenido,
+  // es decir invisible para el chat pero contado como ya ingerido.
+  const TANDA = 10;
+  for (let i = 0; i < rows.length; i += TANDA) {
+    const { error: chunkErr } = await supabase
+      .from('normative_chunks')
+      .insert(rows.slice(i, i + TANDA) as never);
+    if (chunkErr) {
+      // Si falla a media escritura se retira el documento entero: así el
+      // siguiente intento vuelve a empezar en vez de darlo por hecho.
+      await supabase
+        .from('normative_documents')
+        .delete()
+        .eq('id', (inserted as { id: string }).id);
+      return { inserted: false, reason: `insert chunks: ${chunkErr.message}` };
+    }
   }
 
   return {
