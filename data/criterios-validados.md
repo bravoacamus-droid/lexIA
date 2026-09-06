@@ -191,3 +191,56 @@ ningún integrante, ni altera los porcentajes.
 porcentajes, el nuevo operador debe tener RUC activo y no estar impedido, y
 conviene comunicarlo antes de emitir el comprobante para que no haya
 discordancia entre la orden de pago y el RUC registrado.
+
+---
+
+## Cuántos días de ampliación corresponden: ruta crítica y holgura
+
+**Pregunta.** Un contratista pide ampliación de plazo. ¿Cómo se decide si
+corresponden dos días, tres, más, o ninguno?
+
+**Respuesta.** No toda demora da derecho a ampliación. En obras solo
+procede si el hecho **desplaza la fecha final**, y la cantidad de días es
+la que se pruebe con la programación, no la que se pida.
+
+**Cómo se determina, paso a paso.**
+
+1. **Oportunidad.** La solicitud se notifica a la entidad y a la
+   supervisión dentro de los diez (10) días hábiles siguientes a la
+   notificación de la aprobación del adicional o de finalizado el hecho
+   generador, prorrogables por diez más a pedido del contratista. Las
+   extemporáneas se tienen por no presentadas (artículo 200.1, literal a).
+2. **Causal.** Que sea una de las admitidas y no imputable al contratista.
+3. **Ruta crítica y holgura.** Aquí está la clave de cuántos días:
+   - Si la partida afectada **no está en la ruta crítica** y el retraso
+     **cabe dentro de su holgura**, la fecha final no se mueve y **no hay
+     ampliación**.
+   - Si el retraso **sobrepasa la holgura**, esa partida se convierte en
+     crítica y sí se afecta el plazo total. La ampliación procede
+     **proporcionalmente al exceso sobre la holgura**, no por todos los
+     días de la demora.
+   - Ese exceso es el número de días que corresponde otorgar.
+4. **Sustento.** El contratista detalla los días de inicio y fin de la
+   causal, la cuantificación y los riesgos asociados, y adjunta el
+   programa de ejecución actualizado; puede apoyarse en los asientos del
+   cuaderno de incidencias (artículo 200.1, literal a).
+5. **Opinión de la supervisión**, que puede recalcular los días y decir
+   cuántos se justifican técnicamente.
+
+**Fundamento del criterio de la holgura.** No está en el texto del
+Reglamento, sino en las opiniones de la Dirección Técnico Normativa. La
+Opinión N° D000014-2025-OSCE-DTN lo formula así: si se sobrepasa la
+holgura prevista para una partida inicialmente no crítica, «se afectará
+el plazo total de la obra de manera proporcional a la superación de la
+holgura», y entonces —por causa no imputable al contratista— se justifica
+la ampliación conforme al numeral 198.1. La Opinión N° D000084-2026-OECE-DTN
+añade que la programación no es una fotografía estática: una partida que
+consume su holgura por retraso imputable al contratista ya es crítica de
+hecho, aunque el programa vigente no la muestre así, y ese retraso no da
+derecho a ampliación.
+
+**Plazos para resolver.** En bienes y servicios, doce (12) días hábiles
+desde el día siguiente de recibida la solicitud (artículo 142.5). En
+obras, diez (10) días hábiles desde recibida la opinión de la supervisión
+o desde que venció su plazo para emitirla. Si la entidad no se pronuncia,
+se tiene por aprobado lo que informó la supervisión.

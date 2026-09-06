@@ -232,6 +232,11 @@ D) Diez (10) días hábiles improrrogables.`,
     debeDecirTodas: [
       // En obras, sin afectación de la ruta crítica no hay ampliación.
       /ruta cr[íi]tica/i,
+      // Y el matiz que echaba en falta César: una partida con holgura
+      // que no desplaza la fecha final no da derecho a ampliación; solo
+      // la da cuando el retraso sobrepasa esa holgura y la partida se
+      // vuelve crítica.
+      /holgura|no cr[íi]tica se convierta|no toda demora|no todo (?:atraso|retraso)/i,
     ],
     debeCitarNorma: true,
   },
