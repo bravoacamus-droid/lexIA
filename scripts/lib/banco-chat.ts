@@ -306,7 +306,7 @@ export const CASOS: Caso[] = [
     ],
     debeDistinguir: [
       // Que sea una facultad, no un deber del área usuaria.
-      /puede[^.]{0,140}(?:solicitar|pedir|coordinar|corrobor|requerir)|no (?:est[áa] obligad|es obligatori|existe (?:la )?obligaci|impone)/i,
+      /puede[^.]{0,140}(?:solicitar|pedir|coordinar|corrobor|requerir)|(?:es|resulta) v[áa]lido[^.]{0,90}(?:solicitar|pedir|coordinar|corrobor)|cabe (?:solicitar|pedir)|no (?:est[áa] obligad|es obligatori|existe (?:la )?obligaci|impone)/i,
       // Y que la responsabilidad no se mueva de la DEC.
       /(?:responsabilidad|responsable|a cargo|conduce|corresponde)[^.]{0,120}\bDEC\b|\bDEC\b[^.]{0,140}(?:responsable|a cargo|conduce|mantiene|no se traslada|sigue siendo)/i,
     ],
@@ -345,8 +345,11 @@ export const CASOS: Caso[] = [
       'clave de César: c). No basta con decir «no»: hay que decir por qué, y el porqué es que en servicios el umbral son dos postores. La alternativa a) también dice «no», pero sin dar el umbral, y el chat la eligió en la primera prueba pese a razonar bien',
     debeDecir: [/125\.3|alto riesgo/i],
     debeDecirTodas: [
-      /\bno\b/i,
-      /(?:dos|2)\s*(?:\(\s*2\s*\))?\s*postores|l[íi]mite[^.]{0,40}(?:dos|2)|igual o menor a (?:dos|2)/i,
+      // Señalar la alternativa c) ya es la discriminación que se
+      // pedía —la a) también dice «no», pero sin dar el umbral—, así
+      // que vale tanto nombrarla como explicar la cifra.
+      /\bno\b|alternativa (?:correcta )?(?:es (?:la )?)?\*{0,2}c\*{0,2}(?:\)|\b)/i,
+      /(?:dos|2)\s*(?:\(\s*2\s*\))?\s*postores|l[íi]mite[^.]{0,40}(?:dos|2)|igual o menor a (?:dos|2)|alternativa (?:correcta )?(?:es (?:la )?)?\*{0,2}c\*{0,2}(?:\)|\b)/i,
     ],
     debeCitarNorma: true,
   },
