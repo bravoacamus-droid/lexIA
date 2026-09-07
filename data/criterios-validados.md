@@ -552,3 +552,36 @@ Reglamento y tiene dos tipos: la indagación (artículo 48) y la consulta al
 mercado (artículo 49). Para bienes y servicios, el artículo 127.1 la pone
 en manos de la DEC con cuatro niveles según la segmentación. El MDA se
 salta las dos cosas: la segmentación y la interacción.
+
+---
+
+## Convocar primero y registrar después: la necesidad tiene que estar en el CMN antes
+
+**Pregunta.** Una entidad necesita contratar algo que no estaba en su
+programación —una sede nueva, por ejemplo—. Convoca el procedimiento y
+recién después lo registra. ¿Es conforme al Reglamento?
+
+**Respuesta.** **No.** El orden no es indiferente: la necesidad tiene que
+estar registrada antes, porque sin eso no se puede aprobar el expediente
+de contratación, y sin expediente aprobado no hay fase de selección.
+
+**Fundamento.** Artículo 54.3 del Reglamento: «Para aprobar un expediente
+de contratación la necesidad debe encontrarse prevista en el **CMN**
+aprobado del año fiscal correspondiente o su modificatoria». Y el
+artículo 54.2 pone esa aprobación **antes** de la fase de selección: «La
+autoridad de la gestión administrativa, **previo a la fase de selección**,
+aprueba el expediente de contratación».
+
+**El supuesto vecino que induce al error.** Que la contratación no
+estuviera programada no la exime: el Reglamento contempla expresamente
+las «contrataciones no programadas» y les exige lo mismo —«En el caso de
+contrataciones no programadas y, **siempre que la necesidad esté incluida
+en el CMN respectivo**, la DEC efectúa la segmentación de la contratación
+luego de la recepción del requerimiento»—. Lo que cabe es **modificar el
+CMN** y luego convocar, no convocar y regularizar después. Tampoco sirve
+alegar urgencia: para eso el Reglamento tiene sus propias figuras, que son
+otra cosa.
+
+**Vocabulario.** Se dice **CMN** —Cuadro Multianual de Necesidades—. Es el
+instrumento donde la necesidad debe constar; hablar solo del «Plan Anual»
+al responder deja fuera el nombre que usa el artículo.
