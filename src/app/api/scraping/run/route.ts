@@ -67,6 +67,20 @@ async function authorize(req: Request): Promise<
 async function handleRun(req: Request, body: unknown): Promise<NextResponse> {
   const authz = await authorize(req);
   if (!authz.ok) {
+    // SE DEJA RASTRO A PROPÓSITO.
+    //
+    // El 07/09/2026 la biblioteca llevaba semanas sin crecer y la tabla
+    // `scraping_runs` estaba vacía, así que no había forma de saber si
+    // el cron de Vercel no llegaba o llegaba y se le rechazaba: la fila
+    // de la corrida se inserta DESPUÉS de autorizar, de modo que un 401
+    // no deja huella ninguna. Con esto, el registro de Vercel dice cuál
+    // de las dos cosas pasa.
+    console.warn('[scraping] llamada rechazada', {
+      motivo: authz.message,
+      trae_authorization: Boolean(req.headers.get('authorization')),
+      hay_cron_secret: Boolean(process.env.CRON_SECRET),
+      user_agent: req.headers.get('user-agent')?.slice(0, 80) ?? null,
+    });
     return NextResponse.json({ error: authz.message }, { status: authz.status });
   }
 
@@ -113,11 +127,16 @@ async function handleRun(req: Request, body: unknown): Promise<NextResponse> {
 
   for (const src of list) {
     // Insertar run row inicial
-    const { data: runRow } = await admin
+    const { data: runRow, error: errRun } = await admin
       .from('scraping_runs')
       .insert({ source_id: src.id, status: 'running' } as never)
       .select('id')
       .single();
+    // Si esto falla en silencio, la corrida se ejecuta pero no queda
+    // registrada, y desde fuera es idéntico a que el cron no haya
+    // corrido. Pasó: se diagnosticó «el cron nunca se ejecutó» leyendo
+    // una tabla que no se estaba llenando.
+    if (errRun) console.error('[scraping] no se pudo registrar la corrida:', errRun.message);
     const runId = (runRow as { id: string } | null)?.id;
 
     let linksFound = 0;
