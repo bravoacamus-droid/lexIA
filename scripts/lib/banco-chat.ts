@@ -293,6 +293,29 @@ export const CASOS: Caso[] = [
     debeCitarNorma: true,
   },
   {
+    id: 'area-usuaria-valida-cotizaciones',
+    pregunta:
+      'Buenos días. ¿Es válido que la DEC solicite al área usuaria la validación de cotizaciones para la contratación de un servicio?',
+    porque:
+      'César, 06/09/2026: «respondió de manera intermedio. La DEC puede (no debe) solicitar al área usuaria que corrobore si la información técnica de las cotizaciones cumple con los términos de referencia. Sin embargo, la norma no establece que el área usuaria deba validar integralmente las cotizaciones. Su participación se limita a la coordinación o revisión técnica, mientras que la responsabilidad de la interacción con el mercado continúa a cargo de la DEC». Comprobado: el artículo 127.1 del Reglamento pone la interacción en manos de la DEC y la Opinión N° 069-2023/DTN, conclusión 3.2, admite la coordinación con el área usuaria para «corroborar» la información recibida por cotizaciones',
+    debeDecir: [/corrobor|coordinaci[óo]n|coordinar/i],
+    debeDecirTodas: [
+      // Que conteste que sí se puede pedir.
+      /s[íi][,.]?\s|es v[áa]lido|resulta v[áa]lido|s[íi] (?:es|resulta|puede|corresponde|cabe)/i,
+    ],
+    debeDistinguir: [
+      // Que sea una facultad, no un deber del área usuaria.
+      /puede[^.]{0,140}(?:solicitar|pedir|coordinar|corrobor|requerir)|no (?:est[áa] obligad|es obligatori|existe (?:la )?obligaci|impone)/i,
+      // Y que la responsabilidad no se mueva de la DEC.
+      /(?:responsabilidad|responsable|a cargo|conduce|corresponde)[^.]{0,120}\bDEC\b|\bDEC\b[^.]{0,140}(?:responsable|a cargo|conduce|mantiene|no se traslada|sigue siendo)/i,
+    ],
+    noDebeDecir: [
+      // Convertir la coordinación en un deber del área usuaria.
+      /[áa]rea usuaria[^.]{0,80}(?:debe|deber[áa]|est[áa] obligada a)\s+validar/i,
+    ],
+    debeCitarNorma: true,
+  },
+  {
     id: 'apelacion-desde-cuando',
     pregunta: `Marca la alternativa correcta. ¿Cuál es el plazo perentorio con el que cuentan los
 postores para interponer el recurso de apelación contra el otorgamiento de la buena pro en

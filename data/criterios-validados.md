@@ -433,3 +433,48 @@ vigentes son la licitación pública y el concurso público, y con plazos
 propios de apelación la licitación pública abreviada, el concurso público
 abreviado, la selección de expertos, la comparación de precios y la
 subasta inversa electrónica (artículo 304).
+
+---
+
+## Pedir al área usuaria que valide las cotizaciones de la indagación
+
+**Pregunta.** ¿Es válido que la DEC solicite al área usuaria la validación
+de las cotizaciones para la contratación de un servicio?
+
+**Respuesta.** **Sí es válido pedírselo**, pero como coordinación para que
+corrobore la información técnica —no como una validación que le traslade
+la responsabilidad—. La interacción con el mercado es de la DEC y sigue
+siéndolo.
+
+**Fundamento.** El artículo 127.1 del Reglamento pone la interacción con
+el mercado en manos de la DEC: «La DEC, empleando como base la
+segmentación de contrataciones, utiliza los siguientes niveles», que son
+la indagación básica y avanzada y la consulta al mercado básica y
+avanzada. El artículo 49.1 de la Ley añade que la estrategia de
+contratación «es elaborada por la dependencia encargada de las
+contrataciones». La interacción está en el artículo 47 del Reglamento, la
+indagación en el 48 y la consulta al mercado en el 49.
+
+**Y la coordinación está expresamente admitida.** La Opinión
+N° 069-2023/DTN, conclusión 3.2, dice que el órgano encargado de las
+contrataciones «es responsable de llevar a cabo la indagación de mercado»
+y que «durante la indagación de mercado **puede surgir la necesidad** del
+OEC de interactuar o coordinar con el área usuaria justamente para
+**corroborar** aquella información del mercado que el OEC reciba, por
+ejemplo a través de cotizaciones o información técnica».
+
+**Lo que la norma no dice.** No establece que el área usuaria deba
+«validar» integralmente las cotizaciones. Su intervención es de
+coordinación o revisión técnica —si lo cotizado responde a los términos de
+referencia—, y la responsabilidad de la interacción con el mercado no se
+traslada. Es un «puede», no un «debe».
+
+**Por qué conviene igual.** El área usuaria es la que conoce técnicamente
+lo que pidió, así que su revisión evita cotizaciones que no correspondan
+al servicio. Lo prudente es dejar constancia de que se le pide una
+corroboración técnica, no la responsabilidad de la indagación.
+
+**Aviso sobre la fuente.** La Opinión N° 069-2023/DTN se emitió bajo la
+Ley N° 30225 y su reglamento, así que habla del «OEC» y de la
+«adjudicación simplificada». El criterio se mantiene, pero hoy el órgano
+es la **DEC** y ese procedimiento ya no existe.
