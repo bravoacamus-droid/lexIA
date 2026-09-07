@@ -239,7 +239,7 @@ export const CASOS: Caso[] = [
     debeDecir: [/37001/],
     debeDistinguir: [
       // Que diga que el Tribunal está dividido.
-      /dos posiciones|posiciones (?:distintas|divergentes|opuestas|encontradas)|criterios? (?:distintos|divergentes|opuestos|discrepantes|divididos|dispares|encontrados)|no (?:existe|hay) (?:un )?criterio (?:uniforme|un[íi]voco|[úu]nico|pac[íi]fico)|salas[^.]{0,80}(?:discrepan|difieren|distinto)|jurisprudencia (?:dividida|no uniforme)|posici[óo]n que (?:s[íi]|no)|depende de la posici[óo]n/i,
+      /dos posiciones|posiciones (?:distintas|divergentes|opuestas|encontradas)|criterios? (?:distintos|divergentes|opuestos|discrepantes|divididos|dispares|encontrados)|no (?:existe|hay) (?:un )?criterio (?:uniforme|un[íi]voco|[úu]nico|pac[íi]fico)|salas[^.]{0,80}(?:discrepan|difieren|distinto)|jurisprudencia (?:dividida|no uniforme)|posici[óo]n que (?:s[íi]|no)\b|depende de la posici[óo]n/i,
       // La posición que admite la versión anterior.
       /per[íi]odo de transici[óo]n|periodo de transici[óo]n|conserva aptitud|mantiene(?:n)? (?:su )?validez|coexisten/i,
       // Y la que se atiene a la literalidad de las bases.
@@ -446,6 +446,14 @@ export function contexto(t: string, i: number): string {
 }
 
 
+/** Lo que devuelve la recuperación, en lo que aquí se mira. */
+interface FuenteRecuperada {
+  doc_title?: string | null;
+  doc_number?: string | null;
+  doc_type?: string | null;
+  snippet?: string | null;
+}
+
 /** Una comprobación sobre una respuesta concreta. */
 export interface Comprobacion {
   /** Estable entre ejecuciones: es la clave con la que se mide. */
@@ -470,7 +478,37 @@ export function conclusionDe(texto: string): string {
   return i >= 0 ? texto.slice(i) : texto.slice(-700);
 }
 
-export function juzgar(caso: Caso, texto: string): Comprobacion[] {
+/**
+ * Las resoluciones que cita, ¿existen entre las que se le pasaron?
+ *
+ * Pedirle que nombre la resolución en la que se apoya tiene un riesgo
+ * evidente: que se invente el número. Una cita falsa es peor que
+ * ninguna, porque parece comprobable y no lo es. Así que se comprueba
+ * en todas las preguntas, no solo en las que piden jurisprudencia.
+ *
+ * Se admite como buena la resolución que aparezca en el título de
+ * cualquier fragmento recuperado o DENTRO del texto de alguno: una
+ * resolución que cita a otra es una fuente legítima para nombrarla.
+ */
+function citasInventadas(texto: string, fuentes: FuenteRecuperada[]): string[] {
+  const citadas = [...texto.matchAll(/(\d{3,5})\s*-\s*20(\d\d)\s*-\s*TCP/gi)].map(
+    (m) => `${String(Number(m[1]))}-20${m[2]}`,
+  );
+  if (citadas.length === 0) return [];
+  const pajar = fuentes.map((f) => `${f.doc_title ?? ''} ${f.doc_number ?? ''} ${f.snippet ?? ''}`).join(' ');
+  // Los números vienen con ceros delante de forma irregular —«07784» y
+  // «7784» son la misma—, así que se compara sin ellos.
+  const enPajar = new Set(
+    [...pajar.matchAll(/(\d{3,5})\s*-\s*20(\d\d)/g)].map((m) => `${String(Number(m[1]))}-20${m[2]}`),
+  );
+  return [...new Set(citadas)].filter((c) => !enPajar.has(c));
+}
+
+export function juzgar(
+  caso: Caso,
+  texto: string,
+  fuentes: FuenteRecuperada[] = [],
+): Comprobacion[] {
   const salida: Comprobacion[] = [];
 
   const conclusion = conclusionDe(texto);
@@ -523,6 +561,16 @@ export function juzgar(caso: Caso, texto: string): Comprobacion[] {
       detalle: sinContraste ? contexto(texto, sinContraste.index ?? 0) : '',
     });
   });
+
+  const inventadas = citasInventadas(texto, fuentes);
+  if (fuentes.length > 0 && /\d{3,5}\s*-\s*20\d\d\s*-\s*TCP/i.test(texto)) {
+    salida.push({
+      clave: `${caso.id}/citas-existen`,
+      nombre: 'las resoluciones que cita estaban entre las recuperadas',
+      ok: inventadas.length === 0,
+      detalle: inventadas.length ? `inventadas: ${inventadas.join(', ')}` : '',
+    });
+  }
 
   if (caso.debeCitarNorma) {
     salida.push({

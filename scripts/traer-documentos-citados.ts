@@ -58,8 +58,15 @@ const COLECCIONES: Coleccion[] = [
       '7890-2026', '7897-2026', '7957-2026', '7959-2026', '7969-2026', '7977-2026',
       '7982-2026', '8007-2026', '8010-2026', '8012-2026', '8032-2026', '8066-2026',
       '8111-2026', '8114-2026', '8129-2026',
+      // Las que César pide citar en sus comentarios del 06/09/2026:
+      // la 165 desarrolla si vale una imagen recortada del estado de
+      // cuenta para acreditar experiencia; la 7837, un certificado de
+      // trabajo emitido antes de que terminara la experiencia.
+      '165-2026', '7837-2026',
     ],
-    paginas: 26,
+    // La 165 es de comienzos de año: hay que bajar mucho más en el
+    // índice para alcanzarla.
+    paginas: 60,
   },
   {
     docType: 'pronunciamiento',
@@ -79,9 +86,11 @@ function urlDePagina(base: string, sheet: number): string {
 function objetivoDe(url: string, objetivos: string[]): string | null {
   const slug = url.toLowerCase();
   for (const o of objetivos) {
-    // En el nombre del archivo el número puede llevar cero delante.
+    // En el nombre del archivo el número va relleno con ceros hasta
+    // cinco cifras: la 165 aparece como «00165-2026-tcp-s2». La versión
+    // anterior admitía UN cero y por eso no la encontraba nunca.
     const [num, anio] = o.split('-');
-    const re = new RegExp(`-0?${num}-${anio}-`);
+    const re = new RegExp(`-0*${num}-${anio}-`);
     if (re.test(slug)) return o;
   }
   return null;

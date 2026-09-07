@@ -119,8 +119,8 @@ async function main() {
 
   const resultados = await enTandas(trabajos, A_LA_VEZ, async ({ caso }) => {
     try {
-      const { texto } = await responder(caso.pregunta);
-      const comprobaciones = juzgar(caso, texto);
+      const { texto, fuentes } = await responder(caso.pregunta);
+      const comprobaciones = juzgar(caso, texto, fuentes);
       hechos++;
       process.stdout.write(`\r   ${hechos}/${trabajos.length} respuestas`);
       return { caso, comprobaciones, texto };
