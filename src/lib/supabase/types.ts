@@ -78,6 +78,15 @@ export interface ChatSource {
   doc_type: NormativeDocType;
   doc_number: string | null;
   snippet: string;
+  /**
+   * El fragmento viene cortado.
+   *
+   * Lo marca la ruta del chat cuando manda las fuentes por cabecera:
+   * ahí solo caben 16 KB y el texto íntegro de cuarenta fragmentos
+   * pesa diez veces más. El cliente pinta el anticipo y pide el
+   * texto entero a la base para el cajón lateral.
+   */
+  parcial?: boolean;
 }
 
 export interface ChatMessage {

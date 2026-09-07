@@ -35,6 +35,42 @@ interface MessageWithSources {
  * (lado cliente) y el insert en BD (lado servidor, ocurre en el
  * `onFinish` del backend). Backoff: 300ms, 800ms, 1500ms.
  */
+/**
+ * Rehidrata las fuentes que vienen en la cabecera.
+ *
+ * El servidor las manda compactas —los documentos una vez y los
+ * fragmentos apuntando a ellos— porque enteras pesaban 163 KB y el
+ * límite son 16. Sin el texto, que llega después desde la base: aquí
+ * solo se rellena lo justo para pintar la lista al instante.
+ *
+ * Se admite también la forma antigua, un array de fuentes completas, por
+ * si una pestaña abierta habla todavía con el despliegue anterior.
+ */
+interface CabeceraCompacta {
+  v: number;
+  d: Array<{ i: string; t: string; y: string; n: string | null }>;
+  c: Array<{ k: string; d: number }>;
+}
+
+function leerCabeceraDeFuentes(dato: unknown): ChatSource[] {
+  if (Array.isArray(dato)) return dato as ChatSource[];
+  const c = dato as CabeceraCompacta;
+  if (!c || c.v !== 1 || !Array.isArray(c.d) || !Array.isArray(c.c)) return [];
+  return c.c.flatMap((f) => {
+    const doc = c.d[f.d];
+    if (!doc) return [];
+    return [{
+      chunk_id: f.k,
+      doc_id: doc.i,
+      doc_title: doc.t,
+      doc_type: doc.y as ChatSource['doc_type'],
+      doc_number: doc.n,
+      snippet: '',
+      parcial: true,
+    }];
+  });
+}
+
 async function fetchLastSourcesWithRetry(
   conversationId: string,
 ): Promise<ChatSource[]> {
@@ -137,9 +173,7 @@ export function ChatPanel({
       const raw = response.headers.get('x-lexia-sources');
       if (raw) {
         try {
-          const decoded = decodeURIComponent(raw);
-          const parsed = JSON.parse(decoded) as ChatSource[];
-          w.__lexia_last_sources = parsed;
+          w.__lexia_last_sources = leerCabeceraDeFuentes(JSON.parse(decodeURIComponent(raw)));
         } catch {
           /* header inválido — se cae al fallback fetch */
         }
@@ -167,7 +201,19 @@ export function ChatPanel({
       emptyRetriesRef.current = 0;
       const last = (window as Window & { __lexia_last_sources?: ChatSource[] | null }).__lexia_last_sources;
       if (last && last.length > 0 && message.role === 'assistant') {
+        // La cabecera trae un ANTICIPO: el fragmento va cortado para
+        // caber en los 16 KB que admite Vercel. Se pinta ya —así la
+        // lista de fuentes aparece en cuanto termina el stream— y solo
+        // si viene recortado se pide el texto entero, que es el que
+        // necesita el cajón lateral para leerse completo.
         setSourcesById((prev) => ({ ...prev, [message.id]: last }));
+        if (last.some((s) => s.parcial)) {
+          void fetchLastSourcesWithRetry(conversationId).then((sources) => {
+            if (sources.length > 0) {
+              setSourcesById((prev) => ({ ...prev, [message.id]: sources }));
+            }
+          });
+        }
       } else if (message.role === 'assistant') {
         // Fallback: el header x-lexia-sources fue truncado por Vercel
         // (limit ~16KB) porque 8-15 chunks con snippets pesan 40-50KB.

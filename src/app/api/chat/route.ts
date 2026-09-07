@@ -1203,6 +1203,48 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
       return msg.slice(0, 500);
     },
   });
-  response.headers.set('x-lexia-sources', encodeURIComponent(JSON.stringify(sources)));
+  // LA CABECERA VA COMPACTA, Y NO ES UN CAPRICHO.
+  //
+  // Aquí viajaban las fuentes ENTERAS, con el texto completo de cada
+  // fragmento. Medido el 07/09/2026 con una consulta corriente:
+  // cuarenta y dos fuentes, 116 KB de JSON, 163 KB una vez codificadas.
+  // El límite de Vercel es de 16 KB —y el de `fetch` de Node también—,
+  // así que la cabecera no llegaba NUNCA: el cliente caía siempre al
+  // respaldo que lee las fuentes de la base, con sus tres reintentos y
+  // su carrera contra el guardado. Se mandaban 163 KB inútiles por
+  // respuesta.
+  //
+  // Ni siquiera los metadatos cabían sueltos: 15,6 KB. El ahorro está
+  // en que cuarenta y dos fragmentos vienen de veintiún documentos, así
+  // que el título se repite el doble de veces de lo necesario. Enviando
+  // los documentos una vez y los fragmentos apuntando a ellos, son 8 KB.
+  //
+  // El texto no viaja. Lo pide el cliente a la base, que es lo que ya
+  // hacía; la diferencia es que ahora la lista de fuentes se pinta al
+  // instante y el texto llega después, en vez de no haber nada hasta
+  // que el respaldo responda.
+  const documentos: Array<{ i: string; t: string; y: string; n: string | null }> = [];
+  const posicionDeDoc = new Map<string, number>();
+  const fragmentos = sources.map((s) => {
+    let pos = posicionDeDoc.get(s.doc_id);
+    if (pos === undefined) {
+      pos = documentos.length;
+      posicionDeDoc.set(s.doc_id, pos);
+      documentos.push({ i: s.doc_id, t: s.doc_title, y: s.doc_type, n: s.doc_number });
+    }
+    return { k: s.chunk_id, d: pos };
+  });
+  const cabecera = encodeURIComponent(
+    JSON.stringify({ v: 1, d: documentos, c: fragmentos }),
+  );
+  // Si aun así no cupiera, mejor no mandarla: el respaldo la trae entera.
+  if (cabecera.length <= 15000) {
+    response.headers.set('x-lexia-sources', cabecera);
+  } else {
+    console.warn('[chat] cabecera de fuentes omitida por tamaño', {
+      bytes: cabecera.length,
+      fuentes: sources.length,
+    });
+  }
   return response;
 }
