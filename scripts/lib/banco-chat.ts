@@ -440,6 +440,24 @@ export const CASOS: Caso[] = [
     debeCitarNorma: true,
   },
   {
+    id: 'estado-de-cuenta-recortado',
+    pregunta:
+      'Si el postor presenta para acreditar su experiencia su factura, su constancia de detracción y una imagen recortada del estado de cuenta, ¿esta última se considera válida para acreditar la experiencia?',
+    porque:
+      'César, 06/09/2026: «se requiere que LEXIA haga referencia a las Resoluciones que guardan relación tales como la RESOLUCIÓN N° 00165-2026-TCP-S2». La teníamos en la biblioteca y no se recuperaba para esta pregunta. Su criterio es doble y los dos importan: el Tribunal rechazó una «consulta de movimientos de cuenta corriente» porque «no tiene distinción alguna que permita verificar que haya sido emitida por entidad del sistema financiero» y porque el importe no coincidía con el del comprobante',
+    debeDecir: [/estado de cuenta|entidad del sistema financiero/i],
+    debeDistinguir: [
+      // El primer motivo: que se pueda atribuir al banco.
+      /entidad(?:es)? del sistema financiero|emitid[oa][^.]{0,60}(?:banco|entidad financiera)|identifi\w*[^.]{0,60}(?:banco|entidad financiera)/i,
+      // Y que nombre la resolución que lo resuelve.
+      /0*165-2026/,
+    ],
+    // Sin `debeCitarNorma`: lo que resuelve esto son las formas de
+    // acreditación de las bases estándar y el criterio del Tribunal,
+    // no un numeral. Exigirlo daba 2 de 12 en respuestas correctas y
+    // empujaba a colgar una cita decorativa.
+  },
+  {
     id: 'apelacion-desde-cuando',
     pregunta: `Marca la alternativa correcta. ¿Cuál es el plazo perentorio con el que cuentan los
 postores para interponer el recurso de apelación contra el otorgamiento de la buena pro en

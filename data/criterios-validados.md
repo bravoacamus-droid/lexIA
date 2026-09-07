@@ -585,3 +585,54 @@ otra cosa.
 **Vocabulario.** Se dice **CMN** —Cuadro Multianual de Necesidades—. Es el
 instrumento donde la necesidad debe constar; hablar solo del «Plan Anual»
 al responder deja fuera el nombre que usa el artículo.
+
+---
+
+## Acreditar la cancelación del comprobante con una imagen del estado de cuenta
+
+**Pregunta.** El postor presenta, para acreditar su experiencia, la
+factura y una imagen recortada del estado de cuenta —a veces con la
+constancia de detracción—. ¿Vale esa imagen?
+
+**Respuesta.** Depende de que el documento permita **verificar que lo
+emitió una entidad del sistema financiero** y de que el importe
+**coincida** con el del comprobante. Una captura recortada normalmente
+falla en lo primero.
+
+**Qué admiten las bases.** La experiencia se acredita con (i) contratos u
+órdenes de compra o servicio con su conformidad o constancia de
+prestación, o (ii) comprobantes de pago «cuya cancelación se acredite
+documental y fehacientemente, con constancia de depósito, nota de abono,
+reporte de estado de cuenta, cualquier otro documento emitido por entidad
+del sistema financiero que acredite el abono, o mediante cancelación en
+el mismo comprobante de pago».
+
+**El criterio del Tribunal.** Resolución N.° 00165-2026-TCP-S2. El postor
+presentó la factura y una «consulta de movimientos de cuenta corriente».
+El Tribunal la rechazó por dos motivos, y los dos son los que hay que
+mirar:
+
+1. **No se podía verificar quién la emitió**: «no tiene distinción alguna
+   que permita verificar que haya sido emitida por entidad del sistema
+   financiero, incluso, ni siquiera se identifica a la entidad financiera
+   donde se tiene aquella “cuenta corriente”».
+2. **El importe no cuadraba**: el comprobante decía S/ 90 000,00 y el
+   movimiento resaltado equivalía a S/ 89 914,50 al tipo de cambio
+   declarado en el propio Anexo N° 8.
+
+**Cómo se aplica a una imagen recortada.** El recorte suele eliminar
+justo lo que da fe: el logotipo o el nombre del banco, el número de
+cuenta, la fecha de emisión. Si lo que queda no permite atribuir el
+documento a una entidad del sistema financiero, no acredita la
+cancelación, por muy legible que sea el movimiento. Y aunque se
+identifique al banco, el abono tiene que corresponder al comprobante:
+mismo monto, o la conversión al tipo de cambio declarado.
+
+**La constancia de detracción no lo salva.** Acredita la detracción, no
+el pago del íntegro del comprobante. Es un documento más, no el
+sustituto del que exige la base.
+
+**Supuesto vecino.** Distinto es el reporte de estado de cuenta completo
+emitido por el banco, que sí es uno de los documentos que las bases
+admiten expresamente. Lo que se cuestiona no es el formato electrónico
+sino que el documento sea atribuible a la entidad financiera.
