@@ -27,6 +27,7 @@ import {
   detectarGeneracionEnBloque,
   temasDeLaPeticion,
 } from '../../src/lib/ai/generacion-en-bloque';
+import { rewriteToLegalQueries } from '../../src/lib/ai/query-rewrite';
 
 config({ path: join(process.cwd(), '.env.local'), override: true });
 
@@ -315,6 +316,121 @@ export const CASOS: Caso[] = [
     ],
     debeCitarNorma: true,
   },
+  // Las preguntas de examen que mandó César el 06/09/2026, con su clave
+  // marcada en rojo en el documento. Cada una comprobada contra el
+  // artículo que él mismo cita como sustento.
+  {
+    id: 'q-alto-riesgo-servicios',
+    pregunta:
+      'Marca la alternativa correcta. Una contratación de servicios se clasifica como de alto riesgo si el promedio de postores en los dos años previos es igual o menor a...\na) 1\nb) 2\nc) 3\nd) 4',
+    porque:
+      'clave de César: b) 2. El artículo 125.3.ii, modificado por el DS N° 001-2026-EF, distingue: «menor o igual a tres en el caso de bienes, o igual o menor a dos en el caso de servicios». El error natural es dar el umbral de bienes',
+    debeDecir: [/\b(?:dos|2)\b/],
+    debeDecirTodas: [/\b(?:dos|2)\b/],
+    noDebeDecirEnConclusion: [
+      /(?:igual o )?menor a (?:tres|3)[^.]{0,50}servicio|servicio[^.]{0,60}(?:igual o )?menor a (?:tres|3)|alternativa (?:correcta )?(?:es (?:la )?)?c\)/i,
+    ],
+    debeCitarNorma: true,
+  },
+  {
+    id: 'q-alto-riesgo-caso',
+    pregunta:
+      'Marca la alternativa correcta. Una entidad planea contratar un servicio especializado en monitoreo satelital en zonas rurales. En los últimos dos años, procesos similares contaron con un promedio de tres postores. ¿Puede considerarse de alto riesgo por ese criterio?\na) No, porque el promedio supera los límites establecidos.\nb) Sí, porque se trata de un servicio y el límite es de tres postores.\nc) No, porque se trata de un servicio y el límite es de dos postores.\nd) Sí, por tratarse de una tecnología especializada.',
+    porque:
+      'clave de César: c). No basta con decir «no»: hay que decir por qué, y el porqué es que en servicios el umbral son dos postores. La alternativa a) también dice «no», pero sin dar el umbral, y el chat la eligió en la primera prueba pese a razonar bien',
+    debeDecir: [/125\.3|alto riesgo/i],
+    debeDecirTodas: [
+      /\bno\b/i,
+      /(?:dos|2)\s*(?:\(\s*2\s*\))?\s*postores|l[íi]mite[^.]{0,40}(?:dos|2)|igual o menor a (?:dos|2)/i,
+    ],
+    debeCitarNorma: true,
+  },
+  {
+    id: 'q-mda-sin-interaccion',
+    pregunta:
+      'Marca la alternativa correcta. ¿En qué proceso de contratación no se realiza interacción con el mercado?\na) Licitación Pública con MDA\nb) Compra Pública de Innovación\nc) Concurso Público con diálogo competitivo\nd) Ninguno de los anteriores',
+    porque:
+      'clave de César: a). El artículo 295.1 dice que en el proceso mediante MDA son aplicables las disposiciones de las actuaciones preparatorias «con excepción de la segmentación de contrataciones y la interacción con el mercado». En la primera prueba el chat contestó que no encontraba una exclusión expresa: el artículo no le llegaba',
+    debeDecir: [/MDA|295\.1/i],
+    debeDecirTodas: [/\bMDA\b|alternativa (?:correcta )?(?:es (?:la )?)?a\)/i],
+    noDebeDecirEnConclusion: [
+      /no (?:aparece|se advierte|figura|hay)[^.]{0,90}(?:exclusi[óo]n|disposici[óo]n|regla)|no (?:puedo|es posible) (?:determinar|precisar)/i,
+    ],
+    debeCitarNorma: true,
+  },
+  {
+    id: 'q-incentivo-supervision',
+    pregunta:
+      'Marca la alternativa correcta. ¿Cuál es el monto máximo que puede otorgarse por el incentivo de respuesta rápida de la supervisión?\na) Hasta el 3% del monto del contrato original.\nb) Hasta el 3% del monto del contrato vigente.\nc) Un monto fijo calculado según el porcentaje de avance físico.\nd) Hasta el 3% del monto acumulado de valorizaciones.',
+    porque:
+      'el artículo 162, literal c), dice «una bonificación equivalente hasta el 3% del monto del contrato ORIGINAL», y no lleva nota de modificatoria. La clave del documento marca la b) —contrato vigente—; aquí manda la norma, y por eso el caso se guarda con la cita delante',
+    debeDecir: [/3\s*%/],
+    debeDecirTodas: [/original/i],
+    noDebeDecirEnConclusion: [/contrato vigente/i],
+    debeCitarNorma: true,
+  },
+  {
+    id: 'q-incentivo-ambiental',
+    pregunta:
+      'Respecto al incentivo vinculado a estándares de excelencia ambiental y de seguridad del artículo 162 del Reglamento, identifique la alternativa INCORRECTA:\na) Se aplica a componentes del proyecto de obra vinculados a las fases de formulación, elaboración del expediente técnico, operación y mantenimiento.\nb) Otorga una bonificación de hasta el 1% del monto del contrato original.\nc) Exige establecer indicadores iniciales en el contrato.\nd) Cuando se establece en la estrategia de contratación, no se incluye como factor de evaluación la sostenibilidad ambiental.',
+    porque:
+      'clave de César: a). El literal b) del artículo 162 dice que ese incentivo «aplica únicamente para componentes de ejecución de obra», así que extenderlo a la formulación, al expediente técnico o al mantenimiento es lo incorrecto. Las otras tres alternativas salen del mismo literal',
+    debeDecir: [/162|ejecuci[óo]n de obra/i],
+    debeDecirTodas: [/alternativa (?:incorrecta |correcta )?(?:es (?:la )?)?\*{0,2}a\*{0,2}(?:\)|\b)|literal a\)|(?:la|opci[óo]n) \*{0,2}a\*{0,2}\b/i],
+    debeDistinguir: [
+      /[úu]nicamente[^.]{0,80}(?:componentes de )?ejecuci[óo]n de obra|solo[^.]{0,70}ejecuci[óo]n de obra/i,
+    ],
+    debeCitarNorma: true,
+  },
+  {
+    id: 'q-llave-en-mano',
+    pregunta:
+      'Marca la alternativa correcta. En la adquisición de mobiliario para 15 colegios se propone el sistema de entrega llave en mano. ¿Es adecuado para esta contratación?\na) Sí, si se entrega el mobiliario completamente instalado y en funcionamiento\nb) No, porque llave en mano aplica solo a bienes con instalación compleja o proyectos integrales\nc) Sí, si el valor supera 50 UIT\nd) No, si la entidad no tiene supervisor',
+    porque:
+      'clave de César: a). El artículo 129, literal a), dice que llave en mano «aplica para la adquisición de bienes cuando el postor oferta adicionalmente su instalación y puesta en funcionamiento». No exige complejidad ninguna, así que la b) añade un requisito que la norma no pone. En la primera prueba el chat eligió justamente la b)',
+    debeDecir: [/129|llave en mano/i],
+    // Vale tanto el «sí» como señalar la alternativa: desde que el
+    // criterio entró en la biblioteca, la conclusión suele ir
+    // directa a la letra sin la palabra suelta.
+    debeDecirTodas: [
+      /\bs[íi]\b|alternativa (?:correcta )?(?:es (?:la )?)?\*{0,2}a\*{0,2}(?:\)|\b)|(?:la|opci[óo]n) \*{0,2}a\*{0,2}\b|es adecuado|resulta adecuado/i,
+    ],
+    noDebeDecirEnConclusion: [
+      /instalaci[óo]n compleja|proyectos integrales|alternativa (?:correcta )?(?:es (?:la )?)?\*{0,2}b\)/i,
+    ],
+    debeDistinguir: [/puesta en funcionamiento/i],
+    debeCitarNorma: true,
+  },
+  {
+    id: 'q-necesidad-en-cmn',
+    pregunta:
+      'Marca la alternativa correcta. Una entidad necesita contratar vigilancia para una nueva sede que no estaba prevista en su programación. Convoca el procedimiento y recién después la registra. ¿Es conforme al Reglamento?\na) Sí, si el contrato se perfecciona luego de la modificación\nb) Sí, si se justifica como necesidad urgente\nc) No, salvo que la DGA lo autorice\nd) No, porque la necesidad debe estar previamente registrada',
+    porque:
+      'clave de César: d). El artículo 54.3 dice que «para aprobar un expediente de contratación la necesidad debe encontrarse prevista en el CMN aprobado del año fiscal correspondiente o su modificatoria». En la primera prueba el chat contestó que SÍ era conforme, que es el error de fondo',
+    debeDecir: [/54\.3|CMN|cuadro multianual/i],
+    debeDecirTodas: [/\bno\b/i],
+    noDebeDecirEnConclusion: [
+      /\bs[íi],? (?:el procedimiento )?(?:es|resulta|ser[íi]a) conforme|s[íi] es v[áa]lido|no (?:constituye|configura) (?:una )?vulneraci/i,
+    ],
+    debeDistinguir: [/CMN|cuadro multianual de necesidades/i],
+    debeCitarNorma: true,
+  },
+  {
+    id: 'q-clausulas-obligatorias',
+    pregunta:
+      'Marca la alternativa correcta. ¿Qué cláusulas deben incluirse obligatoriamente, bajo responsabilidad, en los contratos regulados por la Ley N° 32069?\na) Confidencialidad, penalidades y reajuste de precios.\nb) Garantías, anticorrupción y antisoborno, y solución de controversias.\nc) Subcontratación, cesión de posición contractual y adelantos.\nd) Impacto ambiental, responsabilidad social y seguros.',
+    porque:
+      'clave de César: b). El artículo 60 de la Ley enumera cinco cláusulas: garantías, anticorrupción y antisoborno, solución de controversias, resolución de contrato por incumplimiento y gestión de riesgos. En la primera prueba el chat no llegó a señalar ninguna alternativa: se quedó en la recomendación',
+    debeDecir: [/anticorrupci[óo]n/i],
+    debeDecirTodas: [
+      /alternativa (?:correcta )?(?:es (?:la )?)?\*{0,2}b\*{0,2}(?:\)|\b)|(?:la|opci[óo]n) \*{0,2}b\*{0,2}\b|garant[íi]as[^.]{0,140}(?:anticorrupci|antisoborno)/i,
+    ],
+    debeDistinguir: [
+      /resoluci[óo]n (?:de|del) contrato por incumplimiento/i,
+      /gesti[óo]n de riesgos/i,
+    ],
+    debeCitarNorma: true,
+  },
   {
     id: 'apelacion-desde-cuando',
     pregunta: `Marca la alternativa correcta. ¿Cuál es el plazo perentorio con el que cuentan los
@@ -393,6 +509,8 @@ export const ADVIERTE_VIEJA =
 
 interface Fragmento {
   chunk_id: string;
+  /** La da hybrid_search; hace falta para ordenar el ancla. */
+  similarity?: number;
   document_id: string;
   content: string;
   doc_title: string;
@@ -404,6 +522,28 @@ interface Fragmento {
  * La recuperación de la ruta del chat, replicada: búsqueda híbrida más
  * los fragmentos de capa 1 que se piden aparte y van delante.
  */
+/**
+ * Cuántos fragmentos trae cada frase reescrita.
+ *
+ * Medido el 07/09/2026: con la reescritura «inclusión obligatoria de la
+ * contratación en el plan anual antes de convocar», el artículo 54.3
+ * —el que resuelve la pregunta— sale en el PUESTO 4 de su propia
+ * búsqueda. Traer solo el primero no lo alcanzaba.
+ */
+const ANCLAS_POR_FRASE = 3;
+
+/**
+ * Cuántas anclas se conservan en total.
+ *
+ * Es un equilibrio medido, no un número redondo. Con seis, la
+ * pregunta por el plazo de ampliación en obras —que acertaba
+ * siempre— pasó a contestar «en los fragmentos disponibles no
+ * aparece el plazo» cuatro de doce veces: los fragmentos extra
+ * reparten la atención. Con dos, la pregunta por el registro previo
+ * de la necesidad perdía el artículo 54.3 y caía del 92 % al 33 %.
+ */
+const TOPE_ANCLAS = 4;
+
 export async function recuperar(pregunta: string): Promise<ChatSource[]> {
   const emb = await embedOne(pregunta, 'RETRIEVAL_QUERY');
   const { data, error } = await admin.rpc('hybrid_search', {
@@ -468,6 +608,51 @@ export async function recuperar(pregunta: string): Promise<ChatSource[]> {
       .filter((c) => !vistos.has(c.chunk_id) && (vistos.add(c.chunk_id), true))
       .map(aFuente);
     fuentes = [...fuentes, ...extra];
+  }
+
+  // ANCLA NORMATIVA — igual que en la ruta. La pregunta habla del caso
+  // y el artículo habla de la institución jurídica, así que se busca
+  // también con la traducción jurídica de la pregunta y se trae UNA
+  // pieza por frase. Sin esto el banco mediría una recuperación que no
+  // es la de la aplicación.
+  const frases = await rewriteToLegalQueries(pregunta);
+  if (frases.length > 0) {
+    const puestas = new Set(fuentes.map((f) => f.chunk_id));
+    const anclas: ChatSource[] = [];
+    for (const frase of frases) {
+      const e = await embedOne(frase, 'RETRIEVAL_QUERY');
+      const porTipo = await Promise.all(
+        (['ley', 'reglamento'] as const).map(async (tipo) => {
+          const { data: d } = await admin.rpc('hybrid_search', {
+            query_text: frase,
+            query_embedding: e,
+            match_count: ANCLAS_POR_FRASE * 2,
+            filter_type: tipo,
+          });
+          return (d ?? []) as Fragmento[];
+        }),
+      );
+      const ordenadas = porTipo
+        .flat()
+        .sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0));
+      // Si lo mejor que encuentra la traducción jurídica YA está en el
+      // pool, la recuperación normal acertó y el ancla solo añadiría
+      // ruido. Es lo que distingue las dos preguntas que se midieron:
+      // «¿en qué plazo se solicita la ampliación en obras?» ya viene en
+      // lenguaje de la norma y trae el artículo 200 sola —anclarla la
+      // empeoraba—; «una entidad contrata vigilancia para una sede no
+      // prevista y la registra después» es narrativa y sin ancla nunca
+      // ve el artículo 54.3.
+      if (ordenadas.length === 0 || puestas.has(ordenadas[0].chunk_id)) continue;
+      const candidatas = ordenadas
+        .filter((c) => !puestas.has(c.chunk_id) && (puestas.add(c.chunk_id), true))
+        .slice(0, ANCLAS_POR_FRASE);
+      anclas.push(...candidatas.map(aFuente));
+    }
+    // Solo las dos mejores, como en la ruta: garantizar seis echaba
+    // fuera artículos que el pool ya traía bien.
+    const mejores = anclas.slice(0, TOPE_ANCLAS);
+    if (mejores.length > 0) fuentes = [...mejores, ...fuentes];
   }
 
   return fuentes;

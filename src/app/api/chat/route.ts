@@ -539,8 +539,13 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
       ).length;
       const necesitaRescate = primariasEnPool < RESERVA_PRIMARIA;
 
+      // La reescritura jurídica se calcula UNA vez y la usan dos cosas:
+      // el rescate condicional de abajo y el ancla normativa. Antes solo
+      // se pedía cuando faltaban normas en el pool, y esa condición es
+      // justo la que fallaba (ver el ancla).
+      const rewrites = queryEmbedding ? await rewriteToLegalQueries(lastUser.content) : [];
+
       if (necesitaRescate && queryEmbedding) {
-        const rewrites = await rewriteToLegalQueries(lastUser.content);
         if (rewrites.length > 0) {
           const seenIds = new Set(combined.map((c) => c.chunk_id));
           const rewriteEmbs = await Promise.all(rewrites.map(safeEmbed));
@@ -597,6 +602,90 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
         for (const rows of primarias) {
           if (!rows) continue;
           for (const c of rows) {
+            if (!seenIds.has(c.chunk_id)) {
+              combined.push(c);
+              seenIds.add(c.chunk_id);
+            }
+          }
+        }
+      }
+
+
+      // 2c-quinquies. ANCLA NORMATIVA — siempre, y con cupo propio.
+      //
+      //     Los dos rescates de arriba se activan cuando el pool trae
+      //     MENOS DE TRES fragmentos de Ley o Reglamento. Medido el
+      //     07/09/2026 con las nueve preguntas de examen que mandó
+      //     César: en todas había OCHO fragmentos de norma, así que la
+      //     condición nunca se cumplía —y en tres de ellas el artículo
+      //     que resolvía la pregunta no estaba entre esos ocho—. El
+      //     artículo 295.1 (la contratación por MDA no lleva interacción
+      //     con el mercado), el 54.3 (la necesidad debe estar en el CMN
+      //     antes de aprobar el expediente) y el 14.2 nunca llegaban.
+      //     Contar normas no dice si son LAS normas.
+      //
+      //     Lo mismo pasaba con la pregunta de la firma que falta en un
+      //     anexo: el artículo 78 quedaba en el puesto 31 de la
+      //     búsqueda filtrada a «ley», y el rescate coge ocho.
+      //
+      //     La causa es siempre la misma: la pregunta habla del caso
+      //     —firma, anexo, mobiliario, vigilancia— y el artículo habla
+      //     de la institución jurídica. Por eso se busca con la
+      //     reescritura, que traduce una a la otra, y por eso basta con
+      //     UNA pieza por frase reescrita: no se trata de inundar el
+      //     contexto de norma, sino de que la norma que resuelve esté.
+      //
+      //     El cupo es deliberadamente pequeño. Ya se midió que añadir
+      //     ocho fragmentos extra, aunque contengan el concepto exacto,
+      //     reparte la atención del modelo y empeora la respuesta (ver
+      //     la nota de las facetas, más abajo).
+      const ANCLAS_POR_FRASE = 3;
+      // Cuántas se GARANTIZAN. Las demás entran al pool y compiten.
+      //
+      // Medido el 07/09/2026: garantizando las seis, la pregunta por
+      // el plazo de ampliación en obras pasó de acertar siempre a
+      // contestar «en los fragmentos disponibles no aparece el
+      // plazo» en cuatro de doce vueltas. El artículo 200 estaba en
+      // el pool y lo echaba fuera el propio rescate: seis plazas de
+      // quince son el cuarenta por ciento del contexto.
+      const TOPE_ANCLAS_GARANTIZADAS = 4;
+      const anclasNorma: HybridSearchRow[] = [];
+      if (rewrites.length > 0) {
+        const seenIds = new Set(combined.map((c) => c.chunk_id));
+        const embs = await Promise.all(rewrites.map(safeEmbed));
+        for (let i = 0; i < rewrites.length; i++) {
+          const emb = embs[i];
+          if (!emb) continue;
+          const porTipo = await Promise.all(
+            (['ley', 'reglamento'] as const).map(async (tipo) => {
+              const { data } = await supabase.rpc('hybrid_search', {
+                query_text: rewrites[i],
+                query_embedding: emb,
+                match_count: ANCLAS_POR_FRASE * 2,
+                filter_type: tipo,
+                filter_law: lawFilter,
+              });
+              return (data as HybridSearchRow[] | null) ?? [];
+            }),
+          );
+          // Varias por frase, no una. Medido el 07/09/2026: con la
+          // reescritura «inclusión obligatoria de la contratación en el
+          // plan anual antes de convocar», el artículo 54.3 —el que
+          // resuelve la pregunta— aparece en el PUESTO 4 de su propia
+          // búsqueda. Quedarse con el primero no lo alcanzaba.
+          const ordenadas = porTipo
+            .flat()
+            .sort((a, b) => b.similarity - a.similarity);
+          // Si lo mejor que encuentra la traducción jurídica ya está en
+          // el pool, la recuperación normal acertó: anclar solo añadiría
+          // ruido, y eso está medido —la pregunta por el plazo de
+          // ampliación en obras empeoraba al anclarla—.
+          if (ordenadas.length === 0 || seenIds.has(ordenadas[0].chunk_id)) continue;
+          const candidatas = ordenadas
+            .filter((c) => !anclasNorma.some((x) => x.chunk_id === c.chunk_id))
+            .slice(0, ANCLAS_POR_FRASE);
+          for (const c of candidatas) {
+            anclasNorma.push(c);
             if (!seenIds.has(c.chunk_id)) {
               combined.push(c);
               seenIds.add(c.chunk_id);
@@ -699,6 +788,22 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
       // COBERTURA POR FACETA: garantizar que el top-1 de cada faceta
       // sobreviva el corte. Si el rerank lo dejó fuera, lo re-inyectamos
       // (reemplazando los últimos del ranking para no exceder el límite).
+      // El ancla normativa sobrevive igual que el top-1 de cada faceta:
+      // de nada sirve traer el artículo si el rerank —que puntúa contra
+      // la pregunta del usuario, no contra su traducción jurídica— lo
+      // deja fuera. Es justo el desajuste que motivó el ancla.
+      if (anclasNorma.length > 0) {
+        const inFinal = new Set(reranked.map((c) => c.chunk_id));
+        const faltan = anclasNorma
+          .filter((c) => !inFinal.has(c.chunk_id))
+          .sort((a, b) => b.similarity - a.similarity)
+          .slice(0, TOPE_ANCLAS_GARANTIZADAS);
+        // Se AÑADEN, no sustituyen: lo que había en el pool llegó ahí por
+        // su similitud con la pregunta, y sacarlo para meter el artículo
+        // es cambiar un acierto por otro.
+        if (faltan.length > 0) reranked = [...reranked, ...faltan];
+      }
+
       if (facetTopChunks.length > 0) {
         const inFinal = new Set(reranked.map((c) => c.chunk_id));
         const missing = facetTopChunks.filter((c) => !inFinal.has(c.chunk_id));

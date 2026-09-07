@@ -478,3 +478,45 @@ corroboración técnica, no la responsabilidad de la indagación.
 Ley N° 30225 y su reglamento, así que habla del «OEC» y de la
 «adjudicación simplificada». El criterio se mantiene, pero hoy el órgano
 es la **DEC** y ese procedimiento ya no existe.
+
+---
+
+## Llave en mano para adquirir bienes: qué exige de verdad el artículo 129
+
+**Pregunta.** ¿Sirve el sistema de entrega «llave en mano» para adquirir
+mobiliario, o hace falta que la instalación sea compleja o que se trate de
+un proyecto integral?
+
+**Respuesta.** **Sirve.** La única condición que pone la norma es que el
+postor oferte, además del bien, su instalación y puesta en funcionamiento.
+No se exige complejidad, ni magnitud, ni que sea un proyecto integral.
+
+**Fundamento.** Artículo 129 del Reglamento, literal a): «**Llave en
+mano**: aplica para la adquisición de bienes cuando el postor oferta
+adicionalmente su instalación y puesta en funcionamiento». El mismo
+artículo enumera los demás sistemas de entrega —llave en mano con
+mantenimiento en el literal b), obligatorio para equipamiento médico, y
+suministro con comodato en el c)— y encabeza diciendo que la entidad
+«puede determinar alguno de los siguientes sistemas de entrega **durante
+la elaboración de la estrategia de contratación**». Es una decisión de la
+estrategia, no un supuesto tasado.
+
+**De dónde sale el error.** Al preguntar esto llegan muchos
+pronunciamientos sobre llave en mano, y en ellos aparece la frase
+«actividades complementarias de instalación y puesta en funcionamiento,
+las cuales no constituyen un proyecto integral ni encajan dentro de los
+supuestos normativos del sistema llave en mano». **Esa frase no es del
+OECE**: es el informe de la entidad consultante, citado dentro del
+Pronunciamiento N° 556-2025/OECE-DSAT. Es el alegato de una parte, no un
+criterio, y contradice el texto del artículo 129.
+
+**Y hay un segundo motivo de confusión.** Varios pronunciamientos citan
+«el artículo 15» o «el artículo 36 del Reglamento» al hablar de llave en
+mano: son artículos del reglamento derogado. El vigente es el 129, y su
+literal a) dice lo mismo que citaba aquel artículo 15 —bienes más
+instalación y puesta en funcionamiento—, sin añadir requisito alguno de
+complejidad.
+
+**Cuándo sí es incorrecto usarlo.** Cuando el postor no tiene que instalar
+ni poner en funcionamiento nada, porque entonces falta el supuesto: no es
+que el bien sea «poco complejo», es que no hay instalación que ofertar.
