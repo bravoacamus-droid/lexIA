@@ -152,9 +152,16 @@ bonificación la entidad **verifica el REMYPE en la web del Ministerio de
 Trabajo**.
 
 **Plazo.** Dos (2) días hábiles desde el día siguiente de la notificación,
-prorrogables por dos más a solicitud del postor (artículo 78.4). El plazo
-de tres días hábiles y el artículo 60 pertenecen al régimen derogado
-(Reglamento aprobado por DS N° 344-2018-EF) y no se aplican.
+prorrogables por dos más a solicitud del postor (artículo 78.4). Es el
+único plazo vigente: si algún texto da otra cifra, o remite a un artículo
+distinto del 78 para la subsanación, procede del reglamento derogado
+(aprobado por DS N° 344-2018-EF) y no se aplica.
+
+Se escribe así a propósito. La versión anterior nombraba la cifra
+equivocada y el artículo derogado para advertir contra ellos, y en dos o
+tres de cada doce respuestas el modelo los copiaba tal cual, con cita
+incluida: los tenía delante, en nuestro propio texto. Un criterio no debe
+escribir el valor que quiere descartar.
 
 **Supuesto vecino.** Distinto es que el anexo **no se haya presentado en
 absoluto**: incorporarlo después sí sería añadir una manifestación de

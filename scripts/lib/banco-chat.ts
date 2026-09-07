@@ -120,7 +120,7 @@ export const CASOS: Caso[] = [
       // Nombrar a la DEC, no «la instancia administrativa encargada».
       /\bDEC\b|Dependencia Encargada/i,
       // Y ligarla al jurado en la misma oración.
-      /(?:\bDEC\b|Dependencia Encargada)[^.]{0,140}jurado|jurado[^.]{0,140}(?:\bDEC\b|Dependencia Encargada)/i,
+      /(?:\bDEC\b|Dependencia Encargada)[^.]{0,220}jurado|jurado[^.]{0,220}(?:\bDEC\b|Dependencia Encargada)/i,
     ],
     debeCitarNorma: true,
   },
@@ -160,7 +160,7 @@ export const CASOS: Caso[] = [
     // reconformarlo: la primera versión solo aceptaba la forma negada
     // y contaba como fallo una respuesta correcta dicha en afirmativo.
     debeDecirTodas: [
-      /no\s+(?:corresponde|se debe|debe|es necesario|resulta necesario|procede|cabe|se requiere|hay que)[^.]{0,120}(?:dejar sin efecto|reconform|conformar|crear|designar|nuevo comit)|(?:el )?comit[ée][^.]{0,90}(?:contin[\u00fau]a\b|contin[\u00fau]an\b|contin[\u00fau]e\b|se mantiene|mantiene su|mantenerse|conserva su|sigue a cargo|sigue siendo|vigente|en funciones)|manten(?:er|erse)[^.]{0,60}comit[ée]|no constituye[^.]{0,90}causal/i,
+      /no\s+(?:corresponde|se debe|debe|es necesario|resulta necesario|procede|cabe|se requiere|hay que)[^.]{0,120}(?:dejar sin efecto|reconform|conformar|crear|designar|nuevo comit)|(?:el )?comit[ée][^.]{0,90}(?:contin[\u00fau]a\b|contin[\u00fau]an\b|contin[\u00fau]e\b|se mantiene|mantiene su|mantenerse|conserva su|sigue a cargo|sigue siendo|vigente|en funciones)|manten(?:er|erse)[^.]{0,60}(?:comit[ée]|evaluadores)|no constituye[^.]{0,90}causal/i,
     ],
     debeCitarNorma: true,
   },
@@ -176,7 +176,7 @@ export const CASOS: Caso[] = [
       // ordenar la subsanación —«otorgue al postor un plazo para que
       // subsane»—, que es decir lo mismo sin usar el adjetivo: sin eso
       // se contaban como fallo respuestas correctas.
-      /(?:s[íi],?\s+)?(?:es|resulta|constituye|califica como)\s+(?:un |una )?(?:defecto |error |vicio |omisi[óo]n )?subsanable|s[íi] cabe (?:la )?subsanaci|(?<!no )(?:otorg|conced|requer|requier|solicit|corresponde|procede)\w*[^.]{0,70}subsan/i,
+      /(?:s[íi],?\s+)?(?:es|resulta|constituye|califica como)\s+(?:un |una )?(?:defecto |error |vicio |omisi[óo]n )?subsanable|s[íi] cabe (?:la )?subsanaci|(?<!\bno )(?:otorg|conced|requer|requier|solicit|corresponde|procede)\w*[^.]{0,70}subsan|(?<!\bno )(?:otorg|conced)\w*[^.]{0,80}(?:para que|a fin de)[^.]{0,50}(?:subsan|suscrib|regulariz|firm)/i,
     ],
     noDebeDecir: [
       // La negativa, en sus dos formas: «no es subsanable» y «no
@@ -207,7 +207,7 @@ export const CASOS: Caso[] = [
       // Que concluya que no cabe subsanarlo. «No PUEDE ser reparada
       // mediante subsanación» también es negarlo, y la primera versión
       // lo contaba como fallo.
-      /no\s+(?:es|resulta|ser[íi]a|cabe|corresponde|procede|puede|podr[íi]a|amerita)[^.]{0,80}subsan|no\s+subsanable/i,
+      /no\s+(?:se\s+)?(?:le\s+)?(?:es|resulta|ser[íi]a|cabe|corresponde|procede|proceder[íi]a|puede|poder|podr[íi]a|amerita|otorga|admite)[^.]{0,90}subsan|no\s+subsanable|insubsanable/i,
     ],
     noDebeDecirEnConclusion: [
       // La conclusión del supuesto vecino, dada como si fuera esta.
@@ -244,7 +244,7 @@ D) Diez (10) días hábiles improrrogables.`,
     debeDecir: [/(?:ocho|\b8\b)\s*(?:\(\s*8\s*\))?\s*d[ií]as h[áa]biles/i],
     debeDecirTodas: [
       // El punto de partida correcto, que es lo que se discute.
-      /notificaci[óo]n[^.]{0,80}otorgamiento|otorgamiento de la buena pro[^.]{0,80}Pladicop/i,
+      /notific\w*[^.]{0,90}otorgamiento|otorgamiento[^.]{0,150}Pladicop/i,
     ],
     // Y no dar por bueno el punto de partida de la alternativa B. Solo
     // en la conclusión: el cuerpo cita esa alternativa para desmontarla.

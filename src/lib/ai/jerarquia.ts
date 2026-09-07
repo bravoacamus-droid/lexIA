@@ -206,6 +206,88 @@ export function regimenDe(fuente: FuenteJerarquia): 'anterior' | 'indeterminado'
   return 'indeterminado';
 }
 
+/**
+ * Artículos que cambiaron de número al pasar al Reglamento vigente.
+ *
+ * POR QUÉ HACE FALTA
+ *
+ * Medido el 06/09/2026 con la pregunta de la firma que falta en un
+ * anexo: de los treinta y ocho fragmentos recuperados, CINCO eran
+ * resoluciones del Tribunal de 2025 que citan «el artículo 60 del
+ * Reglamento» para la subsanación de ofertas —el del reglamento
+ * derogado— y ninguna quedaba marcada como régimen anterior, porque no
+ * nombran la Ley N° 30225 en su texto y por fecha son de 2025. Cinco
+ * voces dando el artículo viejo contra una que da el vigente. El chat
+ * respondía bien casi siempre, pero una de cada doce veces escribía «el
+ * artículo 60 del Reglamento (referido a los supuestos de subsanación
+ * de ofertas)» como si estuviera vigente.
+ *
+ * POR QUÉ NO SE RESUELVE CON LA FECHA
+ *
+ * Ya se intentó y se retiró: marcar todo documento de 2025 que no
+ * nombre la Ley N° 32069 hundía otras preguntas. La fecha no distingue
+ * una resolución que aplica la norma vieja de otra que aplica la nueva.
+ * El número del artículo junto a su asunto sí: en el Reglamento vigente
+ * la subsanación es el artículo 78, y el 60 regula a los jurados, así
+ * que un texto que une «artículo 60» con «subsanación» está hablando
+ * del reglamento derogado, sea del año que sea.
+ *
+ * CÓMO SE AMPLÍA
+ *
+ * Solo con pares comprobados uno a uno contra los dos textos. Un par
+ * mal puesto marca como derogado un fragmento vigente, que es peor que
+ * no marcar nada.
+ */
+interface Renumeracion {
+  /** Cómo se cita el artículo en el reglamento derogado. */
+  viejo: RegExp;
+  /** Su número, para escribirlo en la etiqueta sin releer el patrón. */
+  numeroViejo: string;
+  /** El asunto, que tiene que aparecer cerca de la cita. */
+  asunto: RegExp;
+  /** Cómo se llama hoy. */
+  vigente: string;
+  /** De qué trata, para escribirlo en la etiqueta. */
+  materia: string;
+}
+
+const RENUMERADOS: Renumeracion[] = [
+  {
+    viejo: /art[iíI]culo\s+60\b|\bnumeral\s+60\.\d/i,
+    numeroViejo: '60',
+    asunto: /subsan/i,
+    vigente: '78',
+    materia: 'la subsanación de las ofertas',
+  },
+];
+
+/** Cuánto puede alejarse el asunto de la cita para seguir contando. */
+const CERCA = 220;
+
+/**
+ * ¿El fragmento cita un artículo del reglamento derogado?
+ *
+ * Se exige que el asunto esté CERCA de la cita, no solo en el mismo
+ * fragmento: nuestro propio criterio del jurado cita el artículo 60
+ * —el vigente, que trata de los jurados— y marcarlo sería decir que la
+ * respuesta correcta está derogada.
+ */
+export function articuloRenumerado(fuente: FuenteJerarquia): Renumeracion | null {
+  const texto = fuente.snippet ?? '';
+  if (!texto) return null;
+  // Si el propio fragmento nombra la norma vigente, está comparando las
+  // dos y no hay nada que advertir.
+  if (/32069|009-2025-EF/.test(texto)) return null;
+  for (const r of RENUMERADOS) {
+    for (const m of texto.matchAll(new RegExp(r.viejo.source, 'gi'))) {
+      const i = m.index ?? 0;
+      const ventana = texto.slice(Math.max(0, i - CERCA), i + CERCA);
+      if (r.asunto.test(ventana)) return r;
+    }
+  }
+  return null;
+}
+
 export function rangoDe(tipo: string): Rango {
   return RANGOS[tipo] ?? POR_DEFECTO;
 }
@@ -234,6 +316,15 @@ export function etiquetaFuente(fuente: FuenteJerarquia): string {
   const regimen = regimenDe(fuente);
   if (regimen === 'anterior') {
     return `${base} · RÉGIMEN ANTERIOR (Ley N° 30225, derogada el 22/04/2025)`;
+  }
+  const renumerado = articuloRenumerado(fuente);
+  if (renumerado) {
+    return (
+      `${base} · CITA EL REGLAMENTO DEROGADO: lo que llama artículo ` +
+      `${renumerado.numeroViejo} es hoy el artículo ` +
+      `${renumerado.vigente} del DS N° 009-2025-EF (${renumerado.materia}). ` +
+      'El razonamiento sirve; el número, no.'
+    );
   }
   return base;
 }
