@@ -326,7 +326,12 @@ export const CASOS: Caso[] = [
     porque:
       'clave de César: b) 2. El artículo 125.3.ii, modificado por el DS N° 001-2026-EF, distingue: «menor o igual a tres en el caso de bienes, o igual o menor a dos en el caso de servicios». El error natural es dar el umbral de bienes',
     debeDecir: [/\b(?:dos|2)\b/],
-    debeDecirTodas: [/\b(?:dos|2)\b/],
+    // Vale el número o la letra: la conclusión suele decir «la
+    // alternativa correcta es la b)» sin repetir la cifra, y eso
+    // se contaba como fallo.
+    debeDecirTodas: [
+      /\b(?:dos|2)\b|alternativa (?:correcta )?(?:es (?:la )?)?\*{0,2}b\*{0,2}(?:\)|\b)|(?:la|opci[óo]n) \*{0,2}b\*{0,2}\b/i,
+    ],
     noDebeDecirEnConclusion: [
       /(?:igual o )?menor a (?:tres|3)[^.]{0,50}servicio|servicio[^.]{0,60}(?:igual o )?menor a (?:tres|3)|alternativa (?:correcta )?(?:es (?:la )?)?c\)/i,
     ],

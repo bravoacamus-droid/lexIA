@@ -520,3 +520,35 @@ complejidad.
 **Cuándo sí es incorrecto usarlo.** Cuando el postor no tiene que instalar
 ni poner en funcionamiento nada, porque entonces falta el supuesto: no es
 que el bien sea «poco complejo», es que no hay instalación que ofertar.
+
+---
+
+## El único procedimiento sin interacción con el mercado: el MDA
+
+**Pregunta.** ¿En qué proceso de contratación no se realiza interacción
+con el mercado?
+
+**Respuesta.** En el que se contrata mediante **mecanismos diferenciados
+de adquisición (MDA)**. Y es el único.
+
+**Fundamento.** Artículo 295.1 del Reglamento: «El proceso de contratación
+mediante MDA se inicia con la elaboración del requerimiento, siendo
+aplicables las disposiciones generales correspondientes a las actuaciones
+preparatorias contempladas en el Reglamento, **con excepción de la
+segmentación de contrataciones y la interacción con el mercado**».
+
+**Es la única exclusión.** Buscada en el texto íntegro del Reglamento, esa
+fórmula —«con excepción de … la interacción con el mercado»— aparece una
+sola vez, y es esta. Ningún otro procedimiento la excluye.
+
+**Supuestos vecinos que se confunden con este.** Ni la **Compra Pública de
+Innovación** ni el **concurso público con diálogo competitivo** están
+exceptuados: en el Reglamento no hay ninguna disposición que los libere de
+la interacción con el mercado. Contestar «ninguno de los anteriores»
+—cuando la lista incluye el MDA— es dejar sin aplicar el artículo 295.1.
+
+**Dónde encaja.** La interacción con el mercado es el artículo 47 del
+Reglamento y tiene dos tipos: la indagación (artículo 48) y la consulta al
+mercado (artículo 49). Para bienes y servicios, el artículo 127.1 la pone
+en manos de la DEC con cuatro niveles según la segmentación. El MDA se
+salta las dos cosas: la segmentación y la interacción.
