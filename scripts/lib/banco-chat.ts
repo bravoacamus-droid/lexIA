@@ -251,6 +251,48 @@ export const CASOS: Caso[] = [
     // respuestas correctas se contaban como fallo por no llevarlo.
   },
   {
+    id: 'oferta-supera-cuantia-sie',
+    pregunta:
+      'Cuando la oferta supera el valor de la cuantía, ¿me puede proporcionar el número de artículo de la Ley 32069 que permite notificar la solicitud de rebaja de la oferta del postor, antes de solicitar la ampliación del presupuesto? Es para una SIE.',
+    porque:
+      'César, 06/09/2026: la respuesta era correcta «sin embargo, está haciendo referencia a términos con la norma derogada, tales como VALOR REFERENCIAL Y ADJUDICACIONES SIMPLIFICADAS, esos términos no se manejan con la norma actual», y añade que la única negociación prevista en subasta inversa es la del artículo 301. Comprobado: el artículo 132.1 invierte el orden que da por supuesto la pregunta —primero la ampliación presupuestal, y solo si no hay recursos se negocia— y no encaja en SIE, porque parte del «mejor puntaje total» y el artículo 96.3 excluye la evaluación técnica',
+    debeDecir: [/132/],
+    debeDecirTodas: [
+      // La conclusión tiene que negar: el artículo que la pregunta da
+      // por supuesto no existe, y el orden es el contrario. El detalle
+      // del orden se comprueba sobre el texto entero, más abajo: se
+      // explica en el cuerpo y exigirlo en la conclusión daba 1 de 12
+      // midiendo dónde estaba escrito, no si era correcto.
+      /^[^a-z]{0,80}no\b|\bno,? no (?:existe|puedes|procede|es posible|cabe|corresponde)|no existe (?:dicho|tal|ese|un) art[íi]culo/i,
+    ],
+    debeDistinguir: [
+      // El orden real: la ampliación va primero.
+      // «ampliación DEL PRESUPUESTO» y «ampliación presupuestal» son
+      // lo mismo, y la respuesta suele expresar el orden negando el
+      // que propone la pregunta: «no permite pedir la rebaja ANTES de
+      // solicitar la ampliación».
+      /(?:primero|previamente|en primer lugar)[^.]{0,110}ampliaci[óo]n[^.]{0,40}presupuest|inverso|no (?:permite|permiten|existe|es posible|cabe|procede|puede)[^.]{0,170}antes de[^.]{0,110}ampliaci|ampliaci[óo]n[^.]{0,40}presupuest[^.]{0,170}(?:y (?:solo|s[óo]lo)|luego|despu[ée]s|si no)/i,
+      // Que diga que en subasta inversa esto no aplica, y por qué.
+      /(?:subasta inversa|SIE)[^.]{0,220}(?:no (?:se aplica|aplica|es aplicable|resulta|procede|corresponde|cabe|hay)|ni [^.]{0,40}est[áa] (?:permitid|previst)|ni (?:procede|cabe|aplica)|excluid|proh[íi]b|solo|[úu]nica)|(?:no (?:se aplica|aplica|es aplicable|resulta aplicable|procede|corresponde|cabe)|ni [^.]{0,40}est[áa] (?:permitid|previst)|ni (?:est[áa] permitid|procede|cabe)|excluid|proh[íi]b|menos a[úu]n)[^.]{0,190}(?:subasta inversa|SIE)/i,
+      // El fundamento expreso de la exclusión: el 132.7 la dice con
+      // todas las letras, y es mejor cita que deducirla del 96.
+      /132\.7/,
+      // Que quede claro que ahí no cabe negociar. Se admite tanto
+      // decirlo como nombrar el artículo 301, que es el único
+      // supuesto en que la subasta inversa sí admite negociación
+      // —farmacéuticos con ficha técnica y oferta única—. Exigir el
+      // 301 a secas penalizaba respuestas completas: la pregunta no
+      // es de ese supuesto, así que citarlo es una digresión.
+      /\b301\b|no (?:cabe|existe|hay|procede|corresponde)[^.]{0,90}negociaci[óo]n|negociaci[óo]n[^.]{0,90}no (?:cabe|procede|es aplicable|resulta aplicable)/i,
+    ],
+    noDebeDecir: [
+      // El vocabulario del régimen derogado, que es lo que reportó César.
+      /valor referencial/i,
+      /adjudicaci[óo]n(?:es)? simplificada/i,
+    ],
+    debeCitarNorma: true,
+  },
+  {
     id: 'apelacion-desde-cuando',
     pregunta: `Marca la alternativa correcta. ¿Cuál es el plazo perentorio con el que cuentan los
 postores para interponer el recurso de apelación contra el otorgamiento de la buena pro en

@@ -377,3 +377,59 @@ posiciones están vivas y el riesgo es real para las dos partes.
 febrero de 2027; según la Resolución N.° 6359-2026-TCP-S2, las
 certificaciones iniciales bajo la versión 2025 solo son obligatorias
 desde el 31 de agosto de 2026.
+
+---
+
+## La oferta supera la cuantía del procedimiento: qué se puede hacer, y qué no en subasta inversa
+
+**Pregunta.** La oferta del postor supera la cuantía del procedimiento.
+¿Qué artículo permite pedirle que la rebaje antes de solicitar la
+ampliación del presupuesto?
+
+**Respuesta.** El orden es el inverso: **primero se gestiona la ampliación
+presupuestal y solo si no hay recursos se negocia**. Lo dice el artículo
+132.1 del Reglamento.
+
+**Fundamento.** Artículo 132.1: «Si la oferta económica del postor que
+obtiene el mejor puntaje total supera la cuantía del procedimiento de
+selección, la DEC gestiona la solicitud de la ampliación de la
+certificación o previsión presupuestal correspondiente. En caso la
+oficina de planeamiento y presupuesto, o la que haga sus veces, indique
+que no se cuenta con los recursos necesarios, previamente a la
+adjudicación de la buena pro los evaluadores negocian con el postor que
+obtuvo el mejor puntaje total lo siguiente, **en este orden**: a) La
+reducción de su oferta económica. b) La reducción de determinadas
+prestaciones o condiciones del requerimiento, previa no objeción del área
+usuaria». Y añade un límite: «No puede negociarse las condiciones que
+dieron lugar al otorgamiento de puntaje en los factores de evaluación».
+El artículo 132.2 regula qué ocurre si el postor no acepta.
+
+**En obras y consultorías de obras rige la misma regla**, en el artículo
+167.1, con idéntica redacción.
+
+**En subasta inversa electrónica no se aplica, y lo dice la norma.**
+Artículo 132.7: «Lo dispuesto precedentemente no es aplicable para la
+subasta inversa electrónica», numeral incorporado por el artículo 3 del
+Decreto Supremo N° 001-2026-EF, publicado el 8 de enero de 2026. La
+exclusión encaja con el diseño del procedimiento: el artículo 96.3 dice
+que en la subasta inversa «no se realiza la evaluación técnica de las
+ofertas» y el 96.4 que la buena pro se otorga «al postor que oferte el
+menor precio» mediante lances en línea, de modo que no hay «mejor puntaje
+total» del que partir.
+
+**La única negociación prevista para la subasta inversa** es la del
+artículo 301: productos farmacéuticos y dispositivos médicos con ficha
+técnica convocados por subasta inversa conforme al artículo 96, en los
+que se presente **una sola oferta** o quede una sola oferta válida. Ahí
+sí se negocia con el proveedor único, con las condiciones que el propio
+artículo enumera —empezando por que el área usuaria sustente la urgencia
+ante la autoridad de la gestión administrativa—.
+
+**Vocabulario.** No se dice «valor referencial»: ese término es del
+régimen derogado y no aparece ni una vez en la Ley N° 32069 ni en su
+Reglamento. Se dice **cuantía del procedimiento de selección**. Tampoco
+existe la «adjudicación simplificada»; los procedimientos competitivos
+vigentes son la licitación pública y el concurso público, y con plazos
+propios de apelación la licitación pública abreviada, el concurso público
+abreviado, la selección de expertos, la comparación de precios y la
+subasta inversa electrónica (artículo 304).

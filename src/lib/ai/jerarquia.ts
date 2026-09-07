@@ -261,6 +261,51 @@ const RENUMERADOS: Renumeracion[] = [
   },
 ];
 
+/**
+ * Palabras que el régimen derogado usaba y el vigente no.
+ *
+ * César, 06/09/2026: «respondió de manera correcta; sin embargo, está
+ * haciendo referencia a términos con la norma derogada, tales como
+ * VALOR REFERENCIAL Y ADJUDICACIONES SIMPLIFICADAS, esos términos no se
+ * manejan con la norma actual».
+ *
+ * Comprobado sobre el texto consolidado de la Ley N° 32069 y su
+ * Reglamento: «valor referencial» no aparece NI UNA VEZ en 1,37 millones
+ * de caracteres, y «cuantía» aparece ciento cinco veces. «Adjudicación
+ * simplificada» aparece una sola vez, y dentro de un formato heredado
+ * que enumera tipos de procedimiento, no como procedimiento vigente.
+ *
+ * Es la misma idea que la tabla de artículos renumerados, un piso más
+ * abajo: allí cambia el número, aquí la palabra.
+ */
+interface TerminoDerogado {
+  viejo: RegExp;
+  /** El término tal como se escribe, para la etiqueta. */
+  comoSeDice: string;
+  /** Cómo se dice ahora, para escribirlo en la etiqueta. */
+  hoy: string;
+}
+
+const VOCABULARIO_DEROGADO: TerminoDerogado[] = [
+  {
+    viejo: /valor referencial/i,
+    comoSeDice: 'valor referencial',
+    hoy: 'se dice la «cuantía del procedimiento de selección»',
+  },
+  {
+    viejo: /adjudicaci[oó]n(?:es)? simplificada(?:s)?/i,
+    comoSeDice: 'adjudicación simplificada',
+    hoy: 'no existe: hay que decir qué procedimiento corresponde según la cuantía y el objeto',
+  },
+];
+
+/** ¿El fragmento habla con el vocabulario de la norma derogada? */
+export function terminoDerogado(fuente: FuenteJerarquia): TerminoDerogado | null {
+  const texto = fuente.snippet ?? '';
+  if (!texto) return null;
+  return VOCABULARIO_DEROGADO.find((t) => t.viejo.test(texto)) ?? null;
+}
+
 /** Cuánto puede alejarse el asunto de la cita para seguir contando. */
 const CERCA = 220;
 
@@ -316,6 +361,13 @@ export function etiquetaFuente(fuente: FuenteJerarquia): string {
   const regimen = regimenDe(fuente);
   if (regimen === 'anterior') {
     return `${base} · RÉGIMEN ANTERIOR (Ley N° 30225, derogada el 22/04/2025)`;
+  }
+  const palabra = terminoDerogado(fuente);
+  if (palabra) {
+    return (
+      `${base} · VOCABULARIO DEROGADO: donde dice «${palabra.comoSeDice}» ` +
+      `hoy ${palabra.hoy}. No repitas el término antiguo al responder.`
+    );
   }
   const renumerado = articuloRenumerado(fuente);
   if (renumerado) {
