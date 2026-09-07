@@ -231,6 +231,26 @@ export const CASOS: Caso[] = [
     debeCitarNorma: true,
   },
   {
+    id: 'iso-version-anterior',
+    pregunta:
+      'Las bases integradas exigen el certificado ISO 37001:2025 para el factor de evaluación «integridad en la contratación pública». Un postor presentó un certificado ISO 37001:2016 vigente. ¿Corresponde otorgarle el puntaje?',
+    porque:
+      'César, 06/09/2026: «hay dos posiciones de las salas de tribunal (...) el hecho de que hay mas resoluciones que dicen que son válidos no significa que la mayoría gana; ante este caso y otros similares en la que hay dos posiciones, la respuesta debería advertir que hay dos posiciones y luego un análisis y una recomendación». Comprobado una a una: a favor las Resoluciones 4323-2026-TCP-S5, 3318-2026-TCP-S6 y 6127-2026-TCP-S1; en contra las 4735-2026-TCP-S4, 4780-2026-TCP-S4 y 1727-2026-TCP-S2. Elegir una en silencio es lo que no vale',
+    debeDecir: [/37001/],
+    debeDistinguir: [
+      // Que diga que el Tribunal está dividido.
+      /dos posiciones|posiciones (?:distintas|divergentes|opuestas|encontradas)|criterios? (?:distintos|divergentes|opuestos|discrepantes|divididos|dispares|encontrados)|no (?:existe|hay) (?:un )?criterio (?:uniforme|un[íi]voco|[úu]nico|pac[íi]fico)|salas[^.]{0,80}(?:discrepan|difieren|distinto)|jurisprudencia (?:dividida|no uniforme)|posici[óo]n que (?:s[íi]|no)|depende de la posici[óo]n/i,
+      // La posición que admite la versión anterior.
+      /per[íi]odo de transici[óo]n|periodo de transici[óo]n|conserva aptitud|mantiene(?:n)? (?:su )?validez|coexisten/i,
+      // Y la que se atiene a la literalidad de las bases.
+      /no corresponde (?:asignar|otorgar|reconocer)[^.]{0,140}(?:2016|versi[óo]n anterior|puntaje)|no (?:se ajusta|satisface|cumple)[^.]{0,90}bases|bases[^.]{0,140}(?:no admiten|exigen expresamente|y no versiones anteriores|reglas definitivas|obligatorio cumplimiento)|literalidad de las bases|estricto cumplimiento de las bases|apartarse de las bases/i,
+    ],
+    // Sin `debeCitarNorma`: este punto no lo decide un artículo, sino
+    // las bases integradas y la jurisprudencia. Exigir la cita de un
+    // numeral empujaba a colgar uno decorativo, y nueve de doce
+    // respuestas correctas se contaban como fallo por no llevarlo.
+  },
+  {
     id: 'apelacion-desde-cuando',
     pregunta: `Marca la alternativa correcta. ¿Cuál es el plazo perentorio con el que cuentan los
 postores para interponer el recurso de apelación contra el otorgamiento de la buena pro en

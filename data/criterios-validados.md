@@ -318,3 +318,62 @@ defecto dentro de un documento presentado se subsana; un documento ausente
 no, porque incorporarlo añade una manifestación de voluntad que no existía
 al cierre de la presentación de ofertas (criterio de la Resolución
 N.° 7189-2026-S3).
+
+---
+
+## Certificado ISO de una versión anterior a la que exigen las bases: el Tribunal está dividido
+
+**Pregunta.** Las bases integradas exigen el certificado ISO 37001:2025
+para el factor «integridad en la contratación pública» y el postor
+presenta un ISO 37001:2016 vigente. ¿Corresponde el puntaje?
+
+**Respuesta.** Aquí no hay una respuesta única, y decirlo es parte de la
+respuesta: **las salas del Tribunal resuelven este punto en sentidos
+opuestos**. Lo que corresponde es advertirlo, exponer las dos posiciones
+con sus resoluciones y recomendar.
+
+**Posición A — la versión anterior vale mientras dure la transición.**
+Resoluciones N.° 4323-2026-TCP-S5, N.° 3318-2026-TCP-S6 y
+N.° 6127-2026-TCP-S1. El razonamiento: el documento IAF MD 30:2025
+—*Transition Requirements for ISO 37001:2025*— fijó un período de
+transición de dos años, hasta el **28 de febrero de 2027**, durante el
+cual ambas versiones coexisten válidamente. La 4323 lo dice así:
+«mientras no haya culminado el período de transición, la versión 2016
+conserva aptitud para acreditar la implementación de un sistema de
+gestión antisoborno». La 6127 añade que desestimar el certificado solo
+por el año «supone una aplicación desproporcionada de las bases
+integradas». La 3318 exige, antes de restar el puntaje, verificar si esa
+versión sigue dentro del cronograma oficial de transición.
+
+**Posición B — las bases pedían la versión 2025 y eso es lo que rige.**
+Resoluciones N.° 4735-2026-TCP-S4, N.° 4780-2026-TCP-S4 y
+N.° 1727-2026-TCP-S2. El razonamiento: las bases integradas son las
+reglas definitivas a las que se sometieron todos. La 4735 lo zanja: «a
+pesar de que la Entidad sostiene que el ISO 37001:2016 se encuentra
+vigente, lo cierto es que las bases requieren el certificado ISO
+37001:2025, y no versiones anteriores». La 4780 precisa el matiz que
+separa las dos posiciones: **no se discute la validez ni la vigencia del
+certificado**, sino que corresponda a lo que las bases pidieron.
+
+**Qué recomendar.**
+
+- A la entidad: resolver el punto **antes** de la presentación de
+  ofertas, en la absolución de consultas y observaciones, diciendo
+  expresamente si admite la versión en transición. Es el momento en que
+  el problema se evita sin costo.
+- Al comité que ya tiene la oferta delante: motivar la decisión con la
+  posición que siga y dejar constancia de que existe la otra, porque de
+  eso depende que resista una apelación.
+- Al postor: presentar la versión exigida cuando pueda; si solo tiene la
+  anterior, acompañar el sustento del período de transición (IAF MD
+  30:2025, y la equivalencia NTP-ISO 37001).
+
+**Advertencia sobre el recuento.** Que haya más resoluciones de un lado
+no resuelve nada: no es una cuestión de mayoría. Mientras el Tribunal no
+unifique el criterio en un precedente de observancia obligatoria, las dos
+posiciones están vivas y el riesgo es real para las dos partes.
+
+**Fechas comprobadas.** El período de transición corre hasta el 28 de
+febrero de 2027; según la Resolución N.° 6359-2026-TCP-S2, las
+certificaciones iniciales bajo la versión 2025 solo son obligatorias
+desde el 31 de agosto de 2026.
