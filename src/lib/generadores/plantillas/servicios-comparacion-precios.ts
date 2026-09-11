@@ -369,7 +369,7 @@ export const PLANTILLA_SERVICIOS_COMPARACION_PRECIOS: PlantillaRequerimiento = {
           ],
         },
 
-        seccionPenalidades('larga'),
+        seccionPenalidades('larga', false, 'servicio'),
 
         {
           id: 'subcontratacion',

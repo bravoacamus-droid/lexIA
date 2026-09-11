@@ -625,7 +625,7 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
         seccionAdelantoDirecto(),
 
         // Su .docx cierra las penalidades con el tope conjunto del 10%.
-        seccionPenalidades('larga', true),
+        seccionPenalidades('larga', true, 'servicio'),
 
         {
           id: 'subcontratacion',

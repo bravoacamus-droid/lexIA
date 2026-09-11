@@ -387,7 +387,7 @@ export const PLANTILLA_BIENES_COMPARACION_PRECIOS: PlantillaRequerimiento = {
           ],
         },
 
-        seccionPenalidades('larga'),
+        seccionPenalidades('larga', false, 'bien'),
 
         {
           id: 'subcontratacion',

@@ -366,7 +366,7 @@ export const PLANTILLA_EXPERTOS_GERENTES: PlantillaRequerimiento = {
         ),
 
         // Esta plantilla SÍ enuncia el tope del 10%.
-        seccionPenalidades('larga', true),
+        seccionPenalidades('larga', true, 'servicio'),
 
         {
           id: 'subcontratacion',

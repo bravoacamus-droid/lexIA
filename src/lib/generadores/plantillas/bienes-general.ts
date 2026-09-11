@@ -23,7 +23,8 @@
  * incluyen solo si aplican, en vez de arrastrar apartados vacíos.
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
-import { seccionAdelantoDirecto } from './comunes';
+import {
+  procedimientoPenalidades, seccionAdelantoDirecto } from './comunes';
 
 /**
  * Cláusula antisoborno — se reproduce ÍNTEGRA y sin cambios.
@@ -733,6 +734,7 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
                     'Señalar el plazo y forma en que se notifica al contratista el supuesto incurrido para que remita sus descargos, y el plazo en que la entidad contratante evalúa dicho descargo y emite una decisión',
                   ejemplo:
                     'Cuando se verifique alguno de estos supuestos, el área usuaria y/o la DEC notificará al contratista dentro del plazo máximo de un (01) día hábil, adjuntando el informe técnico y el sustento correspondiente.\nEl contratista contará con un plazo de dos (02) días hábiles para presentar sus descargos, los cuales deberán estar debidamente sustentados con evidencia objetiva.\nLa Entidad evaluará los descargos presentados en un plazo máximo de tres (03) días hábiles, emitiendo la decisión correspondiente sobre la procedencia o no de la penalidad, la cual será comunicada al contratista por escrito.',
+                  predeterminado: procedimientoPenalidades('bien'),
                   extension: 'varios_parrafos',
                 },
               ],

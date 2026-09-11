@@ -478,7 +478,7 @@ export const PLANTILLA_SERVICIOS_CONSULTORIA: PlantillaRequerimiento = {
         },
         seccionAdelantoDirecto(),
 
-        seccionPenalidades('larga'),
+        seccionPenalidades('larga', false, 'servicio'),
 
         {
           id: 'subcontratacion',

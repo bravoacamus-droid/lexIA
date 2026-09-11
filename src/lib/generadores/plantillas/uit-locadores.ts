@@ -285,7 +285,7 @@ export const PLANTILLA_UIT_LOCADORES: PlantillaRequerimiento = {
           ],
         },
 
-        seccionPenalidades8Uit(),
+        seccionPenalidades8Uit({ objeto: 'servicio' }),
 
         {
           id: 'subcontratacion',

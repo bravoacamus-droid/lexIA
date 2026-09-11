@@ -387,7 +387,7 @@ export const PLANTILLA_MANTENIMIENTO_VIAL: PlantillaRequerimiento = {
         },
         seccionAdelantoDirecto(),
 
-        seccionPenalidades('larga'),
+        seccionPenalidades('larga', false, 'servicio'),
 
         {
           id: 'subcontratacion',

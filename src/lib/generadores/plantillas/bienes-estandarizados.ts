@@ -358,7 +358,7 @@ export const PLANTILLA_BIENES_ESTANDARIZADOS: PlantillaRequerimiento = {
           'Este numeral aplica únicamente cuando, por la naturaleza, complejidad o características del bien, corresponda otorgar adelantos directos y dicha condición haya sido prevista y sustentada en la estrategia de contratación, conforme al artículo 137 del Reglamento. En caso contrario, consignar "NO APLICA".',
         ),
 
-        seccionPenalidades('larga'),
+        seccionPenalidades('larga', false, 'bien'),
 
         {
           id: 'subcontratacion',

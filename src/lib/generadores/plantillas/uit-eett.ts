@@ -715,7 +715,7 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
 
         // El ANEXO 1 abre el cuadro de otras penalidades con una
         // frase que los otros dos formatos no traen.
-        seccionPenalidades8Uit({ encabezaOtrasPenalidades: true }),
+        seccionPenalidades8Uit({ encabezaOtrasPenalidades: true, objeto: 'bien' }),
 
         {
           id: 'subcontratacion',

@@ -116,6 +116,37 @@ export const EJEMPLO_PROCEDIMIENTO_PENALIDADES =
   'Cuando se verifique alguno de estos supuestos, el área usuaria y/o la DEC notificará al contratista dentro del plazo máximo de un (01) día hábil, adjuntando el informe técnico y el sustento correspondiente.\nEl contratista contará con un plazo de dos (02) días hábiles para presentar sus descargos, los cuales deberán estar debidamente sustentados con evidencia objetiva.\nLa Entidad evaluará los descargos presentados en un plazo máximo de tres (03) días hábiles, emitiendo la decisión correspondiente sobre la procedencia o no de la penalidad, la cual será comunicada al contratista por escrito.';
 
 /**
+ * El procedimiento de descargos, redactado y listo.
+ *
+ * Debajo del cuadro de otras penalidades el formato deja un hueco para
+ * que el área usuaria explique cómo se notifica el incumplimiento y en
+ * qué plazo se descarga. Lo que había era un EJEMPLO, y un ejemplo no
+ * se escribe solo: el apartado salía vacío salvo que alguien lo
+ * redactara. Observación 14 de César (setiembre de 2026): "se debe
+ * establecer el siguiente texto de manera predeterminada".
+ *
+ * Viene puesto y se puede cambiar: es el reparto institucional de
+ * plazos —cinco días hábiles para descargar y cinco para resolver—, no
+ * una cifra que dependa de la contratación.
+ *
+ * @param objeto Lo que se ejecuta. El texto de César dice
+ *   "servicio/bien"; aquí se dice uno u otro según el formato, que para
+ *   eso se sabe cuál es.
+ */
+export function procedimientoPenalidades(objeto: 'servicio' | 'bien' | 'obra'): string {
+  const ejecucion = {
+    servicio: 'la ejecución del servicio',
+    bien: 'la entrega del bien',
+    obra: 'la ejecución de la obra',
+  }[objeto];
+  return [
+    `Cuando se verifique un supuesto de incumplimiento durante ${ejecucion}, la Unidad de Administración y/o la DEC, según corresponda, notificará al contratista, adjuntando la documentación sustentatoria.`,
+    'El contratista contará con cinco (05) días hábiles, contados desde el día siguiente de recibida la notificación, para presentar sus descargos debidamente sustentados, acompañando la evidencia objetiva que considere pertinente, a través de lo establecido en el documento notificado por la Entidad.',
+    'Recibidos los descargos, la Entidad los evaluará en un plazo máximo de cinco (05) días hábiles y emitirá la decisión correspondiente sobre la procedencia o improcedencia de la penalidad, observación u otra consecuencia contractual aplicable, comunicándola por escrito al contratista.',
+  ].join('\n');
+}
+
+/**
  * Tope del 10% a la suma de penalidades.
  *
  * NO está en todas las plantillas: Bienes en General no lo enuncia y
@@ -137,6 +168,7 @@ export const VALIDACION_PENALIDADES = {
 export function seccionPenalidades(
   variante: 'corta' | 'larga' = 'larga',
   conTope = false,
+  objeto: 'servicio' | 'bien' | 'obra' = 'servicio',
 ): Seccion {
   const seccion: Seccion = {
     id: 'penalidades',
@@ -184,6 +216,7 @@ export function seccionPenalidades(
             instruccion:
               'Señalar el plazo y forma en que se notifica al contratista el supuesto incurrido para que remita sus descargos, y el plazo en que la entidad contratante evalúa dicho descargo y emite una decisión',
             ejemplo: EJEMPLO_PROCEDIMIENTO_PENALIDADES,
+            predeterminado: procedimientoPenalidades(objeto),
             extension: 'varios_parrafos',
           },
         ],

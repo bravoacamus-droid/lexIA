@@ -543,7 +543,7 @@ export const PLANTILLA_VASO_DE_LECHE: PlantillaRequerimiento = {
           'Aplica únicamente cuando corresponda otorgar adelantos directos y así se haya previsto y sustentado en la estrategia de contratación, conforme al artículo 137 del Reglamento. En caso contrario, consignar "NO APLICA".',
         ),
 
-        seccionPenalidades('larga'),
+        seccionPenalidades('larga', false, 'bien'),
         seccionControversias(true),
 
         {

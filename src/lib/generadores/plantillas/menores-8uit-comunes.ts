@@ -20,6 +20,7 @@
  * van como texto fijo.
  */
 import type { Bloque, Seccion } from '../plantilla-tipos';
+import { procedimientoPenalidades } from './comunes';
 
 export const PENALIDAD_MORA_8UIT_ENCABEZADO =
   'El contrato establece la penalidad por mora y otras penalidades aplicables al contratista ante el incumplimiento injustificado de sus obligaciones contractuales.';
@@ -44,7 +45,7 @@ export const PENALIDAD_MORA_8UIT_FORMULA =
  * contra sus Word lo cazaría.
  */
 export function seccionPenalidades8Uit(
-  opciones: { encabezaOtrasPenalidades?: boolean } = {},
+  opciones: { encabezaOtrasPenalidades?: boolean; objeto?: 'servicio' | 'bien' | 'obra' } = {},
 ): Seccion {
   return {
     id: 'penalidades',
@@ -109,6 +110,19 @@ export function seccionPenalidades8Uit(
               'Detallar el supuesto de aplicación, la forma de cálculo y el procedimiento de verificación de cada penalidad distinta a la mora',
             columnas: ['N°', 'Supuestos de aplicación de penalidad', 'Forma de cálculo', 'Procedimiento y medios de verificación'],
             minimo: 1,
+          },
+          {
+            // Debajo del cuadro, cómo se notifica el incumplimiento y en
+            // qué plazo se descarga. En los contratos menores no había
+            // nada: el cuadro terminaba y el apartado se acababa ahí.
+            // Observación 14 de César (setiembre de 2026).
+            clase: 'redactado',
+            id: 'procedimiento_penalidades',
+            etiqueta: 'Procedimiento de notificación y descargos',
+            instruccion:
+              'Señalar el plazo y forma en que se notifica al contratista el supuesto incurrido para que remita sus descargos, y el plazo en que la entidad contratante evalúa dicho descargo y emite una decisión',
+            predeterminado: procedimientoPenalidades(opciones.objeto ?? 'servicio'),
+            extension: 'varios_parrafos',
           },
         ],
       },

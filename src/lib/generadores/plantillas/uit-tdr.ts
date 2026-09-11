@@ -652,7 +652,7 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
           'Aplica únicamente cuando corresponda otorgar adelantos y así se haya previsto y sustentado en la estrategia de contratación. Si se otorga, el contratista debe presentar previamente una garantía por idéntico monto.',
         ),
 
-        seccionPenalidades8Uit(),
+        seccionPenalidades8Uit({ objeto: 'servicio' }),
 
         {
           id: 'subcontratacion',

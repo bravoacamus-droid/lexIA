@@ -27,6 +27,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  procedimientoPenalidades,
   seccionEncabezado,
   seccionFinalidadPublica,
   seccionObjetivo,
@@ -640,6 +641,7 @@ export const PLANTILLA_OBRAS_DISENO_CONSTRUCCION: PlantillaRequerimiento = {
                   instruccion:
                     'Señalar el plazo y forma en que se notifica al contratista el supuesto incurrido para que remita sus descargos, y el plazo en que la entidad evalúa dicho descargo y emite una decisión',
                   ejemplo: EJEMPLO_PROCEDIMIENTO_PENALIDADES,
+                  predeterminado: procedimientoPenalidades('obra'),
                   extension: 'varios_parrafos',
                 },
               ],
