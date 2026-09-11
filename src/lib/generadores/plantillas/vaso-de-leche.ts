@@ -18,6 +18,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_VERIFICACIONES,
   METODO_RECURSOS_ENTIDAD,
   seccionConfidencialidad,
   seccionAdelantoDirecto,
@@ -654,7 +655,8 @@ export const PLANTILLA_VASO_DE_LECHE: PlantillaRequerimiento = {
               id: 'verificaciones',
               etiqueta: 'Pruebas y ensayos',
               instruccion:
-                'Indicar la relación de pruebas o ensayos requeridos, la cantidad de muestras a ensayar, los parámetros de aceptación, quién realizará las pruebas, quién asumirá el gasto y con qué periodicidad. Precisar si se admite muestra dirimente',
+                'Indicar la relación de pruebas o ensayos requeridos, la cantidad de muestras a ensayar, los parámetros de aceptación, quién realizará las pruebas, quién asumirá el gasto y con qué periodicidad. Precisar si se admite muestra dirimente' +
+                METODO_VERIFICACIONES,
               ejemplo:
                 'Las verificaciones comprenderán, como mínimo, la inspección física del producto, envase, embalaje y rotulado; la verificación de la vigencia del Registro Sanitario, fecha de producción, fecha de vencimiento y número de lote; y la toma de una (1) muestra representativa por lote entregado.\n\nLos ensayos serán realizados por un laboratorio acreditado o autorizado y el costo será asumido por el contratista. En caso de que los resultados no sean conformes, la Entidad podrá solicitar el análisis de una muestra dirimente, cuyos resultados serán definitivos.\n\nEn cada entrega, el contratista deberá presentar el Certificado de Calidad o Certificado de Conformidad del lote entregado.',
               extension: 'varios_parrafos',
@@ -774,7 +776,8 @@ export const PLANTILLA_VASO_DE_LECHE: PlantillaRequerimiento = {
               id: 'verificacion_calidad',
               etiqueta: 'Certificados exigidos en cada entrega',
               instruccion:
-                'Indicar los certificados que el contratista debe presentar en cada entrega (certificado de conformidad o calidad, certificado de inspección, informe de ensayo)',
+                'Indicar los certificados que el contratista debe presentar en cada entrega (certificado de conformidad o calidad, certificado de inspección, informe de ensayo)' +
+                METODO_VERIFICACIONES,
               extension: 'parrafo',
             },
           ],

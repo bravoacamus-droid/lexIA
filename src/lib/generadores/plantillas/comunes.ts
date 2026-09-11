@@ -876,6 +876,18 @@ export function seccionConfidencialidad(porDefecto = true): Seccion {
 export const METODO_RECURSOS_ENTIDAD =
   ' Antes de redactar, determina si por la naturaleza y forma de ejecución de la contratación resulta necesario que la Entidad proporcione algo: si la prestación puede ejecutarse sin intervención suya, dilo y no propongas nada. Si corresponde, propón ÚNICAMENTE lo necesario, pertinente y directamente vinculado a la ejecución, entre: información, documentos o datos; ambientes, instalaciones o espacios; acceso a sistemas, plataformas o infraestructura; equipos, herramientas o recursos de propiedad de la Entidad; coordinaciones, autorizaciones o facilidades; designación de responsables o puntos de coordinación; y otras obligaciones indispensables de la Entidad. De cada uno comprueba su necesidad, oportunidad, disponibilidad y relación directa con la prestación. No inventes recursos, bienes, información, accesos, responsables, plazos ni obligaciones que no estén sustentados en lo que se te ha dado, ni traslades al contratista obligaciones que corresponden a la Entidad, ni a la inversa. Cierra siempre con una de estas dos cosas: la relación de lo que la Entidad debe proporcionar, o una línea diciendo que no corresponde y por qué. No devuelvas este apartado entre corchetes: decidir si corresponde es parte de tu trabajo, no un dato que falte.';
 
+/**
+ * Cómo se decide si hacen falta verificaciones técnicas.
+ *
+ * Observación 19 de César (setiembre de 2026). El riesgo aquí es el
+ * contrario del de otros apartados: pedir ensayos "por si acaso"
+ * encarece la oferta y deja fuera a quien no puede costearlos, y el
+ * cumplimiento de muchas prestaciones se acredita sin más que revisar
+ * el entregable.
+ */
+export const METODO_VERIFICACIONES =
+  ' Antes de redactar, evalúa si por la naturaleza y complejidad de esta contratación hace falta comprobar algo. Hace falta cuando una característica exigida NO se puede comprobar mirando el entregable —resistencia, composición, rendimiento, calibración, seguridad, interoperabilidad, condiciones sanitarias— y solo se acredita con una prueba, un ensayo, una inspección o una revisión documental específica. No hace falta cuando el propio entregable evidencia el cumplimiento, y en ese caso dilo en una línea y no propongas ninguna. Si corresponde, precisa de cada una, según aplique: qué aspecto o característica se verifica; con qué método o procedimiento; qué prueba, ensayo, inspección, simulación o revisión documental; con qué criterios objetivos se determina el cumplimiento; en qué momento se verifica; y qué evidencia sustenta la conformidad. Cada verificación debe ser objetiva, pertinente, necesaria, proporcional y estar directamente vinculada a las características, condiciones, actividades, entregables y resultados exigidos: no pidas ensayos de más, que encarecen la oferta y dejan fuera a quien no puede costearlos. No inventes métodos, normas técnicas, parámetros, tolerancias, equipos, laboratorios, frecuencias ni criterios de aceptación que no estén sustentados en lo que se te ha dado; si el ensayo corresponde pero su parámetro es un dato del área usuaria —edad de rotura, número de probetas, tolerancia admisible—, nómbralo con [Pendiente: qué falta] en vez de callarlo.';
+
 export const VALIDACION_EXPERIENCIA = {
   id: 'experiencia_max',
   descripcion:

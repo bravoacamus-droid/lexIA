@@ -22,6 +22,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_VERIFICACIONES,
   METODO_RECURSOS_ENTIDAD,
   seccionConfidencialidad,
   seccionAnticorrupcion,
@@ -354,7 +355,8 @@ export const PLANTILLA_UIT_LOCADORES: PlantillaRequerimiento = {
               id: 'verificaciones',
               etiqueta: 'Verificaciones para la conformidad',
               instruccion:
-                'Indicar la relación de pruebas o ensayos requeridos para la conformidad del bien y la cantidad de muestras que debe entregar el contratista, en función de la naturaleza de los bienes',
+                'Indicar la relación de pruebas o ensayos requeridos para la conformidad del bien y la cantidad de muestras que debe entregar el contratista, en función de la naturaleza de los bienes' +
+                METODO_VERIFICACIONES,
               extension: 'lista',
             },
           ],

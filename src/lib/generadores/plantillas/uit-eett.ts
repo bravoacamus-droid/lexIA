@@ -22,6 +22,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_VERIFICACIONES,
   METODO_RECURSOS_ENTIDAD,
   seccionConfidencialidad,
   seccionAdelantoDirecto,
@@ -849,7 +850,8 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
               id: 'verificaciones',
               etiqueta: 'Verificaciones técnicas, pruebas o ensayos',
               instruccion:
-                'Indicar las pruebas o ensayos requeridos para la conformidad del bien, los parámetros de aceptación, quién las realiza y quién asume su costo',
+                'Indicar las pruebas o ensayos requeridos para la conformidad del bien, los parámetros de aceptación, quién las realiza y quién asume su costo' +
+                METODO_VERIFICACIONES,
               extension: 'parrafo',
             },
             {

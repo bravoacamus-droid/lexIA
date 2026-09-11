@@ -20,6 +20,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_VERIFICACIONES,
   METODO_RECURSOS_ENTIDAD,
   seccionConfidencialidad,
   seccionAdelantoDirecto,
@@ -457,7 +458,8 @@ export const PLANTILLA_EXPERTOS_GERENTES: PlantillaRequerimiento = {
               id: 'verificaciones',
               etiqueta: 'Verificaciones para la conformidad',
               instruccion:
-                'Precisar las verificaciones técnicas, revisiones documentarias y validaciones que la Entidad realizará para comprobar que el servicio se ejecutó conforme a los Términos de Referencia, el contrato y los resultados esperados. La conformidad solo se emite cuando las verificaciones acrediten el cumplimiento integral',
+                'Precisar las verificaciones técnicas, revisiones documentarias y validaciones que la Entidad realizará para comprobar que el servicio se ejecutó conforme a los Términos de Referencia, el contrato y los resultados esperados. La conformidad solo se emite cuando las verificaciones acrediten el cumplimiento integral' +
+                METODO_VERIFICACIONES,
               ejemplo:
                 'La revisión del cumplimiento de los Términos de Referencia.\nLa evaluación del cumplimiento de las funciones asignadas.\nLa verificación de los informes de seguimiento y control del proyecto.\nLa revisión del monitoreo efectuado respecto del alcance, plazo, costo, calidad y riesgos.\nLa evaluación de las recomendaciones formuladas para la toma de decisiones.\nLa verificación del cumplimiento del cronograma de actividades y de los entregables comprometidos.\nLa revisión de la documentación técnica que sustenta los informes presentados.',
               extension: 'lista',

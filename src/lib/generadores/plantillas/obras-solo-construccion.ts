@@ -28,6 +28,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_VERIFICACIONES,
   seccionConfidencialidad,
   procedimientoPenalidades,
   seccionEncabezado,
@@ -864,7 +865,8 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
               id: 'verificaciones',
               etiqueta: 'Verificaciones técnicas',
               instruccion:
-                'Precisar las verificaciones técnicas, inspecciones in situ, pruebas de control de calidad, ensayos de materiales, validaciones operativas y revisiones documentarias que la Entidad realizará a través de la supervisión de obra',
+                'Precisar las verificaciones técnicas, inspecciones in situ, pruebas de control de calidad, ensayos de materiales, validaciones operativas y revisiones documentarias que la Entidad realizará a través de la supervisión de obra' +
+                METODO_VERIFICACIONES,
               ejemplo:
                 'La revisión y pronunciamiento sobre el Informe de Revisión del Expediente Técnico presentado por el contratista.\nLa verificación del control técnico, económico, administrativo y de seguridad de la ejecución física de la obra.\nLa validación de los metrados realmente ejecutados y el sustento documentario de las valorizaciones mensuales.\nLa revisión permanente de los registros y la absolución de consultas anotadas en el Cuaderno de Incidencias.\nLa verificación del cumplimiento de los protocolos de control de calidad, ensayos de materiales y pruebas operativas.\nEl seguimiento y control del cumplimiento del programa de ejecución de obra (ruta crítica).\nLa verificación de que la obra se ejecute en estricta conformidad con el Expediente Técnico aprobado.',
               extension: 'lista',

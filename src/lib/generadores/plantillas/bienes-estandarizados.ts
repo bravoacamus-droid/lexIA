@@ -13,6 +13,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_VERIFICACIONES,
   METODO_RECURSOS_ENTIDAD,
   seccionConfidencialidad,
   seccionAdelantoDirecto,
@@ -626,7 +627,8 @@ export const PLANTILLA_BIENES_ESTANDARIZADOS: PlantillaRequerimiento = {
               id: 'verificacion_calidad',
               etiqueta: 'Certificados exigidos en cada entrega',
               instruccion:
-                'Indicar los certificados que el contratista debe presentar en cada entrega para verificar el cumplimiento de las especificaciones técnicas (certificado de conformidad o calidad, certificado de inspección, informe de ensayo)',
+                'Indicar los certificados que el contratista debe presentar en cada entrega para verificar el cumplimiento de las especificaciones técnicas (certificado de conformidad o calidad, certificado de inspección, informe de ensayo)' +
+                METODO_VERIFICACIONES,
               extension: 'parrafo',
             },
           ],
