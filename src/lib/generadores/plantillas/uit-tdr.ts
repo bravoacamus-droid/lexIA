@@ -424,6 +424,19 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
                     'El contrato se rige por la modalidad de pago de PAGO POR CONSUMO, de conformidad con el artículo 130 del Reglamento.',
                 },
                 {
+                  // Las dos que faltaban. El artículo 130 lista siete
+                  // modalidades para bienes y servicios y aquí estaban
+                  // cinco. Observación 10 de César (setiembre de 2026).
+                  valor: 'porcentajes',
+                  texto:
+                    'El contrato se rige por la modalidad de pago EN BASE A PORCENTAJES, de conformidad con el artículo 130 del Reglamento.',
+                },
+                {
+                  valor: 'honorario_comision',
+                  texto:
+                    'El contrato se rige por la modalidad de pago EN BASE A UN HONORARIO FIJO Y UNA COMISIÓN DE ÉXITO, de conformidad con el artículo 130 del Reglamento.',
+                },
+                {
                   valor: 'esquema_mixto',
                   texto:
                     'El contrato se rige por la modalidad de pago de ESQUEMA MIXTO, de conformidad con el artículo 130 del Reglamento.',
