@@ -253,12 +253,27 @@ export const PLANTILLA_OBRAS_DISENO_CONSTRUCCION: PlantillaRequerimiento = {
             {
               clase: 'redactado',
               id: 'plan_trabajo',
-              etiqueta: 'Plan de trabajo',
+              etiqueta: 'Contenido mínimo del plan de trabajo',
               instruccion:
-                'Establecer el contenido mínimo del Plan de Trabajo, el plazo y medio de presentación y el plazo para su revisión y aprobación',
+                'Enumerar el contenido mínimo que debe tener el plan de trabajo, vinculado al objeto y a las actividades de la prestación',
               ejemplo:
                 'Objetivos y alcance del proyecto.\nCronograma general y cronogramas detallados de diseño y ejecución de obra.\nProgramación de hitos contractuales y entregables.\nRelación del personal clave y principales responsabilidades.\nProgramación de recursos, equipos y maquinaria.\nPlan de aseguramiento y control de calidad.\nIdentificación de riesgos y medidas de mitigación.\nPlan de seguridad y salud en el trabajo.\nEstrategia de gestión ambiental, de corresponder.\nMecanismos de coordinación y comunicación con la Entidad y la supervisión.',
               extension: 'lista',
+            },
+            {
+              // El formato de lista sirve para enumerar el contenido
+              // mínimo, no para las condiciones: la oportunidad, el
+              // medio de entrega o el plazo de evaluación no son
+              // viñetas. Observación 8 de César (setiembre de 2026):
+              // «este formato no se adecua, solo se adecúa para el
+              // contenido mínimo del plan de trabajo, pero no para las
+              // condiciones».
+              clase: 'redactado',
+              id: 'plan_trabajo_condiciones',
+              etiqueta: 'Condiciones del plan de trabajo',
+              instruccion:
+                'Precisar las condiciones y criterios que deberá considerar el plan, la oportunidad y el plazo de presentación, el medio de entrega, el plazo del área usuaria para su evaluación cuando corresponda y las demás condiciones necesarias para su revisión y aprobación, sin incorporar exigencias innecesarias',
+              extension: 'varios_parrafos',
             },
           ],
         },

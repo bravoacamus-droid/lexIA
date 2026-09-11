@@ -122,12 +122,27 @@ export const PLANTILLA_UIT_LOCADORES: PlantillaRequerimiento = {
             {
               clase: 'redactado',
               id: 'plan_trabajo',
-              etiqueta: 'Plan de trabajo',
+              etiqueta: 'Contenido mínimo del plan de trabajo',
               instruccion:
-                'Delimitar el contenido, condiciones y oportunidad de entrega del plan, y el plazo del área usuaria para su aprobación',
+                'Enumerar el contenido mínimo que debe tener el plan de trabajo, vinculado al objeto y a las actividades de la prestación',
               ejemplo:
                 'Objetivo de la asesoría.\nMetodología para el desarrollo del servicio.\nCronograma de actividades.\nProgramación de reuniones de coordinación.\nCronograma de presentación de informes o productos.',
               extension: 'lista',
+            },
+            {
+              // El formato de lista sirve para enumerar el contenido
+              // mínimo, no para las condiciones: la oportunidad, el
+              // medio de entrega o el plazo de evaluación no son
+              // viñetas. Observación 8 de César (setiembre de 2026):
+              // «este formato no se adecua, solo se adecúa para el
+              // contenido mínimo del plan de trabajo, pero no para las
+              // condiciones».
+              clase: 'redactado',
+              id: 'plan_trabajo_condiciones',
+              etiqueta: 'Condiciones del plan de trabajo',
+              instruccion:
+                'Precisar las condiciones y criterios que deberá considerar el plan, la oportunidad y el plazo de presentación, el medio de entrega, el plazo del área usuaria para su evaluación cuando corresponda y las demás condiciones necesarias para su revisión y aprobación, sin incorporar exigencias innecesarias',
+              extension: 'varios_parrafos',
             },
           ],
         },
