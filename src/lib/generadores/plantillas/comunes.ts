@@ -615,6 +615,91 @@ export const VALIDACION_ADELANTO = {
   fundamento: 'Plantilla — Condiciones de contratación, adelanto directo',
 };
 
+/**
+ * Los tres párrafos del adelanto directo, con sus cuatro huecos.
+ *
+ * El formato no pide un porcentaje suelto: trae la cláusula redactada y
+ * solo deja que la Entidad diga cuántos adelantos, qué porcentaje y los
+ * dos plazos. Ocho formatos ya lo traían así y dos —Contrato menor TDR
+ * y Consultoría de obras— se habían quedado con un campo aislado.
+ * Observación 13 de César (setiembre de 2026): "para todos los casos se
+ * debe replicar como se estableció (...) en otros se encuentra con esta
+ * estructura que debe ser alineada de acuerdo a la estructura
+ * precedente". Se unifica aquí para que no vuelvan a separarse.
+ *
+ * No aplica a ejecución de obras: allí el adelanto se rige por su
+ * propio régimen —directo, de materiales y por avance—, con otros topes
+ * y otros plazos.
+ *
+ * @param nota Advertencia previa. Cada formato trae la suya, con su
+ *   propio fundamento, y por eso no se fija aquí.
+ */
+export function seccionAdelantoDirecto(nota?: string): Seccion {
+  return {
+    id: 'adelanto_directo',
+    titulo: 'Adelanto directo',
+    condicion: 'otorga_adelanto',
+    bloques: [
+      ...(nota ? [{ clase: 'nota' as const, texto: nota }] : []),
+      {
+        clase: 'parrafo',
+        texto:
+          'La entidad contratante otorgará {{adelanto_cantidad}} adelantos directos por el {{adelanto_porcentaje}} del monto del contrato original.',
+        campos: [
+          {
+            clase: 'campo',
+            id: 'adelanto_cantidad',
+            etiqueta: 'Número de adelantos',
+            ayuda: 'Consignar número de adelantos a otorgarse',
+            tipo: 'numero',
+            obligatorio: true,
+          },
+          {
+            clase: 'campo',
+            id: 'adelanto_porcentaje',
+            etiqueta: 'Porcentaje de adelanto directo',
+            ayuda:
+              'Consignar porcentaje, considerando que los adelantos directos no pueden exceder en conjunto del 30% del monto del contrato original',
+            tipo: 'numero',
+            obligatorio: true,
+            validacion: 'adelanto_directo_max',
+          },
+        ],
+      },
+      {
+        clase: 'parrafo',
+        texto:
+          'El contratista debe solicitar los adelantos dentro de los {{adelanto_plazo_solicitud}} días siguientes de perfeccionamiento del contrato, adjuntando a su solicitud la garantía por adelantos acompañada del comprobante de pago correspondiente. Vencido dicho plazo no procede la solicitud del adelanto.',
+        campos: [
+          {
+            clase: 'campo',
+            id: 'adelanto_plazo_solicitud',
+            etiqueta: 'Plazo para solicitar el adelanto',
+            ayuda: 'Consignar plazo en días',
+            tipo: 'dias',
+            obligatorio: true,
+          },
+        ],
+      },
+      {
+        clase: 'parrafo',
+        texto:
+          'La Entidad otorgará el adelanto dentro de los {{adelanto_plazo_entrega}} días calendario siguientes a la presentación de la solicitud, siempre que esta cumpla con los requisitos establecidos en el contrato y en la normativa vigente.',
+        campos: [
+          {
+            clase: 'campo',
+            id: 'adelanto_plazo_entrega',
+            etiqueta: 'Plazo para entregar el adelanto',
+            ayuda: 'Consignar plazo en días calendario',
+            tipo: 'dias',
+            obligatorio: true,
+          },
+        ],
+      },
+    ],
+  };
+}
+
 export const VALIDACION_EXPERIENCIA = {
   id: 'experiencia_max',
   descripcion:

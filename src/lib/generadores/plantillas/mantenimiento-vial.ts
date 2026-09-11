@@ -19,6 +19,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  seccionAdelantoDirecto,
   seccionEncabezado,
   seccionFinalidadPublica,
   seccionObjetivo,
@@ -384,68 +385,7 @@ export const PLANTILLA_MANTENIMIENTO_VIAL: PlantillaRequerimiento = {
             },
           ],
         },
-        {
-          id: 'adelanto_directo',
-          titulo: 'Adelanto directo',
-          condicion: 'otorga_adelanto',
-          bloques: [
-            {
-              clase: 'parrafo',
-              texto:
-                'La entidad contratante otorgará {{adelanto_cantidad}} adelantos directos por el {{adelanto_porcentaje}} del monto del contrato original.',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'adelanto_cantidad',
-                  etiqueta: 'Número de adelantos',
-                  ayuda: 'Consignar número de adelantos a otorgarse',
-                  tipo: 'numero',
-                  obligatorio: true,
-                },
-                {
-                  clase: 'campo',
-                  id: 'adelanto_porcentaje',
-                  etiqueta: 'Porcentaje de adelanto directo',
-                  ayuda:
-                    'Consignar porcentaje, considerando que los adelantos directos no pueden exceder en conjunto del 30% del monto del contrato original',
-                  tipo: 'numero',
-                  obligatorio: true,
-                  validacion: 'adelanto_directo_max',
-                },
-              ],
-            },
-            {
-              clase: 'parrafo',
-              texto:
-                'El contratista debe solicitar los adelantos dentro de los {{adelanto_plazo_solicitud}} días siguientes de perfeccionamiento del contrato, adjuntando a su solicitud la garantía por adelantos acompañada del comprobante de pago correspondiente. Vencido dicho plazo no procede la solicitud del adelanto.',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'adelanto_plazo_solicitud',
-                  etiqueta: 'Plazo para solicitar el adelanto',
-                  ayuda: 'Consignar plazo en días',
-                  tipo: 'dias',
-                  obligatorio: true,
-                },
-              ],
-            },
-            {
-              clase: 'parrafo',
-              texto:
-                'La Entidad otorgará el adelanto dentro de los {{adelanto_plazo_entrega}} días calendario siguientes a la presentación de la solicitud, siempre que esta cumpla con los requisitos establecidos en el contrato y en la normativa vigente.',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'adelanto_plazo_entrega',
-                  etiqueta: 'Plazo para entregar el adelanto',
-                  ayuda: 'Consignar plazo en días calendario',
-                  tipo: 'dias',
-                  obligatorio: true,
-                },
-              ],
-            },
-          ],
-        },
+        seccionAdelantoDirecto(),
 
         seccionPenalidades('larga'),
 

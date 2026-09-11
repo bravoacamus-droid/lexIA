@@ -24,6 +24,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  seccionAdelantoDirecto,
   seccionEncabezado,
   seccionFinalidadPublica,
   seccionObjetivo,
@@ -494,40 +495,9 @@ export const PLANTILLA_CONSULTORIA_OBRAS: PlantillaRequerimiento = {
             },
           ],
         },
-        {
-          id: 'adelanto_directo',
-          titulo: 'Adelanto directo',
-          condicion: 'otorga_adelanto',
-          bloques: [
-            {
-              clase: 'nota',
-              texto:
-                'El otorgamiento de adelantos directos es FACULTATIVO y procede solo cuando la Entidad determine su necesidad y así se haya sustentado en la estrategia de contratación, conforme al artículo 66 de la Ley N° 32069 y al artículo 178 de su Reglamento. Si no corresponde, consignar "NO APLICA".',
-            },
-            {
-              clase: 'campo',
-              id: 'adelanto_porcentaje',
-              etiqueta: 'Porcentaje de adelanto directo',
-              ayuda:
-                'Consignar porcentaje, considerando que los adelantos directos no pueden exceder en conjunto del 30% del monto del contrato original',
-              tipo: 'numero',
-              obligatorio: true,
-              validacion: 'adelanto_directo_max',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'El contratista deberá solicitar el adelanto dentro de los diez (10) días calendario contados desde el día siguiente del perfeccionamiento del contrato o desde el cumplimiento de la condición establecida para su otorgamiento, según corresponda, adjuntando:',
-              fundamento: 'Ley N° 32069, art. 66; Reglamento, art. 178',
-            },
-            {
-              clase: 'fijo',
-              texto: 'Solicitud de adelanto.\nComprobante de pago correspondiente.',
-              fundamento: 'Plantilla — documentos para el adelanto',
-                          lista: true,
-            },
-          ],
-        },
+        seccionAdelantoDirecto(
+          'El otorgamiento de adelantos directos es FACULTATIVO y procede solo cuando la Entidad determine su necesidad y así se haya sustentado en la estrategia de contratación, conforme al artículo 66 de la Ley N° 32069 y al artículo 178 de su Reglamento. Si no corresponde, consignar "NO APLICA".',
+        ),
 
         // Su .docx cierra las penalidades con el tope conjunto del 10%.
         seccionPenalidades('larga', true),

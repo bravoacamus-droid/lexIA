@@ -22,6 +22,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  seccionAdelantoDirecto,
   seccionAnticorrupcion,
   seccionViciosOcultos,
   seccionSolicitante,
@@ -708,79 +709,9 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
             },
           ],
         },
-        {
-          id: 'adelanto_directo',
-          titulo: 'Adelanto directo',
-          condicion: 'otorga_adelanto',
-          bloques: [
-            {
-              clase: 'nota',
-              texto:
-                'Aplica únicamente cuando corresponda otorgar adelantos directos y así se haya previsto y sustentado en la estrategia de contratación, conforme al artículo 137 del Reglamento. En caso contrario, consignar "NO APLICA". Si se otorga adelanto, el contratista debe presentar previamente una garantía por idéntico monto.',
-            },
-            {
-              // El formato trae los tres párrafos redactados y solo deja
-              // cuatro huecos: cuántos adelantos, qué porcentaje y los
-              // dos plazos. Aquí había un campo suelto con el
-              // porcentaje. Observación de César (agosto de 2026): "el
-              // adelanto directo debe ser adecuado según modelo
-              // alcanzado".
-              clase: 'parrafo',
-              texto:
-                'La entidad contratante otorgará {{adelanto_cantidad}} adelantos directos por el {{adelanto_porcentaje}} del monto del contrato original.',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'adelanto_cantidad',
-                  etiqueta: 'Número de adelantos',
-                  ayuda: 'Consignar número de adelantos a otorgarse',
-                  tipo: 'texto',
-                  obligatorio: true,
-                },
-                {
-                  clase: 'campo',
-                  id: 'adelanto_porcentaje',
-                  etiqueta: 'Porcentaje de adelanto directo',
-                  ayuda:
-                    'Consignar porcentaje, considerando que los adelantos directos no pueden exceder en conjunto del 30% del monto del contrato original',
-                  tipo: 'numero',
-                  obligatorio: true,
-                  validacion: 'adelanto_directo_max',
-                },
-              ],
-            },
-            {
-              clase: 'parrafo',
-              texto:
-                'El contratista debe solicitar los adelantos dentro de los {{adelanto_plazo_solicitud}} días siguientes de perfeccionamiento del contrato, adjuntando a su solicitud la garantía por adelantos acompañada del comprobante de pago correspondiente. Vencido dicho plazo no procede la solicitud del adelanto.',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'adelanto_plazo_solicitud',
-                  etiqueta: 'Plazo para solicitar el adelanto',
-                  ayuda: 'Consignar plazo',
-                  tipo: 'dias',
-                  obligatorio: true,
-                },
-              ],
-            },
-            {
-              clase: 'parrafo',
-              texto:
-                'La Entidad otorgará el adelanto dentro de los {{adelanto_plazo_entrega}} días calendario siguientes a la presentación de la solicitud, siempre que esta cumpla con los requisitos establecidos en el contrato y en la normativa vigente.',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'adelanto_plazo_entrega',
-                  etiqueta: 'Plazo para entregar el adelanto',
-                  ayuda: 'Consignar plazo',
-                  tipo: 'dias',
-                  obligatorio: true,
-                },
-              ],
-            },
-          ],
-        },
+        seccionAdelantoDirecto(
+          'Aplica únicamente cuando corresponda otorgar adelantos directos y así se haya previsto y sustentado en la estrategia de contratación, conforme al artículo 137 del Reglamento. En caso contrario, consignar "NO APLICA". Si se otorga adelanto, el contratista debe presentar previamente una garantía por idéntico monto.',
+        ),
 
         // El ANEXO 1 abre el cuadro de otras penalidades con una
         // frase que los otros dos formatos no traen.

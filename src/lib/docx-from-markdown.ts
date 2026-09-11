@@ -70,37 +70,48 @@ export async function markdownToDocxBuffer(
       continue;
     }
 
-    // Headings
-    const h1 = /^#\s+(.*)$/.exec(line);
-    if (h1) {
+    // Encabezados. El ensamblador de requerimientos llega hasta el
+    // quinto nivel —6.7.1. Penalidad por mora— y aquí solo se traducían
+    // tres: del cuarto en adelante las almohadillas salían impresas en
+    // el Word ("#### 6.6. Adelanto directo"). Un solo patrón para los
+    // seis niveles evita que vuelva a quedarse corto.
+    const enc = /^(#{1,6})\s+(.*)$/.exec(line);
+    if (enc) {
+      const nivel = enc[1].length;
+      const estilo = [
+        { h: HeadingLevel.HEADING_1, size: 24, antes: 240, despues: 200, centrado: true },
+        { h: HeadingLevel.HEADING_2, size: 22, antes: 280, despues: 140, centrado: false },
+        { h: HeadingLevel.HEADING_3, size: 20, antes: 200, despues: 100, centrado: false },
+        { h: HeadingLevel.HEADING_4, size: 19, antes: 180, despues: 90, centrado: false },
+        { h: HeadingLevel.HEADING_5, size: 18, antes: 160, despues: 80, centrado: false },
+        { h: HeadingLevel.HEADING_6, size: 18, antes: 140, despues: 70, centrado: false },
+      ][nivel - 1];
       children.push(
         new Paragraph({
-          heading: HeadingLevel.HEADING_1,
-          alignment: AlignmentType.CENTER,
-          spacing: { before: 240, after: 200 },
-          children: parseInlineRuns(h1[1], { bold: true, size: 24, color: '000000' }),
+          heading: estilo.h,
+          ...(estilo.centrado ? { alignment: AlignmentType.CENTER } : {}),
+          spacing: { before: estilo.antes, after: estilo.despues },
+          children: parseInlineRuns(enc[2], { bold: true, size: estilo.size, color: '000000' }),
         }),
       );
       continue;
     }
-    const h2 = /^##\s+(.*)$/.exec(line);
-    if (h2) {
+
+    // Citas. Las notas de los formatos —"Aplica únicamente cuando
+    // corresponda otorgar adelantos..."— se emiten como cita y salían
+    // con el ">" delante. Se pintan sangradas y en gris, que es lo que
+    // son: una advertencia al que redacta.
+    const cita = /^>\s?(.*)$/.exec(line);
+    if (cita) {
+      if (!cita[1].trim()) continue;
       children.push(
         new Paragraph({
-          heading: HeadingLevel.HEADING_2,
-          spacing: { before: 280, after: 140 },
-          children: parseInlineRuns(h2[1], { bold: true, size: 22, color: '000000' }),
-        }),
-      );
-      continue;
-    }
-    const h3 = /^###\s+(.*)$/.exec(line);
-    if (h3) {
-      children.push(
-        new Paragraph({
-          heading: HeadingLevel.HEADING_3,
-          spacing: { before: 200, after: 100 },
-          children: parseInlineRuns(h3[1], { bold: true, size: 20, color: '000000' }),
+          spacing: { before: 80, after: 80 },
+          indent: { left: 360 },
+          border: {
+            left: { color: 'CBD5E1', size: 12, style: BorderStyle.SINGLE, space: 8 },
+          },
+          children: parseInlineRuns(cita[1], { color: '475569' }),
         }),
       );
       continue;

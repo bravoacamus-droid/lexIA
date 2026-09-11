@@ -18,12 +18,14 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { listarPlantillas } from '../src/lib/generadores/plantillas';
 import type { Seccion, Bloque } from '../src/lib/generadores/plantilla-tipos';
+import { DIVERGENCIAS_DECLARADAS } from './lib/divergencias-requerimiento';
 
 const RAIZ = join('docs', 'estructura-requerimiento');
 
 const normalizar = (s: string) => s.replace(/\s+/g, ' ').trim();
 
 let fallos = 0;
+let declaradas = 0;
 let plantillasConFallo = 0;
 let totalLiterales = 0;
 
@@ -68,12 +70,24 @@ for (const plantilla of listarPlantillas()) {
   totalLiterales += literales.length;
 
   const fallosAqui: string[] = [];
+  const declaradasAqui: string[] = [];
+  // Los apartes deliberados —los que pidieron las observaciones de
+  // César— se cuentan aparte para que no tapen a los accidentales.
+  const permitidas = DIVERGENCIAS_DECLARADAS.filter((d) => d.plantilla === plantilla.id).map(
+    (d) => normalizar(d.fragmento),
+  );
   for (const t of literales) {
     // Se coteja el arranque del fragmento: basta para detectar una
     // reescritura, y evita falsos negativos por saltos de línea.
     const muestra = normalizar(t).slice(0, 140);
-    if (!fuente.includes(muestra)) fallosAqui.push(muestra);
+    if (fuente.includes(muestra)) continue;
+    if (permitidas.some((d) => muestra.startsWith(d) || d.startsWith(muestra))) {
+      declaradasAqui.push(muestra);
+      continue;
+    }
+    fallosAqui.push(muestra);
   }
+  declaradas += declaradasAqui.length;
   fallos += fallosAqui.length;
   if (fallosAqui.length) plantillasConFallo++;
 
@@ -89,6 +103,8 @@ for (const plantilla of listarPlantillas()) {
         .join(' ')}`,
   );
   for (const f of fallosAqui) console.log(`   ↳ NO está en el original: ${f.slice(0, 110)}…`);
+  for (const d of declaradasAqui)
+    console.log(`   ↳ se aparta del original a propósito: ${d.slice(0, 90)}…`);
 }
 
 const total = listarPlantillas().length;
@@ -96,6 +112,7 @@ console.log(
   `\n${total} plantilla(s) · ${totalLiterales} textos invariables cotejados · ` +
     (fallos === 0
       ? 'todos coinciden con el original.'
-      : `${fallos} discrepancia(s) en ${plantillasConFallo} plantilla(s).`),
+      : `${fallos} discrepancia(s) en ${plantillasConFallo} plantilla(s).`) +
+    (declaradas ? ` ${declaradas} aparte(s) declarado(s), por observación de César.` : ''),
 );
 process.exit(fallos === 0 ? 0 : 1);
