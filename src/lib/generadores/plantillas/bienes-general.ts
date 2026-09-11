@@ -807,7 +807,7 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
             {
               clase: 'fijo',
               texto:
-                'Los plazos para la respuesta de las partes sobre aspectos vinculados con la ejecución contractual que no han sido específicamente previstos en el Reglamento, aplica el plazo máximo de respuesta establecido a continuación.',
+                'Los plazos para la respuesta de las partes sobre aspectos vinculados con la ejecución contractual que no han sido específicamente previstos en el Reglamento, aplica el plazo máximo de respuesta establecido en el cuadro siguiente:',
             },
             {
               clase: 'campo',
@@ -963,7 +963,7 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
         {
           clase: 'fijo',
           texto:
-            'Para determinar que los postores cuentan con las capacidades necesarias para ejecutar el contrato, los evaluadores incorporan obligatoriamente los siguientes requisitos de calificación.',
+            'Para determinar que los postores cuentan con las capacidades necesarias para ejecutar el contrato, los evaluadores incorporan obligatoriamente los siguientes requisitos de calificación:',
         },
       ],
       subsecciones: [

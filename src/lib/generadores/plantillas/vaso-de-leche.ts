@@ -786,7 +786,7 @@ export const PLANTILLA_VASO_DE_LECHE: PlantillaRequerimiento = {
         {
           clase: 'fijo',
           texto:
-            'Para determinar que los postores cuentan con las capacidades necesarias para ejecutar el contrato, los evaluadores incorporan obligatoriamente los siguientes requisitos de calificación.',
+            'Para determinar que los postores cuentan con las capacidades necesarias para ejecutar el contrato, los evaluadores incorporan obligatoriamente los siguientes requisitos de calificación:',
         },
       ],
       subsecciones: [

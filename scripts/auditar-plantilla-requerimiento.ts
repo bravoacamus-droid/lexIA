@@ -24,6 +24,14 @@ const RAIZ = join('docs', 'estructura-requerimiento');
 
 const normalizar = (s: string) => s.replace(/\s+/g, ' ').trim();
 
+// Para COTEJAR se quitan todos los espacios. En los .md extraídos de
+// las tablas del Word las frases quedan pegadas —"...de postores.Al
+// calificar la experiencia..."— y esa falta de espacio hacía fallar un
+// texto que sí estaba, palabra por palabra, en el original.
+// También se ignoran las mayúsculas: el .docx escribe unas veces
+// "Reglamento" y otras "reglamento", y eso no cambia el texto.
+const comparable = (s: string) => s.replace(/\s+/g, '').toLowerCase();
+
 let fallos = 0;
 let declaradas = 0;
 let plantillasConFallo = 0;
@@ -37,7 +45,7 @@ for (const plantilla of listarPlantillas()) {
     plantillasConFallo++;
     continue;
   }
-  const fuente = normalizar(readFileSync(ruta, 'utf8'));
+  const fuente = comparable(readFileSync(ruta, 'utf8'));
 
   const conteo: Record<string, number> = {};
   let secciones = 0;
@@ -77,10 +85,15 @@ for (const plantilla of listarPlantillas()) {
     (d) => normalizar(d.fragmento),
   );
   for (const t of literales) {
-    // Se coteja el arranque del fragmento: basta para detectar una
-    // reescritura, y evita falsos negativos por saltos de línea.
-    const muestra = normalizar(t).slice(0, 140);
-    if (fuente.includes(muestra)) continue;
+    // Se coteja el fragmento ENTERO. Antes se cotejaban los primeros
+    // 140 caracteres, y por ahí se coló una frase inventada: los dos
+    // formatos de obras cerraban la subcontratación con "Se consideran
+    // prestaciones esenciales que no pueden ser materia de
+    // subcontratación las siguientes:", que no está en su .docx, y el
+    // documento salía con los dos puntos y nada debajo. Empezaba igual
+    // que el original, así que el auditor la daba por buena.
+    const muestra = normalizar(t);
+    if (fuente.includes(comparable(t))) continue;
     if (permitidas.some((d) => muestra.startsWith(d) || d.startsWith(muestra))) {
       declaradasAqui.push(muestra);
       continue;

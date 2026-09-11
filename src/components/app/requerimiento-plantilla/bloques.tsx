@@ -630,6 +630,21 @@ function EditorLista({
   const lineas = valor ? valor.split('\n') : [''];
   const escribir = (ls: string[]) => onChange(ls.join('\n'));
 
+  // A qué renglón hay que llevar el cursor tras pintar. Al pulsar Enter
+  // se abría el punto siguiente pero el cursor se quedaba en el
+  // anterior, así que lo que se escribía a continuación se pegaba al
+  // punto de arriba: dos viñetas acababan siendo una sola línea.
+  const cajas = useRef<Array<HTMLTextAreaElement | null>>([]);
+  const irA = useRef<number | null>(null);
+  useEffect(() => {
+    if (irA.current === null) return;
+    const caja = cajas.current[irA.current];
+    irA.current = null;
+    if (!caja) return;
+    caja.focus();
+    caja.setSelectionRange(caja.value.length, caja.value.length);
+  });
+
   const NOMBRE: Record<MarcadorLista, string> = {
     vineta: 'Viñetas',
     literal: 'a) b) c)',
@@ -666,6 +681,9 @@ function EditorLista({
             {marcaDeLista(marcador, i).replace(/^-$/, '•')}
           </span>
           <Textarea
+            ref={(el) => {
+              cajas.current[i] = el;
+            }}
             value={l}
             onChange={(e) => escribir(lineas.map((x, k) => (k === i ? e.target.value : x)))}
             onKeyDown={(e) => {
@@ -674,12 +692,14 @@ function EditorLista({
                 e.preventDefault();
                 const ls = [...lineas];
                 ls.splice(i + 1, 0, '');
+                irA.current = i + 1;
                 escribir(ls);
               }
               // Retroceso en un renglón vacío lo quita, como en
               // cualquier lista.
               if (e.key === 'Backspace' && l === '' && lineas.length > 1) {
                 e.preventDefault();
+                irA.current = Math.max(0, i - 1);
                 escribir(lineas.filter((_, k) => k !== i));
               }
             }}
@@ -705,7 +725,10 @@ function EditorLista({
         size="sm"
         variant="ghost"
         className="h-7 text-xs"
-        onClick={() => escribir([...lineas, ''])}
+        onClick={() => {
+          irA.current = lineas.length;
+          escribir([...lineas, '']);
+        }}
       >
         <Plus className="mr-1 h-3.5 w-3.5" />
         Añadir punto

@@ -671,8 +671,23 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
                     : undefined;
               const condicion = conInterruptor(b);
               const bloqueApagado = !!condicion && !r.condiciones[condicion];
-              const etiqueta =
-                'etiqueta' in b && typeof b.etiqueta === 'string' ? b.etiqueta : s.titulo;
+              // Un interruptor por condición, no por bloque. Cuando dos
+              // bloques seguidos dependen de lo mismo —la frase que
+              // anuncia la lista y la lista— salían dos interruptores
+              // con el mismo rótulo y había que encender los dos.
+              const repiteInterruptor = condicion !== null && conInterruptor(utiles[i - 1]) === condicion;
+              // El rótulo del interruptor. Si el bloque no trae etiqueta
+              // —un texto fijo no la tiene— se busca en el siguiente
+              // que dependa de la misma condición: el interruptor manda
+              // sobre el grupo, y quien lo describe es el bloque con
+              // nombre, no el título del apartado entero.
+              const conEtiqueta = [b, ...(condicion ? utiles.slice(i + 1) : [])].find(
+                (x, k) =>
+                  (k === 0 || conInterruptor(x) === condicion) &&
+                  'etiqueta' in x &&
+                  typeof x.etiqueta === 'string',
+              ) as { etiqueta?: string } | undefined;
+              const etiqueta = conEtiqueta?.etiqueta ?? s.titulo;
 
               return (
                 <div
@@ -680,7 +695,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
                   id={idBloque ? anclaBloque(idBloque) : undefined}
                   className="scroll-mt-24 transition"
                 >
-                  {condicion && (
+                  {condicion && !repiteInterruptor && (
                     <label className="mb-2 flex items-center justify-between gap-3 rounded-md border border-dashed px-3 py-2 text-sm">
                       <span className={cn(bloqueApagado && 'text-muted-foreground')}>
                         {etiqueta}

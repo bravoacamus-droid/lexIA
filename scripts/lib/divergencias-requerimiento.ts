@@ -84,4 +84,21 @@ export const DIVERGENCIAS_DECLARADAS: DivergenciaDeclarada[] = [
     fragmento: 'La Entidad otorgará el adelanto dentro de los',
     motivo: 'Obs. 13: adelanto directo unificado con el modelo de los demás formatos.',
   },
+  // ── Observación 15 (setiembre de 2026): el área usuaria debe poder
+  // decir qué prestaciones no se subcontratan "en todos los formatos".
+  // Los dos de ejecución de obras no traen esa frase en su .docx, así
+  // que va bajo interruptor y apagada: el documento por defecto sigue
+  // siendo el de su formato, y solo aparece si la Entidad la activa.
+  {
+    plantilla: 'ps-obras-diseno-construccion',
+    fragmento:
+      'Se consideran prestaciones esenciales que no pueden ser materia de subcontratación las siguientes:',
+    motivo: 'Obs. 15: lista de prestaciones esenciales, opcional, apagada por defecto.',
+  },
+  {
+    plantilla: 'ps-obras-solo-construccion',
+    fragmento:
+      'Se consideran prestaciones esenciales que no pueden ser materia de subcontratación las siguientes:',
+    motivo: 'Obs. 15: lista de prestaciones esenciales, opcional, apagada por defecto.',
+  },
 ];

@@ -409,13 +409,37 @@ export const PLANTILLA_OBRAS_DISENO_CONSTRUCCION: PlantillaRequerimiento = {
             {
               clase: 'fijo',
               texto:
-                'El contratista puede subcontratar hasta un máximo del 40% del monto del contrato vigente de conformidad con lo dispuesto en el artículo 108 del Reglamento. Se consideran prestaciones esenciales que no pueden ser materia de subcontratación las siguientes:',
+                'El contratista puede subcontratar hasta un máximo del 40% del monto del contrato vigente de conformidad con lo dispuesto en el artículo 108 del Reglamento.',
               fundamento: 'Reglamento, art. 108',
             },
             {
               clase: 'fijo',
               texto:
                 'No se considera subcontratación la adquisición de bienes o materiales, aun cuando dicha adquisición incluya actividades complementarias como el transporte y la colocación. El contratista mantiene la responsabilidad por la ejecución total del contrato frente a la entidad contratante.',
+            },
+            {
+              // La lista de prestaciones esenciales. El .docx de obras no
+              // la trae —y antes estaba metida a la fuerza dentro del
+              // párrafo del 40%, de modo que el documento salía con los
+              // dos puntos y nada debajo—. Observación 15 de César
+              // (setiembre de 2026): "debe haber un campo para que el
+              // área usuaria pueda establecer qué materias NO pueden ser
+              // subcontratadas", y la hace valer para todos los
+              // formatos. Va bajo interruptor y apagada: así el
+              // documento por defecto sigue siendo el de su formato.
+              clase: 'fijo',
+              texto:
+                'Se consideran prestaciones esenciales que no pueden ser materia de subcontratación las siguientes:',
+              visibleSi: { condicion: 'reserva_prestaciones_esenciales' },
+            },
+            {
+              clase: 'redactado',
+              id: 'prestaciones_no_subcontratables',
+              etiqueta: 'Prestaciones que no pueden subcontratarse',
+              instruccion:
+                'Completar las prestaciones esenciales que, de acuerdo con lo determinado por el área usuaria, no pueden ser materia de subcontratación',
+              extension: 'lista',
+              visibleSi: { condicion: 'reserva_prestaciones_esenciales' },
             },
           ],
         },

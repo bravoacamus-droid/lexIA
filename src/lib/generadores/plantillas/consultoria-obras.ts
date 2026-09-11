@@ -500,7 +500,7 @@ export const PLANTILLA_CONSULTORIA_OBRAS: PlantillaRequerimiento = {
         ),
 
         // Su .docx cierra las penalidades con el tope conjunto del 10%.
-        seccionPenalidades('larga', true, 'servicio'),
+        seccionPenalidades('larga', 'componentes', 'servicio'),
 
         {
           id: 'subcontratacion',

@@ -158,6 +158,19 @@ export function procedimientoPenalidades(objeto: 'servicio' | 'bien' | 'obra'): 
 export const TOPE_PENALIDADES =
   'La suma de la aplicación de las penalidades por mora y otras penalidades no debe exceder el 10% del monto vigente del contrato o, de ser el caso, del ítem correspondiente.';
 
+/**
+ * Consultoría de obras lo dice distinto: "del componente o ítem".
+ *
+ * No es un descuido de su .docx —esos contratos se ejecutan por
+ * componentes— y por eso no se unifica con el de los demás formatos.
+ * El auditor lo destapó al cotejar los párrafos enteros: el nuestro
+ * empezaba igual y se comía "componente o".
+ */
+export const TOPE_PENALIDADES_CONSULTORIA_OBRAS = TOPE_PENALIDADES.replace(
+  'del ítem correspondiente',
+  'del componente o ítem correspondiente',
+);
+
 export const VALIDACION_PENALIDADES = {
   id: 'penalidades_max',
   descripcion:
@@ -167,7 +180,7 @@ export const VALIDACION_PENALIDADES = {
 
 export function seccionPenalidades(
   variante: 'corta' | 'larga' = 'larga',
-  conTope = false,
+  conTope: boolean | 'componentes' = false,
   objeto: 'servicio' | 'bien' | 'obra' = 'servicio',
 ): Seccion {
   const seccion: Seccion = {
@@ -230,7 +243,7 @@ export function seccionPenalidades(
     const otras = seccion.subsecciones![1];
     otras.bloques.splice(3, 0, {
       clase: 'fijo',
-      texto: TOPE_PENALIDADES,
+      texto: conTope === 'componentes' ? TOPE_PENALIDADES_CONSULTORIA_OBRAS : TOPE_PENALIDADES,
       fundamento: 'Plantilla — tope de penalidades',
     });
   }
