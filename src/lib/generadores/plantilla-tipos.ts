@@ -89,7 +89,24 @@ export interface BloqueCampo {
   etiqueta: string;
   /** La instrucción entre corchetes, tal como la escribió César. */
   ayuda: string;
-  tipo: 'texto' | 'texto_largo' | 'numero' | 'moneda' | 'fecha' | 'dias';
+  tipo: 'texto' | 'texto_largo' | 'numero' | 'moneda' | 'fecha' | 'dias' | 'opciones';
+  /**
+   * Las opciones, cuando el tipo es `opciones`.
+   *
+   * Lo que se guarda es el TEXTO elegido, no un código, para que el
+   * párrafo lo sustituya tal cual y el documento salga redactado.
+   *
+   * Nace de la observación 11 de César (setiembre de 2026): el inicio
+   * del cómputo del plazo estaba escrito como un cajón de sastre
+   * —«de la notificación de la orden de servicio o suscripción del
+   * contrato o del cumplimiento de la condición (...), según
+   * corresponda»— y él pide que el área usuaria elija el que aplica.
+   * Lo mismo pide para el medio de presentación de los entregables y
+   * para el de la forma de pago.
+   */
+  opciones?: Array<{ valor: string; texto: string }>;
+  /** Añade «Otro» al final, que abre un campo libre. */
+  permiteOtro?: boolean;
   obligatorio: boolean;
   /**
    * Muestra la ayuda como advertencia, en rojo.

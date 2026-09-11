@@ -310,7 +310,16 @@ export const PLANTILLA_SERVICIOS_COMPARACION_PRECIOS: PlantillaRequerimiento = {
                   etiqueta: 'Hito desde el que se computa',
                   ayuda:
                     'La notificación de la orden de compra, el perfeccionamiento del contrato, o el cumplimiento de la condición de inicio que corresponda',
-                  tipo: 'texto',
+                  tipo: 'opciones',
+                  permiteOtro: true,
+                  opciones: [
+                    { valor: 'orden_servicio', texto: 'la notificación de la orden de servicio' },
+                    { valor: 'perfeccionamiento', texto: 'el perfeccionamiento del contrato' },
+                    { valor: 'fecha_contrato', texto: 'la fecha expresamente establecida en el contrato para el inicio de la ejecución' },
+                    { valor: 'acta_instalacion', texto: 'la suscripción del acta de instalación' },
+                    { valor: 'plan_trabajo', texto: 'la aprobación del plan de trabajo' },
+                    { valor: 'comunicacion', texto: 'la comunicación o notificación de la Entidad que acredite el cumplimiento de las condiciones previstas para el inicio' },
+                  ],
                   obligatorio: true,
                 },
               ],

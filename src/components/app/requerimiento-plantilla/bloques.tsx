@@ -110,6 +110,66 @@ export function TextoFijo({ texto }: { texto: string }) {
 
 // ── Campo ─────────────────────────────────────────────────────────────
 
+/**
+ * Campo de eleccion.
+ *
+ * Se guarda el TEXTO elegido, no un codigo: asi el parrafo lo sustituye
+ * tal cual y el documento sale redactado. Con `permiteOtro`, la ultima
+ * opcion abre un campo libre —el area usuaria escribe el suyo— y lo que
+ * se guarda es lo que escriba.
+ */
+function SelectorDeOpciones({
+  campo,
+  valor,
+  onChange,
+  enParrafo,
+}: {
+  campo: BloqueCampo;
+  valor: string;
+  onChange: (v: string) => void;
+  enParrafo?: boolean;
+}) {
+  const opciones = campo.opciones ?? [];
+  const esDeLaLista = opciones.some((o) => o.texto === valor);
+  const [otro, setOtro] = useState(!!valor && !esDeLaLista);
+  return (
+    <span className={enParrafo ? 'mx-1 inline-block align-baseline' : 'mt-1.5 block'}>
+      <select
+        value={otro ? '__otro__' : (opciones.find((o) => o.texto === valor)?.valor ?? '')}
+        onChange={(e) => {
+          if (e.target.value === '__otro__') {
+            setOtro(true);
+            onChange('');
+            return;
+          }
+          setOtro(false);
+          onChange(opciones.find((o) => o.valor === e.target.value)?.texto ?? '');
+        }}
+        className={cn(
+          'rounded-md border border-input bg-background px-2 py-1 text-sm',
+          enParrafo ? 'h-7 max-w-full' : 'h-9 w-full',
+        )}
+      >
+        <option value="">{campo.etiqueta}…</option>
+        {opciones.map((o) => (
+          <option key={o.valor} value={o.valor}>
+            {o.texto}
+          </option>
+        ))}
+        {campo.permiteOtro && <option value="__otro__">Otro…</option>}
+      </select>
+      {otro && (
+        <Input
+          value={valor}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Escribe el que corresponda"
+          className={enParrafo ? 'mx-1 mt-1 inline-block h-7 w-72 align-baseline text-sm' : 'mt-1.5'}
+        />
+      )}
+    </span>
+  );
+}
+
 export function ControlCampo({
   bloque,
   valor,
@@ -127,6 +187,7 @@ export function ControlCampo({
   onMejorar?: (aporte: string, textoActual: string) => Promise<string | null>;
 }) {
   const largo = bloque.tipo === 'texto_largo';
+  const eligiendo = bloque.tipo === 'opciones';
   const [mejorando, setMejorando] = useState(false);
   const [propuesta, setPropuesta] = useState<string | null>(null);
   // Antes solo se ofrecía con texto escrito: en blanco no había forma
@@ -151,7 +212,9 @@ export function ControlCampo({
         {bloque.etiqueta}
         {bloque.obligatorio && <span className="ml-1 text-destructive">*</span>}
       </Label>
-      {largo ? (
+      {eligiendo ? (
+        <SelectorDeOpciones campo={bloque} valor={valor} onChange={onChange} />
+      ) : largo ? (
         <Textarea
           id={bloque.id}
           value={valor}
@@ -265,6 +328,10 @@ function HuecoParrafo({
     el.style.height = 'auto';
     el.style.height = `${el.scrollHeight}px`;
   }, [valor]);
+
+  if (campo.tipo === 'opciones') {
+    return <SelectorDeOpciones campo={campo} valor={valor} onChange={onChange} enParrafo />;
+  }
 
   if (!libre) {
     // Cifras, fechas y plazos: caja corta, que es lo que ocupan.

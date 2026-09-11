@@ -328,7 +328,15 @@ export const PLANTILLA_BIENES_COMPARACION_PRECIOS: PlantillaRequerimiento = {
                   etiqueta: 'Hito desde el que se computa',
                   ayuda:
                     'La notificación de la orden de compra, el perfeccionamiento del contrato, o el cumplimiento de la condición de inicio que corresponda',
-                  tipo: 'texto',
+                  tipo: 'opciones',
+                  permiteOtro: true,
+                  opciones: [
+                    { valor: 'orden_compra', texto: 'la notificación de la orden de compra' },
+                    { valor: 'perfeccionamiento', texto: 'el perfeccionamiento del contrato' },
+                    { valor: 'fecha_contrato', texto: 'la fecha expresamente establecida en el contrato para el inicio de la ejecución' },
+                    { valor: 'muestra', texto: 'la aprobación de la muestra' },
+                    { valor: 'comunicacion', texto: 'la comunicación o notificación de la Entidad que acredite el cumplimiento de las condiciones previstas para el inicio' },
+                  ],
                   obligatorio: true,
                 },
               ],

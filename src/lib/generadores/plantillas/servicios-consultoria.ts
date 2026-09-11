@@ -408,7 +408,7 @@ export const PLANTILLA_SERVICIOS_CONSULTORIA: PlantillaRequerimiento = {
             {
               clase: 'parrafo',
               texto:
-                'Los servicios materia de la presente convocatoria se prestan en el plazo de {{plazo_servicio}} días calendario, computados a partir del día siguiente de la notificación de la orden de servicio o suscripción del contrato o del cumplimiento de la condición establecida en los Términos de Referencia, según corresponda.',
+                'Los servicios materia de la presente convocatoria se prestan en el plazo de {{plazo_servicio}} días calendario, {{inicio_computo}}',
               campos: [
                 {
                   clase: 'campo',
@@ -416,6 +416,23 @@ export const PLANTILLA_SERVICIOS_CONSULTORIA: PlantillaRequerimiento = {
                   etiqueta: 'Plazo de ejecución',
                   ayuda: 'Consignar los días de ejecución del servicio',
                   tipo: 'dias',
+                  obligatorio: true,
+                },
+                {
+                  clase: 'campo',
+                  id: 'inicio_computo',
+                  etiqueta: 'Inicio del cómputo',
+                  ayuda: 'Elegir desde cuándo se cuenta el plazo',
+                  tipo: 'opciones',
+                  permiteOtro: true,
+                  opciones: [
+                    { valor: 'orden_servicio', texto: 'computados a partir del día siguiente de la notificación de la orden de servicio' },
+                    { valor: 'perfeccionamiento', texto: 'computados a partir del día siguiente del perfeccionamiento del contrato' },
+                    { valor: 'fecha_contrato', texto: 'computados a partir del día siguiente de la fecha expresamente establecida en el contrato para el inicio de la ejecución' },
+                    { valor: 'acta_instalacion', texto: 'computados a partir del día siguiente de la suscripción del acta de instalación' },
+                    { valor: 'plan_trabajo', texto: 'computados a partir del día siguiente de la aprobación del plan de trabajo' },
+                    { valor: 'comunicacion', texto: 'computados a partir del día siguiente de la comunicación o notificación de la Entidad que acredite el cumplimiento de las condiciones previstas para el inicio, cuando así se haya establecido contractualmente' },
+                  ],
                   obligatorio: true,
                 },
               ],
