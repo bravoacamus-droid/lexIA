@@ -191,32 +191,57 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
           id: 'prestaciones_accesorias',
           titulo: 'Prestaciones accesorias a la prestación principal',
           condicion: 'tiene_prestaciones_accesorias',
-          bloques: [
+          bloques: [],
+          subsecciones: [
             {
-              clase: 'redactado',
               id: 'mantenimiento',
-              etiqueta: 'Mantenimiento preventivo y/o correctivo',
-              instruccion:
-                'Precisar el alcance, el tipo de mantenimiento, la frecuencia, las actividades mínimas y el tiempo máximo de atención',
-              extension: 'varios_parrafos',
+              titulo: 'Mantenimiento preventivo y/o correctivo',
+              condicion: 'accesoria_mantenimiento',
+              renombrable: true,
+              bloques: [
+            {
+                  clase: 'redactado',
+                  id: 'mantenimiento',
+                  etiqueta: 'Mantenimiento preventivo y/o correctivo',
+                  instruccion:
+                    'Precisar el alcance, el tipo de mantenimiento, la frecuencia, las actividades mínimas y el tiempo máximo de atención',
+                  extension: 'varios_parrafos',
+                },
+              ],
             },
             {
-              clase: 'redactado',
               id: 'soporte_tecnico',
-              etiqueta: 'Soporte técnico',
-              instruccion:
-                'Precisar la modalidad, el alcance, el horario, los canales de atención y los tiempos máximos de respuesta',
-              ejemplo:
-                'Diagnóstico de fallas.\nAsistencia para la configuración del sistema.\nRestablecimiento del servicio.\nRecomendaciones para prevenir nuevas incidencias.',
-              extension: 'varios_parrafos',
+              titulo: 'Soporte técnico',
+              condicion: 'accesoria_soporte',
+              renombrable: true,
+              bloques: [
+            {
+                  clase: 'redactado',
+                  id: 'soporte_tecnico',
+                  etiqueta: 'Soporte técnico',
+                  instruccion:
+                    'Precisar la modalidad, el alcance, el horario, los canales de atención y los tiempos máximos de respuesta',
+                  ejemplo:
+                    'Diagnóstico de fallas.\nAsistencia para la configuración del sistema.\nRestablecimiento del servicio.\nRecomendaciones para prevenir nuevas incidencias.',
+                  extension: 'varios_parrafos',
+                },
+              ],
             },
             {
-              clase: 'redactado',
               id: 'capacitacion',
-              etiqueta: 'Capacitación y/o entrenamiento',
-              instruccion:
-                'Precisar los temas, el número mínimo de participantes, la modalidad, la duración, el perfil del expositor y el material a entregar',
-              extension: 'varios_parrafos',
+              titulo: 'Capacitación y/o entrenamiento',
+              condicion: 'accesoria_capacitacion',
+              renombrable: true,
+              bloques: [
+            {
+                  clase: 'redactado',
+                  id: 'capacitacion',
+                  etiqueta: 'Capacitación y/o entrenamiento',
+                  instruccion:
+                    'Precisar los temas, el número mínimo de participantes, la modalidad, la duración, el perfil del expositor y el material a entregar',
+                  extension: 'varios_parrafos',
+                },
+              ],
             },
           ],
         },

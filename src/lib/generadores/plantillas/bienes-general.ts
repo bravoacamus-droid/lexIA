@@ -310,32 +310,57 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
           id: 'prestaciones_accesorias',
           titulo: 'Prestaciones accesorias a la prestación principal',
           condicion: 'tiene_prestaciones_accesorias',
-          bloques: [
+          bloques: [],
+          subsecciones: [
             {
-              clase: 'redactado',
               id: 'mantenimiento',
-              etiqueta: 'Mantenimiento preventivo y/o correctivo',
-              instruccion: 'Precisar el alcance del mantenimiento, su frecuencia y las actividades que comprende',
-              ejemplo:
-                'Inspección general del equipo.\nLimpieza de componentes internos y externos.\nVerificación de niveles de aceite, refrigerante y combustible.\nAjuste de conexiones eléctricas y mecánicas.\nPruebas de funcionamiento bajo carga.\nEmisión del informe técnico correspondiente.',
-              extension: 'lista',
+              titulo: 'Mantenimiento preventivo y/o correctivo',
+              condicion: 'accesoria_mantenimiento',
+              renombrable: true,
+              bloques: [
+            {
+                  clase: 'redactado',
+                  id: 'mantenimiento',
+                  etiqueta: 'Mantenimiento preventivo y/o correctivo',
+                  instruccion: 'Precisar el alcance del mantenimiento, su frecuencia y las actividades que comprende',
+                  ejemplo:
+                    'Inspección general del equipo.\nLimpieza de componentes internos y externos.\nVerificación de niveles de aceite, refrigerante y combustible.\nAjuste de conexiones eléctricas y mecánicas.\nPruebas de funcionamiento bajo carga.\nEmisión del informe técnico correspondiente.',
+                  extension: 'lista',
+                },
+              ],
             },
             {
-              clase: 'redactado',
               id: 'soporte_tecnico',
-              etiqueta: 'Soporte técnico',
-              instruccion: 'Precisar el alcance del soporte y los tiempos máximos de atención',
-              ejemplo: 'Atención remota: hasta cuatro (4) horas.',
-              extension: 'lista',
+              titulo: 'Soporte técnico',
+              condicion: 'accesoria_soporte',
+              renombrable: true,
+              bloques: [
+            {
+                  clase: 'redactado',
+                  id: 'soporte_tecnico',
+                  etiqueta: 'Soporte técnico',
+                  instruccion: 'Precisar el alcance del soporte y los tiempos máximos de atención',
+                  ejemplo: 'Atención remota: hasta cuatro (4) horas.',
+                  extension: 'lista',
+                },
+              ],
             },
             {
-              clase: 'redactado',
               id: 'capacitacion',
-              etiqueta: 'Capacitación y/o entrenamiento',
-              instruccion: 'Precisar los temas mínimos que comprenderá la capacitación',
-              ejemplo:
-                'Instalación y configuración inicial del servidor.\nAdministración básica y monitoreo del equipo.\nProcedimientos de respaldo y recuperación de información.\nBuenas prácticas de operación, mantenimiento y seguridad.',
-              extension: 'lista',
+              titulo: 'Capacitación y/o entrenamiento',
+              condicion: 'accesoria_capacitacion',
+              renombrable: true,
+              bloques: [
+            {
+                  clase: 'redactado',
+                  id: 'capacitacion',
+                  etiqueta: 'Capacitación y/o entrenamiento',
+                  instruccion: 'Precisar los temas mínimos que comprenderá la capacitación',
+                  ejemplo:
+                    'Instalación y configuración inicial del servidor.\nAdministración básica y monitoreo del equipo.\nProcedimientos de respaldo y recuperación de información.\nBuenas prácticas de operación, mantenimiento y seguridad.',
+                  extension: 'lista',
+                },
+              ],
             },
           ],
         },
