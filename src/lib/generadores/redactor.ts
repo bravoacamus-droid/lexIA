@@ -103,13 +103,27 @@ ${yaEscrito}
     );
     partes.push(
       `
-TU TAREA ES MEJORAR ESE TEXTO, NO ESCRIBIR OTRO. Conserva integras todas las decisiones y todos los datos que contiene -plazos, cantidades, condiciones, nombres- porque son del area usuaria y tu no puedes cambiarlas. Corrige la redaccion, ordena las ideas, ajusta el registro al del formato oficial y completa lo que la instruccion exige y falte. Si algo del texto contradice la instruccion del formato o la norma, NO lo corrijas por tu cuenta: mantenlo y anade al final una linea que empiece por "[Revisar:" senalando la discrepancia.`,
+TU TAREA ES MEJORAR ESE TEXTO, NO ESCRIBIR OTRO. Conserva integras todas las decisiones y todos los datos que contiene -plazos, cantidades, condiciones, nombres- porque son del area usuaria y tu no puedes cambiarlas. Corrige la redaccion, ordena las ideas, ajusta el registro al del formato oficial y completa lo que la instruccion exige y falte.
+
+Si detectas POR TU CUENTA que algo del texto contradice la instruccion del formato o la norma, no lo corrijas: mantenlo y anade al final una linea que empiece por "[Revisar:" senalando la discrepancia.`,
     );
   }
 
   if (contexto.aporteUsuario?.trim()) {
+    // El permiso para tocar lo que el area usuaria escribio va AQUI y
+    // no en el bloque de mejora, porque solo vale cuando hay un
+    // pedido. Puesto siempre, el modelo lo tomaba como licencia
+    // general: medido el 10/09/2026, sin pedido alguno cambiaba por
+    // su cuenta la Ley N 30225 por la 32069 en tres de tres, que es
+    // justo lo que la regla del "[Revisar:" existe para impedir.
+    if (yaEscrito) {
+      partes.push(
+        `
+LO QUE TE PIDEN NO ES CORREGIR POR TU CUENTA: si te piden adecuar, actualizar, cambiar o corregir algo del texto, hazlo y devuelvelo YA ADECUADO, sin "[Revisar:" y sin devolverles la tarea. Si piden adecuarlo a la normativa vigente, sustituye en el propio texto las referencias al regimen derogado -Ley N 30225, su Texto Unico Ordenado y su Reglamento aprobado por DS N 344-2018-EF- por la Ley N 32069 y su Reglamento aprobado por DS N 009-2025-EF, sin inventar articulos ni numerales y sin tocar las demas normas que cite el area usuaria.`,
+      );
+    }
     partes.push(
-      `\nINFORMACIÓN QUE APORTA EL ÁREA USUARIA (incorpórala sin cambiar su sentido):\n"""\n${contexto.aporteUsuario.trim()}\n"""`,
+      `\nLO QUE PIDE EL ÁREA USUARIA (si es información, incorpórala sin cambiar su sentido; si es una instrucción, cúmplela):\n"""\n${contexto.aporteUsuario.trim()}\n"""`,
     );
   }
 
