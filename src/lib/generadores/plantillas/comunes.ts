@@ -416,6 +416,36 @@ export const EXPERIENCIA_REORGANIZACION =
 // ════════════════════════════════════════════════════════════════════
 
 /** Cabecera de datos del expediente. */
+/**
+ * La metodología con la que César pide que se construyan los cuatro
+ * apartados de cabecera (observación 2 del documento de setiembre).
+ *
+ * Va aquí, en los constructores comunes, y no en cada plantilla, porque
+ * su indicación es expresa: «esta misma lógica es para todos los
+ * requerimientos sin excepción alguno». La instrucción del formato
+ * oficial se conserva —es la que manda sobre el contenido— y esto se le
+ * añade como método para construirlo.
+ */
+const METODO_FINALIDAD =
+  ' Construye la finalidad respondiendo: ¿para qué necesita la Entidad ese resultado y qué beneficio institucional o público genera?';
+
+const METODO_OBJETIVO_GENERAL =
+  ' Construye el objetivo respondiendo: ¿qué resultado principal quiero obtener con la contratación y para qué me sirve? Redáctalo como RESULTADO, con verbo de resultado, no como una lista de actividades del contratista.';
+
+const METODO_OBJETIVOS_ESPECIFICOS =
+  ' Construye cada uno respondiendo: ¿qué resultados parciales y verificables necesito obtener para alcanzar el resultado principal? Son RESULTADOS, con verbo de resultado, no actividades del contratista: si lo que escribes describe lo que hará el proveedor en vez de lo que la Entidad obtendrá, está mal planteado.';
+
+const METODO_ANTECEDENTES =
+  ' Construye el apartado respondiendo tres preguntas, en este orden: ¿cuál es el contexto y de dónde nace la necesidad? (antecedentes); ¿qué hace falta solucionar o atender? (necesidad o problema); ¿por qué debe atenderse y por qué la contratación es necesaria? (justificación).';
+
+/**
+ * La fórmula con la que se nombra una contratación. La denominación se
+ * escribe a mano —es un campo, no un apartado redactado—, así que lo
+ * único que guía al área usuaria es este texto de ayuda.
+ */
+const FORMULA_DENOMINACION =
+  ' Constrúyela con esta fórmula: [tipo de prestación] + [qué se contrata] + [característica principal, cuando sea necesaria] + [ámbito o destino, cuando corresponda].';
+
 export function seccionEncabezado(etiquetaDenominacion: string): Seccion {
   return {
     id: 'encabezado',
@@ -449,7 +479,7 @@ export function seccionEncabezado(etiquetaDenominacion: string): Seccion {
         clase: 'campo',
         id: 'denominacion',
         etiqueta: 'Denominación de la contratación',
-        ayuda: etiquetaDenominacion,
+        ayuda: etiquetaDenominacion + FORMULA_DENOMINACION,
         tipo: 'texto',
         obligatorio: true,
       },
@@ -467,7 +497,8 @@ export function seccionFinalidadPublica(ejemplo?: string): Seccion {
         id: 'finalidad',
         etiqueta: 'Finalidad pública',
         instruccion:
-          'Detallar aquello que se busca satisfacer, mejorar y/o atender con la contratación requerida según las actividades previstas en el Plan Operativo Institucional (POI), así como las acciones y objetivos estratégicos del Plan Estratégico Institucional (PEI) de la Entidad',
+          'Detallar aquello que se busca satisfacer, mejorar y/o atender con la contratación requerida según las actividades previstas en el Plan Operativo Institucional (POI), así como las acciones y objetivos estratégicos del Plan Estratégico Institucional (PEI) de la Entidad' +
+          METODO_FINALIDAD,
         ejemplo,
         extension: 'parrafo',
       },
@@ -496,7 +527,8 @@ export function seccionObjetivo(ejemploGeneral?: string, ejemploEspecifico?: str
             id: 'objetivo_general',
             etiqueta: 'Objetivo general',
             instruccion:
-              'Detallar el propósito de la contratación, o aquello que se espera lograr a través de la contratación requerida',
+              'Detallar el propósito de la contratación, o aquello que se espera lograr a través de la contratación requerida' +
+              METODO_OBJETIVO_GENERAL,
             ejemplo: ejemploGeneral,
             extension: 'parrafo',
           },
@@ -510,7 +542,9 @@ export function seccionObjetivo(ejemploGeneral?: string, ejemploEspecifico?: str
             clase: 'redactado',
             id: 'objetivos_especificos',
             etiqueta: 'Objetivos específicos',
-            instruccion: 'Enumerar los objetivos específicos que se desprenden del objetivo general',
+            instruccion:
+              'Enumerar los objetivos específicos que se desprenden del objetivo general' +
+              METODO_OBJETIVOS_ESPECIFICOS,
             ejemplo: ejemploEspecifico,
             extension: 'lista',
           },
@@ -529,7 +563,7 @@ export function seccionAntecedentes(instruccion: string, ejemplo?: string): Secc
         clase: 'redactado',
         id: 'antecedentes',
         etiqueta: 'Antecedentes y justificación',
-        instruccion,
+        instruccion: instruccion + METODO_ANTECEDENTES,
         ejemplo,
         extension: 'parrafo',
       },
