@@ -865,6 +865,17 @@ export function seccionConfidencialidad(porDefecto = true): Seccion {
   };
 }
 
+/**
+ * Cómo se construye el apartado de recursos a cargo de la Entidad.
+ *
+ * Observación 18 de César (setiembre de 2026). El formato dice QUÉ va
+ * en el apartado; esto dice cómo decidir su contenido, que es lo que
+ * fallaba: se proponían recursos por defecto, "por si acaso", en
+ * contrataciones que no necesitan nada de la Entidad.
+ */
+export const METODO_RECURSOS_ENTIDAD =
+  ' Antes de redactar, determina si por la naturaleza y forma de ejecución de la contratación resulta necesario que la Entidad proporcione algo: si la prestación puede ejecutarse sin intervención suya, dilo y no propongas nada. Si corresponde, propón ÚNICAMENTE lo necesario, pertinente y directamente vinculado a la ejecución, entre: información, documentos o datos; ambientes, instalaciones o espacios; acceso a sistemas, plataformas o infraestructura; equipos, herramientas o recursos de propiedad de la Entidad; coordinaciones, autorizaciones o facilidades; designación de responsables o puntos de coordinación; y otras obligaciones indispensables de la Entidad. De cada uno comprueba su necesidad, oportunidad, disponibilidad y relación directa con la prestación. No inventes recursos, bienes, información, accesos, responsables, plazos ni obligaciones que no estén sustentados en lo que se te ha dado, ni traslades al contratista obligaciones que corresponden a la Entidad, ni a la inversa. Cierra siempre con una de estas dos cosas: la relación de lo que la Entidad debe proporcionar, o una línea diciendo que no corresponde y por qué. No devuelvas este apartado entre corchetes: decidir si corresponde es parte de tu trabajo, no un dato que falte.';
+
 export const VALIDACION_EXPERIENCIA = {
   id: 'experiencia_max',
   descripcion:

@@ -24,6 +24,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_RECURSOS_ENTIDAD,
   seccionConfidencialidad,
   seccionAdelantoDirecto,
   seccionEncabezado,
@@ -653,7 +654,8 @@ export const PLANTILLA_CONSULTORIA_OBRAS: PlantillaRequerimiento = {
               id: 'recursos_entidad',
               etiqueta: 'Recursos e información provistos por la Entidad',
               instruccion:
-                'Listar la información y facilidades que la Entidad entregará según el servicio: términos de referencia, ficha técnica o estudio de preinversión, declaratoria de viabilidad, información topográfica y catastral, estudios básicos existentes, planos, certificados de parámetros urbanísticos, títulos de propiedad; y para supervisión, el expediente técnico aprobado, el contrato de ejecución, las bases integradas y los calendarios',
+                'Listar la información y facilidades que la Entidad entregará según el servicio: términos de referencia, ficha técnica o estudio de preinversión, declaratoria de viabilidad, información topográfica y catastral, estudios básicos existentes, planos, certificados de parámetros urbanísticos, títulos de propiedad; y para supervisión, el expediente técnico aprobado, el contrato de ejecución, las bases integradas y los calendarios' +
+                METODO_RECURSOS_ENTIDAD,
               extension: 'lista',
             },
           ],

@@ -17,6 +17,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_RECURSOS_ENTIDAD,
   seccionConfidencialidad,
   seccionEncabezado,
   seccionFinalidadPublica,
@@ -436,7 +437,8 @@ export const PLANTILLA_SERVICIOS_COMPARACION_PRECIOS: PlantillaRequerimiento = {
               id: 'recursos_entidad',
               etiqueta: 'Recursos provistos por la Entidad',
               instruccion:
-                'Listar los recursos y facilidades que la entidad debe brindar al proveedor para que pueda ejecutar de manera eficiente, segura y oportuna el contrato',
+                'Listar los recursos y facilidades que la entidad debe brindar al proveedor para que pueda ejecutar de manera eficiente, segura y oportuna el contrato' +
+                METODO_RECURSOS_ENTIDAD,
               ejemplo:
                 'Facilitar el acceso a las instalaciones donde se encuentran ubicados los equipos objeto del mantenimiento.\nDesignar un servidor responsable para coordinar el ingreso del personal técnico y supervisar la ejecución del servicio.\nProporcionar la relación e identificación de los equipos objeto del mantenimiento y la información técnica disponible.\nGestionar los permisos de ingreso y acceso a las instalaciones de la Entidad, cuando corresponda.\nGarantizar que los ambientes donde se ejecutará el servicio se encuentren disponibles en las fechas programadas.',
               extension: 'lista',

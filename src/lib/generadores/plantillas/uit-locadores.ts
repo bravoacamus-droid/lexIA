@@ -22,6 +22,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_RECURSOS_ENTIDAD,
   seccionConfidencialidad,
   seccionAnticorrupcion,
   seccionViciosOcultos,
@@ -323,7 +324,8 @@ export const PLANTILLA_UIT_LOCADORES: PlantillaRequerimiento = {
               id: 'recursos_entidad',
               etiqueta: 'Recursos provistos por la Entidad',
               instruccion:
-                'Listar los recursos, información y facilidades que la entidad debe brindar al locador para que pueda ejecutar el servicio',
+                'Listar los recursos, información y facilidades que la entidad debe brindar al locador para que pueda ejecutar el servicio' +
+                METODO_RECURSOS_ENTIDAD,
               extension: 'lista',
             },
           ],

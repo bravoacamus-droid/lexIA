@@ -21,6 +21,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_RECURSOS_ENTIDAD,
   seccionConfidencialidad,
   seccionAdelantoDirecto,
   seccionEncabezado,
@@ -716,7 +717,8 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
               id: 'recursos_entidad',
               etiqueta: 'Recursos provistos por la Entidad',
               instruccion:
-                'Listar los recursos y facilidades que la entidad debe brindar al proveedor para que pueda ejecutar de manera eficiente, segura y oportuna el contrato',
+                'Listar los recursos y facilidades que la entidad debe brindar al proveedor para que pueda ejecutar de manera eficiente, segura y oportuna el contrato' +
+                METODO_RECURSOS_ENTIDAD,
               extension: 'lista',
             },
           ],

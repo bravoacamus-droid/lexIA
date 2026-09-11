@@ -24,6 +24,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_RECURSOS_ENTIDAD,
   seccionConfidencialidad,
   procedimientoPenalidades, seccionAdelantoDirecto } from './comunes';
 
@@ -880,7 +881,8 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
               id: 'recursos_entidad',
               etiqueta: 'Recursos provistos por la Entidad',
               instruccion:
-                'Listar los recursos y facilidades que la entidad debe brindar al proveedor. La Entidad debe crear todas las condiciones, internas y externas, para que el contratista pueda ejecutar de manera eficiente, segura y oportuna el contrato',
+                'Listar los recursos y facilidades que la entidad debe brindar al proveedor. La Entidad debe crear todas las condiciones, internas y externas, para que el contratista pueda ejecutar de manera eficiente, segura y oportuna el contrato' +
+                METODO_RECURSOS_ENTIDAD,
               ejemplo:
                 'Proveer al contratista el espacio físico acondicionado (cuartos limpios, electricidad regulada, acceso restringido).\nEntregar planos y permisos municipales para las obras civiles necesarias.\nProporcionar acceso al edificio y personal de supervisión durante la instalación.\nGarantizar que el lugar cumpla con las normas de seguridad para equipos eléctricos y manejo de agentes biológicos.',
               extension: 'lista',

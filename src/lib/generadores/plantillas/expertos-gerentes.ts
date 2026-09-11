@@ -20,6 +20,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_RECURSOS_ENTIDAD,
   seccionConfidencialidad,
   seccionAdelantoDirecto,
   seccionEncabezado,
@@ -438,7 +439,8 @@ export const PLANTILLA_EXPERTOS_GERENTES: PlantillaRequerimiento = {
               id: 'recursos_entidad',
               etiqueta: 'Recursos provistos por la Entidad',
               instruccion:
-                'Precisar los recursos, información, documentación, accesos y demás facilidades necesarias para la adecuada ejecución de la prestación',
+                'Precisar los recursos, información, documentación, accesos y demás facilidades necesarias para la adecuada ejecución de la prestación' +
+                METODO_RECURSOS_ENTIDAD,
               ejemplo:
                 'Designar un servidor responsable de la coordinación del servicio.\nProporcionar el expediente de contratación, requerimiento, estudio de mercado, bases, consultas, observaciones, informes técnicos y demás documentación necesaria para el desarrollo de la asistencia técnica.\nFacilitar el acceso a la información institucional relacionada con el procedimiento de selección, respetando las restricciones de confidencialidad que resulten aplicables.',
               extension: 'lista',
