@@ -24,6 +24,7 @@
  *     cuantía y se devuelven como avisos.
  */
 import type {
+  MarcadorLista,
   PlantillaRequerimiento,
   Seccion,
   Bloque,
@@ -105,7 +106,7 @@ export interface RespuestasRequerimiento {
 }
 
 /** Con qué se marca cada elemento de una lista. */
-export type MarcadorLista = 'vineta' | 'literal' | 'numero';
+export type { MarcadorLista };
 
 export const MARCADORES: MarcadorLista[] = ['vineta', 'literal', 'numero'];
 
@@ -561,9 +562,12 @@ export function ensamblarRequerimiento(
             // de la lista: es lo que la abre, y salía con viñeta como si
             // fuera uno más. Se reconoce porque termina en dos puntos.
             const renglones = b.texto.split('\n').map((l) => l.trim()).filter(Boolean);
+            // El encabezado no cuenta para la numeración: si la lista
+            // va con literales, el primer supuesto debe ser el a).
+            let n = 0;
             for (const [i, t] of renglones.entries()) {
               if (i === 0 && t.endsWith(':')) partes.push(t, '');
-              else partes.push(`- ${t}`);
+              else partes.push(`${marcaDeLista(b.marcador ?? 'vineta', n++)} ${t}`);
             }
             partes.push('');
           } else {

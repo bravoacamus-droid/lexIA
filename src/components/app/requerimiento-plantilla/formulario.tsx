@@ -569,7 +569,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
         // Texto invariable: se muestra para que el usuario sepa que
         // estará en el documento, pero no es editable. Ese es justo el
         // punto de la plantilla.
-        return <TextoFijo key={clave} texto={b.texto} />;
+        return <TextoFijo key={clave} texto={b.texto} lista={b.lista} marcador={b.marcador} />;
       default:
         return null;
     }

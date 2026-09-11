@@ -86,15 +86,54 @@ function Ayuda({
  * si alguien quiere leerlos enteros. Antes se cortaban con puntos
  * suspensivos y no había forma de ver el resto.
  */
-export function TextoFijo({ texto }: { texto: string }) {
+export function TextoFijo({
+  texto,
+  lista,
+  marcador,
+}: {
+  texto: string;
+  /** El bloque es una enumeración del formato, un renglón por punto. */
+  lista?: boolean;
+  /** Con qué se marca cada punto. Ver `marcaDeLista`. */
+  marcador?: MarcadorLista;
+}) {
   const [abierto, setAbierto] = useState(false);
   const largo = texto.length > 240;
+
+  // Una enumeración se pinta como enumeración. Se guardaba con un
+  // renglón por punto pero se mostraba de corrido —el HTML se come los
+  // saltos—, así que en pantalla las nueve causales de resolución del
+  // contrato menor parecían un párrafo interminable y no se veía cuál
+  // era el literal a) ni el c). En el Word sí salían separadas: lo que
+  // no coincidía era lo que el usuario veía. Observación 16 de César.
+  const renglones = lista ? texto.split('\n').map((l) => l.trim()).filter(Boolean) : [];
+  const encabeza = renglones[0]?.endsWith(':') ? renglones[0] : null;
+  const puntos = encabeza ? renglones.slice(1) : renglones;
+
   return (
     <div className="rounded-md bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
       <span className="mb-1 block font-medium uppercase tracking-wide">
         Texto obligatorio del formato
       </span>
-      {abierto || !largo ? texto : `${texto.slice(0, 240)}…`}
+      {lista && (abierto || !largo) ? (
+        <>
+          {encabeza && <span className="block">{encabeza}</span>}
+          <span className="mt-1 block space-y-0.5">
+            {puntos.map((t, i) => (
+              <span key={i} className="flex gap-1.5">
+                <span className="shrink-0 select-none">
+                  {marcaDeLista(marcador ?? 'vineta', i).replace(/^-$/, '•')}
+                </span>
+                <span>{t}</span>
+              </span>
+            ))}
+          </span>
+        </>
+      ) : abierto || !largo ? (
+        texto
+      ) : (
+        `${texto.slice(0, 240)}…`
+      )}
       {largo && (
         <button
           type="button"

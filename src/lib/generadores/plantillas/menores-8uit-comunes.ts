@@ -202,13 +202,27 @@ export function seccionesRegimenContratoMenor(): Seccion[] {
           // usuaria: son las que la norma habilita.
           clase: 'fijo',
           texto:
-            'Ocurre un caso fortuito o fuerza mayor que imposibilita la continuación del contrato.\nSe produce el incumplimiento de obligaciones contractuales, por causa atribuible a la parte que incumple.\nSe presenta un hecho sobreviniente al perfeccionamiento del contrato, de supuesto distinto al caso fortuito o fuerza mayor, no imputable a ninguna de las partes, que imposibilite la continuidad del contrato.\nPor incumplimiento la cláusula anticorrupción.\nPor la presentación de documentación falsa o inexacta durante la ejecución contractual.\nSe configura una condición de terminación anticipada establecida en el contrato, de acuerdo con los supuestos que se establezcan en el reglamento para su aplicación.\nSe alcanza el monto máximo permitido por penalidades por mora y otras penalidades, durante la ejecución de la prestación a cargo del contratista.\nCuando la entidad sustente de manera objetiva que, la situación de incumplimiento ya no pueda ser revertida.',
+            'Ocurre un caso fortuito o fuerza mayor que imposibilita la continuación del contrato.\nSe produce el incumplimiento de obligaciones contractuales, por causa atribuible a la parte que incumple.\nSe presenta un hecho sobreviniente al perfeccionamiento del contrato, de supuesto distinto al caso fortuito o fuerza mayor, no imputable a ninguna de las partes, que imposibilite la continuidad del contrato.\nPor incumplimiento la cláusula anticorrupción.\nPor la presentación de documentación falsa o inexacta durante la ejecución contractual.\nSe configura una condición de terminación anticipada establecida en el contrato, de acuerdo con los supuestos que se establezcan en el reglamento para su aplicación.\nSe alcanza el monto máximo permitido por penalidades por mora y otras penalidades, durante la ejecución de la prestación a cargo del contratista.\nCuando la entidad sustente de manera objetiva que, la situación de incumplimiento ya no pueda ser revertida.\nLas partes podrán resolver el contrato por mutuo acuerdo, siempre que la prestación objeto de resolución sea autónoma respecto de las demás obligaciones contractuales y no ocasione perjuicio económico a la Entidad. En este supuesto, la resolución debe contar previamente con la opinión favorable del área usuaria.',
                   lista: true,
+          // Se citan por su letra en los dos párrafos que cierran
+          // el apartado, así que no pueden salir con viñeta.
+          marcador: 'literal',
+        },
+        {
+          // Los dos párrafos con que el formato cierra el apartado, y
+          // que no estaban: sin ellos la lista de causales queda sin
+          // decir cuáles exigen acreditar la imposibilidad y cuáles
+          // resuelven de pleno derecho. Observación 16 de César
+          // (setiembre de 2026): "el texto anterior no está conforme a
+          // lo establecido en formato".
+          clase: 'fijo',
+          texto:
+            'En los supuestos contemplados en los literales a) y c), la parte que resuelve debe justificar y acreditar que la situación alegada imposibilita, de manera definitiva, la continuidad en la ejecución de las prestaciones a su cargo.',
         },
         {
           clase: 'fijo',
           texto:
-            'Las partes podrán resolver el contrato por mutuo acuerdo, siempre que la prestación objeto de resolución sea autónoma respecto de las demás obligaciones contractuales y no ocasione perjuicio económico a la Entidad. En este supuesto, la resolución debe contar previamente con la opinión favorable del área usuaria.',
+            'En los supuestos previstos en los literales a), c), d), e), f), g), h) e i), las partes pueden resolver el contrato sin necesidad de requerimiento o apercibimiento previo, quedando este resuelto de pleno derecho a partir de la notificación. Asimismo, cuando la Entidad sustenta objetivamente que el incumplimiento no puede ser revertido, conforme al pronunciamiento emitido por el área usuaria, notifica al contratista la resolución parcial o total del contrato, según corresponda.',
         },
       ],
     },

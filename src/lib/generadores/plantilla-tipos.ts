@@ -23,6 +23,13 @@
  * redacte solo esa parte tomando el ejemplo de César como referencia.
  */
 
+/**
+ * Con qué se marca cada elemento de una lista: viñetas, literales
+ * a) b) c) o números. Vive aquí, con el modelo, porque hay listas del
+ * propio formato que exigen una marca concreta.
+ */
+export type MarcadorLista = 'vineta' | 'literal' | 'numero';
+
 /** Bloque de texto que se reproduce TAL CUAL. */
 export interface BloqueFijo {
   /** Ver `VisibleSi`. */
@@ -43,6 +50,17 @@ export interface BloqueFijo {
    * siga cotejando un solo texto contra el Word.
    */
   lista?: boolean;
+
+  /**
+   * Con qué se marca cada renglón de esa lista. Por defecto, viñetas.
+   *
+   * Hay enumeraciones del formato que NO admiten viñeta: las causales
+   * de resolución del contrato menor se citan más abajo por su letra
+   * —"en los supuestos previstos en los literales a), c), d)..."—, de
+   * modo que si salen con viñeta la remisión se queda sin referente.
+   * Observación 16 de César (setiembre de 2026).
+   */
+  marcador?: MarcadorLista;
 }
 
 /** Título de sección o subsección. */
