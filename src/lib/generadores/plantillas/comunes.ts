@@ -942,6 +942,17 @@ export function bloqueCanalPago(): Bloque {
   };
 }
 
+/**
+ * Cómo se decide qué le toca poner al contratista.
+ *
+ * Observación 21 de César (setiembre de 2026). El aviso que la cierra
+ * es el importante: lo que se exige aquí son condiciones de ejecución,
+ * no requisitos de calificación. Colar un perfil o una acreditación en
+ * este apartado cambia quién puede presentarse a la convocatoria.
+ */
+export const METODO_RECURSOS_CONTRATISTA =
+  ' Antes de redactar, determina si la ejecución exige del contratista algo que no esté ya definido en las características técnicas, las actividades o los entregables: si no lo exige, dilo en una línea y no añadas condiciones. Si lo exige, propón ÚNICAMENTE lo necesario, pertinente, proporcional y directamente vinculado a la ejecución, entre: personal, equipos, herramientas, materiales, insumos o infraestructura; medios técnicos, logísticos, tecnológicos o de comunicación; traslados, coordinación y facilidades; medidas de seguridad, protección o prevención cuando correspondan; las obligaciones necesarias para alcanzar los resultados y entregables; y otras directamente relacionadas con la correcta ejecución. Comprueba que cada exigencia sea necesaria, razonable, proporcional, verificable y coherente con el objeto, las actividades, las condiciones y los resultados. No inventes personal, equipos, materiales, herramientas, recursos, procedimientos, estándares ni obligaciones que no estén sustentados en lo que se te ha dado. Y no conviertas esto en requisitos de calificación: aquí van condiciones de ejecución del contrato, no perfiles ni acreditaciones que decidan quién puede presentarse. Y no fijes por tu cuenta niveles de servicio, horarios de atención, frecuencias, tiempos de respuesta ni porcentajes de disponibilidad —nada de "las veinticuatro horas, los siete días"— si no te los han dado: si el dato hace falta, escríbelo como [Pendiente: qué falta].';
+
 export const VALIDACION_EXPERIENCIA = {
   id: 'experiencia_max',
   descripcion:

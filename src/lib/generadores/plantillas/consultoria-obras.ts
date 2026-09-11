@@ -24,6 +24,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_RECURSOS_CONTRATISTA,
   bloquesPagoAnticipado,
   METODO_VERIFICACIONES,
   METODO_RECURSOS_ENTIDAD,
@@ -731,7 +732,8 @@ export const PLANTILLA_CONSULTORIA_OBRAS: PlantillaRequerimiento = {
               id: 'recursos_contratista',
               etiqueta: 'Recursos y obligaciones del contratista',
               instruccion:
-                'Establecer los recursos humanos, medios técnicos, software especializado, licencias, equipos y metodologías que el consultor debe proporcionar, y las obligaciones que asume',
+                'Establecer los recursos humanos, medios técnicos, software especializado, licencias, equipos y metodologías que el consultor debe proporcionar, y las obligaciones que asume' +
+                METODO_RECURSOS_CONTRATISTA,
               ejemplo:
                 'Mantener la confidencialidad de la información proporcionada por la Entidad.\nUtilizar software especializado compatible con la naturaleza del servicio.\nEjecutar la consultoría conforme al plan de trabajo, la metodología y el cronograma aprobados.\nParticipar en las reuniones de coordinación y sustentación técnica convocadas por la Entidad.\nLevantar oportunamente las observaciones formuladas a los entregables.',
               extension: 'lista',

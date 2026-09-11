@@ -19,6 +19,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_RECURSOS_CONTRATISTA,
   METODO_VERIFICACIONES,
   METODO_RECURSOS_ENTIDAD,
   seccionConfidencialidad,
@@ -688,7 +689,8 @@ export const PLANTILLA_SERVICIOS_CONSULTORIA: PlantillaRequerimiento = {
               id: 'recursos_contratista',
               etiqueta: 'Recursos y obligaciones del contratista',
               instruccion:
-                'Establecer los recursos humanos, medios técnicos, infraestructura, equipos informáticos, licencias, software especializado, metodologías o sistemas de información que el contratista debe proporcionar, y las obligaciones que asume (cumplimiento del plan de trabajo y la metodología propuesta, plazos, normativa aplicable, confidencialidad, atención de observaciones, participación en reuniones de coordinación)',
+                'Establecer los recursos humanos, medios técnicos, infraestructura, equipos informáticos, licencias, software especializado, metodologías o sistemas de información que el contratista debe proporcionar, y las obligaciones que asume (cumplimiento del plan de trabajo y la metodología propuesta, plazos, normativa aplicable, confidencialidad, atención de observaciones, participación en reuniones de coordinación)' +
+                METODO_RECURSOS_CONTRATISTA,
               ejemplo:
                 'Ejecutar la consultoría conforme al plan de trabajo, metodología, cronograma y demás condiciones establecidas en los Términos de Referencia.\nRecopilar, analizar y procesar la información necesaria para el cumplimiento de los objetivos, empleando metodologías técnicamente aceptadas.\nParticipar en las reuniones de coordinación, presentación de avances, mesas de trabajo y demás actividades convocadas por la Entidad.\nPresentar los entregables, informes, productos o documentos técnicos dentro de los plazos establecidos y con el contenido mínimo requerido.\nCumplir con la normativa técnica, sectorial y demás disposiciones legales aplicables durante toda la ejecución contractual.',
               extension: 'lista',

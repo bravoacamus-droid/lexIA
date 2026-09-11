@@ -20,6 +20,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_RECURSOS_CONTRATISTA,
   bloquesPagoAnticipado,
   METODO_VERIFICACIONES,
   METODO_RECURSOS_ENTIDAD,
@@ -506,7 +507,8 @@ export const PLANTILLA_EXPERTOS_GERENTES: PlantillaRequerimiento = {
               id: 'recursos_contratista',
               etiqueta: 'Recursos y obligaciones del contratista',
               instruccion:
-                'Establecer los recursos, medios, infraestructura, equipos informáticos, software, licencias, herramientas tecnológicas, personal o autorizaciones que el contratista debe proporcionar, y las obligaciones que asume (observancia del Plan de Trabajo, cumplimiento de plazos, calidad técnica de los entregables, confidencialidad, disponibilidad del personal propuesto). Si no corresponde exigir algún recurso, consignar "NO APLICA"',
+                'Establecer los recursos, medios, infraestructura, equipos informáticos, software, licencias, herramientas tecnológicas, personal o autorizaciones que el contratista debe proporcionar, y las obligaciones que asume (observancia del Plan de Trabajo, cumplimiento de plazos, calidad técnica de los entregables, confidencialidad, disponibilidad del personal propuesto). Si no corresponde exigir algún recurso, consignar "NO APLICA"' +
+                METODO_RECURSOS_CONTRATISTA,
               ejemplo:
                 'Asumir todos los costos derivados de los equipos, transporte, comunicaciones y demás recursos necesarios para la ejecución del servicio, salvo aquellos que expresamente sean proporcionados por la Entidad.\nGuardar absoluta reserva y confidencialidad respecto de toda la información a la que tenga acceso durante la ejecución contractual.\nCumplir las disposiciones emitidas por el coordinador o responsable designado por la Entidad, siempre que se encuentren dentro del marco contractual.\nCumplir la normativa aplicable, así como las políticas internas de seguridad, acceso a instalaciones y uso de la información de la Entidad.',
               extension: 'lista',

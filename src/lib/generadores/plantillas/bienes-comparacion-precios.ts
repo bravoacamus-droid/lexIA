@@ -17,6 +17,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_RECURSOS_CONTRATISTA,
   METODO_RECURSOS_ENTIDAD,
   seccionConfidencialidad,
   seccionEncabezado,
@@ -547,7 +548,8 @@ export const PLANTILLA_BIENES_COMPARACION_PRECIOS: PlantillaRequerimiento = {
               id: 'recursos_contratista',
               etiqueta: 'Recursos y obligaciones del contratista',
               instruccion:
-                'Precisar los recursos, medios, equipos, materiales, personal, licencias, autorizaciones o permisos que el contratista deberá proporcionar, así como sus responsabilidades durante la ejecución contractual, siempre que resulten objetivas, razonables y guarden relación con la naturaleza de la contratación',
+                'Precisar los recursos, medios, equipos, materiales, personal, licencias, autorizaciones o permisos que el contratista deberá proporcionar, así como sus responsabilidades durante la ejecución contractual, siempre que resulten objetivas, razonables y guarden relación con la naturaleza de la contratación' +
+                METODO_RECURSOS_CONTRATISTA,
               ejemplo:
                 'Entregar los productos en las cantidades, lugares, fechas y horarios establecidos por la Entidad.\nGarantizar que los productos cumplan con las especificaciones técnicas, requisitos sanitarios, condiciones de inocuidad y vida útil exigidos en el requerimiento.\nUtilizar vehículos adecuados para el transporte, asegurando que los productos se conserven en óptimas condiciones hasta su entrega.\nAsumir los costos de transporte, carga, descarga y cualquier otro gasto necesario para la entrega de los bienes.\nReemplazar, sin costo adicional para la Entidad, los productos que presenten defectos, deterioro o incumplimiento de las especificaciones técnicas.',
               extension: 'lista',

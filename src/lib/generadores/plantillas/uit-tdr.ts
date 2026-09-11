@@ -22,6 +22,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_RECURSOS_CONTRATISTA,
   METODO_VERIFICACIONES,
   METODO_RECURSOS_ENTIDAD,
   seccionConfidencialidad,
@@ -942,7 +943,8 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
               id: 'recursos_contratista',
               etiqueta: 'Recursos y obligaciones del contratista',
               instruccion:
-                'Establecer los recursos, medios, equipos, herramientas, materiales, personal, infraestructura, licencias, autorizaciones o sistemas informáticos que el contratista debe proporcionar o mantener, y las obligaciones que asume',
+                'Establecer los recursos, medios, equipos, herramientas, materiales, personal, infraestructura, licencias, autorizaciones o sistemas informáticos que el contratista debe proporcionar o mantener, y las obligaciones que asume' +
+                METODO_RECURSOS_CONTRATISTA,
               extension: 'lista',
             },
           ],

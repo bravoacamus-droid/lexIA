@@ -22,6 +22,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_RECURSOS_CONTRATISTA,
   METODO_VERIFICACIONES,
   METODO_RECURSOS_ENTIDAD,
   seccionConfidencialidad,
@@ -939,7 +940,8 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
               id: 'recursos_contratista',
               etiqueta: 'Recursos y obligaciones del contratista',
               instruccion:
-                'Precisar los recursos, medios, equipos, materiales, personal, licencias o autorizaciones que el contratista deberá proporcionar, así como sus responsabilidades durante la ejecución contractual',
+                'Precisar los recursos, medios, equipos, materiales, personal, licencias o autorizaciones que el contratista deberá proporcionar, así como sus responsabilidades durante la ejecución contractual' +
+                METODO_RECURSOS_CONTRATISTA,
               extension: 'lista',
             },
           ],

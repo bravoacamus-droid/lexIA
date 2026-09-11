@@ -19,6 +19,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_RECURSOS_CONTRATISTA,
   bloquesPagoAnticipado,
   METODO_VERIFICACIONES,
   METODO_RECURSOS_ENTIDAD,
@@ -566,7 +567,8 @@ export const PLANTILLA_MANTENIMIENTO_VIAL: PlantillaRequerimiento = {
               id: 'recursos_contratista',
               etiqueta: 'Recursos y obligaciones del contratista',
               instruccion:
-                'Establecer la maquinaria, equipos, herramientas, materiales, personal, licencias y autorizaciones que el contratista debe proporcionar o mantener, y las obligaciones que asume durante la ejecución del servicio',
+                'Establecer la maquinaria, equipos, herramientas, materiales, personal, licencias y autorizaciones que el contratista debe proporcionar o mantener, y las obligaciones que asume durante la ejecución del servicio' +
+                METODO_RECURSOS_CONTRATISTA,
               extension: 'lista',
             },
           ],

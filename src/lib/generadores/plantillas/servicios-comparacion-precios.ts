@@ -17,6 +17,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_RECURSOS_CONTRATISTA,
   METODO_RECURSOS_ENTIDAD,
   seccionConfidencialidad,
   seccionEncabezado,
@@ -527,7 +528,8 @@ export const PLANTILLA_SERVICIOS_COMPARACION_PRECIOS: PlantillaRequerimiento = {
               id: 'recursos_contratista',
               etiqueta: 'Recursos y obligaciones del contratista',
               instruccion:
-                'Establecer los recursos, medios, equipos, herramientas, materiales, personal, infraestructura, licencias, autorizaciones o sistemas informáticos que el contratista debe proporcionar o mantener, y las obligaciones que asume. Las exigencias deben ser objetivas, razonables y proporcionales, sin restringir injustificadamente la libre concurrencia',
+                'Establecer los recursos, medios, equipos, herramientas, materiales, personal, infraestructura, licencias, autorizaciones o sistemas informáticos que el contratista debe proporcionar o mantener, y las obligaciones que asume. Las exigencias deben ser objetivas, razonables y proporcionales, sin restringir injustificadamente la libre concurrencia' +
+                METODO_RECURSOS_CONTRATISTA,
               ejemplo:
                 'Proporcionar el personal, equipos, herramientas, instrumentos e implementos necesarios para la correcta ejecución del servicio.\nEjecutar el servicio conforme a las especificaciones técnicas, el plan de trabajo y los plazos establecidos por la Entidad.\nUtilizar materiales, insumos y repuestos que cumplan con las características técnicas exigidas en el requerimiento.\nCumplir las normas de seguridad y salud en el trabajo y proporcionar al personal los equipos de protección personal requeridos.\nMantener permanentemente la limpieza y el orden del área donde se ejecuten los trabajos.\nComunicar oportunamente a la Entidad cualquier situación que pueda afectar la continuidad o calidad del servicio.\nSubsanar, sin costo adicional para la Entidad, las observaciones o deficiencias atribuibles al contratista.\nCumplir la normativa técnica, ambiental y sectorial aplicable durante toda la ejecución contractual.',
               extension: 'lista',
