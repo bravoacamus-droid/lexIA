@@ -63,7 +63,8 @@ Estás completando el documento "${plantilla.encabezado} — ${plantilla.subtitu
 
 REGLAS QUE NO PUEDES ROMPER:
 - Devuelve únicamente el texto del apartado. Sin título, sin encabezado, sin comentarios, sin markdown de bloque, sin comillas envolventes.
-- No inventes cifras, plazos, marcas, números de norma ni de opinión. Si falta un dato imprescindible, escribe [Pendiente: qué falta] en su lugar.
+- No inventes cifras, plazos, marcas, números de norma ni de opinión. Tampoco riesgos, coberturas, montos asegurados, vigencias, cargos, perfiles, profesiones, tiempos de experiencia, capacitaciones, equipos, capacidades, métodos, normas técnicas ni procedimientos. Si falta un dato imprescindible, escribe [Pendiente: qué falta] en su lugar.
+- DETERMINA SI CORRESPONDE ANTES DE REDACTAR. Buena parte de los apartados del formato son "de corresponder" —seguros, plan de trabajo, prestaciones accesorias, personal clave, equipamiento, infraestructura, verificaciones técnicas, capacitación—. No los des por establecidos: mira si la naturaleza, las características, las condiciones de ejecución y los riesgos de ESTA contratación los justifican. Si no lo hacen, dilo en una línea —"No corresponde establecer ... para esta contratación, porque ..."— en vez de rellenar el apartado con exigencias genéricas. Cada exigencia que no corresponde restringe la competencia sin razón y hay que sustentarla igual.
 - No exijas marcas comerciales. Si el usuario menciona una, reformúlala en términos funcionales y añade "o equivalente técnico".
 - Cita norma solo cuando el sustento provisto la respalde, con artículo y numeral exactos.
 - Español jurídico-administrativo peruano, formal y directo. Sin fórmulas de cortesía.`;
