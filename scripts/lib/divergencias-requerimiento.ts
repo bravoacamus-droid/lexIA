@@ -118,4 +118,41 @@ export const DIVERGENCIAS_DECLARADAS: DivergenciaDeclarada[] = [
     seccion: 'confidencialidad',
     motivo: 'Obs. 17: artículo de confidencialidad reemplazado por el texto de César.',
   },
+
+  // ── Observación 20 (setiembre de 2026): el recuadro donde se escribía
+  // a mano la dependencia y su dirección "debe suprimirse, en su
+  // reemplazo activar pestañas de elección", con un campo para el
+  // correo o el enlace. La frase cambia respecto del .docx.
+  {
+    plantilla: '*',
+    fragmento:
+      'Salvo los documentos de conformidad, el contratista debe presentar la documentación restante a través de',
+    motivo: 'Obs. 20: el canal de presentación se elige y el correo/enlace se escribe aparte.',
+  },
+
+  // ── Observación 20: el pago anticipado pasa a estar en todos los
+  // formatos, bajo su interruptor y apagado. Seis de sus .docx no lo
+  // traen, así que su documento por defecto no cambia.
+  {
+    plantilla: '*',
+    fragmento:
+      'De manera excepcional, se permitirá que el pago se realice de forma total o parcial al inicio de la vigencia contractual',
+    motivo: 'Obs. 20: pago anticipado disponible en todos los formatos, apagado por defecto.',
+  },
+  {
+    plantilla: '*',
+    fragmento: 'Para la procedencia del pago anticipado, se aplicarán las siguientes reglas:',
+    motivo: 'Obs. 20: pago anticipado disponible en todos los formatos, apagado por defecto.',
+  },
+  {
+    plantilla: '*',
+    fragmento: 'El contratista deberá entregar previamente una garantía conforme lo señalado',
+    motivo: 'Obs. 20: pago anticipado disponible en todos los formatos, apagado por defecto.',
+  },
+  {
+    plantilla: '*',
+    fragmento:
+      'En este supuesto, el área usuaria emitirá una primera conformidad para efectos estrictamente administrativos de pago',
+    motivo: 'Obs. 20: pago anticipado disponible en todos los formatos, apagado por defecto.',
+  },
 ];

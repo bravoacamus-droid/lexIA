@@ -13,6 +13,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  bloquesPagoAnticipado,
   METODO_VERIFICACIONES,
   METODO_RECURSOS_ENTIDAD,
   seccionConfidencialidad,
@@ -554,6 +555,7 @@ export const PLANTILLA_BIENES_ESTANDARIZADOS: PlantillaRequerimiento = {
             { clase: 'fijo', texto: 'El pago se realiza de conformidad con lo establecido en el artículo 67 de la Ley.' },
             // Su .docx dice "responsable de", no "del".
             ...bloquesPago('de'),
+            ...bloquesPagoAnticipado(),
           ],
         },
 

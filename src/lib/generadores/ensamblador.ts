@@ -515,6 +515,27 @@ function tablaMarkdown(columnas: string[], filas: string[][]): string {
   ].join('\n');
 }
 
+/**
+ * Las contracciones que deja un hueco al rellenarse.
+ *
+ * "presentar la documentación a través de {{medio}}" con el medio "el
+ * correo electrónico institucional" salía como "a través de el correo".
+ * No es cosa de un párrafo: le pasa a cualquiera que termine en "de" o
+ * en "a" y reciba un valor que empieza por "el".
+ */
+function contraer(texto: string): string {
+  return (
+    texto
+      .replace(/\bde el\b/g, 'del')
+      .replace(/\ba el\b/g, 'al')
+      // Un hueco opcional que desaparece deja doble espacio o un
+      // espacio antes del punto.
+      .replace(/ {2,}/g, ' ')
+      .replace(/ ([.,;:])/g, '$1')
+      .trim()
+  );
+}
+
 /** Marca visible en el documento cuando falta un dato obligatorio. */
 const pendiente = (etiqueta: string) => `**[PENDIENTE: ${etiqueta}]**`;
 
@@ -584,6 +605,11 @@ export function ensamblarRequerimiento(
 
         case 'campo': {
           const v = valorCampo(b, seccion);
+          // Un campo opcional vacío no es un pendiente: es que no
+          // corresponde. Salía en el Word como "Otra documentación
+          // exigible para el pago: [PENDIENTE: ...]" aunque el formato
+          // diga "según corresponda".
+          if (v === null && !b.obligatorio) break;
           partes.push(`**${b.etiqueta}:** ${v ?? pendiente(b.etiqueta)}`, '');
           break;
         }
@@ -592,9 +618,12 @@ export function ensamblarRequerimiento(
           let texto = b.texto;
           for (const campo of b.campos) {
             const v = valorCampo(campo, seccion);
-            texto = texto.replaceAll(`{{${campo.id}}}`, v ?? pendiente(campo.etiqueta));
+            // Lo mismo dentro de un párrafo: el hueco opcional que
+            // nadie rellenó desaparece y la frase se cierra sola.
+            const relleno = v ?? (campo.obligatorio ? pendiente(campo.etiqueta) : '');
+            texto = texto.replaceAll(`{{${campo.id}}}`, relleno);
           }
-          partes.push(texto, '');
+          partes.push(contraer(texto), '');
           break;
         }
 

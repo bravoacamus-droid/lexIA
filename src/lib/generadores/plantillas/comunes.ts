@@ -291,6 +291,7 @@ export function bloquesPagoAnticipado(): Bloque[] {
   return [
     {
       clase: 'fijo',
+      etiqueta: 'Pago anticipado',
       texto:
         'De manera excepcional, se permitirá que el pago se realice de forma total o parcial al inicio de la vigencia contractual, siempre que se sustente que dicha modalidad es una condición de mercado indispensable para la ejecución de las obligaciones.',
       fundamento: 'Plantilla — pago anticipado',
@@ -333,22 +334,8 @@ export function bloquesPago(
   return [
     { clase: 'fijo', texto: PAGO_PLAZO, fundamento: 'Plantilla — forma de pago' },
     { clase: 'fijo', texto: PAGO_CONSORCIO, fundamento: 'Plantilla — pago a consorcios' },
-    {
-      clase: 'parrafo',
-      texto:
-        'La entidad contratante realiza el pago de la contraprestación pactada a favor del contratista mediante {{modalidad_pago_principal}}.',
-      campos: [
-        {
-          clase: 'campo',
-          id: 'modalidad_pago_principal',
-          etiqueta: 'Modalidad de pago',
-          ayuda:
-            'Consignar si se trata de único pago o pagos a cuenta o pagos periódicos o pagos mensuales, así como el detalle que corresponde en el caso de pago a cuenta',
-          tipo: 'texto',
-          obligatorio: true,
-        },
-      ],
-    },
+    bloqueModalidadPago(),
+
     { clase: 'fijo', texto: PAGO_DOCUMENTACION, fundamento: 'Plantilla — requisitos de pago' },
     {
       clase: 'parrafo',
@@ -376,30 +363,8 @@ export function bloquesPago(
       // El formato dice "según corresponda": puede no haber ninguna.
       obligatorio: false,
     },
-    {
-      clase: 'parrafo',
-      texto:
-        'Salvo los documentos de conformidad, el contratista debe presentar la documentación restante {{lugar_presentacion}}, sito en {{direccion_presentacion}}',
-      campos: [
-        {
-          clase: 'campo',
-          id: 'lugar_presentacion',
-          etiqueta: 'Dependencia donde se presenta la documentación',
-          ayuda:
-            'Consignar mesa de partes o la dependencia específica de la entidad contratante donde se debe presentar la documentación',
-          tipo: 'texto',
-          obligatorio: true,
-        },
-        {
-          clase: 'campo',
-          id: 'direccion_presentacion',
-          etiqueta: 'Dirección',
-          ayuda: 'Consignar la dirección exacta',
-          tipo: 'texto',
-          obligatorio: true,
-        },
-      ],
-    },
+    bloqueCanalPago(),
+
     { clase: 'fijo', texto: PAGO_INTERESES, fundamento: 'Ley N° 32069, art. 67.5' },
   ];
 }
@@ -887,6 +852,95 @@ export const METODO_RECURSOS_ENTIDAD =
  */
 export const METODO_VERIFICACIONES =
   ' Antes de redactar, evalúa si por la naturaleza y complejidad de esta contratación hace falta comprobar algo. Hace falta cuando una característica exigida NO se puede comprobar mirando el entregable —resistencia, composición, rendimiento, calibración, seguridad, interoperabilidad, condiciones sanitarias— y solo se acredita con una prueba, un ensayo, una inspección o una revisión documental específica. No hace falta cuando el propio entregable evidencia el cumplimiento, y en ese caso dilo en una línea y no propongas ninguna. Si corresponde, precisa de cada una, según aplique: qué aspecto o característica se verifica; con qué método o procedimiento; qué prueba, ensayo, inspección, simulación o revisión documental; con qué criterios objetivos se determina el cumplimiento; en qué momento se verifica; y qué evidencia sustenta la conformidad. Cada verificación debe ser objetiva, pertinente, necesaria, proporcional y estar directamente vinculada a las características, condiciones, actividades, entregables y resultados exigidos: no pidas ensayos de más, que encarecen la oferta y dejan fuera a quien no puede costearlos. No inventes métodos, normas técnicas, parámetros, tolerancias, equipos, laboratorios, frecuencias ni criterios de aceptación que no estén sustentados en lo que se te ha dado; si el ensayo corresponde pero su parámetro es un dato del área usuaria —edad de rotura, número de probetas, tolerancia admisible—, nómbralo con [Pendiente: qué falta] en vez de callarlo.';
+
+/** El párrafo con la modalidad de pago, que ahora se elige. */
+export function bloqueModalidadPago(): Bloque {
+  return {
+    clase: 'parrafo',
+    texto:
+      'La entidad contratante realiza el pago de la contraprestación pactada a favor del contratista mediante {{modalidad_pago_principal}}{{modalidad_pago_detalle}}.',
+    campos: [
+      {
+        // Se elige, no se escribe. Observación 20 de César (setiembre
+        // de 2026): "debe haber dos opciones a elección del área
+        // usuaria: pago único, pago a cuenta".
+        clase: 'campo',
+        id: 'modalidad_pago_principal',
+        etiqueta: 'Modalidad de pago',
+        ayuda: 'Elegir si la contraprestación se paga de una sola vez o en pagos a cuenta',
+        tipo: 'opciones',
+        opciones: [
+          { valor: 'unico', texto: 'un único pago' },
+          { valor: 'a_cuenta', texto: 'pagos a cuenta' },
+        ],
+        permiteOtro: true,
+        obligatorio: true,
+      },
+      {
+        // El detalle del pago a cuenta. Va vacío por defecto: con
+        // pago único no hay nada que detallar y la frase se cierra
+        // sola. Con "otro" el área usuaria escribe el suyo, que es
+        // donde cabe el número de pagos —"en tres (03) pagos por
+        // entregable"—.
+        clase: 'campo',
+        id: 'modalidad_pago_detalle',
+        etiqueta: 'Detalle del pago a cuenta',
+        ayuda:
+          'Solo si se eligieron pagos a cuenta: con qué periodicidad o contra qué se pagan, y cuántos son',
+        tipo: 'opciones',
+        opciones: [
+          { valor: '', texto: '— sin detalle —' },
+          { valor: 'mensual', texto: ', de periodicidad mensual' },
+          { valor: 'entregable', texto: ', por cada entregable' },
+          { valor: 'avance', texto: ', por avance' },
+          { valor: 'parcial', texto: ', por entrega parcial' },
+        ],
+        permiteOtro: true,
+        obligatorio: false,
+      },
+    ],
+  };
+}
+
+/** Por dónde se presenta la documentación para el pago. */
+export function bloqueCanalPago(): Bloque {
+  return {
+    clase: 'parrafo',
+    texto:
+      'Salvo los documentos de conformidad, el contratista debe presentar la documentación restante a través de {{pago_canal_medio}} ({{pago_canal}}).',
+    campos: [
+      {
+        // Antes se pedía la dependencia y su dirección a mano.
+        // Observación 20 de César (setiembre de 2026): "ese recuadro
+        // debe suprimirse, en su reemplazo activar pestañas de
+        // elección", con un campo para el correo o el enlace.
+        clase: 'campo',
+        id: 'pago_canal_medio',
+        etiqueta: 'Medio de presentación de la documentación de pago',
+        ayuda: 'Elegir por dónde se presenta la documentación para el pago',
+        tipo: 'opciones',
+        opciones: [
+          { valor: 'mesa_partes', texto: 'la mesa de partes virtual de la Entidad' },
+          { valor: 'correo', texto: 'el correo electrónico institucional' },
+          {
+            valor: 'ambos',
+            texto: 'la mesa de partes virtual de la Entidad y el correo electrónico institucional',
+          },
+        ],
+        permiteOtro: true,
+        obligatorio: true,
+      },
+      {
+        clase: 'campo',
+        id: 'pago_canal',
+        etiqueta: 'Correo y/o enlace de la mesa de partes',
+        ayuda: 'Consignar el correo electrónico institucional y/o el enlace de la mesa de partes virtual',
+        tipo: 'texto',
+        obligatorio: true,
+      },
+    ],
+  };
+}
 
 export const VALIDACION_EXPERIENCIA = {
   id: 'experiencia_max',

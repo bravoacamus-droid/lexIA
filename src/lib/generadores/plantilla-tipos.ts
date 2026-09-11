@@ -49,6 +49,16 @@ export interface BloqueFijo {
    * Se marca aquí y no se parte en siete bloques para que la auditoría
    * siga cotejando un solo texto contra el Word.
    */
+  /**
+   * Cómo se llama su interruptor, cuando el bloque va condicionado.
+   *
+   * Un texto fijo no tiene nombre, así que el interruptor tomaba el del
+   * apartado entero: en "Forma y requisitos de pago" salían dos
+   * interruptores llamados los dos "Forma y requisitos de pago", uno
+   * para el pago anticipado y otro para el aviso de las accesorias. No
+   * va al documento: es solo el rótulo de la pantalla.
+   */
+  etiqueta?: string;
   lista?: boolean;
 
   /**
@@ -272,6 +282,16 @@ export interface BloqueNota {
   visibleSi?: VisibleSi;
   clase: 'nota';
   texto: string;
+  /**
+   * Cómo se llama su interruptor, cuando el bloque va condicionado.
+   *
+   * Un texto fijo no tiene nombre, así que el interruptor tomaba el del
+   * apartado entero: en "Forma y requisitos de pago" salían dos
+   * interruptores llamados los dos "Forma y requisitos de pago", uno
+   * para el pago anticipado y otro para el aviso de las accesorias. No
+   * va al documento: es solo el rótulo de la pantalla.
+   */
+  etiqueta?: string;
 }
 
 export type Bloque =

@@ -18,6 +18,9 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  bloqueModalidadPago,
+  bloqueCanalPago,
+  bloquesPagoAnticipado,
   METODO_VERIFICACIONES,
   METODO_RECURSOS_ENTIDAD,
   seccionConfidencialidad,
@@ -676,34 +679,11 @@ export const PLANTILLA_VASO_DE_LECHE: PlantillaRequerimiento = {
           bloques: [
             { clase: 'fijo', texto: 'El pago se realiza de conformidad con lo establecido en el artículo 67 de la Ley.' },
             { clase: 'fijo', texto: PAGO_PLAZO, fundamento: 'Plantilla — forma de pago' },
-            {
-              // Esta plantilla redacta la presentación de documentos de
-              // otra manera que el resto: enumera qué documentos emite
-              // la Entidad. Por eso no reutiliza bloquesPago().
-              clase: 'parrafo',
-              texto:
-                'Salvo los documentos que emite la entidad contratante, tales como los documentos de recepción y verificación, así como la conformidad, el contratista deberá presentar la documentación restante en {{lugar_presentacion}}, sito en {{direccion_presentacion}}',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'lugar_presentacion',
-                  etiqueta: 'Dependencia donde se presenta la documentación',
-                  ayuda:
-                    'Consignar mesa de partes o la dependencia específica de la entidad contratante donde se debe presentar la documentación',
-                  tipo: 'texto',
-                  obligatorio: true,
-                },
-                {
-                  clase: 'campo',
-                  id: 'direccion_presentacion',
-                  etiqueta: 'Dirección',
-                  ayuda: 'Consignar la dirección exacta',
-                  tipo: 'texto',
-                  obligatorio: true,
-                },
-              ],
-            },
+            bloqueModalidadPago(),
+            bloqueCanalPago(),
+
             { clase: 'fijo', texto: PAGO_INTERESES, fundamento: 'Ley N° 32069, art. 67.5' },
+            ...bloquesPagoAnticipado(),
           ],
         },
 

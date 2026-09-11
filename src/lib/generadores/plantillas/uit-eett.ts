@@ -883,6 +883,7 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
               // lea el apartado sepa dónde está. Observación de César
               // (agosto de 2026): el formato divide la forma de pago en
               // prestación principal y accesoria.
+              etiqueta: 'Aviso sobre el pago de las prestaciones accesorias',
               clase: 'nota',
               texto:
                 'La forma y los requisitos de pago de las prestaciones accesorias se establecen de manera independiente en el numeral "Prestaciones accesorias".',
