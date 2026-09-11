@@ -93,6 +93,35 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
               minimo: 0,
               complementaria: true,
             },
+            {
+              // Estaba en las otras diez plantillas y no en esta.
+              // Observación 3 de César (setiembre de 2026): "en la
+              // descripción general del servicio (contrato menor) no fue
+              // considerado lo siguiente que sí fue considerado en las
+              // otras estructuras".
+              clase: 'opcion',
+              id: 'forma_contratacion',
+              etiqueta: 'Forma de contratación',
+              instruccion:
+                'Completar si serán contratados por ítems, por paquetes o mediante un ítem único',
+              opciones: [
+                {
+                  valor: 'item_unico',
+                  texto:
+                    'La contratación comprende un único ítem, conforme a la descripción consignada en el presente requerimiento.',
+                },
+                {
+                  valor: 'por_items',
+                  texto:
+                    'Los servicios antes descritos serán contratados por ítems independientes, pudiendo los proveedores presentar ofertas por uno o más ítems.',
+                },
+                {
+                  valor: 'paquete',
+                  texto:
+                    'Los servicios antes descritos serán contratados por paquete único, debiendo el postor presentar oferta por la totalidad de las prestaciones comprendidas en el paquete.',
+                },
+              ],
+            },
           ],
         },
         {
