@@ -317,14 +317,14 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
             },
             { clase: 'titulo', texto: 'Condiciones de la garantía', nivel: 3 },
             {
-              clase: 'fijo',
-              texto:
-                'La Entidad comunicará las observaciones mediante correo electrónico u otro medio que permita acreditar su recepción. El contratista deberá iniciar las acciones de subsanación dentro de los dos (2) días hábiles siguientes de recibida la comunicación y culminarlas en un plazo máximo de cinco (5) días hábiles, salvo que el requerimiento establezca un plazo distinto por la naturaleza del servicio.',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'La subsanación comprenderá todos los recursos, materiales, equipos, personal y demás actividades necesarias para corregir las observaciones formuladas, sin generar costo adicional para la Entidad.',
+              clase: 'redactado',
+              id: 'garantia_condiciones',
+              etiqueta: 'Condiciones de la garantía',
+              instruccion:
+                'Adecuar al caso concreto las condiciones institucionales de la garantía: qué aspectos de la prestación quedan comprendidos, su vinculación con las deficiencias, errores, fallas u omisiones atribuibles al contratista, las acciones de subsanación ajustadas a la naturaleza de la prestación, y las condiciones de atención, comunicación, subsanación y asunción de costos que resulten aplicables. Mantener la estructura institucional y no incorporar obligaciones, plazos o recursos que no sean necesarios y proporcionales al objeto contratado',
+              predeterminado:
+                'La Entidad comunicará las observaciones mediante correo electrónico u otro medio que permita acreditar su recepción. El contratista deberá iniciar las acciones de subsanación dentro de los dos (2) días hábiles siguientes de recibida la comunicación y culminarlas en un plazo máximo de cinco (5) días hábiles, salvo que el requerimiento establezca un plazo distinto por la naturaleza del servicio.\n\nLa subsanación comprenderá todos los recursos, materiales, equipos, personal y demás actividades necesarias para corregir las observaciones formuladas, sin generar costo adicional para la Entidad.',
+              extension: 'varios_parrafos',
             },
             { clase: 'titulo', texto: 'Período de garantía', nivel: 3 },
             {

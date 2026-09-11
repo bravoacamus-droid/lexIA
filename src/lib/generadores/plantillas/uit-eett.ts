@@ -287,19 +287,14 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
               nivel: 3,
             },
             {
-              clase: 'fijo',
-              texto:
-                'Para la atención de la garantía, el contratista deberá contar con una línea telefónica fija o móvil para las coordinaciones que correspondan, cuyo horario de atención debe ser de lunes a viernes de 8:30 - 18:00 horas.',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'El plazo máximo para la entrega de los bienes a reemplazar, serán dentro de cinco (5) días calendario computados a partir del día siguiente de la notificación al contratista. La notificación será efectuada por el comprador público a través de correo electrónico que fue autorizado por el contratista.',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'Los bienes para remplazar deben ser nuevos y debe tener las mismas características del bien contratado. Todos los gastos deberán ser cubiertos por el contratista.',
+              clase: 'redactado',
+              id: 'garantia_condiciones',
+              etiqueta: 'Condiciones de la garantía',
+              instruccion:
+                'Adecuar al caso concreto las condiciones institucionales de la garantía: qué aspectos de la prestación quedan comprendidos, su vinculación con las deficiencias, errores, fallas u omisiones atribuibles al contratista, las acciones de subsanación ajustadas a la naturaleza de la prestación, y las condiciones de atención, comunicación, subsanación y asunción de costos que resulten aplicables. Mantener la estructura institucional y no incorporar obligaciones, plazos o recursos que no sean necesarios y proporcionales al objeto contratado',
+              predeterminado:
+                'Para la atención de la garantía, el contratista deberá contar con una línea telefónica fija o móvil para las coordinaciones que correspondan, cuyo horario de atención debe ser de lunes a viernes de 8:30 - 18:00 horas.\n\nEl plazo máximo para la entrega de los bienes a reemplazar, serán dentro de cinco (5) días calendario computados a partir del día siguiente de la notificación al contratista. La notificación será efectuada por el comprador público a través de correo electrónico que fue autorizado por el contratista.\n\nLos bienes para remplazar deben ser nuevos y debe tener las mismas características del bien contratado. Todos los gastos deberán ser cubiertos por el contratista.',
+              extension: 'varios_parrafos',
             },
             {
               clase: 'titulo',

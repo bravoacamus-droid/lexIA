@@ -519,7 +519,10 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
           <ControlRedactado
             key={clave}
             bloque={b}
-            valor={r.redacciones[b.id] ?? ''}
+            // El texto institucional se muestra desde el principio: es
+            // lo que ira al documento si nadie lo toca, y el area
+            // usuaria tiene que verlo para poder adaptarlo.
+            valor={r.redacciones[b.id] ?? b.predeterminado ?? ''}
             onChange={(v) => setRedaccion(b.id, v)}
             marcador={r.marcadores[b.id] ?? 'vineta'}
             onMarcador={(m) => setMarcador(b.id, m)}

@@ -618,7 +618,10 @@ export function ensamblarRequerimiento(
         }
 
         case 'redactado': {
-          const texto = (respuestas.redacciones[b.id] ?? '').trim();
+          // Si el area usuaria no escribio nada pero el formato trae
+          // su texto, ese texto va al documento y el apartado NO se
+          // cuenta como pendiente: no le falta nada.
+          const texto = (respuestas.redacciones[b.id] ?? b.predeterminado ?? '').trim();
           if (texto) {
             partes.push(
               b.extension === 'lista' ? enLista(texto, respuestas.marcadores[b.id]) : texto,

@@ -121,6 +121,23 @@ export interface BloqueRedactado {
   /** Muestra la instrucción como advertencia, en rojo. Ver `BloqueCampo`. */
   advertencia?: boolean;
   ejemplo?: string;
+  /**
+   * Texto institucional de partida, que el documento usa tal cual si
+   * nadie lo toca.
+   *
+   * No es lo mismo que `ejemplo` —que es una referencia de forma y no
+   * se escribe— ni que un bloque `fijo`, que es invariable. Esto es la
+   * redacción que el formato ya trae y que SÍ se puede adaptar.
+   *
+   * Nace de dos observaciones de César que parecían opuestas: en
+   * agosto, que las condiciones de la garantía «ya están establecidas
+   * por lo que no hay necesidad de redactar» —de ahí que fueran texto
+   * fijo—; en setiembre, que LexIA debe «adecuar el texto
+   * predeterminado de alcance y condiciones al caso concreto». Con
+   * esto se cumplen las dos: el texto está desde el principio y
+   * además se puede ajustar.
+   */
+  predeterminado?: string;
   /** Extensión orientativa de la redacción. */
   extension?: 'parrafo' | 'varios_parrafos' | 'lista';
 }
