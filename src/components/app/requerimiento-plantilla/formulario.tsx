@@ -864,7 +864,15 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      {/* `1fr` es en realidad `minmax(auto, 1fr)`: la columna no baja del
+          tamaño mínimo de su contenido, así que una tabla ancha o un
+          párrafo largo la estiran y el formulario se sale de la
+          ventana. Medido el 10/09/2026 a 1440 px: la tarjeta medía
+          1492 y los interruptores «Corresponde» de los apartados
+          —Entregable, Adelanto directo— quedaban fuera de pantalla,
+          imposibles de ver y de pulsar. Con `minmax(0,1fr)` la
+          columna puede encogerse y el contenido se ajusta. */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         {/* Formulario */}
         <div className="space-y-6">
           <Card className="p-5">

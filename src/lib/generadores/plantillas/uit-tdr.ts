@@ -615,12 +615,30 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
               // condición". El canal lo rellena la entidad.
               clase: 'parrafo',
               texto:
-                'Los entregables deberán ser presentados a través de Mesa de Partes virtual de la Entidad y/o correo electrónico {{entregables_canal}}, en los plazos y fechas establecidas en los Términos de Referencia.',
+                'Los entregables deberán ser presentados a través de {{entregables_canal_medio}} ({{entregables_canal}}), en los plazos y fechas establecidas en los Términos de Referencia.',
               campos: [
                 {
+                  // El medio se elige; el dato concreto se escribe al lado.
+                  // Observación 12 de César (setiembre de 2026): «debe ser
+                  // como para seleccionar (...) y al seleccionar cualquiera
+                  // de las opciones debe haber un campo para poder señalar
+                  // el correo y/o el link de la mesa de partes».
+                  clase: 'campo',
+                  id: 'entregables_canal_medio',
+                  etiqueta: 'Medio de presentación',
+                  ayuda: 'Elegir por dónde se presentan los entregables',
+                  tipo: 'opciones',
+                  opciones: [
+                    { valor: 'mesa_partes', texto: 'la mesa de partes virtual de la Entidad' },
+                    { valor: 'correo', texto: 'el correo electrónico institucional' },
+                    { valor: 'ambos', texto: 'la mesa de partes virtual de la Entidad y el correo electrónico institucional' },
+                  ],
+                  obligatorio: true,
+                },
+{
                   clase: 'campo',
                   id: 'entregables_canal',
-                  etiqueta: 'Mesa de partes virtual y/o correo electrónico',
+                  etiqueta: 'Correo y/o enlace de la mesa de partes',
                   ayuda: 'Consignar el link de la mesa de partes y/o el correo electrónico',
                   tipo: 'texto',
                   obligatorio: true,

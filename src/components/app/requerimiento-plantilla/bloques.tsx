@@ -146,8 +146,13 @@ function SelectorDeOpciones({
           onChange(opciones.find((o) => o.valor === e.target.value)?.texto ?? '');
         }}
         className={cn(
-          'rounded-md border border-input bg-background px-2 py-1 text-sm',
-          enParrafo ? 'h-7 max-w-full' : 'h-9 w-full',
+          // Un <select> se ensancha hasta su opcion mas larga, y algunas
+          // frases del formato son de linea y media —«computados a partir
+          // del dia siguiente de la comunicacion o notificacion de la
+          // Entidad que acredite el cumplimiento...»—. Sin tope, estiraba
+          // la columna y sacaba el formulario de la ventana.
+          'truncate rounded-md border border-input bg-background px-2 py-1 text-sm',
+          enParrafo ? 'h-7 w-full max-w-[26rem]' : 'h-9 w-full',
         )}
       >
         <option value="">{campo.etiqueta}…</option>

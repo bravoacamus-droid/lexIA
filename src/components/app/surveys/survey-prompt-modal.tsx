@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -21,6 +21,43 @@ import { SURVEY_REWARDS, type SurveyDefinition } from '@/lib/surveys/catalog';
 
 const SESSION_DISMISS_KEY = 'lexia.survey_prompt.dismissed_session';
 
+/** Espera desde que entra hasta el primer intento de abrir. */
+const ESPERA_INICIAL = 5000;
+/** Si estaba ocupado, cada cuánto se vuelve a mirar. */
+const REINTENTO = 4000;
+/** Silencio de teclado que se exige para considerarlo desocupado. */
+const QUIETUD = 2500;
+
+/**
+ * Si el usuario está en medio de algo, la encuesta no interrumpe.
+ *
+ * El modal se abría a los cinco segundos pasara lo que pasara. Al
+ * abrirse toma el foco —es un diálogo modal— y las teclas siguientes se
+ * pierden: apareció redactando un requerimiento, escribiendo el correo
+ * de la mesa de partes, y de "mesadepartes.muni.gob.pe" solo quedó
+ * "mesadepartes.m". No era un fallo de ese campo: le pasa a cualquier
+ * caja de texto de la aplicación.
+ */
+function estaOcupado(ultimaTecla: number) {
+  if (Date.now() - ultimaTecla < QUIETUD) return true;
+
+  const foco = document.activeElement as HTMLElement | null;
+  if (foco) {
+    const etiqueta = foco.tagName;
+    if (
+      etiqueta === 'INPUT' ||
+      etiqueta === 'TEXTAREA' ||
+      etiqueta === 'SELECT' ||
+      foco.isContentEditable
+    ) {
+      return true;
+    }
+  }
+
+  // Tampoco se apila sobre otro diálogo ya abierto.
+  return !!document.querySelector('[role="dialog"][data-state="open"]');
+}
+
 export function SurveyPromptModal() {
   const [open, setOpen] = useState(false);
   const [phase, setPhase] = useState<'invite' | 'wizard'>('invite');
@@ -36,9 +73,28 @@ export function SurveyPromptModal() {
     setOpen(false);
   }, []);
 
+  // Marca de la última tecla, para saber si está escribiendo.
+  const ultimaTecla = useRef(0);
+  useEffect(() => {
+    const anotar = () => {
+      ultimaTecla.current = Date.now();
+    };
+    window.addEventListener('keydown', anotar, true);
+    return () => window.removeEventListener('keydown', anotar, true);
+  }, []);
+
   useEffect(() => {
     let mounted = true;
     let timer: ReturnType<typeof setTimeout>;
+
+    const intentarAbrir = () => {
+      if (!mounted) return;
+      if (estaOcupado(ultimaTecla.current)) {
+        timer = setTimeout(intentarAbrir, REINTENTO);
+        return;
+      }
+      setOpen(true);
+    };
 
     async function load() {
       // Si en esta sesión ya cerró el modal, no molestamos otra vez
@@ -63,7 +119,7 @@ export function SurveyPromptModal() {
           json?.survey
         ) {
           setSurvey(json.survey as SurveyDefinition);
-          timer = setTimeout(() => mounted && setOpen(true), 5000);
+          timer = setTimeout(intentarAbrir, ESPERA_INICIAL);
         }
       } catch {
         /* noop */

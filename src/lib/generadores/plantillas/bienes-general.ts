@@ -645,9 +645,27 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
             {
               clase: 'parrafo',
               texto:
-                'Todos los entregables deberán ser presentados a través de Mesa de Partes virtual de la Entidad y/o correo electrónico {{canal_entregables}}, en los plazos y fechas establecidas en las EETT.',
+                'Todos los entregables deberán ser presentados a través de {{canal_entregables_medio}} ({{canal_entregables}}), en los plazos y fechas establecidas en las EETT.',
               campos: [
                 {
+                  // El medio se elige; el dato concreto se escribe al lado.
+                  // Observación 12 de César (setiembre de 2026): «debe ser
+                  // como para seleccionar (...) y al seleccionar cualquiera
+                  // de las opciones debe haber un campo para poder señalar
+                  // el correo y/o el link de la mesa de partes».
+                  clase: 'campo',
+                  id: 'canal_entregables_medio',
+                  etiqueta: 'Medio de presentación',
+                  ayuda: 'Elegir por dónde se presentan los entregables',
+                  tipo: 'opciones',
+                  opciones: [
+                    { valor: 'mesa_partes', texto: 'la mesa de partes virtual de la Entidad' },
+                    { valor: 'correo', texto: 'el correo electrónico institucional' },
+                    { valor: 'ambos', texto: 'la mesa de partes virtual de la Entidad y el correo electrónico institucional' },
+                  ],
+                  obligatorio: true,
+                },
+{
                   clase: 'campo',
                   id: 'canal_entregables',
                   etiqueta: 'Mesa de partes o correo',
