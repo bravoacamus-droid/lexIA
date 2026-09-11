@@ -125,7 +125,7 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
   }
 
   // Se revisa lo que hay en pantalla; si viene vacío, lo guardado.
-  const guardadas = normalizarRespuestas(fila.respuestas, fila.denominacion).tablas[bloque.id] ?? [];
+  const guardadas = normalizarRespuestas(fila.respuestas, fila.denominacion, plantilla).tablas[bloque.id] ?? [];
   const filas = (parsed.data.filas.length > 0 ? parsed.data.filas : guardadas).filter((f) =>
     f.some((c) => c.trim()),
   );

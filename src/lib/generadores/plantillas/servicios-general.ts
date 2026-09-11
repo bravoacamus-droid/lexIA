@@ -134,6 +134,7 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
           id: 'actividades',
           titulo: 'Actividades a desarrollar',
           condicion: 'tiene_actividades',
+          condicionPorDefecto: true,
           bloques: [
             {
               clase: 'redactado',

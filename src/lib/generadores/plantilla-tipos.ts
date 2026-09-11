@@ -245,6 +245,20 @@ export interface Seccion {
   titulo: string;
   /** Identificador de la condición; null = siempre se incluye. */
   condicion?: string;
+  /**
+   * El interruptor nace encendido.
+   *
+   * `condicion` traduce los «de corresponder» del formato, que por
+   * definición empiezan apagados. Pero hay apartados donde la regla
+   * es la contraria: en las ACTIVIDADES lo normal es que las haya y
+   * la excepción es que no —un servicio de seguridad y vigilancia o
+   * un traslado de valores no se describen por actividades—. Ahí el
+   * área usuaria necesita el interruptor para APAGARLO, no para
+   * descubrir que el apartado existe.
+   *
+   * Observación 5 de César (setiembre de 2026).
+   */
+  condicionPorDefecto?: boolean;
   bloques: Bloque[];
   subsecciones?: Seccion[];
   /**

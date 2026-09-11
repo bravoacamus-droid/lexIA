@@ -155,6 +155,8 @@ export const PLANTILLA_EXPERTOS_GERENTES: PlantillaRequerimiento = {
         {
           id: 'actividades',
           titulo: 'Actividades a desarrollar',
+          condicion: 'tiene_actividades',
+          condicionPorDefecto: true,
           bloques: [
             {
               clase: 'redactado',

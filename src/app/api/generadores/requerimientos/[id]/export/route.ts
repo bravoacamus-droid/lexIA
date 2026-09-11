@@ -69,7 +69,7 @@ export async function GET(req: Request, ctx: { params: { id: string } }) {
     );
   }
 
-  const doc = ensamblarRequerimiento(plantilla, normalizarRespuestas(fila.respuestas, fila.denominacion), {
+  const doc = ensamblarRequerimiento(plantilla, normalizarRespuestas(fila.respuestas, fila.denominacion, plantilla), {
     cuantia: fila.cuantia ?? undefined,
   });
 

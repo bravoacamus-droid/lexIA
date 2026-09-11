@@ -141,7 +141,7 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
   const recortado = proyecto.length > MAX_CARACTERES;
   if (recortado) proyecto = proyecto.slice(0, MAX_CARACTERES);
 
-  const respuestas = normalizarRespuestas(fila.respuestas, fila.denominacion);
+  const respuestas = normalizarRespuestas(fila.respuestas, fila.denominacion, plantilla);
   const destinos = destinosDistribucion(plantilla, respuestas);
   const condiciones = condicionesDeclaradas(plantilla.secciones);
 

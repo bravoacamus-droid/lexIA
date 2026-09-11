@@ -118,7 +118,7 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
     return NextResponse.json({ error: 'plantilla_desconocida' }, { status: 500 });
   }
 
-  const respuestas = normalizarRespuestas(fila.respuestas, fila.denominacion);
+  const respuestas = normalizarRespuestas(fila.respuestas, fila.denominacion, plantilla);
   const doc = ensamblarRequerimiento(plantilla, respuestas, {
     cuantia: fila.cuantia ?? undefined,
   });

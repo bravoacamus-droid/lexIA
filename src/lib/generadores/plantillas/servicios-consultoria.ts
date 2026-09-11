@@ -136,13 +136,15 @@ export const PLANTILLA_SERVICIOS_CONSULTORIA: PlantillaRequerimiento = {
         {
           id: 'actividades',
           titulo: 'Actividades a desarrollar',
+          condicion: 'tiene_actividades',
+          condicionPorDefecto: true,
           bloques: [
             {
               clase: 'redactado',
               id: 'actividades',
               etiqueta: 'Actividades del consultor',
               instruccion:
-                'Detallar las principales actividades que ejecutará el consultor, en relación con los entregables esperados, con verbos que permitan identificar claramente las obligaciones (elaborar, describir, definir, analizar, redactar, presentar, supervisar). Especificar el procedimiento cuando la naturaleza del servicio lo requiera',
+                'Detallar las principales actividades que ejecutará el consultor, en relación con los entregables esperados, con verbos que permitan identificar claramente las obligaciones (elaborar, describir, definir, analizar, redactar, presentar, supervisar). Especificar el procedimiento cuando la naturaleza del servicio lo requiera Antes de proponerlas, evalúa si según la naturaleza de la contratación corresponde establecer actividades: no toda contratación se describe por actividades —un servicio de seguridad y vigilancia o un traslado de valores se definen por resultados y niveles de servicio—. Si no corresponde, dilo y no las inventes. Si corresponde, propón únicamente las necesarias y razonables para ejecutar la prestación y alcanzar los resultados esperados, con verbos precisos: elaborar, describir, definir, analizar, redactar, presentar, supervisar.',
               ejemplo:
                 'Actividad 1: Diagnóstico de la situación actual. Recopilar, revisar y analizar la información proporcionada por la Entidad.\nActividad 2: Análisis y evaluación técnica. Evaluar los procesos existentes e identificar oportunidades de mejora y necesidades técnicas.\nActividad 3: Elaboración de la propuesta técnica, incluyendo lineamientos técnicos, procedimientos, cronograma y recomendaciones.\nActividad 4: Presentación y sustentación de los entregables ante la Entidad, absolviendo las observaciones dentro del plazo establecido.',
               extension: 'lista',

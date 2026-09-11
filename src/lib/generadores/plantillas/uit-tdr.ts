@@ -174,13 +174,15 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
         {
           id: 'actividades',
           titulo: 'Actividades',
+          condicion: 'tiene_actividades',
+          condicionPorDefecto: true,
           bloques: [
             {
               clase: 'redactado',
               id: 'actividades',
               etiqueta: 'Actividades del contratista',
               instruccion:
-                'Detallar las principales actividades que ejecutará el contratista, con verbos precisos y en relación directa con los resultados esperados',
+                'Detallar las principales actividades que ejecutará el contratista, con verbos precisos y en relación directa con los resultados esperados Antes de proponerlas, evalúa si según la naturaleza de la contratación corresponde establecer actividades: no toda contratación se describe por actividades —un servicio de seguridad y vigilancia o un traslado de valores se definen por resultados y niveles de servicio—. Si no corresponde, dilo y no las inventes. Si corresponde, propón únicamente las necesarias y razonables para ejecutar la prestación y alcanzar los resultados esperados, con verbos precisos: elaborar, describir, definir, analizar, redactar, presentar, supervisar.',
               extension: 'lista',
             },
           ],

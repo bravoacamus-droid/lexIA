@@ -238,6 +238,29 @@ export const respuestasVacias = (): RespuestasRequerimiento => ({
  * anterior, o de un guardado parcial—, y el ensamblador no debería tener
  * que comprobar la existencia de cada uno. Se normaliza una vez, aquí.
  */
+/**
+ * Las condiciones que la plantilla declara encendidas de origen.
+ *
+ * Se mezclan DEBAJO de lo guardado, de modo que si el area usuaria apago
+ * una a mano, su decision manda. Va en un solo sitio a proposito: hay
+ * doce lugares que evaluan condiciones entre el formulario, el indice,
+ * el distribuidor y este archivo, y si el valor por defecto se calculara
+ * en cada uno acabarian discrepando el formulario y el Word.
+ */
+export function condicionesPorDefecto(
+  plantilla: PlantillaRequerimiento | null | undefined,
+): Record<string, boolean> {
+  const fuera: Record<string, boolean> = {};
+  const recorrer = (secciones: Seccion[]) => {
+    for (const s of secciones) {
+      if (s.condicion && s.condicionPorDefecto) fuera[s.condicion] = true;
+      if (s.subsecciones) recorrer(s.subsecciones);
+    }
+  };
+  recorrer(plantilla?.secciones ?? []);
+  return fuera;
+}
+
 export function normalizarRespuestas(
   r: Partial<RespuestasRequerimiento> | null | undefined,
   /**
@@ -250,6 +273,8 @@ export function normalizarRespuestas(
    * 18/08/2026.
    */
   denominacion?: string,
+  /** La plantilla, para saber que interruptores nacen encendidos. */
+  plantilla?: PlantillaRequerimiento | null,
 ): RespuestasRequerimiento {
   const campos = { ...(r?.campos ?? {}) };
   if (denominacion?.trim() && !(campos.denominacion ?? '').trim()) {
@@ -263,7 +288,7 @@ export function normalizarRespuestas(
     gruposTabla: { ...(r?.gruposTabla ?? {}) },
     ordenHijas: { ...(r?.ordenHijas ?? {}) },
     titulos: { ...(r?.titulos ?? {}) },
-    condiciones: { ...(r?.condiciones ?? {}) },
+    condiciones: { ...condicionesPorDefecto(plantilla), ...(r?.condiciones ?? {}) },
     extras: [...(r?.extras ?? [])],
     orden: [...(r?.orden ?? [])],
     marcadores: { ...(r?.marcadores ?? {}) },

@@ -67,13 +67,15 @@ export const PLANTILLA_UIT_LOCADORES: PlantillaRequerimiento = {
         {
           id: 'actividades',
           titulo: 'Actividades',
+          condicion: 'tiene_actividades',
+          condicionPorDefecto: true,
           bloques: [
             {
               clase: 'redactado',
               id: 'actividades',
               etiqueta: 'Actividades del locador',
               instruccion:
-                'Detallar las actividades que ejecutará el locador. Deben guardar relación directa con el objeto del servicio y orientarse a la obtención de productos o resultados concretos',
+                'Detallar las actividades que ejecutará el locador. Deben guardar relación directa con el objeto del servicio y orientarse a la obtención de productos o resultados concretos Antes de proponerlas, evalúa si según la naturaleza de la contratación corresponde establecer actividades: no toda contratación se describe por actividades —un servicio de seguridad y vigilancia o un traslado de valores se definen por resultados y niveles de servicio—. Si no corresponde, dilo y no las inventes. Si corresponde, propón únicamente las necesarias y razonables para ejecutar la prestación y alcanzar los resultados esperados, con verbos precisos: elaborar, describir, definir, analizar, redactar, presentar, supervisar.',
               extension: 'lista',
             },
             {

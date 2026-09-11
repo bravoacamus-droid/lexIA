@@ -189,7 +189,7 @@ export async function GET(_req: Request, ctx: { params: { id: string } }) {
     );
   }
 
-  const respuestas = normalizarRespuestas(r.fila.respuestas, r.fila.denominacion);
+  const respuestas = normalizarRespuestas(r.fila.respuestas, r.fila.denominacion, plantilla);
   const doc = ensamblarRequerimiento(plantilla, respuestas, {
     cuantia: r.fila.cuantia ?? undefined,
   });
@@ -252,7 +252,11 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
     // Fusión por grupo, no reemplazo: la interfaz manda solo lo que el
     // usuario tocó, y dos pestañas abiertas no deben borrarse el trabajo
     // la una a la otra.
-    const previas = normalizarRespuestas(r.fila.respuestas, r.fila.denominacion);
+    const previas = normalizarRespuestas(
+      r.fila.respuestas,
+      r.fila.denominacion,
+      obtenerPlantilla(r.fila.plantilla_id),
+    );
     const nuevas = limpiarRespuestas(parsed.data.respuestas);
     cambios.respuestas = {
       campos: { ...previas.campos, ...(nuevas.campos ?? {}) },

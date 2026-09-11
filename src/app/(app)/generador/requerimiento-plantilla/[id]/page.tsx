@@ -55,6 +55,7 @@ export default async function RequerimientoPlantillaPage({
   const respuestas = normalizarRespuestas(
     (data.respuestas ?? {}) as Partial<RespuestasRequerimiento>,
     data.denominacion as string,
+    plantilla,
   );
 
   // El estado inicial se calcula en el servidor con el mismo ensamblador

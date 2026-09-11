@@ -136,6 +136,7 @@ export const PLANTILLA_SERVICIOS_COMPARACION_PRECIOS: PlantillaRequerimiento = {
           id: 'actividades',
           titulo: 'Actividades a desarrollar',
           condicion: 'tiene_actividades',
+          condicionPorDefecto: true,
           bloques: [
             {
               clase: 'redactado',
