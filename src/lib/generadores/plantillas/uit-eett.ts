@@ -22,6 +22,10 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_PERSONAL_CLAVE,
+  METODO_CAPACIDAD_LEGAL,
+  METODO_EXPERIENCIA_PERSONAL_CLAVE,
+  METODO_SIMILARES,
   METODO_RECURSOS_CONTRATISTA,
   METODO_VERIFICACIONES,
   METODO_RECURSOS_ENTIDAD,
@@ -791,8 +795,8 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
               id: 'recursos_entidad',
               etiqueta: 'Recursos provistos por la Entidad',
               instruccion:
-                'Listar los recursos y facilidades que la entidad debe brindar al proveedor para que pueda ejecutar de manera eficiente, segura y oportuna el contrato' +
-                METODO_RECURSOS_ENTIDAD,
+                'Listar los recursos y facilidades que la entidad debe brindar al proveedor para que pueda ejecutar de manera eficiente, segura y oportuna el contrato',
+                metodo: METODO_RECURSOS_ENTIDAD,
               extension: 'lista',
             },
           ],
@@ -851,8 +855,8 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
               id: 'verificaciones',
               etiqueta: 'Verificaciones técnicas, pruebas o ensayos',
               instruccion:
-                'Indicar las pruebas o ensayos requeridos para la conformidad del bien, los parámetros de aceptación, quién las realiza y quién asume su costo' +
-                METODO_VERIFICACIONES,
+                'Indicar las pruebas o ensayos requeridos para la conformidad del bien, los parámetros de aceptación, quién las realiza y quién asume su costo',
+                metodo: METODO_VERIFICACIONES,
               extension: 'parrafo',
             },
             {
@@ -940,8 +944,8 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
               id: 'recursos_contratista',
               etiqueta: 'Recursos y obligaciones del contratista',
               instruccion:
-                'Precisar los recursos, medios, equipos, materiales, personal, licencias o autorizaciones que el contratista deberá proporcionar, así como sus responsabilidades durante la ejecución contractual' +
-                METODO_RECURSOS_CONTRATISTA,
+                'Precisar los recursos, medios, equipos, materiales, personal, licencias o autorizaciones que el contratista deberá proporcionar, así como sus responsabilidades durante la ejecución contractual',
+                metodo: METODO_RECURSOS_CONTRATISTA,
               extension: 'lista',
             },
           ],
@@ -959,6 +963,7 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'personal_clave',
+              metodo: METODO_PERSONAL_CLAVE,
               etiqueta: 'Personal clave',
               // La tercera columna se llamaba "Formación académica" y en
               // el formato es "Profesión y grado o título profesional
@@ -1011,13 +1016,16 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
               etiqueta: 'Requisitos',
               instruccion:
                 'Incluir los requisitos relacionados a la habilitación para llevar a cabo la actividad económica materia de la contratación',
+                metodo: METODO_CAPACIDAD_LEGAL,
               extension: 'parrafo',
             },
             {
               clase: 'redactado',
               id: 'capacidad_legal_acreditacion',
               etiqueta: 'Acreditación',
-              instruccion: 'Incluir el documento con el que se acredita el requisito de habilitación del postor',
+              instruccion:
+ 'Incluir el documento con el que se acredita el requisito de habilitación del postor',
+ metodo: METODO_CAPACIDAD_LEGAL,
               extension: 'parrafo',
             },
           ],
@@ -1057,7 +1065,9 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
                   clase: 'campo',
                   id: 'bienes_similares',
                   etiqueta: 'Bienes similares',
-                  ayuda: 'Consignar los bienes similares al objeto convocado',
+                  ayuda:
+ 'Consignar los bienes similares al objeto convocado',
+ metodo: METODO_SIMILARES,
                   tipo: 'texto_largo',
                   obligatorio: true,
                 },
@@ -1091,6 +1101,7 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
               etiqueta: 'Experiencia del personal clave',
               instruccion:
                 'Precisar el cargo, el tiempo de experiencia y los trabajos o prestaciones que debe acreditar cada integrante del personal clave',
+                metodo: METODO_EXPERIENCIA_PERSONAL_CLAVE,
               columnas: ['Cargo y/o responsabilidad', 'Tiempo de experiencia', 'Cargo desempeñado'],
               minimo: 1,
             },

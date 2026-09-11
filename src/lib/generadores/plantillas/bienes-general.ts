@@ -24,6 +24,9 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_CAPACIDAD_LEGAL,
+  METODO_PERSONAL_CLAVE,
+  METODO_SIMILARES,
   METODO_VERIFICACIONES,
   METODO_RECURSOS_ENTIDAD,
   seccionConfidencialidad,
@@ -882,8 +885,8 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
               id: 'recursos_entidad',
               etiqueta: 'Recursos provistos por la Entidad',
               instruccion:
-                'Listar los recursos y facilidades que la entidad debe brindar al proveedor. La Entidad debe crear todas las condiciones, internas y externas, para que el contratista pueda ejecutar de manera eficiente, segura y oportuna el contrato' +
-                METODO_RECURSOS_ENTIDAD,
+                'Listar los recursos y facilidades que la entidad debe brindar al proveedor. La Entidad debe crear todas las condiciones, internas y externas, para que el contratista pueda ejecutar de manera eficiente, segura y oportuna el contrato',
+                metodo: METODO_RECURSOS_ENTIDAD,
               ejemplo:
                 'Proveer al contratista el espacio físico acondicionado (cuartos limpios, electricidad regulada, acceso restringido).\nEntregar planos y permisos municipales para las obras civiles necesarias.\nProporcionar acceso al edificio y personal de supervisión durante la instalación.\nGarantizar que el lugar cumpla con las normas de seguridad para equipos eléctricos y manejo de agentes biológicos.',
               extension: 'lista',
@@ -925,8 +928,8 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
               id: 'verificaciones',
               etiqueta: 'Verificaciones para la conformidad',
               instruccion:
-                'Indicar la relación de pruebas o ensayos requeridos para la conformidad del bien y la cantidad de muestras que debe entregar el contratista, en función de la naturaleza de los bienes' +
-                METODO_VERIFICACIONES,
+                'Indicar la relación de pruebas o ensayos requeridos para la conformidad del bien y la cantidad de muestras que debe entregar el contratista, en función de la naturaleza de los bienes',
+                metodo: METODO_VERIFICACIONES,
               extension: 'lista',
             },
           ],
@@ -943,7 +946,9 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
           clase: 'tabla',
           id: 'personal_clave',
           etiqueta: 'Personal clave',
-          instruccion: 'Consignar cargo o función, profesión exigida y actividades principales',
+          instruccion:
+ 'Consignar cargo o función, profesión exigida y actividades principales',
+ metodo: METODO_PERSONAL_CLAVE,
           columnas: ['Cargo y/o responsabilidad', 'Profesión y grado o título profesional requerido', 'Actividades principales'],
           minimo: 0,
         },
@@ -993,6 +998,7 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
               etiqueta: 'Requisitos',
               instruccion:
                 'Incluir los requisitos relacionados a la habilitación para llevar a cabo la actividad económica materia de la contratación, conforme a la normativa que regule el objeto contractual',
+                metodo: METODO_CAPACIDAD_LEGAL,
               extension: 'parrafo',
             },
             {
@@ -1001,6 +1007,7 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
               etiqueta: 'Acreditación',
               instruccion:
                 'Incluir el documento con el que se debe acreditar el requisito relacionado a la habilitación del postor',
+                metodo: METODO_CAPACIDAD_LEGAL,
               extension: 'parrafo',
             },
           ],
@@ -1034,7 +1041,9 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
                   clase: 'campo',
                   id: 'bienes_similares',
                   etiqueta: 'Bienes similares',
-                  ayuda: 'Consignar los bienes similares al objeto convocado',
+                  ayuda:
+ 'Consignar los bienes similares al objeto convocado',
+ metodo: METODO_SIMILARES,
                   tipo: 'texto_largo',
                   obligatorio: true,
                 },

@@ -39,7 +39,7 @@ const Schema = z.object({
  * repitiendo la frase.
  */
 function adaptar(
-  c: { id: string; etiqueta: string; ayuda: string },
+  c: { id: string; etiqueta: string; ayuda: string; metodo?: string },
   parrafo?: string,
 ): BloqueRedactado {
   const instruccion = parrafo
@@ -54,6 +54,7 @@ Escribe SOLO lo que va en el hueco, sin repetir el resto de la frase y sin volve
     id: c.id,
     etiqueta: c.etiqueta,
     instruccion,
+    metodo: c.metodo,
     extension: 'parrafo',
   };
 }

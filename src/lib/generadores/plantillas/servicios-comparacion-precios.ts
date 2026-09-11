@@ -17,6 +17,8 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_CAPACIDAD_LEGAL,
+  METODO_SIMILARES,
   METODO_RECURSOS_CONTRATISTA,
   METODO_RECURSOS_ENTIDAD,
   seccionConfidencialidad,
@@ -438,8 +440,8 @@ export const PLANTILLA_SERVICIOS_COMPARACION_PRECIOS: PlantillaRequerimiento = {
               id: 'recursos_entidad',
               etiqueta: 'Recursos provistos por la Entidad',
               instruccion:
-                'Listar los recursos y facilidades que la entidad debe brindar al proveedor para que pueda ejecutar de manera eficiente, segura y oportuna el contrato' +
-                METODO_RECURSOS_ENTIDAD,
+                'Listar los recursos y facilidades que la entidad debe brindar al proveedor para que pueda ejecutar de manera eficiente, segura y oportuna el contrato',
+                metodo: METODO_RECURSOS_ENTIDAD,
               ejemplo:
                 'Facilitar el acceso a las instalaciones donde se encuentran ubicados los equipos objeto del mantenimiento.\nDesignar un servidor responsable para coordinar el ingreso del personal técnico y supervisar la ejecución del servicio.\nProporcionar la relación e identificación de los equipos objeto del mantenimiento y la información técnica disponible.\nGestionar los permisos de ingreso y acceso a las instalaciones de la Entidad, cuando corresponda.\nGarantizar que los ambientes donde se ejecutará el servicio se encuentren disponibles en las fechas programadas.',
               extension: 'lista',
@@ -528,8 +530,8 @@ export const PLANTILLA_SERVICIOS_COMPARACION_PRECIOS: PlantillaRequerimiento = {
               id: 'recursos_contratista',
               etiqueta: 'Recursos y obligaciones del contratista',
               instruccion:
-                'Establecer los recursos, medios, equipos, herramientas, materiales, personal, infraestructura, licencias, autorizaciones o sistemas informáticos que el contratista debe proporcionar o mantener, y las obligaciones que asume. Las exigencias deben ser objetivas, razonables y proporcionales, sin restringir injustificadamente la libre concurrencia' +
-                METODO_RECURSOS_CONTRATISTA,
+                'Establecer los recursos, medios, equipos, herramientas, materiales, personal, infraestructura, licencias, autorizaciones o sistemas informáticos que el contratista debe proporcionar o mantener, y las obligaciones que asume. Las exigencias deben ser objetivas, razonables y proporcionales, sin restringir injustificadamente la libre concurrencia',
+                metodo: METODO_RECURSOS_CONTRATISTA,
               ejemplo:
                 'Proporcionar el personal, equipos, herramientas, instrumentos e implementos necesarios para la correcta ejecución del servicio.\nEjecutar el servicio conforme a las especificaciones técnicas, el plan de trabajo y los plazos establecidos por la Entidad.\nUtilizar materiales, insumos y repuestos que cumplan con las características técnicas exigidas en el requerimiento.\nCumplir las normas de seguridad y salud en el trabajo y proporcionar al personal los equipos de protección personal requeridos.\nMantener permanentemente la limpieza y el orden del área donde se ejecuten los trabajos.\nComunicar oportunamente a la Entidad cualquier situación que pueda afectar la continuidad o calidad del servicio.\nSubsanar, sin costo adicional para la Entidad, las observaciones o deficiencias atribuibles al contratista.\nCumplir la normativa técnica, ambiental y sectorial aplicable durante toda la ejecución contractual.',
               extension: 'lista',
@@ -566,13 +568,16 @@ export const PLANTILLA_SERVICIOS_COMPARACION_PRECIOS: PlantillaRequerimiento = {
               etiqueta: 'Requisitos',
               instruccion:
                 'Incluir los requisitos relacionados a la habilitación para llevar a cabo la actividad económica materia de la contratación',
+                metodo: METODO_CAPACIDAD_LEGAL,
               extension: 'parrafo',
             },
             {
               clase: 'redactado',
               id: 'capacidad_legal_acreditacion',
               etiqueta: 'Acreditación',
-              instruccion: 'Incluir el documento con el que se acredita el requisito de habilitación del postor',
+              instruccion:
+ 'Incluir el documento con el que se acredita el requisito de habilitación del postor',
+ metodo: METODO_CAPACIDAD_LEGAL,
               extension: 'parrafo',
             },
           ],
@@ -639,7 +644,9 @@ export const PLANTILLA_SERVICIOS_COMPARACION_PRECIOS: PlantillaRequerimiento = {
                   clase: 'campo',
                   id: 'servicios_similares',
                   etiqueta: 'Servicios similares',
-                  ayuda: 'Consignar los bienes o servicios similares al objeto convocado',
+                  ayuda:
+ 'Consignar los bienes o servicios similares al objeto convocado',
+ metodo: METODO_SIMILARES,
                   tipo: 'texto_largo',
                   obligatorio: true,
                 },

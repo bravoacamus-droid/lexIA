@@ -19,6 +19,11 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_PERSONAL_CLAVE,
+  METODO_PERSONAL_NO_CLAVE,
+  METODO_CAPACIDAD_LEGAL,
+  METODO_EQUIPAMIENTO_NO_ESTRATEGICO,
+  METODO_SIMILARES,
   METODO_RECURSOS_CONTRATISTA,
   METODO_VERIFICACIONES,
   METODO_RECURSOS_ENTIDAD,
@@ -571,8 +576,8 @@ export const PLANTILLA_SERVICIOS_CONSULTORIA: PlantillaRequerimiento = {
               id: 'recursos_entidad',
               etiqueta: 'Recursos provistos por la Entidad',
               instruccion:
-                'Listar los recursos, información y facilidades que la entidad debe brindar al consultor para que pueda ejecutar de manera eficiente, segura y oportuna el contrato' +
-                METODO_RECURSOS_ENTIDAD,
+                'Listar los recursos, información y facilidades que la entidad debe brindar al consultor para que pueda ejecutar de manera eficiente, segura y oportuna el contrato',
+                metodo: METODO_RECURSOS_ENTIDAD,
               extension: 'lista',
             },
           ],
@@ -612,8 +617,8 @@ export const PLANTILLA_SERVICIOS_CONSULTORIA: PlantillaRequerimiento = {
               id: 'verificaciones',
               etiqueta: 'Verificaciones para la conformidad',
               instruccion:
-                'Precisar las verificaciones técnicas, pruebas funcionales, ensayos, inspecciones, validaciones operativas o revisiones documentarias que la Entidad realizará para comprobar el cumplimiento de las obligaciones contractuales, los términos de referencia y los niveles de servicio. La conformidad solo se emite cuando esas verificaciones acrediten el cumplimiento' +
-                METODO_VERIFICACIONES,
+                'Precisar las verificaciones técnicas, pruebas funcionales, ensayos, inspecciones, validaciones operativas o revisiones documentarias que la Entidad realizará para comprobar el cumplimiento de las obligaciones contractuales, los términos de referencia y los niveles de servicio. La conformidad solo se emite cuando esas verificaciones acrediten el cumplimiento',
+                metodo: METODO_VERIFICACIONES,
               extension: 'lista',
             },
           ],
@@ -689,8 +694,8 @@ export const PLANTILLA_SERVICIOS_CONSULTORIA: PlantillaRequerimiento = {
               id: 'recursos_contratista',
               etiqueta: 'Recursos y obligaciones del contratista',
               instruccion:
-                'Establecer los recursos humanos, medios técnicos, infraestructura, equipos informáticos, licencias, software especializado, metodologías o sistemas de información que el contratista debe proporcionar, y las obligaciones que asume (cumplimiento del plan de trabajo y la metodología propuesta, plazos, normativa aplicable, confidencialidad, atención de observaciones, participación en reuniones de coordinación)' +
-                METODO_RECURSOS_CONTRATISTA,
+                'Establecer los recursos humanos, medios técnicos, infraestructura, equipos informáticos, licencias, software especializado, metodologías o sistemas de información que el contratista debe proporcionar, y las obligaciones que asume (cumplimiento del plan de trabajo y la metodología propuesta, plazos, normativa aplicable, confidencialidad, atención de observaciones, participación en reuniones de coordinación)',
+                metodo: METODO_RECURSOS_CONTRATISTA,
               ejemplo:
                 'Ejecutar la consultoría conforme al plan de trabajo, metodología, cronograma y demás condiciones establecidas en los Términos de Referencia.\nRecopilar, analizar y procesar la información necesaria para el cumplimiento de los objetivos, empleando metodologías técnicamente aceptadas.\nParticipar en las reuniones de coordinación, presentación de avances, mesas de trabajo y demás actividades convocadas por la Entidad.\nPresentar los entregables, informes, productos o documentos técnicos dentro de los plazos establecidos y con el contenido mínimo requerido.\nCumplir con la normativa técnica, sectorial y demás disposiciones legales aplicables durante toda la ejecución contractual.',
               extension: 'lista',
@@ -710,6 +715,7 @@ export const PLANTILLA_SERVICIOS_CONSULTORIA: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'personal_clave',
+              metodo: METODO_PERSONAL_CLAVE,
               etiqueta: 'Personal clave',
               columnas: ['Cargo y/o responsabilidad', 'Actividades principales'],
               minimo: 1,
@@ -729,6 +735,7 @@ export const PLANTILLA_SERVICIOS_CONSULTORIA: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'personal_no_clave',
+              metodo: METODO_PERSONAL_NO_CLAVE,
               etiqueta: 'Personal no clave',
               columnas: [
                 'Cargo y/o responsabilidad',
@@ -756,6 +763,7 @@ export const PLANTILLA_SERVICIOS_CONSULTORIA: PlantillaRequerimiento = {
               etiqueta: 'Equipamiento',
               instruccion:
                 'Establecer el equipamiento necesario que no tenga condición de estratégico. Debe guardar relación directa con la naturaleza de la prestación',
+                metodo: METODO_EQUIPAMIENTO_NO_ESTRATEGICO,
               columnas: ['Equipamiento estratégico', 'Cant.', 'Características mínimas'],
               minimo: 1,
             },
@@ -796,13 +804,16 @@ export const PLANTILLA_SERVICIOS_CONSULTORIA: PlantillaRequerimiento = {
               etiqueta: 'Requisitos',
               instruccion:
                 'Incluir los requisitos relacionados a la habilitación para llevar a cabo la actividad económica materia de la contratación',
+                metodo: METODO_CAPACIDAD_LEGAL,
               extension: 'parrafo',
             },
             {
               clase: 'redactado',
               id: 'capacidad_legal_acreditacion',
               etiqueta: 'Acreditación',
-              instruccion: 'Incluir el documento con el que se acredita el requisito de habilitación del postor',
+              instruccion:
+ 'Incluir el documento con el que se acredita el requisito de habilitación del postor',
+ metodo: METODO_CAPACIDAD_LEGAL,
               extension: 'parrafo',
             },
           ],
@@ -838,7 +849,9 @@ export const PLANTILLA_SERVICIOS_CONSULTORIA: PlantillaRequerimiento = {
                   clase: 'campo',
                   id: 'servicios_similares',
                   etiqueta: 'Servicios de consultoría similares',
-                  ayuda: 'Consignar los servicios similares al objeto convocado',
+                  ayuda:
+ 'Consignar los servicios similares al objeto convocado',
+ metodo: METODO_SIMILARES,
                   tipo: 'texto_largo',
                   obligatorio: true,
                 },

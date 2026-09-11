@@ -22,6 +22,16 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_EQUIPAMIENTO_ESTRATEGICO,
+  METODO_EXPERIENCIA_PERSONAL_CLAVE,
+  METODO_CAPACIDAD_LEGAL,
+  METODO_CAPACITACION_PERSONAL_CLAVE,
+  METODO_EQUIPAMIENTO_NO_ESTRATEGICO,
+  METODO_FORMACION_PERSONAL_CLAVE,
+  METODO_INFRAESTRUCTURA_ESTRATEGICA,
+  METODO_PERSONAL_CLAVE,
+  METODO_PERSONAL_NO_CLAVE,
+  METODO_SIMILARES,
   METODO_RECURSOS_CONTRATISTA,
   METODO_VERIFICACIONES,
   METODO_RECURSOS_ENTIDAD,
@@ -728,8 +738,8 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
               id: 'recursos_entidad',
               etiqueta: 'Recursos provistos por la Entidad',
               instruccion:
-                'Listar los recursos y facilidades que la entidad debe brindar al proveedor para que pueda ejecutar de manera eficiente, segura y oportuna el contrato' +
-                METODO_RECURSOS_ENTIDAD,
+                'Listar los recursos y facilidades que la entidad debe brindar al proveedor para que pueda ejecutar de manera eficiente, segura y oportuna el contrato',
+                metodo: METODO_RECURSOS_ENTIDAD,
               extension: 'lista',
             },
           ],
@@ -797,8 +807,8 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
               id: 'verificaciones',
               etiqueta: 'Verificaciones para la conformidad',
               instruccion:
-                'Indicar la relación de pruebas o ensayos requeridos para la conformidad del bien y la cantidad de muestras que debe entregar el contratista, en función de la naturaleza de los bienes' +
-                METODO_VERIFICACIONES,
+                'Indicar la relación de pruebas o ensayos requeridos para la conformidad del bien y la cantidad de muestras que debe entregar el contratista, en función de la naturaleza de los bienes',
+                metodo: METODO_VERIFICACIONES,
               extension: 'lista',
             },
           ],
@@ -887,6 +897,7 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
               etiqueta: 'Personal clave',
               instruccion:
                 'Para cada cargo o función: las actividades principales que realizará y la capacitación exigida, de corresponder',
+                metodo: METODO_PERSONAL_CLAVE,
               columnas: ['Cargo y/o responsabilidad', 'Actividades principales', 'Capacitación'],
               minimo: 1,
             },
@@ -908,6 +919,7 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
               etiqueta: 'Personal no clave',
               instruccion:
                 'Para cada cargo: la cantidad requerida, la formación académica o técnica exigida, la experiencia mínima y la capacitación necesaria',
+                metodo: METODO_PERSONAL_NO_CLAVE,
               columnas: [
                 'Cargo y/o responsabilidad',
                 'Cant.',
@@ -943,8 +955,8 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
               id: 'recursos_contratista',
               etiqueta: 'Recursos y obligaciones del contratista',
               instruccion:
-                'Establecer los recursos, medios, equipos, herramientas, materiales, personal, infraestructura, licencias, autorizaciones o sistemas informáticos que el contratista debe proporcionar o mantener, y las obligaciones que asume' +
-                METODO_RECURSOS_CONTRATISTA,
+                'Establecer los recursos, medios, equipos, herramientas, materiales, personal, infraestructura, licencias, autorizaciones o sistemas informáticos que el contratista debe proporcionar o mantener, y las obligaciones que asume',
+                metodo: METODO_RECURSOS_CONTRATISTA,
               extension: 'lista',
             },
           ],
@@ -958,7 +970,9 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
               clase: 'tabla',
               id: 'equipamiento',
               etiqueta: 'Equipamiento',
-              instruccion: 'Detallar el equipamiento requerido que no tiene condición de estratégico',
+              instruccion:
+ 'Detallar el equipamiento requerido que no tiene condición de estratégico',
+ metodo: METODO_EQUIPAMIENTO_NO_ESTRATEGICO,
               columnas: ['Equipamiento', 'Cant.', 'Características mínimas'],
               minimo: 1,
             },
@@ -989,6 +1003,7 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
               etiqueta: 'Infraestructura estratégica',
               instruccion:
                 'Detallar la infraestructura clasificada como estratégica para ejecutar la prestación objeto de la contratación',
+                metodo: METODO_INFRAESTRUCTURA_ESTRATEGICA,
               columnas: [
                 'Infraestructura estratégica',
                 'Cant.',
@@ -1017,13 +1032,16 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
               etiqueta: 'Requisitos',
               instruccion:
                 'Incluir los requisitos relacionados a la habilitación para llevar a cabo la actividad económica materia de la contratación',
+                metodo: METODO_CAPACIDAD_LEGAL,
               extension: 'parrafo',
             },
             {
               clase: 'redactado',
               id: 'capacidad_legal_acreditacion',
               etiqueta: 'Acreditación',
-              instruccion: 'Incluir el documento con el que se acredita el requisito de habilitación del postor',
+              instruccion:
+ 'Incluir el documento con el que se acredita el requisito de habilitación del postor',
+ metodo: METODO_CAPACIDAD_LEGAL,
               extension: 'parrafo',
             },
           ],
@@ -1063,7 +1081,9 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
                   clase: 'campo',
                   id: 'servicios_similares',
                   etiqueta: 'Servicios similares',
-                  ayuda: 'Consignar los servicios similares al objeto convocado',
+                  ayuda:
+ 'Consignar los servicios similares al objeto convocado',
+ metodo: METODO_SIMILARES,
                   tipo: 'texto_largo',
                   obligatorio: true,
                 },
@@ -1097,12 +1117,14 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
               etiqueta: 'Formación académica',
               instruccion:
                 'Como requisito de calificación solo puede consignarse "grado de bachiller" o "título profesional"',
+                metodo: METODO_FORMACION_PERSONAL_CLAVE,
               columnas: ['Cargo y/o responsabilidad', 'Profesión', 'Grado o título profesional requerido'],
               minimo: 1,
             },
             {
               clase: 'tabla',
               id: 'experiencia_personal_clave',
+              metodo: METODO_EXPERIENCIA_PERSONAL_CLAVE,
               etiqueta: 'Experiencia del personal clave',
               columnas: ['Cargo y/o responsabilidad', 'Tiempo de experiencia', 'Cargo desempeñado'],
               minimo: 1,
@@ -1127,7 +1149,9 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
               clase: 'tabla',
               id: 'capacitacion_personal',
               etiqueta: 'Capacitación',
-              instruccion: 'Precisar la materia o área de capacitación y la cantidad de horas exigida',
+              instruccion:
+ 'Precisar la materia o área de capacitación y la cantidad de horas exigida',
+ metodo: METODO_CAPACITACION_PERSONAL_CLAVE,
               columnas: ['Cargo y/o responsabilidad', 'Materia o área de capacitación', 'Cantidad de horas'],
               minimo: 0,
             },
@@ -1141,6 +1165,7 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'equipamiento_estrategico',
+              metodo: METODO_EQUIPAMIENTO_ESTRATEGICO,
               etiqueta: 'Equipamiento estratégico',
               columnas: ['Equipamiento estratégico', 'Cant.', 'Características mínimas'],
               minimo: 1,
@@ -1155,6 +1180,7 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'infraestructura_estrategica',
+              metodo: METODO_INFRAESTRUCTURA_ESTRATEGICA,
               etiqueta: 'Infraestructura estratégica',
               columnas: ['Infraestructura estratégica', 'Cant.', 'Características mínimas'],
               minimo: 1,

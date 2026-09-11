@@ -27,6 +27,13 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_EQUIPAMIENTO_ESTRATEGICO,
+  METODO_EQUIPAMIENTO_NO_ESTRATEGICO,
+  METODO_FORMACION_PERSONAL_CLAVE,
+  METODO_PERSONAL_CLAVE,
+  METODO_PERSONAL_NO_CLAVE,
+  METODO_SIMILARES,
+  METODO_EXPERIENCIA_PERSONAL_CLAVE,
   METODO_VERIFICACIONES,
   seccionConfidencialidad,
   procedimientoPenalidades,
@@ -872,8 +879,8 @@ export const PLANTILLA_OBRAS_DISENO_CONSTRUCCION: PlantillaRequerimiento = {
               id: 'verificaciones',
               etiqueta: 'Verificaciones para la conformidad',
               instruccion:
-                'Precisar las verificaciones técnicas, pruebas funcionales, ensayos, inspecciones, validaciones operativas o revisiones documentarias que la Entidad realizará para comprobar el cumplimiento de las obligaciones contractuales, los términos de referencia y los niveles de servicio. La conformidad solo se emite cuando esas verificaciones acrediten el cumplimiento' +
-                METODO_VERIFICACIONES,
+                'Precisar las verificaciones técnicas, pruebas funcionales, ensayos, inspecciones, validaciones operativas o revisiones documentarias que la Entidad realizará para comprobar el cumplimiento de las obligaciones contractuales, los términos de referencia y los niveles de servicio. La conformidad solo se emite cuando esas verificaciones acrediten el cumplimiento',
+                metodo: METODO_VERIFICACIONES,
               extension: 'lista',
             },
           ],
@@ -941,6 +948,7 @@ export const PLANTILLA_OBRAS_DISENO_CONSTRUCCION: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'personal_clave',
+              metodo: METODO_PERSONAL_CLAVE,
               etiqueta: 'Personal clave',
               columnas: ['Cargo y/o responsabilidad', 'Actividades principales'],
               minimo: 1,
@@ -955,6 +963,7 @@ export const PLANTILLA_OBRAS_DISENO_CONSTRUCCION: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'personal_no_clave',
+              metodo: METODO_PERSONAL_NO_CLAVE,
               etiqueta: 'Personal no clave',
               columnas: [
                 'Cargo y/o responsabilidad',
@@ -980,6 +989,7 @@ export const PLANTILLA_OBRAS_DISENO_CONSTRUCCION: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'equipamiento_no_estrategico',
+              metodo: METODO_EQUIPAMIENTO_NO_ESTRATEGICO,
               etiqueta: 'Equipamiento no estratégico',
               columnas: ['Equipamiento', 'Cant.', 'Características mínimas'],
               minimo: 1,
@@ -1023,6 +1033,7 @@ export const PLANTILLA_OBRAS_DISENO_CONSTRUCCION: PlantillaRequerimiento = {
                   etiqueta: 'Experiencia exigida en ejecución de obras',
                   ayuda:
                     'Consignar el monto de facturación expresado en números y letras en la moneda de la convocatoria, monto que no puede ser mayor a una vez la cuantía del componente de ejecución de obra del procedimiento de selección o del ítem correspondiente',
+                    metodo: METODO_SIMILARES,
                   tipo: 'moneda',
                   obligatorio: true,
                   validacion: 'experiencia_max',
@@ -1089,6 +1100,7 @@ export const PLANTILLA_OBRAS_DISENO_CONSTRUCCION: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'calificaciones_personal_clave',
+              metodo: METODO_FORMACION_PERSONAL_CLAVE,
               etiqueta: 'Calificaciones del personal clave',
               columnas: ['Cargo y/o responsabilidad', 'Profesión', 'Grado o título profesional requerido'],
               minimo: 1,
@@ -1099,6 +1111,7 @@ export const PLANTILLA_OBRAS_DISENO_CONSTRUCCION: PlantillaRequerimiento = {
               etiqueta: 'Experiencia del personal clave',
               instruccion:
                 'El tiempo de experiencia mínimo debe ser razonable y congruente con el periodo en el que el personal ejecuta las actividades y con la cuantía de la contratación',
+                metodo: METODO_EXPERIENCIA_PERSONAL_CLAVE,
               columnas: [
                 'Cargo y/o responsabilidad',
                 'Cant.',
@@ -1129,6 +1142,7 @@ export const PLANTILLA_OBRAS_DISENO_CONSTRUCCION: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'equipamiento_diseno',
+              metodo: METODO_EQUIPAMIENTO_ESTRATEGICO,
               etiqueta: 'Equipamiento estratégico — componente Diseño',
               columnas: ['Equipamiento estratégico', 'Cant.', 'Características mínimas del equipamiento'],
               minimo: 1,
@@ -1136,6 +1150,7 @@ export const PLANTILLA_OBRAS_DISENO_CONSTRUCCION: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'equipamiento_construccion',
+              metodo: METODO_EQUIPAMIENTO_ESTRATEGICO,
               etiqueta: 'Equipamiento estratégico — componente Construcción',
               columnas: ['Equipamiento estratégico', 'Cant.', 'Características mínimas del equipamiento'],
               minimo: 1,

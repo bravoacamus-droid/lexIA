@@ -79,6 +79,12 @@ export function promptUsuario(
   partes.push(`APARTADO A REDACTAR: ${bloque.etiqueta}`);
   partes.push(`\nQUÉ DEBE CONTENER (instrucción del formato oficial):\n${bloque.instruccion}`);
 
+  // El método no se le enseña al área usuaria: es cómo decidir el
+  // contenido, no qué pide el formato.
+  if (bloque.metodo) {
+    partes.push(`\nCÓMO CONSTRUIRLO:${bloque.metodo}`);
+  }
+
   if (bloque.ejemplo) {
     // El ejemplo va como referencia de FORMA, con la advertencia
     // explícita de no copiarlo: son muebles de melamina y la

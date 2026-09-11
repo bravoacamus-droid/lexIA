@@ -20,6 +20,10 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_EXPERIENCIA_PERSONAL_CLAVE,
+  METODO_FORMACION_PERSONAL_CLAVE,
+  METODO_CAPACIDAD_LEGAL,
+  METODO_SIMILARES,
   METODO_RECURSOS_CONTRATISTA,
   bloquesPagoAnticipado,
   METODO_VERIFICACIONES,
@@ -442,8 +446,8 @@ export const PLANTILLA_EXPERTOS_GERENTES: PlantillaRequerimiento = {
               id: 'recursos_entidad',
               etiqueta: 'Recursos provistos por la Entidad',
               instruccion:
-                'Precisar los recursos, información, documentación, accesos y demás facilidades necesarias para la adecuada ejecución de la prestación' +
-                METODO_RECURSOS_ENTIDAD,
+                'Precisar los recursos, información, documentación, accesos y demás facilidades necesarias para la adecuada ejecución de la prestación',
+                metodo: METODO_RECURSOS_ENTIDAD,
               ejemplo:
                 'Designar un servidor responsable de la coordinación del servicio.\nProporcionar el expediente de contratación, requerimiento, estudio de mercado, bases, consultas, observaciones, informes técnicos y demás documentación necesaria para el desarrollo de la asistencia técnica.\nFacilitar el acceso a la información institucional relacionada con el procedimiento de selección, respetando las restricciones de confidencialidad que resulten aplicables.',
               extension: 'lista',
@@ -460,8 +464,8 @@ export const PLANTILLA_EXPERTOS_GERENTES: PlantillaRequerimiento = {
               id: 'verificaciones',
               etiqueta: 'Verificaciones para la conformidad',
               instruccion:
-                'Precisar las verificaciones técnicas, revisiones documentarias y validaciones que la Entidad realizará para comprobar que el servicio se ejecutó conforme a los Términos de Referencia, el contrato y los resultados esperados. La conformidad solo se emite cuando las verificaciones acrediten el cumplimiento integral' +
-                METODO_VERIFICACIONES,
+                'Precisar las verificaciones técnicas, revisiones documentarias y validaciones que la Entidad realizará para comprobar que el servicio se ejecutó conforme a los Términos de Referencia, el contrato y los resultados esperados. La conformidad solo se emite cuando las verificaciones acrediten el cumplimiento integral',
+                metodo: METODO_VERIFICACIONES,
               ejemplo:
                 'La revisión del cumplimiento de los Términos de Referencia.\nLa evaluación del cumplimiento de las funciones asignadas.\nLa verificación de los informes de seguimiento y control del proyecto.\nLa revisión del monitoreo efectuado respecto del alcance, plazo, costo, calidad y riesgos.\nLa evaluación de las recomendaciones formuladas para la toma de decisiones.\nLa verificación del cumplimiento del cronograma de actividades y de los entregables comprometidos.\nLa revisión de la documentación técnica que sustenta los informes presentados.',
               extension: 'lista',
@@ -507,8 +511,8 @@ export const PLANTILLA_EXPERTOS_GERENTES: PlantillaRequerimiento = {
               id: 'recursos_contratista',
               etiqueta: 'Recursos y obligaciones del contratista',
               instruccion:
-                'Establecer los recursos, medios, infraestructura, equipos informáticos, software, licencias, herramientas tecnológicas, personal o autorizaciones que el contratista debe proporcionar, y las obligaciones que asume (observancia del Plan de Trabajo, cumplimiento de plazos, calidad técnica de los entregables, confidencialidad, disponibilidad del personal propuesto). Si no corresponde exigir algún recurso, consignar "NO APLICA"' +
-                METODO_RECURSOS_CONTRATISTA,
+                'Establecer los recursos, medios, infraestructura, equipos informáticos, software, licencias, herramientas tecnológicas, personal o autorizaciones que el contratista debe proporcionar, y las obligaciones que asume (observancia del Plan de Trabajo, cumplimiento de plazos, calidad técnica de los entregables, confidencialidad, disponibilidad del personal propuesto). Si no corresponde exigir algún recurso, consignar "NO APLICA"',
+                metodo: METODO_RECURSOS_CONTRATISTA,
               ejemplo:
                 'Asumir todos los costos derivados de los equipos, transporte, comunicaciones y demás recursos necesarios para la ejecución del servicio, salvo aquellos que expresamente sean proporcionados por la Entidad.\nGuardar absoluta reserva y confidencialidad respecto de toda la información a la que tenga acceso durante la ejecución contractual.\nCumplir las disposiciones emitidas por el coordinador o responsable designado por la Entidad, siempre que se encuentren dentro del marco contractual.\nCumplir la normativa aplicable, así como las políticas internas de seguridad, acceso a instalaciones y uso de la información de la Entidad.',
               extension: 'lista',
@@ -539,13 +543,16 @@ export const PLANTILLA_EXPERTOS_GERENTES: PlantillaRequerimiento = {
               etiqueta: 'Requisitos',
               instruccion:
                 'Incluir los requisitos relacionados a la habilitación para llevar a cabo la actividad materia de la contratación',
+                metodo: METODO_CAPACIDAD_LEGAL,
               extension: 'parrafo',
             },
             {
               clase: 'redactado',
               id: 'capacidad_legal_acreditacion',
               etiqueta: 'Acreditación',
-              instruccion: 'Incluir el documento con el que se acredita el requisito de habilitación',
+              instruccion:
+ 'Incluir el documento con el que se acredita el requisito de habilitación',
+ metodo: METODO_CAPACIDAD_LEGAL,
               extension: 'parrafo',
             },
           ],
@@ -562,6 +569,7 @@ export const PLANTILLA_EXPERTOS_GERENTES: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'formacion_academica',
+              metodo: METODO_FORMACION_PERSONAL_CLAVE,
               etiqueta: 'Formación académica exigida',
               columnas: ['Cargo y/o responsabilidad', 'Profesión', 'Grado o título profesional requerido'],
               minimo: 1,
@@ -609,6 +617,7 @@ export const PLANTILLA_EXPERTOS_GERENTES: PlantillaRequerimiento = {
               // cuantía ni régimen MYPE en esta plantilla.
               clase: 'tabla',
               id: 'experiencia_postor',
+              metodo: METODO_EXPERIENCIA_PERSONAL_CLAVE,
               etiqueta: 'Experiencia mínima requerida',
               columnas: [
                 'Cargo y/o responsabilidad',
@@ -627,7 +636,9 @@ export const PLANTILLA_EXPERTOS_GERENTES: PlantillaRequerimiento = {
                   clase: 'campo',
                   id: 'trabajos_similares',
                   etiqueta: 'Trabajos o prestaciones similares',
-                  ayuda: 'Consignar los trabajos o prestaciones similares',
+                  ayuda:
+ 'Consignar los trabajos o prestaciones similares',
+ metodo: METODO_SIMILARES,
                   tipo: 'texto_largo',
                   obligatorio: true,
                 },

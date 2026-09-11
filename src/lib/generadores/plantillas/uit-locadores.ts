@@ -22,6 +22,9 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_CAPACITACION_PERSONAL_CLAVE,
+  METODO_EQUIPAMIENTO_ESTRATEGICO,
+  METODO_FORMACION_PERSONAL_CLAVE,
   bloquesPagoAnticipado,
   METODO_VERIFICACIONES,
   METODO_RECURSOS_ENTIDAD,
@@ -326,8 +329,8 @@ export const PLANTILLA_UIT_LOCADORES: PlantillaRequerimiento = {
               id: 'recursos_entidad',
               etiqueta: 'Recursos provistos por la Entidad',
               instruccion:
-                'Listar los recursos, información y facilidades que la entidad debe brindar al locador para que pueda ejecutar el servicio' +
-                METODO_RECURSOS_ENTIDAD,
+                'Listar los recursos, información y facilidades que la entidad debe brindar al locador para que pueda ejecutar el servicio',
+                metodo: METODO_RECURSOS_ENTIDAD,
               extension: 'lista',
             },
           ],
@@ -356,8 +359,8 @@ export const PLANTILLA_UIT_LOCADORES: PlantillaRequerimiento = {
               id: 'verificaciones',
               etiqueta: 'Verificaciones para la conformidad',
               instruccion:
-                'Indicar la relación de pruebas o ensayos requeridos para la conformidad del bien y la cantidad de muestras que debe entregar el contratista, en función de la naturaleza de los bienes' +
-                METODO_VERIFICACIONES,
+                'Indicar la relación de pruebas o ensayos requeridos para la conformidad del bien y la cantidad de muestras que debe entregar el contratista, en función de la naturaleza de los bienes',
+                metodo: METODO_VERIFICACIONES,
               extension: 'lista',
             },
           ],
@@ -424,6 +427,7 @@ export const PLANTILLA_UIT_LOCADORES: PlantillaRequerimiento = {
               etiqueta: 'Formación académica exigida',
               instruccion:
                 'Consignar el grado de bachiller, título profesional, título profesional técnico o título de segunda especialidad, según el perfil requerido',
+                metodo: METODO_FORMACION_PERSONAL_CLAVE,
               columnas: ['Cargo y/o responsabilidad', 'Profesión', 'Grado o título profesional requerido'],
               minimo: 1,
             },
@@ -467,6 +471,7 @@ export const PLANTILLA_UIT_LOCADORES: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'capacitacion',
+              metodo: METODO_CAPACITACION_PERSONAL_CLAVE,
               etiqueta: 'Capacitación exigida',
               columnas: ['Materia o área de capacitación', 'Cantidad de horas'],
               minimo: 1,
@@ -481,6 +486,7 @@ export const PLANTILLA_UIT_LOCADORES: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'equipamiento_estrategico',
+              metodo: METODO_EQUIPAMIENTO_ESTRATEGICO,
               etiqueta: 'Equipamiento estratégico',
               columnas: ['Equipamiento estratégico', 'Cant.', 'Características mínimas'],
               minimo: 1,

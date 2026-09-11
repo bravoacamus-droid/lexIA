@@ -117,6 +117,17 @@ export interface BloqueCampo {
   etiqueta: string;
   /** La instrucción entre corchetes, tal como la escribió César. */
   ayuda: string;
+  /**
+   * Cómo construir el contenido. Va al modelo, NO a la pantalla.
+   *
+   * `instruccion` es lo que el formato oficial pide y es lo que lee el
+   * área usuaria. El método es la forma de decidirlo —cuándo corresponde,
+   * qué comprobar, qué no inventar— y son las observaciones de César de
+   * setiembre de 2026. Al principio se concatenaban las dos y el
+   * formulario mostraba un párrafo de quince líneas de instrucciones
+   * dirigidas a la IA. Separados, cada uno va donde sirve.
+   */
+  metodo?: string;
   tipo: 'texto' | 'texto_largo' | 'numero' | 'moneda' | 'fecha' | 'dias' | 'opciones';
   /**
    * Las opciones, cuando el tipo es `opciones`.
@@ -163,6 +174,17 @@ export interface BloqueRedactado {
   id: string;
   etiqueta: string;
   instruccion: string;
+  /**
+   * Cómo construir el contenido. Va al modelo, NO a la pantalla.
+   *
+   * `instruccion` es lo que el formato oficial pide y es lo que lee el
+   * área usuaria. El método es la forma de decidirlo —cuándo corresponde,
+   * qué comprobar, qué no inventar— y son las observaciones de César de
+   * setiembre de 2026. Al principio se concatenaban las dos y el
+   * formulario mostraba un párrafo de quince líneas de instrucciones
+   * dirigidas a la IA. Separados, cada uno va donde sirve.
+   */
+  metodo?: string;
   /** Muestra la instrucción como advertencia, en rojo. Ver `BloqueCampo`. */
   advertencia?: boolean;
   ejemplo?: string;
@@ -228,6 +250,17 @@ export interface BloqueTabla {
   /** Muestra la instrucción como advertencia, en rojo. Ver `BloqueCampo`. */
   advertencia?: boolean;
   columnas: string[];
+  /**
+   * Cómo construir el contenido. Va al modelo, NO a la pantalla.
+   *
+   * `instruccion` es lo que el formato oficial pide y es lo que lee el
+   * área usuaria. El método es la forma de decidirlo —cuándo corresponde,
+   * qué comprobar, qué no inventar— y son las observaciones de César de
+   * setiembre de 2026. Al principio se concatenaban las dos y el
+   * formulario mostraba un párrafo de quince líneas de instrucciones
+   * dirigidas a la IA. Separados, cada uno va donde sirve.
+   */
+  metodo?: string;
   /** Instrucción por columna, cuando la plantilla la trae. */
   ayudaColumnas?: string[];
   /** Filas mínimas a completar. */

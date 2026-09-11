@@ -19,6 +19,12 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_EXPERIENCIA_PERSONAL_CLAVE,
+  METODO_PERSONAL_NO_CLAVE,
+  METODO_EQUIPAMIENTO_NO_ESTRATEGICO,
+  METODO_FORMACION_PERSONAL_CLAVE,
+  METODO_PERSONAL_CLAVE,
+  METODO_SIMILARES,
   METODO_RECURSOS_CONTRATISTA,
   bloquesPagoAnticipado,
   METODO_VERIFICACIONES,
@@ -481,8 +487,8 @@ export const PLANTILLA_MANTENIMIENTO_VIAL: PlantillaRequerimiento = {
               id: 'recursos_entidad',
               etiqueta: 'Recursos provistos por la Entidad',
               instruccion:
-                'Listar los recursos y facilidades que la entidad debe brindar al contratista para que pueda ejecutar de manera eficiente, segura y oportuna el contrato' +
-                METODO_RECURSOS_ENTIDAD,
+                'Listar los recursos y facilidades que la entidad debe brindar al contratista para que pueda ejecutar de manera eficiente, segura y oportuna el contrato',
+                metodo: METODO_RECURSOS_ENTIDAD,
               extension: 'lista',
             },
           ],
@@ -522,8 +528,8 @@ export const PLANTILLA_MANTENIMIENTO_VIAL: PlantillaRequerimiento = {
               id: 'verificaciones',
               etiqueta: 'Verificaciones para la conformidad',
               instruccion:
-                'Precisar las verificaciones técnicas, pruebas funcionales, ensayos, inspecciones, validaciones operativas o revisiones documentarias que la Entidad realizará para comprobar el cumplimiento de las obligaciones contractuales, los términos de referencia y los niveles de servicio. La conformidad solo se emite cuando esas verificaciones acrediten el cumplimiento' +
-                METODO_VERIFICACIONES,
+                'Precisar las verificaciones técnicas, pruebas funcionales, ensayos, inspecciones, validaciones operativas o revisiones documentarias que la Entidad realizará para comprobar el cumplimiento de las obligaciones contractuales, los términos de referencia y los niveles de servicio. La conformidad solo se emite cuando esas verificaciones acrediten el cumplimiento',
+                metodo: METODO_VERIFICACIONES,
               extension: 'lista',
             },
           ],
@@ -567,8 +573,8 @@ export const PLANTILLA_MANTENIMIENTO_VIAL: PlantillaRequerimiento = {
               id: 'recursos_contratista',
               etiqueta: 'Recursos y obligaciones del contratista',
               instruccion:
-                'Establecer la maquinaria, equipos, herramientas, materiales, personal, licencias y autorizaciones que el contratista debe proporcionar o mantener, y las obligaciones que asume durante la ejecución del servicio' +
-                METODO_RECURSOS_CONTRATISTA,
+                'Establecer la maquinaria, equipos, herramientas, materiales, personal, licencias y autorizaciones que el contratista debe proporcionar o mantener, y las obligaciones que asume durante la ejecución del servicio',
+                metodo: METODO_RECURSOS_CONTRATISTA,
               extension: 'lista',
             },
           ],
@@ -584,6 +590,7 @@ export const PLANTILLA_MANTENIMIENTO_VIAL: PlantillaRequerimiento = {
               etiqueta: 'Personal clave',
               instruccion:
                 'Para cada cargo precisar las responsabilidades principales y, de corresponder, la capacitación requerida',
+                metodo: METODO_PERSONAL_CLAVE,
               columnas: ['Cargo y/o responsabilidad', 'Actividades principales'],
               minimo: 1,
             },
@@ -597,6 +604,7 @@ export const PLANTILLA_MANTENIMIENTO_VIAL: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'personal_no_clave',
+              metodo: METODO_PERSONAL_NO_CLAVE,
               etiqueta: 'Personal no clave',
               columnas: [
                 'Cargo y/o responsabilidad',
@@ -624,6 +632,7 @@ export const PLANTILLA_MANTENIMIENTO_VIAL: PlantillaRequerimiento = {
               etiqueta: 'Equipamiento',
               instruccion:
                 'Detallar la maquinaria y equipos requeridos que no tienen condición de estratégicos',
+                metodo: METODO_EQUIPAMIENTO_NO_ESTRATEGICO,
               columnas: ['Equipamiento estratégico', 'Cant.', 'Características mínimas'],
               minimo: 1,
             },
@@ -684,7 +693,9 @@ export const PLANTILLA_MANTENIMIENTO_VIAL: PlantillaRequerimiento = {
                   clase: 'campo',
                   id: 'servicios_similares',
                   etiqueta: 'Servicios similares',
-                  ayuda: 'Consignar los servicios similares al objeto convocado',
+                  ayuda:
+ 'Consignar los servicios similares al objeto convocado',
+ metodo: METODO_SIMILARES,
                   tipo: 'texto_largo',
                   obligatorio: true,
                 },
@@ -768,6 +779,7 @@ export const PLANTILLA_MANTENIMIENTO_VIAL: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'experiencia_personal_clave',
+              metodo: METODO_EXPERIENCIA_PERSONAL_CLAVE,
               etiqueta: 'Experiencia del personal clave',
               columnas: [
                 'Cargo y/o responsabilidad',
@@ -790,6 +802,7 @@ export const PLANTILLA_MANTENIMIENTO_VIAL: PlantillaRequerimiento = {
               etiqueta: 'Calificaciones del personal clave',
               instruccion:
                 'Como requisito de calificación solo puede consignarse "grado de bachiller" o "título profesional", según el perfil definido por el área usuaria',
+                metodo: METODO_FORMACION_PERSONAL_CLAVE,
               columnas: ['Cargo y/o responsabilidad', 'Profesión', 'Grado o título profesional requerido'],
               minimo: 1,
             },

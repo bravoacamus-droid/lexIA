@@ -28,6 +28,10 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_FORMACION_PERSONAL_CLAVE,
+  METODO_SIMILARES,
+  METODO_EXPERIENCIA_PERSONAL_CLAVE,
+  METODO_PERSONAL_CLAVE,
   METODO_VERIFICACIONES,
   seccionConfidencialidad,
   procedimientoPenalidades,
@@ -865,8 +869,8 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
               id: 'verificaciones',
               etiqueta: 'Verificaciones técnicas',
               instruccion:
-                'Precisar las verificaciones técnicas, inspecciones in situ, pruebas de control de calidad, ensayos de materiales, validaciones operativas y revisiones documentarias que la Entidad realizará a través de la supervisión de obra' +
-                METODO_VERIFICACIONES,
+                'Precisar las verificaciones técnicas, inspecciones in situ, pruebas de control de calidad, ensayos de materiales, validaciones operativas y revisiones documentarias que la Entidad realizará a través de la supervisión de obra',
+                metodo: METODO_VERIFICACIONES,
               ejemplo:
                 'La revisión y pronunciamiento sobre el Informe de Revisión del Expediente Técnico presentado por el contratista.\nLa verificación del control técnico, económico, administrativo y de seguridad de la ejecución física de la obra.\nLa validación de los metrados realmente ejecutados y el sustento documentario de las valorizaciones mensuales.\nLa revisión permanente de los registros y la absolución de consultas anotadas en el Cuaderno de Incidencias.\nLa verificación del cumplimiento de los protocolos de control de calidad, ensayos de materiales y pruebas operativas.\nEl seguimiento y control del cumplimiento del programa de ejecución de obra (ruta crítica).\nLa verificación de que la obra se ejecute en estricta conformidad con el Expediente Técnico aprobado.',
               extension: 'lista',
@@ -1010,6 +1014,7 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
               etiqueta: 'Personal clave',
               instruccion:
                 'Precisar el cargo o función y las actividades principales de cada profesional clave',
+                metodo: METODO_PERSONAL_CLAVE,
               columnas: ['Cargo y/o responsabilidad', 'Actividades principales'],
               minimo: 1,
             },
@@ -1051,6 +1056,7 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
                   etiqueta: 'Monto facturado acumulado exigido',
                   ayuda:
                     'Consignar el monto de facturación expresado en números y letras en la moneda de la convocatoria, monto que no puede ser mayor a una vez la cuantía de la contratación o del ítem correspondiente',
+                    metodo: METODO_SIMILARES,
                   tipo: 'moneda',
                   obligatorio: true,
                   validacion: 'experiencia_max',
@@ -1106,6 +1112,7 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'calificaciones_personal_clave',
+              metodo: METODO_FORMACION_PERSONAL_CLAVE,
               etiqueta: 'Calificaciones del personal clave',
               columnas: ['Cargo y/o responsabilidad', 'Profesión', 'Grado o título profesional requerido'],
               minimo: 1,
@@ -1122,6 +1129,7 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
               etiqueta: 'Experiencia del personal clave',
               instruccion:
                 'El tiempo de experiencia mínimo debe ser razonable y congruente con el periodo en el que el personal ejecuta las actividades y con la cuantía de la contratación',
+                metodo: METODO_EXPERIENCIA_PERSONAL_CLAVE,
               columnas: [
                 'Cargo y/o responsabilidad',
                 'Cant.',

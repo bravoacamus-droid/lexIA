@@ -24,6 +24,14 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_EXPERIENCIA_PERSONAL_CLAVE,
+  METODO_FORMACION_PERSONAL_CLAVE,
+  METODO_PERSONAL_CLAVE,
+  METODO_PERSONAL_NO_CLAVE,
+  METODO_SIMILARES,
+  METODO_EQUIPAMIENTO_ESTRATEGICO,
+  METODO_EQUIPAMIENTO_NO_ESTRATEGICO,
+  METODO_INFRAESTRUCTURA_ESTRATEGICA,
   METODO_RECURSOS_CONTRATISTA,
   bloquesPagoAnticipado,
   METODO_VERIFICACIONES,
@@ -657,8 +665,8 @@ export const PLANTILLA_CONSULTORIA_OBRAS: PlantillaRequerimiento = {
               id: 'recursos_entidad',
               etiqueta: 'Recursos e información provistos por la Entidad',
               instruccion:
-                'Listar la información y facilidades que la Entidad entregará según el servicio: términos de referencia, ficha técnica o estudio de preinversión, declaratoria de viabilidad, información topográfica y catastral, estudios básicos existentes, planos, certificados de parámetros urbanísticos, títulos de propiedad; y para supervisión, el expediente técnico aprobado, el contrato de ejecución, las bases integradas y los calendarios' +
-                METODO_RECURSOS_ENTIDAD,
+                'Listar la información y facilidades que la Entidad entregará según el servicio: términos de referencia, ficha técnica o estudio de preinversión, declaratoria de viabilidad, información topográfica y catastral, estudios básicos existentes, planos, certificados de parámetros urbanísticos, títulos de propiedad; y para supervisión, el expediente técnico aprobado, el contrato de ejecución, las bases integradas y los calendarios',
+                metodo: METODO_RECURSOS_ENTIDAD,
               extension: 'lista',
             },
           ],
@@ -687,8 +695,8 @@ export const PLANTILLA_CONSULTORIA_OBRAS: PlantillaRequerimiento = {
               id: 'verificaciones',
               etiqueta: 'Verificaciones para la conformidad',
               instruccion:
-                'Precisar las verificaciones técnicas, pruebas funcionales, ensayos, inspecciones, validaciones operativas o revisiones documentarias que la Entidad realizará para comprobar el cumplimiento de las obligaciones contractuales, los términos de referencia y los niveles de servicio. La conformidad solo se emite cuando esas verificaciones acrediten el cumplimiento' +
-                METODO_VERIFICACIONES,
+                'Precisar las verificaciones técnicas, pruebas funcionales, ensayos, inspecciones, validaciones operativas o revisiones documentarias que la Entidad realizará para comprobar el cumplimiento de las obligaciones contractuales, los términos de referencia y los niveles de servicio. La conformidad solo se emite cuando esas verificaciones acrediten el cumplimiento',
+                metodo: METODO_VERIFICACIONES,
               extension: 'lista',
             },
           ],
@@ -732,8 +740,8 @@ export const PLANTILLA_CONSULTORIA_OBRAS: PlantillaRequerimiento = {
               id: 'recursos_contratista',
               etiqueta: 'Recursos y obligaciones del contratista',
               instruccion:
-                'Establecer los recursos humanos, medios técnicos, software especializado, licencias, equipos y metodologías que el consultor debe proporcionar, y las obligaciones que asume' +
-                METODO_RECURSOS_CONTRATISTA,
+                'Establecer los recursos humanos, medios técnicos, software especializado, licencias, equipos y metodologías que el consultor debe proporcionar, y las obligaciones que asume',
+                metodo: METODO_RECURSOS_CONTRATISTA,
               ejemplo:
                 'Mantener la confidencialidad de la información proporcionada por la Entidad.\nUtilizar software especializado compatible con la naturaleza del servicio.\nEjecutar la consultoría conforme al plan de trabajo, la metodología y el cronograma aprobados.\nParticipar en las reuniones de coordinación y sustentación técnica convocadas por la Entidad.\nLevantar oportunamente las observaciones formuladas a los entregables.',
               extension: 'lista',
@@ -752,6 +760,7 @@ export const PLANTILLA_CONSULTORIA_OBRAS: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'personal_clave',
+              metodo: METODO_PERSONAL_CLAVE,
               etiqueta: 'Personal clave',
               columnas: ['Cargo y/o responsabilidad', 'Actividades principales'],
               minimo: 1,
@@ -766,6 +775,7 @@ export const PLANTILLA_CONSULTORIA_OBRAS: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'personal_no_clave',
+              metodo: METODO_PERSONAL_NO_CLAVE,
               etiqueta: 'Personal no clave',
               columnas: [
                 'Cargo y/o responsabilidad',
@@ -788,6 +798,7 @@ export const PLANTILLA_CONSULTORIA_OBRAS: PlantillaRequerimiento = {
               etiqueta: 'Equipamiento',
               instruccion:
                 'Detallar el equipamiento requerido que no tiene condición de estratégico',
+                metodo: METODO_EQUIPAMIENTO_NO_ESTRATEGICO,
               columnas: ['Equipamiento', 'Cant.', 'Características mínimas'],
               minimo: 1,
             },
@@ -827,6 +838,7 @@ export const PLANTILLA_CONSULTORIA_OBRAS: PlantillaRequerimiento = {
                   etiqueta: 'Monto facturado acumulado exigido',
                   ayuda:
                     'Consignar el monto de facturación expresado en números y letras en la moneda de la convocatoria, monto que no puede ser mayor a una vez el valor de la cuantía de la contratación o del ítem',
+                    metodo: METODO_SIMILARES,
                   tipo: 'moneda',
                   obligatorio: true,
                   validacion: 'experiencia_max',
@@ -906,6 +918,7 @@ export const PLANTILLA_CONSULTORIA_OBRAS: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'calificaciones_personal_clave',
+              metodo: METODO_FORMACION_PERSONAL_CLAVE,
               etiqueta: 'Calificaciones del personal clave',
               columnas: ['Cargo y/o responsabilidad', 'Profesión', 'Grado o título profesional requerido'],
               minimo: 1,
@@ -913,6 +926,7 @@ export const PLANTILLA_CONSULTORIA_OBRAS: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'experiencia_personal_clave',
+              metodo: METODO_EXPERIENCIA_PERSONAL_CLAVE,
               etiqueta: 'Experiencia del personal clave',
               columnas: [
                 'Cargo y/o responsabilidad',
@@ -936,6 +950,7 @@ export const PLANTILLA_CONSULTORIA_OBRAS: PlantillaRequerimiento = {
               etiqueta: 'Equipamiento estratégico',
               instruccion:
                 'Consignar el equipamiento (equipo y/o maquinaria) requerido para ejecutar la consultoría, según la especialidad y subespecialidad',
+                metodo: METODO_EQUIPAMIENTO_ESTRATEGICO,
               columnas: ['Equipamiento estratégico', 'Cant.', 'Características mínimas'],
               minimo: 1,
             },
@@ -952,6 +967,7 @@ export const PLANTILLA_CONSULTORIA_OBRAS: PlantillaRequerimiento = {
               etiqueta: 'Infraestructura estratégica',
               instruccion:
                 'Consignar la infraestructura requerida para ejecutar la consultoría, cuando resulte indispensable',
+                metodo: METODO_INFRAESTRUCTURA_ESTRATEGICA,
               columnas: ['Infraestructura', 'Cant.', 'Características mínimas'],
               minimo: 1,
             },

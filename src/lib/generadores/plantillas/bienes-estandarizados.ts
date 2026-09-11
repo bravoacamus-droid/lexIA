@@ -13,6 +13,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_CAPACIDAD_LEGAL,
   METODO_RECURSOS_CONTRATISTA,
   bloquesPagoAnticipado,
   METODO_VERIFICACIONES,
@@ -475,8 +476,8 @@ export const PLANTILLA_BIENES_ESTANDARIZADOS: PlantillaRequerimiento = {
               id: 'recursos_entidad',
               etiqueta: 'Recursos provistos por la Entidad',
               instruccion:
-                'Listar los recursos y facilidades que la entidad debe brindar al proveedor para que pueda ejecutar de manera eficiente, segura y oportuna el contrato' +
-                METODO_RECURSOS_ENTIDAD,
+                'Listar los recursos y facilidades que la entidad debe brindar al proveedor para que pueda ejecutar de manera eficiente, segura y oportuna el contrato',
+                metodo: METODO_RECURSOS_ENTIDAD,
               extension: 'lista',
             },
           ],
@@ -613,8 +614,8 @@ export const PLANTILLA_BIENES_ESTANDARIZADOS: PlantillaRequerimiento = {
               id: 'recursos_contratista',
               etiqueta: 'Recursos y obligaciones del contratista',
               instruccion:
-                'Precisar los recursos, medios, equipos, materiales, personal, licencias, autorizaciones o permisos que el contratista deberá proporcionar, así como sus responsabilidades durante la ejecución contractual, siempre que resulten objetivas, razonables y guarden relación con la naturaleza de la contratación' +
-                METODO_RECURSOS_CONTRATISTA,
+                'Precisar los recursos, medios, equipos, materiales, personal, licencias, autorizaciones o permisos que el contratista deberá proporcionar, así como sus responsabilidades durante la ejecución contractual, siempre que resulten objetivas, razonables y guarden relación con la naturaleza de la contratación',
+                metodo: METODO_RECURSOS_CONTRATISTA,
               ejemplo:
                 'Entregar los productos en las cantidades, lugares, fechas y horarios establecidos por la Entidad.\nGarantizar que los productos cumplan con las especificaciones técnicas, requisitos sanitarios, condiciones de inocuidad y vida útil exigidos en el requerimiento.\nUtilizar vehículos adecuados para el transporte de alimentos, asegurando que los productos se conserven en óptimas condiciones hasta su entrega.\nAsumir los costos de transporte, carga, descarga y cualquier otro gasto necesario para la entrega de los bienes.\nReemplazar, sin costo adicional para la Entidad, los productos que presenten defectos, deterioro o incumplimiento de las especificaciones técnicas.\nCumplir con la normativa sanitaria y demás disposiciones legales aplicables durante la ejecución contractual.',
               extension: 'lista',
@@ -631,8 +632,8 @@ export const PLANTILLA_BIENES_ESTANDARIZADOS: PlantillaRequerimiento = {
               id: 'verificacion_calidad',
               etiqueta: 'Certificados exigidos en cada entrega',
               instruccion:
-                'Indicar los certificados que el contratista debe presentar en cada entrega para verificar el cumplimiento de las especificaciones técnicas (certificado de conformidad o calidad, certificado de inspección, informe de ensayo)' +
-                METODO_VERIFICACIONES,
+                'Indicar los certificados que el contratista debe presentar en cada entrega para verificar el cumplimiento de las especificaciones técnicas (certificado de conformidad o calidad, certificado de inspección, informe de ensayo)',
+                metodo: METODO_VERIFICACIONES,
               extension: 'parrafo',
             },
           ],
@@ -666,13 +667,16 @@ export const PLANTILLA_BIENES_ESTANDARIZADOS: PlantillaRequerimiento = {
               etiqueta: 'Requisitos',
               instruccion:
                 'Incluir los requisitos de habilitación para la actividad económica materia de la contratación previstos en los documentos de información complementaria aprobados por Perú Compras',
+                metodo: METODO_CAPACIDAD_LEGAL,
               extension: 'parrafo',
             },
             {
               clase: 'redactado',
               id: 'capacidad_legal_acreditacion',
               etiqueta: 'Acreditación',
-              instruccion: 'Incluir el documento con el que se acredita el requisito de habilitación del postor',
+              instruccion:
+ 'Incluir el documento con el que se acredita el requisito de habilitación del postor',
+ metodo: METODO_CAPACIDAD_LEGAL,
               extension: 'parrafo',
             },
             {

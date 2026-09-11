@@ -21,6 +21,16 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_CAPACITACION_PERSONAL_CLAVE,
+  METODO_EQUIPAMIENTO_ESTRATEGICO,
+  METODO_EXPERIENCIA_PERSONAL_CLAVE,
+  METODO_FORMACION_PERSONAL_CLAVE,
+  METODO_INFRAESTRUCTURA_ESTRATEGICA,
+  METODO_CAPACIDAD_LEGAL,
+  METODO_EQUIPAMIENTO_NO_ESTRATEGICO,
+  METODO_PERSONAL_CLAVE,
+  METODO_PERSONAL_NO_CLAVE,
+  METODO_SIMILARES,
   METODO_RECURSOS_CONTRATISTA,
   METODO_VERIFICACIONES,
   METODO_RECURSOS_ENTIDAD,
@@ -719,8 +729,8 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
               id: 'recursos_entidad',
               etiqueta: 'Recursos provistos por la Entidad',
               instruccion:
-                'Listar los recursos y facilidades que la entidad debe brindar al proveedor para que pueda ejecutar de manera eficiente, segura y oportuna el contrato' +
-                METODO_RECURSOS_ENTIDAD,
+                'Listar los recursos y facilidades que la entidad debe brindar al proveedor para que pueda ejecutar de manera eficiente, segura y oportuna el contrato',
+                metodo: METODO_RECURSOS_ENTIDAD,
               extension: 'lista',
             },
           ],
@@ -783,8 +793,8 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
               id: 'verificaciones',
               etiqueta: 'Verificaciones para la conformidad',
               instruccion:
-                'Precisar las verificaciones técnicas, pruebas funcionales, ensayos, inspecciones, validaciones operativas o revisiones documentarias que la Entidad realizará para comprobar el cumplimiento de las obligaciones contractuales, los términos de referencia y los niveles de servicio. La conformidad solo se emite cuando esas verificaciones acrediten el cumplimiento' +
-                METODO_VERIFICACIONES,
+                'Precisar las verificaciones técnicas, pruebas funcionales, ensayos, inspecciones, validaciones operativas o revisiones documentarias que la Entidad realizará para comprobar el cumplimiento de las obligaciones contractuales, los términos de referencia y los niveles de servicio. La conformidad solo se emite cuando esas verificaciones acrediten el cumplimiento',
+                metodo: METODO_VERIFICACIONES,
               extension: 'lista',
             },
           ],
@@ -860,8 +870,8 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
               id: 'recursos_contratista',
               etiqueta: 'Recursos y obligaciones del contratista',
               instruccion:
-                'Establecer los recursos, medios, equipos, herramientas, materiales, personal, infraestructura, licencias, autorizaciones o sistemas informáticos que el contratista debe proporcionar o mantener, y las obligaciones que asume para garantizar la adecuada ejecución. Las exigencias deben ser objetivas, razonables y proporcionales, sin restringir injustificadamente la libre concurrencia' +
-                METODO_RECURSOS_CONTRATISTA,
+                'Establecer los recursos, medios, equipos, herramientas, materiales, personal, infraestructura, licencias, autorizaciones o sistemas informáticos que el contratista debe proporcionar o mantener, y las obligaciones que asume para garantizar la adecuada ejecución. Las exigencias deben ser objetivas, razonables y proporcionales, sin restringir injustificadamente la libre concurrencia',
+                metodo: METODO_RECURSOS_CONTRATISTA,
               ejemplo:
                 'Proporcionar el personal, equipos, herramientas, instrumentos e implementos necesarios para la correcta ejecución del servicio.\nEjecutar el servicio conforme a las especificaciones técnicas, el plan de trabajo y los plazos establecidos por la Entidad.\nUtilizar materiales, insumos y repuestos que cumplan con las características técnicas exigidas en el requerimiento.\nCumplir las normas de seguridad y salud en el trabajo y proporcionar al personal los equipos de protección personal requeridos.\nMantener permanentemente la limpieza y el orden del área donde se ejecuten los trabajos, retirando los residuos generados al término de cada intervención.\nComunicar oportunamente a la Entidad cualquier situación que pueda afectar la continuidad o calidad del servicio.\nSubsanar, sin costo adicional para la Entidad, las observaciones o deficiencias atribuibles al contratista.\nCumplir la normativa técnica, ambiental y sectorial aplicable durante toda la ejecución contractual.',
               extension: 'lista',
@@ -884,6 +894,7 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
               etiqueta: 'Personal clave',
               instruccion:
                 'Para cada cargo o función precisar, como mínimo, las principales responsabilidades y, de corresponder, la capacitación requerida',
+                metodo: METODO_PERSONAL_CLAVE,
               columnas: ['Cargo y/o responsabilidad', 'Actividades principales', 'Capacitación'],
               minimo: 1,
             },
@@ -900,6 +911,7 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
               etiqueta: 'Personal no clave',
               instruccion:
                 'Para cada cargo indicar la cantidad requerida, la formación académica o técnica exigida, la experiencia mínima y la capacitación necesaria',
+                metodo: METODO_PERSONAL_NO_CLAVE,
               columnas: [
                 'Cargo y/o responsabilidad',
                 'Cant.',
@@ -929,6 +941,7 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
               etiqueta: 'Equipamiento',
               instruccion:
                 'Detallar el equipamiento requerido que no tiene condición de estratégico. Debe guardar relación directa con la naturaleza de la prestación y ser razonablemente necesario',
+                metodo: METODO_EQUIPAMIENTO_NO_ESTRATEGICO,
               columnas: ['Equipamiento estratégico', 'Cant.', 'Características mínimas'],
               minimo: 1,
             },
@@ -989,13 +1002,16 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
               etiqueta: 'Requisitos',
               instruccion:
                 'Incluir los requisitos relacionados a la habilitación para llevar a cabo la actividad económica materia de la contratación, conforme a la normativa que regule el objeto contractual',
+                metodo: METODO_CAPACIDAD_LEGAL,
               extension: 'parrafo',
             },
             {
               clase: 'redactado',
               id: 'capacidad_legal_acreditacion',
               etiqueta: 'Acreditación',
-              instruccion: 'Incluir el documento con el que se acredita el requisito de habilitación del postor',
+              instruccion:
+ 'Incluir el documento con el que se acredita el requisito de habilitación del postor',
+ metodo: METODO_CAPACIDAD_LEGAL,
               extension: 'parrafo',
             },
           ],
@@ -1030,7 +1046,9 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
                   clase: 'campo',
                   id: 'servicios_similares',
                   etiqueta: 'Servicios similares',
-                  ayuda: 'Consignar los servicios similares al objeto convocado',
+                  ayuda:
+ 'Consignar los servicios similares al objeto convocado',
+ metodo: METODO_SIMILARES,
                   tipo: 'texto_largo',
                   obligatorio: true,
                 },
@@ -1126,6 +1144,7 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'experiencia_personal_clave',
+              metodo: METODO_EXPERIENCIA_PERSONAL_CLAVE,
               etiqueta: 'Requisitos',
               columnas: ['Cargo y/o responsabilidad', 'Cant.', 'Tiempo de experiencia', 'Cargo desempeñado', 'Cómputo de experiencia'],
               minimo: 1,
@@ -1168,6 +1187,7 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'formacion_personal_clave',
+              metodo: METODO_FORMACION_PERSONAL_CLAVE,
               etiqueta: 'Requisitos',
               columnas: ['Cargo y/o responsabilidad', 'Profesión', 'Grado o título profesional requerido'],
               minimo: 1,
@@ -1204,6 +1224,7 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'capacitacion_personal_clave',
+              metodo: METODO_CAPACITACION_PERSONAL_CLAVE,
               etiqueta: 'Requisitos',
               columnas: ['Cargo y/o responsabilidad', 'Materia o área de capacitación', 'Cantidad de horas'],
               minimo: 1,
@@ -1229,6 +1250,7 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'equipamiento_estrategico',
+              metodo: METODO_EQUIPAMIENTO_ESTRATEGICO,
               etiqueta: 'Requisitos',
               columnas: ['Equipamiento estratégico', 'Cant.', 'Características mínimas del equipamiento'],
               minimo: 1,
@@ -1254,6 +1276,7 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
             {
               clase: 'tabla',
               id: 'infraestructura_estrategica',
+              metodo: METODO_INFRAESTRUCTURA_ESTRATEGICA,
               etiqueta: 'Requisitos',
               columnas: ['Infraestructura estratégica', 'Cant.', 'Características mínimas de la infraestructura'],
               minimo: 1,

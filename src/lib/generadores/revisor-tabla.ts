@@ -76,6 +76,7 @@ export function promptTablaUsuario(opts: {
   const partes: string[] = [];
   partes.push(`CONTRATACIÓN: ${opts.denominacion}`);
   partes.push(`\nQUÉ PIDE ESTA TABLA: ${opts.bloque.instruccion ?? opts.bloque.etiqueta}`);
+  if (opts.bloque.metodo) partes.push(`\nCÓMO DEBE ESTAR CONSTRUIDA:${opts.bloque.metodo}`);
   partes.push(`\nCOLUMNAS: ${opts.bloque.columnas.join(' | ')}`);
   partes.push(
     `\nCONTENIDO ACTUAL (${opts.filas.length} filas):\n` +
