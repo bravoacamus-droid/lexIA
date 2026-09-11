@@ -964,12 +964,23 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
 
                     return (
                       <>
+                        {/* SIEMPRE VISIBLE, Y NO ES UN CAPRICHO.
+                            Estaba con `hidden ... group-hover/apartado:block`,
+                            y el boton vive FUERA de la caja del apartado
+                            (-left-5). Al moverse hacia el se cruza la franja
+                            muerta entre el borde y el boton, el group-hover
+                            se apaga y el boton desaparece antes de que el
+                            puntero llegue: no habia forma de plegar.
+                            Observacion 4 de Cesar (setiembre de 2026), y la
+                            marca como presente en TODOS los formatos.
+                            Plegado si funcionaba porque ahi el chevron va
+                            dentro del titulo y siempre visible. */}
                         <button
                           type="button"
                           onClick={() => alternarPliegue(apartado.id)}
                           title="Plegar este apartado"
                           aria-label={`Plegar ${numero}`}
-                          className="absolute -left-5 top-1 hidden text-muted-foreground hover:text-foreground group-hover/apartado:block"
+                          className="absolute -left-5 top-1 text-muted-foreground/60 transition hover:text-foreground"
                         >
                           <ChevronDown className="h-4 w-4" />
                         </button>
