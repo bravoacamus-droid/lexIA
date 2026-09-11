@@ -22,6 +22,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  seccionConfidencialidad,
   seccionAdelantoDirecto,
   seccionAnticorrupcion,
   seccionViciosOcultos,
@@ -36,7 +37,6 @@ import {
   seccionesCabecera8Uit,
   seccionPenalidades8Uit,
   seccionesRegimenContratoMenor,
-  seccionConfidencialidad,
 } from './menores-8uit-comunes';
 
 export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
@@ -705,7 +705,7 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
 
         ...seccionesRegimenContratoMenor(),
         seccionViciosOcultos(),
-        seccionConfidencialidad(true),
+        seccionConfidencialidad(),
         seccionAnticorrupcion(true),
       ],
     },

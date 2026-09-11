@@ -17,6 +17,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  seccionConfidencialidad,
   seccionEncabezado,
   seccionFinalidadPublica,
   seccionObjetivo,
@@ -411,6 +412,11 @@ export const PLANTILLA_SERVICIOS_COMPARACION_PRECIOS: PlantillaRequerimiento = {
         },
 
         seccionViciosOcultos(),
+        // El artículo que César añadió en setiembre de 2026
+        // (observación 17). Su .docx no lo trae, así que los cuatro
+        // apartados nacen apagados: el documento no cambia mientras la
+        // Entidad no active los que le apliquen.
+        seccionConfidencialidad(false),
         seccionAnticorrupcion(true),
       ],
     },

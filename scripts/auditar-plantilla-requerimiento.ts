@@ -51,15 +51,18 @@ for (const plantilla of listarPlantillas()) {
   let secciones = 0;
   let condicionales = 0;
   let camposObligatorios = 0;
-  const literales: string[] = [];
+  const literales: Array<{ texto: string; cadena: string[] }> = [];
 
-  const recorrer = (ss: Seccion[]) => {
+  const recorrer = (ss: Seccion[], raiz: string[] = []) => {
     for (const s of ss) {
+      // Todos los apartados de los que cuelga el texto, para poder
+      // declarar una divergencia por apartado y no párrafo a párrafo.
+      const suyo = [...raiz, s.id];
       secciones++;
       if (s.condicion) condicionales++;
       for (const b of s.bloques as Bloque[]) {
         conteo[b.clase] = (conteo[b.clase] ?? 0) + 1;
-        if (b.clase === 'fijo') literales.push(b.texto);
+        if (b.clase === 'fijo') literales.push({ texto: b.texto, cadena: suyo });
         if (b.clase === 'campo' && b.obligatorio) camposObligatorios++;
         if (b.clase === 'parrafo') {
           camposObligatorios += b.campos.filter((c) => c.obligatorio).length;
@@ -67,11 +70,11 @@ for (const plantilla of listarPlantillas()) {
           // instrucción entre corchetes. Se comprueba cada tramo literal
           // que rodea a los marcadores.
           for (const tramo of b.texto.split(/\{\{[^}]+\}\}/)) {
-            if (tramo.trim().length >= 25) literales.push(tramo);
+            if (tramo.trim().length >= 25) literales.push({ texto: tramo, cadena: suyo });
           }
         }
       }
-      if (s.subsecciones) recorrer(s.subsecciones);
+      if (s.subsecciones) recorrer(s.subsecciones, suyo);
     }
   };
   recorrer(plantilla.secciones);
@@ -81,10 +84,16 @@ for (const plantilla of listarPlantillas()) {
   const declaradasAqui: string[] = [];
   // Los apartes deliberados —los que pidieron las observaciones de
   // César— se cuentan aparte para que no tapen a los accidentales.
-  const permitidas = DIVERGENCIAS_DECLARADAS.filter((d) => d.plantilla === plantilla.id).map(
-    (d) => normalizar(d.fragmento),
+  const declarables = DIVERGENCIAS_DECLARADAS.filter(
+    (d) => d.plantilla === plantilla.id || d.plantilla === '*',
   );
-  for (const t of literales) {
+  const permitidas = declarables.flatMap((d) => (d.fragmento ? [normalizar(d.fragmento)] : []));
+  const apartadosDeclarados = new Set(declarables.flatMap((d) => (d.seccion ? [d.seccion] : [])));
+  for (const { texto: t, cadena } of literales) {
+    if (cadena.some((x) => apartadosDeclarados.has(x))) {
+      declaradasAqui.push(normalizar(t));
+      continue;
+    }
     // Se coteja el fragmento ENTERO. Antes se cotejaban los primeros
     // 140 caracteres, y por ahí se coló una frase inventada: los dos
     // formatos de obras cerraban la subcontratación con "Se consideran

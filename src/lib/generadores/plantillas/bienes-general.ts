@@ -24,6 +24,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  seccionConfidencialidad,
   procedimientoPenalidades, seccionAdelantoDirecto } from './comunes';
 
 /**
@@ -844,6 +845,11 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
             },
           ],
         },
+        // El artículo que César añadió en setiembre de 2026
+        // (observación 17). Su .docx no lo trae, así que los cuatro
+        // apartados nacen apagados: el documento no cambia mientras la
+        // Entidad no active los que le apliquen.
+        seccionConfidencialidad(false),
         {
           id: 'anticorrupcion',
           titulo: 'Normas de anticorrupción y antisoborno',

@@ -746,6 +746,125 @@ export function seccionAdelantoDirecto(nota?: string): Seccion {
   };
 }
 
+/**
+ * Confidencialidad, seguridad de la información y propiedad intelectual.
+ *
+ * César reemplazó el artículo entero. Observación 17 (setiembre de
+ * 2026): "este artículo debe ser reemplazado por el siguiente texto",
+ * con cuatro apartados en vez de tres y otro orden en el título.
+ *
+ * Lo sustancial no es la redacción sino que cada apartado lleve su
+ * propio interruptor: "dado que, en algunas contrataciones, solo le
+ * aplicará uno de ellos, a otros 2 de ello y otros ninguno". Un
+ * servicio de limpieza no accede a los sistemas de la Entidad; una
+ * consultoría que entrega un estudio sí genera propiedad intelectual.
+ *
+ * @param porDefecto Si los cuatro apartados nacen encendidos. En los
+ *   tres formatos de contrato menor sí: el artículo ya estaba en su
+ *   .docx. Los doce restantes no lo traen, así que nacen apagados y su
+ *   documento no cambia mientras nadie los active.
+ */
+export function seccionConfidencialidad(porDefecto = true): Seccion {
+  const apartado = (
+    id: string,
+    titulo: string,
+    condicion: string,
+    bloques: Bloque[],
+  ): Seccion => ({ id, titulo, condicion, condicionPorDefecto: porDefecto, bloques });
+
+  return {
+    id: 'confidencialidad',
+    titulo: 'Confidencialidad, seguridad de la información y propiedad intelectual',
+    bloques: [],
+    subsecciones: [
+      apartado('confidencialidad_reserva', 'Confidencialidad', 'aplica_confidencialidad', [
+        {
+          clase: 'fijo',
+          texto:
+            'El contratista deberá guardar reserva y confidencialidad respecto de la información no pública a la que tenga acceso con ocasión de la ejecución contractual, cualquiera sea su naturaleza o medio de almacenamiento.',
+          fundamento: 'Plantilla — confidencialidad',
+        },
+        {
+          clase: 'fijo',
+          texto:
+            'En tal sentido, se obliga a:\nUtilizar la información exclusivamente para el cumplimiento del objeto contractual.\nNo divulgar, transferir, reproducir ni poner la información a disposición de terceros, salvo autorización de la Entidad u obligación legal.\nAdoptar las medidas razonables para evitar su pérdida, alteración, acceso no autorizado, divulgación o uso indebido.\nExtender estas obligaciones a su personal, colaboradores y terceros vinculados a la ejecución contractual.',
+          lista: true,
+        },
+        {
+          clase: 'fijo',
+          texto:
+            'Al culminar la prestación, deberá devolver, entregar, eliminar o destruir, según corresponda y conforme a las instrucciones de la Entidad, la información proporcionada por esta, salvo aquella cuya conservación sea exigida legalmente.',
+        },
+        {
+          clase: 'fijo',
+          texto:
+            'La obligación de confidencialidad subsistirá después de culminada la relación contractual mientras la información conserve su carácter reservado, confidencial o restringido.',
+        },
+      ]),
+      apartado('seguridad_informacion', 'Seguridad de la información', 'aplica_seguridad_informacion', [
+        {
+          clase: 'fijo',
+          texto:
+            'Cuando la ejecución contractual implique acceso a sistemas, plataformas, equipos, redes, cuentas, instalaciones o recursos tecnológicos de la Entidad, el contratista deberá adoptar las medidas necesarias para proteger la información y los recursos a los que tenga acceso.',
+          fundamento: 'Plantilla — seguridad de la información',
+        },
+        {
+          clase: 'fijo',
+          texto:
+            'En particular, deberá:\nUtilizar los accesos y recursos otorgados exclusivamente para el cumplimiento del objeto contractual.\nMantener la confidencialidad de las credenciales, mecanismos de autenticación y demás elementos de acceso que le sean proporcionados.\nEvitar accesos, modificaciones, copias, transferencias o usos no autorizados de la información o recursos de la Entidad.\nComunicar oportunamente cualquier incidente, pérdida, vulneración o acceso no autorizado que pudiera afectar la información o recursos de la Entidad.',
+          lista: true,
+        },
+        {
+          clase: 'fijo',
+          texto:
+            'Los accesos otorgados tendrán carácter temporal y limitado a lo estrictamente necesario para la ejecución contractual y serán revocados cuando corresponda.',
+        },
+        {
+          clase: 'fijo',
+          texto:
+            'Al término de la prestación, el contratista deberá cesar todo acceso a los sistemas, equipos, cuentas o recursos de la Entidad y devolver los elementos proporcionados, cuando corresponda.',
+        },
+      ]),
+      apartado('propiedad_intelectual', 'Propiedad intelectual', 'aplica_propiedad_intelectual', [
+        {
+          clase: 'fijo',
+          texto:
+            'Cuando como resultado de la ejecución contractual se generen documentos, informes, estudios, diseños, contenidos, desarrollos u otros productos susceptibles de protección por propiedad intelectual, se aplicará lo establecido en los documentos contractuales y en la normativa vigente.',
+          fundamento: 'Plantilla — propiedad intelectual',
+        },
+        {
+          clase: 'fijo',
+          texto:
+            'Cuando corresponda, los derechos patrimoniales sobre los productos específicamente desarrollados para la Entidad serán transferidos o cedidos en los términos establecidos contractualmente, sin afectar los derechos morales reconocidos por ley ni los derechos preexistentes del contratista o de terceros.',
+        },
+        {
+          clase: 'fijo',
+          texto:
+            'El contratista será responsable por las infracciones de derechos de propiedad intelectual que le sean atribuibles respecto de los productos o materiales entregados a la Entidad.',
+        },
+        {
+          clase: 'fijo',
+          texto:
+            'Los materiales, herramientas, metodologías, conocimientos, software, diseños u otros elementos preexistentes del contratista o de terceros no se entenderán transferidos a la Entidad por el solo hecho de ser utilizados durante la ejecución contractual, salvo disposición contractual expresa.',
+        },
+      ]),
+      apartado('incumplimiento_confidencialidad', 'Incumplimiento', 'aplica_incumplimiento_confidencialidad', [
+        {
+          clase: 'fijo',
+          texto:
+            'El incumplimiento de las obligaciones seleccionadas en materia de confidencialidad, seguridad de la información o propiedad intelectual constituirá incumplimiento contractual, sin perjuicio de las consecuencias previstas en la normativa vigente y en los documentos que integran el contrato.',
+          fundamento: 'Plantilla — consecuencias del incumplimiento',
+        },
+        {
+          clase: 'fijo',
+          texto:
+            'De corresponder, la Entidad podrá aplicar las penalidades previstas, adoptar las medidas contractuales pertinentes, exigir la reparación de los daños y perjuicios y comunicar los hechos a las autoridades competentes.',
+        },
+      ]),
+    ],
+  };
+}
+
 export const VALIDACION_EXPERIENCIA = {
   id: 'experiencia_max',
   descripcion:

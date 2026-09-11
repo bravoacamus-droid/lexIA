@@ -13,10 +13,16 @@
  * no coincida con el .docx sigue siendo un fallo.
  */
 export type DivergenciaDeclarada = {
-  /** Id de la plantilla. */
+  /** Id de la plantilla, o '*' si vale para todas. */
   plantilla: string;
   /** Arranque del fragmento, tal como lo imprime el auditor. */
-  fragmento: string;
+  fragmento?: string;
+  /**
+   * Id del apartado entero. Alternativa a `fragmento` para cuando la
+   * observación reemplaza un artículo completo: declarar sus catorce
+   * párrafos uno a uno, y en quince formatos, no dejaría ver nada.
+   */
+  seccion?: string;
   /** Por qué se aparta. Con la observación que lo pidió. */
   motivo: string;
 };
@@ -100,5 +106,16 @@ export const DIVERGENCIAS_DECLARADAS: DivergenciaDeclarada[] = [
     fragmento:
       'Se consideran prestaciones esenciales que no pueden ser materia de subcontratación las siguientes:',
     motivo: 'Obs. 15: lista de prestaciones esenciales, opcional, apagada por defecto.',
+  },
+
+  // ── Observación 17 (setiembre de 2026): "este artículo debe ser
+  // reemplazado por el siguiente texto". Es redacción de César, no de
+  // los .docx, así que ninguno de sus párrafos está en el original. En
+  // los tres formatos de contrato menor sustituye al artículo que ya
+  // tenían; en los doce restantes se añade apagado.
+  {
+    plantilla: '*',
+    seccion: 'confidencialidad',
+    motivo: 'Obs. 17: artículo de confidencialidad reemplazado por el texto de César.',
   },
 ];

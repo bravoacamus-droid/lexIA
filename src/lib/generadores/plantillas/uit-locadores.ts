@@ -22,6 +22,7 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  seccionConfidencialidad,
   seccionAnticorrupcion,
   seccionViciosOcultos,
   seccionSolicitante,
@@ -32,7 +33,6 @@ import {
   seccionesCabecera8Uit,
   seccionPenalidades8Uit,
   seccionesRegimenContratoMenor,
-  seccionConfidencialidad,
 } from './menores-8uit-comunes';
 
 export const PLANTILLA_UIT_LOCADORES: PlantillaRequerimiento = {
@@ -303,7 +303,7 @@ export const PLANTILLA_UIT_LOCADORES: PlantillaRequerimiento = {
 
         ...seccionesRegimenContratoMenor(),
         seccionViciosOcultos(),
-        seccionConfidencialidad(true),
+        seccionConfidencialidad(),
         seccionAnticorrupcion(true),
       ],
     },

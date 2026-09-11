@@ -115,11 +115,15 @@ export function TextoFijo({
       <span className="mb-1 block font-medium uppercase tracking-wide">
         Texto obligatorio del formato
       </span>
-      {lista && (abierto || !largo) ? (
+      {lista ? (
         <>
           {encabeza && <span className="block">{encabeza}</span>}
           <span className="mt-1 block space-y-0.5">
-            {puntos.map((t, i) => (
+            {/* Recortada sigue siendo una lista: se enseñan los puntos
+                que caben y el resto se despliega. Antes, al recortar se
+                volvía a un párrafo corrido y era justo lo que se veía
+                de entrada. */}
+            {(abierto ? puntos : puntos.slice(0, 2)).map((t, i) => (
               <span key={i} className="flex gap-1.5">
                 <span className="shrink-0 select-none">
                   {marcaDeLista(marcador ?? 'vineta', i).replace(/^-$/, '•')}
@@ -127,6 +131,11 @@ export function TextoFijo({
                 <span>{t}</span>
               </span>
             ))}
+            {!abierto && puntos.length > 2 && (
+              <span className="block pl-4 opacity-70">
+                y {puntos.length - 2} punto(s) más
+              </span>
+            )}
           </span>
         </>
       ) : abierto || !largo ? (
@@ -134,7 +143,7 @@ export function TextoFijo({
       ) : (
         `${texto.slice(0, 240)}…`
       )}
-      {largo && (
+      {(largo || (lista && puntos.length > 2)) && (
         <button
           type="button"
           onClick={() => setAbierto((v) => !v)}
