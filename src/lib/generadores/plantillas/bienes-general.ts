@@ -24,6 +24,10 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_EXPERIENCIA_PERSONAL_CLAVE,
+  METODO_RECURSOS_CONTRATISTA,
+  bloquesPago,
+  bloquesPagoAnticipado,
   METODO_CAPACIDAD_LEGAL,
   METODO_PERSONAL_CLAVE,
   METODO_SIMILARES,
@@ -298,6 +302,65 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
           ],
         },
         {
+          // Los tres apartados de documentación que el formato pide
+          // dentro de las características del bien y que no estaban.
+          // Observación de César (setiembre de 2026): "en el punto 6 le
+          // falta documentación para acreditar el cumplimiento de las
+          // especificaciones técnicas, documentación para la
+          // verificación de la calidad del producto y el documento que
+          // aprobó la compatibilización".
+          id: 'documentacion_eett',
+          titulo:
+            'Documentación para acreditar el cumplimiento de las especificaciones técnicas durante la admisión y/o perfeccionamiento de contrato',
+          condicion: 'exige_documentacion_eett',
+          bloques: [
+            {
+              clase: 'nota',
+              texto:
+                'La documentación solicitada deberá guardar relación con las especificaciones técnicas que se pretende acreditar. Cuando el bien esté sujeto a una normativa especial, la Entidad únicamente podrá exigir las autorizaciones, licencias, registros o certificados previstos en esa normativa. Si el bien no requiere documento para acreditar el cumplimiento de las especificaciones técnicas, consignar expresamente "NO APLICA".',
+            },
+            {
+              clase: 'redactado',
+              id: 'documentacion_eett',
+              etiqueta: 'Documentación exigible',
+              instruccion:
+                'Señalar la documentación que el proveedor debe presentar para acreditar el cumplimiento de una o más especificaciones técnicas: catálogos, fichas técnicas, folletos, manuales, certificados, informes o protocolos de ensayo, y las habilitaciones exigidas por normativa especial. Distinguir, cuando corresponda, la documentación técnica del producto —registro sanitario, validación del plan HACCP, protocolo de análisis— de la del establecimiento o proveedor —buenas prácticas de manufactura, de almacenamiento, de distribución y transporte—. Precisar si se exige para la admisión de la oferta o para el perfeccionamiento del contrato',
+              extension: 'lista',
+            },
+          ],
+        },
+        {
+          id: 'verificacion_calidad',
+          titulo: 'Documentación para la verificación de la calidad del producto durante la ejecución contractual',
+          condicion: 'requiere_verificacion_calidad',
+          bloques: [
+            {
+              clase: 'redactado',
+              id: 'verificacion_calidad',
+              etiqueta: 'Verificación de la calidad durante la ejecución',
+              instruccion:
+                'Con la finalidad de verificar el cumplimiento de las especificaciones técnicas, precisar qué documentación se exigirá durante la ejecución del suministro y en qué oportunidad. Si el bien no requiere verificación de la calidad, consignar expresamente "NO APLICA"',
+              extension: 'varios_parrafos',
+            },
+          ],
+        },
+        {
+          id: 'compatibilizacion',
+          titulo: 'Documento que aprobó la compatibilización del requerimiento',
+          condicion: 'tiene_compatibilizacion',
+          bloques: [
+            {
+              clase: 'campo',
+              id: 'compatibilizacion',
+              etiqueta: 'Documento de compatibilización',
+              ayuda:
+                'Consignar el documento con el que la autoridad de la gestión administrativa aprobó la compatibilización del requerimiento. Si no corresponde, consignar "NO APLICA"',
+              tipo: 'texto',
+              obligatorio: false,
+            },
+          ],
+        },
+        {
           id: 'condiciones_operacion',
           titulo: 'Condiciones de operación',
           condicion: 'tiene_condiciones_operacion',
@@ -376,25 +439,64 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
           id: 'envase_embalaje',
           titulo: 'Envase, embalaje y rotulado',
           condicion: 'requiere_envase',
-          bloques: [
+          bloques: [],
+          // El formato los trata como tres cosas distintas, con su
+          // subtítulo cada una, y el embalaje faltaba por completo.
+          // Observación de César (setiembre de 2026): "en el punto 6.4
+          // Envase, embalaje y rotulado le falta considerar como
+          // subtítulo Embalaje".
+          subsecciones: [
             {
-              clase: 'tabla',
               id: 'envase',
-              etiqueta: 'Envase',
-              columnas: ['Característica', 'Especificación'],
-              ayudaColumnas: [
-                'Peso neto, tipo de envase, material, sistema de cerrado u otras',
-                'Indicar el valor o condición exigida',
+              titulo: 'Envase',
+              bloques: [
+                {
+                  clase: 'tabla',
+                  id: 'envase',
+                  etiqueta: 'Características del envase',
+                  instruccion:
+                    'Precisar las características del envase del bien, considerando la naturaleza del producto, la normativa sanitaria aplicable y las condiciones necesarias para su conservación: peso neto, tipo de envase, material, sistema de cerrado o sellado y otras características',
+                  columnas: ['Aspecto a precisar', 'Descripción'],
+                  ayudaColumnas: [
+                    'Peso neto, tipo de envase, material, sistema de cerrado u otras',
+                    'Indicar el valor o condición exigida',
+                  ],
+                  minimo: 1,
+                },
+                {
+                  clase: 'nota',
+                  texto:
+                    'El peso neto, el tipo y material del envase, así como el sistema de cerrado, cuando sean requeridos, deberán corresponder a la información autorizada en el Registro Sanitario del producto.',
+                },
               ],
-              minimo: 1,
             },
             {
-              clase: 'redactado',
+              id: 'embalaje',
+              titulo: 'Embalaje',
+              bloques: [
+                {
+                  clase: 'redactado',
+                  id: 'embalaje',
+                  etiqueta: 'Embalaje',
+                  instruccion:
+                    'Indicar el tipo de embalaje o su detalle técnico, en el cual será empaquetado o envuelto el bien de manera temporal, pensando en su manipulación, transporte y almacenamiento. Distinguir, cuando corresponda, el embalaje primario —el que está en contacto directo con el producto— del secundario',
+                  extension: 'varios_parrafos',
+                },
+              ],
+            },
+            {
               id: 'rotulado',
-              etiqueta: 'Rotulado',
-              instruccion:
-                'Indicar los datos que debe contener el rotulado, incluida la fecha de expiración y las condiciones de conservación',
-              extension: 'lista',
+              titulo: 'Rotulado',
+              bloques: [
+                {
+                  clase: 'redactado',
+                  id: 'rotulado',
+                  etiqueta: 'Rotulado',
+                  instruccion:
+                    'Señalar el tipo de rotulado, su detalle técnico y la información que debe contener, con la finalidad de suministrar información sobre las características particulares del bien',
+                  extension: 'lista',
+                },
+              ],
             },
           ],
         },
@@ -429,22 +531,54 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
         {
           id: 'garantia_comercial',
           titulo: 'Garantía comercial',
-          bloques: [
+          bloques: [],
+          // El formato los separa: alcance, condiciones y período van
+          // cada uno con su subtítulo. Observación de César (setiembre
+          // de 2026): "alcance y condiciones deben ser diferentes
+          // subtítulos".
+          subsecciones: [
             {
-              clase: 'redactado',
               id: 'garantia_alcance',
-              etiqueta: 'Alcance y condiciones de la garantía',
-              instruccion:
-                'Precisar el alcance de la garantía, sus condiciones —teléfono de contacto, plazo de reposición— y el periodo de vigencia',
-              extension: 'parrafo',
+              titulo: 'Alcance de la garantía',
+              bloques: [
+                {
+                  clase: 'redactado',
+                  id: 'garantia_alcance',
+                  etiqueta: 'Alcance de la garantía',
+                  instruccion:
+                    'Precisar qué comprende la garantía comercial: defectos de diseño y/o fabricación, averías o fallas de funcionamiento, o pérdida total de los bienes contratados, ajenos al uso normal del bien',
+                  extension: 'parrafo',
+                },
+              ],
             },
             {
-              clase: 'campo',
+              id: 'garantia_condiciones',
+              titulo: 'Condiciones de la garantía',
+              bloques: [
+                {
+                  clase: 'redactado',
+                  id: 'garantia_condiciones',
+                  etiqueta: 'Condiciones de la garantía',
+                  instruccion:
+                    'Precisar cómo se atiende la garantía: el medio de contacto y su horario de atención, el plazo máximo para entregar los bienes a reemplazar, y que los bienes de reemplazo sean nuevos y de las mismas características, con los gastos a cargo del contratista',
+                  extension: 'varios_parrafos',
+                },
+              ],
+            },
+            {
               id: 'garantia_periodo',
-              etiqueta: 'Período de garantía',
-              ayuda: 'Indicar el periodo, contado desde la conformidad',
-              tipo: 'texto',
-              obligatorio: true,
+              titulo: 'Período de garantía',
+              bloques: [
+                {
+                  clase: 'campo',
+                  id: 'garantia_periodo',
+                  etiqueta: 'Período de garantía',
+                  ayuda:
+                    'Consignar el plazo —por ejemplo: treinta (30) días calendario, seis (6) meses o un (1) año—, computado a partir del día siguiente de la conformidad',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
             },
           ],
         },
@@ -467,18 +601,50 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
           id: 'visitas_muestras',
           titulo: 'Visitas y muestras',
           condicion: 'requiere_muestras',
-          bloques: [
+          bloques: [],
+          // Son dos cosas distintas y el formato las separa. Observación
+          // de César (setiembre de 2026): "visitas y muestras deberían
+          // estar separadas cada una en diferente viñeta".
+          subsecciones: [
             {
-              clase: 'redactado',
-              id: 'visitas_muestras',
-              etiqueta: 'Visitas y muestras',
-              instruccion: 'Precisar si se exigen visitas o presentación de muestras, y en qué condiciones',
-              extension: 'parrafo',
+              id: 'visitas',
+              titulo: 'Visitas',
+              condicion: 'requiere_visita',
+              bloques: [
+                {
+                  clase: 'redactado',
+                  id: 'visitas',
+                  etiqueta: 'Visita al lugar de la prestación',
+                  instruccion:
+                    'Precisar el objeto de la visita, su oportunidad y el personal del área usuaria con el que debe hacerse el contacto. Señalar de manera literal y objetiva que esta condición es facultativa',
+                  extension: 'varios_parrafos',
+                },
+                {
+                  clase: 'nota',
+                  texto:
+                    'La visita tiene carácter facultativo y su realización no constituye un requisito para la admisión de la oferta ni otorga puntaje alguno.',
+                },
+              ],
             },
             {
-              clase: 'nota',
-              texto:
-                'Si, como resultado de la estrategia de contratación, se concluye que la presentación de muestras genera costos innecesarios o restringe la competencia, no deberá exigirse su presentación.',
+              id: 'muestras',
+              titulo: 'Muestras',
+              condicion: 'requiere_muestra_fisica',
+              bloques: [
+                {
+                  clase: 'redactado',
+                  id: 'muestras',
+                  etiqueta: 'Presentación de muestras',
+                  instruccion:
+                    'Cuando de manera excepcional se requieran muestras, precisar como mínimo: las características y/o requisitos que serán verificados, la cantidad, la oportunidad y el lugar de presentación, y el plazo y la forma de su devolución',
+                  extension: 'varios_parrafos',
+                },
+                {
+                  clase: 'nota',
+                  texto:
+                    'Si, como resultado de la estrategia de contratación, se concluye que la presentación de muestras genera una restricción injustificada a la participación de postores, no corresponde exigirla.',
+                },
+              ],
             },
           ],
         },
@@ -616,23 +782,97 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
         },
         {
           id: 'plazos',
-          titulo: 'Plazos y condiciones de entrega',
-          bloques: [
+          titulo: 'Plazo de entrega',
+          bloques: [],
+          // El formato lo abre por prestación: principal y accesoria.
+          // Observación de César (setiembre de 2026): "en el punto 7.3
+          // Plazos y condiciones de entrega, falta considerar
+          // prestación principal y prestación accesoria".
+          subsecciones: [
             {
-              clase: 'campo',
-              id: 'lugar_entrega',
-              etiqueta: 'Lugar de entrega',
-              ayuda: 'Dirección exacta y horarios de recepción',
-              tipo: 'texto',
-              obligatorio: true,
+              id: 'plazo_entrega_principal',
+              titulo: 'Prestación principal',
+              bloques: [
+                {
+                  clase: 'campo',
+                  id: 'plazo_entrega',
+                  etiqueta: 'Plazo de entrega de la prestación principal',
+                  ayuda: 'Indicar el plazo en días calendario y el hito desde el que se computa',
+                  tipo: 'dias',
+                  obligatorio: true,
+                },
+              ],
             },
             {
-              clase: 'campo',
-              id: 'plazo_entrega',
-              etiqueta: 'Plazo de entrega',
-              ayuda: 'Indicar el plazo en días calendario y el hito desde el que se computa',
-              tipo: 'dias',
-              obligatorio: true,
+              id: 'plazo_entrega_accesoria',
+              titulo: 'Prestación accesoria',
+              condicion: 'tiene_prestaciones_accesorias',
+              bloques: [
+                {
+                  clase: 'campo',
+                  id: 'plazo_entrega_accesoria',
+                  etiqueta: 'Plazo de entrega de la prestación accesoria',
+                  ayuda:
+                    'Indicar el plazo de cada prestación accesoria y el hito desde el que se computa. Si se ejecuta con la principal, precisarlo',
+                  tipo: 'texto_largo',
+                  obligatorio: true,
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: 'lugar_entrega',
+          titulo: 'Lugar de entrega de los bienes',
+          bloques: [],
+          subsecciones: [
+            {
+              id: 'lugar_entrega_principal',
+              titulo: 'Prestación principal',
+              bloques: [
+                {
+                  clase: 'campo',
+                  id: 'lugar_entrega',
+                  etiqueta: 'Lugar de entrega de la prestación principal',
+                  ayuda: 'Dirección exacta y horarios de recepción',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
+            },
+            {
+              id: 'lugar_entrega_accesoria',
+              titulo: 'Prestación accesoria',
+              condicion: 'tiene_prestaciones_accesorias',
+              bloques: [
+                {
+                  clase: 'campo',
+                  id: 'lugar_entrega_accesoria',
+                  etiqueta: 'Lugar de entrega de la prestación accesoria',
+                  ayuda:
+                    'Señalar el lugar de cada prestación accesoria. Si es distinto al de la principal, precisarlo expresamente',
+                  tipo: 'texto_largo',
+                  obligatorio: true,
+                },
+              ],
+            },
+          ],
+        },
+        {
+          // El formato lo trae y no estaba. Observación de César
+          // (setiembre de 2026): "falta considerar reajuste de los
+          // pagos".
+          id: 'reajuste',
+          titulo: 'Reajuste de los pagos',
+          condicion: 'tiene_reajuste',
+          bloques: [
+            {
+              clase: 'redactado',
+              id: 'reajuste',
+              etiqueta: 'Reajuste de los pagos',
+              instruccion:
+                'Precisar si corresponde reajustar los pagos y, de ser así, la fórmula o el índice aplicable y su periodicidad. Si no corresponde, consignar "NO APLICA"',
+              extension: 'parrafo',
             },
           ],
         },
@@ -919,6 +1159,41 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
           ],
         },
         {
+          // El formato lo trae con sus dos prestaciones y la plantilla
+          // no tenía apartado de pago ninguno. Observación de César
+          // (setiembre de 2026): "falta forma y requisitos de pago y
+          // dentro de ello prestación principal y prestación accesoria".
+          id: 'forma_pago',
+          titulo: 'Forma y requisitos de pago',
+          bloques: [],
+          subsecciones: [
+            {
+              id: 'forma_pago_principal',
+              titulo: 'Prestación principal',
+              bloques: [
+                { clase: 'fijo', texto: 'El pago se realiza de conformidad con lo establecido en el artículo 67 de la Ley.' },
+                ...bloquesPago('de'),
+                ...bloquesPagoAnticipado(),
+              ],
+            },
+            {
+              id: 'forma_pago_accesoria',
+              titulo: 'Prestación accesoria',
+              condicion: 'tiene_prestaciones_accesorias',
+              bloques: [
+                {
+                  clase: 'redactado',
+                  id: 'forma_pago_accesoria',
+                  etiqueta: 'Forma y requisitos de pago de la prestación accesoria',
+                  instruccion:
+                    'Precisar la modalidad de pago de cada prestación accesoria y la documentación exigible para el pago. Si se paga junto con la principal, precisarlo expresamente',
+                  extension: 'varios_parrafos',
+                },
+              ],
+            },
+          ],
+        },
+        {
           id: 'verificaciones',
           titulo: 'Verificaciones técnicas, pruebas o ensayos para la conformidad del bien',
           condicion: 'requiere_verificaciones',
@@ -941,16 +1216,65 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
     {
       id: 'requisitos_contratista',
       titulo: 'REQUISITOS Y RECURSOS PROVISTOS POR EL CONTRATISTA',
-      bloques: [
+      bloques: [],
+      // El apartado estaba con una sola tabla suelta. El formato lo abre
+      // en tres. Observación de César (setiembre de 2026): "en el punto
+      // N° 9 falta requisitos del proveedor, y recursos, medios y
+      // obligaciones del contratista".
+      subsecciones: [
         {
-          clase: 'tabla',
+          id: 'requisitos_proveedor',
+          titulo: 'Requisitos del proveedor',
+          bloques: [
+            {
+              clase: 'fijo',
+              texto:
+                'Contar con RUC activo y habido en la SUNAT.\nRealizar actividades en el objeto de la contratación.\nPersona natural y/o jurídica.\nNo debe tener impedimentos para contratar con el Estado.',
+              lista: true,
+              fundamento: 'Plantilla — requisitos del proveedor',
+            },
+          ],
+        },
+        {
+          id: 'recursos_contratista',
+          titulo: 'Recursos, medios y obligaciones del contratista',
+          bloques: [
+            {
+              clase: 'redactado',
+              id: 'recursos_contratista',
+              etiqueta: 'Recursos, medios y obligaciones del contratista',
+              instruccion:
+                'Precisar los recursos, medios, equipos, materiales, herramientas, implementos, personal, licencias, autorizaciones o permisos que el contratista debe aportar para ejecutar la prestación, así como sus responsabilidades durante la ejecución contractual',
+              metodo: METODO_RECURSOS_CONTRATISTA,
+              extension: 'lista',
+            },
+          ],
+        },
+        {
           id: 'personal_clave',
-          etiqueta: 'Personal clave',
-          instruccion:
- 'Consignar cargo o función, profesión exigida y actividades principales',
- metodo: METODO_PERSONAL_CLAVE,
-          columnas: ['Cargo y/o responsabilidad', 'Profesión y grado o título profesional requerido', 'Actividades principales'],
-          minimo: 0,
+          titulo: 'Personal clave',
+          condicion: 'requiere_personal_clave',
+          bloques: [
+            {
+              clase: 'nota',
+              texto:
+                'Cuando el personal clave acredite grados académicos o títulos profesionales obtenidos en el extranjero, deberá presentar copia simple del documento correspondiente. La documentación que acredite la formación académica del personal clave deberá presentarse antes del inicio efectivo de la ejecución de la prestación.',
+            },
+            {
+              clase: 'tabla',
+              id: 'personal_clave',
+              etiqueta: 'Personal clave',
+              instruccion:
+                'Describir el personal requerido precisando, como mínimo, el cargo o función que desempeñará, las actividades o responsabilidades a su cargo y la profesión y grado o título profesional exigido',
+              metodo: METODO_PERSONAL_CLAVE,
+              columnas: [
+                'Cargo y/o responsabilidad',
+                'Profesión y grado o título profesional requerido',
+                'Actividades principales',
+              ],
+              minimo: 1,
+            },
+          ],
         },
       ],
     },
@@ -983,195 +1307,256 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
       ],
       subsecciones: [
         {
-          id: 'capacidad_legal',
-          titulo: 'Capacidad legal',
-          condicion: 'exige_habilitacion',
-          bloques: [
-            {
-              clase: 'nota',
-              texto:
-                'El requisito de capacidad legal únicamente es obligatorio si la normativa que regula el objeto contractual exige determinada habilitación para llevar a cabo la actividad económica. Caso contrario, esta subsección se elimina.',
-            },
-            {
-              clase: 'redactado',
-              id: 'capacidad_legal_requisito',
-              etiqueta: 'Requisitos',
-              instruccion:
-                'Incluir los requisitos relacionados a la habilitación para llevar a cabo la actividad económica materia de la contratación, conforme a la normativa que regule el objeto contractual',
-                metodo: METODO_CAPACIDAD_LEGAL,
-              extension: 'parrafo',
-            },
-            {
-              clase: 'redactado',
-              id: 'capacidad_legal_acreditacion',
-              etiqueta: 'Acreditación',
-              instruccion:
-                'Incluir el documento con el que se debe acreditar el requisito relacionado a la habilitación del postor',
-                metodo: METODO_CAPACIDAD_LEGAL,
-              extension: 'parrafo',
-            },
-          ],
-        },
-        {
-          id: 'experiencia_postor',
-          titulo: 'Experiencia del postor en la especialidad',
-          bloques: [
-            {
-              clase: 'parrafo',
-              texto:
-                'El postor debe acreditar un monto facturado acumulado equivalente a {{experiencia_monto}}, por la venta de bienes iguales o similares al objeto de la convocatoria, durante los diez años anteriores a la fecha de la presentación de ofertas, que se computan desde la fecha de la conformidad o emisión del comprobante de pago, según corresponda.',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'experiencia_monto',
-                  etiqueta: 'Monto facturado acumulado exigido',
-                  ayuda:
-                    'Consignar el monto de facturación expresado en números y letras en la moneda de la convocatoria, monto que no puede ser mayor a tres veces la cuantía de la contratación o del ítem',
-                  tipo: 'moneda',
-                  obligatorio: true,
-                  validacion: 'experiencia_max',
-                },
-              ],
-            },
-            {
-              clase: 'parrafo',
-              texto: 'Se consideran bienes similares a los siguientes {{bienes_similares}}',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'bienes_similares',
-                  etiqueta: 'Bienes similares',
-                  ayuda:
- 'Consignar los bienes similares al objeto convocado',
- metodo: METODO_SIMILARES,
-                  tipo: 'texto_largo',
-                  obligatorio: true,
-                },
-              ],
-            },
-            {
-              clase: 'fijo',
-              texto: ACREDITACION_EXPERIENCIA,
-              fundamento: 'Plantilla — acreditación de experiencia, texto invariable',
-            },
-          ],
+          // El formato agrupa los requisitos en dos bloques y la
+          // plantilla los tenía sueltos. Observación de César
+          // (setiembre de 2026): "falta requisitos de calificación
+          // obligatorios, requisitos de calificación adicionales,
+          // experiencia del personal clave".
+          id: 'calificacion_obligatorios',
+          titulo: 'Requisitos de calificación obligatorios',
+          bloques: [],
           subsecciones: [
-          {
-            id: 'experiencia_mype',
-            titulo: 'Régimen para micro y pequeña empresa',
-            condicion: 'aplica_mype',
+  {
+            id: 'capacidad_legal',
+            titulo: 'Capacidad legal',
+            condicion: 'exige_habilitacion',
             bloques: [
               {
                 clase: 'nota',
                 texto:
-                  'Este texto se incluye en procedimientos de selección por relación de ítems, cuando la cuantía de la contratación de algún ítem corresponda al monto de una Licitación Pública abreviada de bienes.',
+                  'El requisito de capacidad legal únicamente es obligatorio si la normativa que regula el objeto contractual exige determinada habilitación para llevar a cabo la actividad económica. Caso contrario, esta subsección se elimina.',
               },
+              {
+                clase: 'redactado',
+                id: 'capacidad_legal_requisito',
+                etiqueta: 'Requisitos',
+                instruccion:
+                  'Incluir los requisitos relacionados a la habilitación para llevar a cabo la actividad económica materia de la contratación, conforme a la normativa que regule el objeto contractual',
+                  metodo: METODO_CAPACIDAD_LEGAL,
+                extension: 'parrafo',
+              },
+              {
+                clase: 'redactado',
+                id: 'capacidad_legal_acreditacion',
+                etiqueta: 'Acreditación',
+                instruccion:
+                  'Incluir el documento con el que se debe acreditar el requisito relacionado a la habilitación del postor',
+                  metodo: METODO_CAPACIDAD_LEGAL,
+                extension: 'parrafo',
+              },
+            ],
+          },
+  {
+            id: 'experiencia_postor',
+            titulo: 'Experiencia del postor en la especialidad',
+            bloques: [
               {
                 clase: 'parrafo',
                 texto:
-                  'En el caso de postores que declaren en el Anexo N° 1 tener la condición de micro y pequeña empresa, se acredita una experiencia de {{experiencia_monto_mype}}, por la venta de bienes iguales o similares al objeto de la convocatoria, durante los diez años anteriores a la fecha de la presentación de ofertas que se computarán desde la fecha de la conformidad o emisión del comprobante de pago, según corresponda. En el caso de consorcios, todos los integrantes deben contar con la condición de micro y pequeña empresa.',
+                  'El postor debe acreditar un monto facturado acumulado equivalente a {{experiencia_monto}}, por la venta de bienes iguales o similares al objeto de la convocatoria, durante los diez años anteriores a la fecha de la presentación de ofertas, que se computan desde la fecha de la conformidad o emisión del comprobante de pago, según corresponda.',
                 campos: [
                   {
                     clase: 'campo',
-                    id: 'experiencia_monto_mype',
-                    etiqueta: 'Monto exigido a micro y pequeña empresa',
+                    id: 'experiencia_monto',
+                    etiqueta: 'Monto facturado acumulado exigido',
                     ayuda:
-                      'Consignar el monto de facturación expresado en números y letras en la moneda de la convocatoria, monto que no debe superar el 25% de la cuantía de la contratación del ítem',
+                      'Consignar el monto de facturación expresado en números y letras en la moneda de la convocatoria, monto que no puede ser mayor a tres veces la cuantía de la contratación o del ítem',
                     tipo: 'moneda',
                     obligatorio: true,
-                    validacion: 'experiencia_mype',
+                    validacion: 'experiencia_max',
                   },
                 ],
               },
+              {
+                clase: 'parrafo',
+                texto: 'Se consideran bienes similares a los siguientes {{bienes_similares}}',
+                campos: [
+                  {
+                    clase: 'campo',
+                    id: 'bienes_similares',
+                    etiqueta: 'Bienes similares',
+                    ayuda:
+   'Consignar los bienes similares al objeto convocado',
+   metodo: METODO_SIMILARES,
+                    tipo: 'texto_largo',
+                    obligatorio: true,
+                  },
+                ],
+              },
+              {
+                clase: 'fijo',
+                texto: ACREDITACION_EXPERIENCIA,
+                fundamento: 'Plantilla — acreditación de experiencia, texto invariable',
+              },
+            ],
+            subsecciones: [
+            {
+              id: 'experiencia_mype',
+              titulo: 'Régimen para micro y pequeña empresa',
+              condicion: 'aplica_mype',
+              bloques: [
+                {
+                  clase: 'nota',
+                  texto:
+                    'Este texto se incluye en procedimientos de selección por relación de ítems, cuando la cuantía de la contratación de algún ítem corresponda al monto de una Licitación Pública abreviada de bienes.',
+                },
+                {
+                  clase: 'parrafo',
+                  texto:
+                    'En el caso de postores que declaren en el Anexo N° 1 tener la condición de micro y pequeña empresa, se acredita una experiencia de {{experiencia_monto_mype}}, por la venta de bienes iguales o similares al objeto de la convocatoria, durante los diez años anteriores a la fecha de la presentación de ofertas que se computarán desde la fecha de la conformidad o emisión del comprobante de pago, según corresponda. En el caso de consorcios, todos los integrantes deben contar con la condición de micro y pequeña empresa.',
+                  campos: [
+                    {
+                      clase: 'campo',
+                      id: 'experiencia_monto_mype',
+                      etiqueta: 'Monto exigido a micro y pequeña empresa',
+                      ayuda:
+                        'Consignar el monto de facturación expresado en números y letras en la moneda de la convocatoria, monto que no debe superar el 25% de la cuantía de la contratación del ítem',
+                      tipo: 'moneda',
+                      obligatorio: true,
+                      validacion: 'experiencia_mype',
+                    },
+                  ],
+                },
+              ],
+            },
             ],
           },
           ],
         },
         {
-          id: 'capacidad_tecnica',
-          titulo: 'Capacidad técnica y profesional',
-          condicion: 'exige_capacidad_tecnica',
-          bloques: [
-            {
-              clase: 'redactado',
-              id: 'capacidad_tecnica_requisito',
-              etiqueta: 'Requisitos',
-              instruccion:
-                'Precisar el equipamiento estratégico, la infraestructura o el personal exigido como requisito adicional de calificación',
-              extension: 'parrafo',
-            },
-            {
-              clase: 'redactado',
-              id: 'capacidad_tecnica_acreditacion',
-              etiqueta: 'Acreditación',
-              instruccion: 'Precisar los documentos con los que se acredita el requisito',
-              extension: 'parrafo',
-            },
-          ],
-        },
-        {
-          id: 'participacion_consorcio',
-          titulo: 'Participación en consorcio',
-          condicion: 'exige_requisitos_consorcio',
+          id: 'calificacion_adicionales',
+          titulo: 'Requisitos de calificación adicionales',
           bloques: [
             {
               clase: 'nota',
               texto:
-                'Consignar uno o más de los requisitos siguientes,',
+                'Pueden ser considerados personal clave los profesionales especialistas que son esenciales para ejecutar la prestación. No son personal clave aquellos cuya participación es accesoria o de apoyo.',
             },
+          ],
+          subsecciones: [
+  {
+            id: 'capacidad_tecnica',
+            titulo: 'Capacidad técnica y profesional',
+            condicion: 'exige_capacidad_tecnica',
+            subsecciones: [
             {
-              clase: 'parrafo',
-              texto:
-                'D.1 El número máximo de consorciados es de {{consorcio_maximo}}.',
-              campos: [
+              id: 'experiencia_personal_clave',
+              titulo: 'Experiencia del personal clave',
+              condicion: 'exige_experiencia_personal',
+              bloques: [
                 {
-                  clase: 'campo',
-                  id: 'consorcio_maximo',
-                  etiqueta: 'Número máximo de consorciados',
-                  ayuda:
-                    'Consignar el número máximo de integrantes del consorcio en función a la naturaleza de la prestación',
-                  tipo: 'texto',
-                  obligatorio: true,
+                  clase: 'nota',
+                  texto:
+                    'Este requisito solo puede solicitarse cuando el objeto de la convocatoria sea la adquisición de bienes bajo el sistema de entrega llave en mano o llave en mano con mantenimiento. El tiempo de experiencia mínimo debe ser razonable y congruente con el periodo en el cual el personal ejecutará las actividades para las que se le requiere, de forma tal que no constituya una restricción a la participación de postores.',
+                },
+                {
+                  clase: 'tabla',
+                  id: 'experiencia_personal_clave',
+                  etiqueta: 'Experiencia mínima requerida',
+                  metodo: METODO_EXPERIENCIA_PERSONAL_CLAVE,
+                  columnas: [
+                    'Cargo y/o responsabilidad',
+                    'Cant.',
+                    'Tiempo de experiencia',
+                    'Cargo desempeñado',
+                    'Cómputo de experiencia',
+                  ],
+                  minimo: 1,
+                },
+                {
+                  clase: 'redactado',
+                  id: 'experiencia_personal_acreditacion',
+                  etiqueta: 'Acreditación',
+                  instruccion:
+                    'Señalar con qué documentos se acredita la experiencia del personal clave: la denominación del puesto, cargo y/o posición y el tiempo de experiencia en años, meses y días, con los nombres y apellidos del personal, el cargo desempeñado con día, mes y año de inicio y culminación',
+                  extension: 'varios_parrafos',
                 },
               ],
             },
-            {
-              clase: 'parrafo',
-              texto:
-                'D.2 El porcentaje mínimo de participación de cada consorciado es de {{consorcio_participacion}}.',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'consorcio_participacion',
-                  etiqueta: 'Participación mínima de cada consorciado',
-                  ayuda:
-                    'Consignar el porcentaje mínimo de participación de cada integrante del consorcio',
-                  tipo: 'texto',
-                  obligatorio: true,
-                },
-              ],
-            },
-            {
-              clase: 'parrafo',
-              texto:
-                'D.3 El porcentaje mínimo de participación en la ejecución del contrato, para el integrante del consorcio que acredite mayor experiencia, es de {{consorcio_participacion_lider}}.',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'consorcio_participacion_lider',
-                  etiqueta: 'Participación mínima del consorciado con mayor experiencia',
-                  ayuda:
-                    'Consignar el porcentaje mínimo de participación en las obligaciones del integrante del consorcio que acredite la mayor experiencia',
-                  tipo: 'texto',
-                  obligatorio: true,
-                },
-              ],
-            },
-            {
-              clase: 'fijo',
-              texto: 'Se acredita con la promesa de consorcio.',
-              fundamento: 'Plantilla — participación en consorcio',
-            },
+            ],
+            bloques: [
+              {
+                clase: 'redactado',
+                id: 'capacidad_tecnica_requisito',
+                etiqueta: 'Requisitos',
+                instruccion:
+                  'Precisar el equipamiento estratégico, la infraestructura o el personal exigido como requisito adicional de calificación',
+                extension: 'parrafo',
+              },
+              {
+                clase: 'redactado',
+                id: 'capacidad_tecnica_acreditacion',
+                etiqueta: 'Acreditación',
+                instruccion: 'Precisar los documentos con los que se acredita el requisito',
+                extension: 'parrafo',
+              },
+            ],
+          },
+  {
+            id: 'participacion_consorcio',
+            titulo: 'Participación en consorcio',
+            condicion: 'exige_requisitos_consorcio',
+            bloques: [
+              {
+                clase: 'nota',
+                texto:
+                  'Consignar uno o más de los requisitos siguientes,',
+              },
+              {
+                clase: 'parrafo',
+                texto:
+                  'D.1 El número máximo de consorciados es de {{consorcio_maximo}}.',
+                campos: [
+                  {
+                    clase: 'campo',
+                    id: 'consorcio_maximo',
+                    etiqueta: 'Número máximo de consorciados',
+                    ayuda:
+                      'Consignar el número máximo de integrantes del consorcio en función a la naturaleza de la prestación',
+                    tipo: 'texto',
+                    obligatorio: true,
+                  },
+                ],
+              },
+              {
+                clase: 'parrafo',
+                texto:
+                  'D.2 El porcentaje mínimo de participación de cada consorciado es de {{consorcio_participacion}}.',
+                campos: [
+                  {
+                    clase: 'campo',
+                    id: 'consorcio_participacion',
+                    etiqueta: 'Participación mínima de cada consorciado',
+                    ayuda:
+                      'Consignar el porcentaje mínimo de participación de cada integrante del consorcio',
+                    tipo: 'texto',
+                    obligatorio: true,
+                  },
+                ],
+              },
+              {
+                clase: 'parrafo',
+                texto:
+                  'D.3 El porcentaje mínimo de participación en la ejecución del contrato, para el integrante del consorcio que acredite mayor experiencia, es de {{consorcio_participacion_lider}}.',
+                campos: [
+                  {
+                    clase: 'campo',
+                    id: 'consorcio_participacion_lider',
+                    etiqueta: 'Participación mínima del consorciado con mayor experiencia',
+                    ayuda:
+                      'Consignar el porcentaje mínimo de participación en las obligaciones del integrante del consorcio que acredite la mayor experiencia',
+                    tipo: 'texto',
+                    obligatorio: true,
+                  },
+                ],
+              },
+              {
+                clase: 'fijo',
+                texto: 'Se acredita con la promesa de consorcio.',
+                fundamento: 'Plantilla — participación en consorcio',
+              },
+            ],
+          },
           ],
         },
       ],
