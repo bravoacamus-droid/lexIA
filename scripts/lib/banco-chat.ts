@@ -623,7 +623,7 @@ export async function recuperar(pregunta: string): Promise<ChatSource[]> {
       // así que sin filtro entraban siempre más de la mitad vinieran o
       // no al caso. Se conserva el mejor de cada tipo y los que quedan
       // a menos de 0.05 de él. La Ley no se filtra.
-      if (tipo === 'ley' || filas.length === 0) return filas;
+      if (tipo === 'ley' || filas.length === 0 || process.env.SIN_FILTRO_CAPA1) return filas;
       const mejor = Math.max(...filas.map((f) => f.similarity ?? 0));
       return filas.filter((f) => (f.similarity ?? 0) >= mejor - 0.05);
     }),
