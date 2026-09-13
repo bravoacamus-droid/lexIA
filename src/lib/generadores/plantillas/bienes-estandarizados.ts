@@ -235,16 +235,53 @@ export const PLANTILLA_BIENES_ESTANDARIZADOS: PlantillaRequerimiento = {
         {
           id: 'garantia_comercial',
           titulo: 'Garantía comercial',
-          bloques: [
+          bloques: [],
+          // Los tres van con su subtítulo, como en el formato.
+          // Observación de César (setiembre de 2026): "en el punto 6.5
+          // considerar en diferentes viñetas: alcance, condiciones,
+          // periodo de la garantía".
+          subsecciones: [
             {
-              clase: 'redactado',
               id: 'garantia_alcance',
-              etiqueta: 'Alcance, condiciones y período de la garantía',
-              instruccion:
-                'Precisar el alcance de la garantía, las condiciones de atención —teléfono, horario, plazo de reemplazo— y el período de vigencia',
-              ejemplo:
-                'Alcance de la garantía: La garantía comercial comprende el reemplazo de los productos que, con posterioridad a la conformidad de la entrega, presenten defectos de fabricación, alteraciones en su composición, contaminación, envases deteriorados o con pérdida de hermeticidad, rotulado incorrecto, vencimiento anticipado o cualquier otra condición que los haga no aptos para el consumo humano, siempre que dichas situaciones no sean atribuibles a un almacenamiento o manipulación inadecuados por parte de la Entidad.\n\nCondiciones de la garantía: El contratista deberá contar con un teléfono y/o correo electrónico para atender las solicitudes relacionadas con la garantía. En caso la Entidad detecte productos que incumplan las especificaciones técnicas o presenten defectos, el contratista deberá reemplazarlos, sin costo adicional, dentro de los cinco (5) días calendario siguientes a la notificación.\n\nPeríodo de garantía: La garantía comercial del producto se extenderá hasta la fecha de vencimiento consignada en el envase, siempre que el producto haya sido almacenado conforme a las condiciones establecidas por el fabricante.',
-              extension: 'varios_parrafos',
+              titulo: 'Alcance de la garantía',
+              bloques: [
+                {
+                  clase: 'redactado',
+                  id: 'garantia_alcance',
+                  etiqueta: 'Alcance de la garantía',
+                  instruccion:
+                    'Precisar qué comprende la garantía comercial del bien estandarizado: contra qué defectos responde y qué queda fuera',
+                  extension: 'parrafo',
+                },
+              ],
+            },
+            {
+              id: 'garantia_condiciones',
+              titulo: 'Condiciones de la garantía',
+              bloques: [
+                {
+                  clase: 'redactado',
+                  id: 'garantia_condiciones',
+                  etiqueta: 'Condiciones de la garantía',
+                  instruccion:
+                    'Precisar cómo se atiende la garantía: el medio de contacto y su horario, el plazo de reposición y a cargo de quién van los gastos',
+                  extension: 'varios_parrafos',
+                },
+              ],
+            },
+            {
+              id: 'garantia_periodo',
+              titulo: 'Período de garantía',
+              bloques: [
+                {
+                  clase: 'campo',
+                  id: 'garantia_periodo',
+                  etiqueta: 'Período de garantía',
+                  ayuda: 'Consignar el plazo, computado a partir del día siguiente de la conformidad',
+                  tipo: 'texto',
+                  obligatorio: true,
+                },
+              ],
             },
           ],
         },
@@ -458,6 +495,15 @@ export const PLANTILLA_BIENES_ESTANDARIZADOS: PlantillaRequerimiento = {
             },
           ],
         },
+        // El formato las coloca aquí, cerrando las condiciones de
+        // contratación, y las repite más abajo. Observación de César
+        // (setiembre de 2026): "en condiciones de contratación le falta
+        // considerar responsabilidad por vicios ocultos y normas de
+        // anticorrupción y antisoborno". Se mueven en vez de
+        // duplicarse: la cláusula antisoborno impresa dos veces en el
+        // mismo documento no ayuda a nadie.
+        seccionViciosOcultos(),
+        seccionAnticorrupcion(true),
       ],
     },
 
@@ -561,13 +607,11 @@ export const PLANTILLA_BIENES_ESTANDARIZADOS: PlantillaRequerimiento = {
           ],
         },
 
-        seccionViciosOcultos(),
         // El artículo que César añadió en setiembre de 2026
         // (observación 17). Su .docx no lo trae, así que los cuatro
         // apartados nacen apagados: el documento no cambia mientras la
         // Entidad no active los que le apliquen.
         seccionConfidencialidad(false),
-        seccionAnticorrupcion(true),
 
         {
           id: 'anexos_tecnicos',
@@ -624,7 +668,8 @@ export const PLANTILLA_BIENES_ESTANDARIZADOS: PlantillaRequerimiento = {
         },
         {
           id: 'verificacion_calidad',
-          titulo: 'Documentación para la verificación de la calidad del producto',
+          titulo:
+            'Documentación para la verificación de la calidad del producto durante la ejecución contractual',
           condicion: 'requiere_certificados',
           bloques: [
             {
@@ -653,91 +698,111 @@ export const PLANTILLA_BIENES_ESTANDARIZADOS: PlantillaRequerimiento = {
       ],
       subsecciones: [
         {
-          id: 'capacidad_legal',
-          titulo: 'Capacidad legal',
-          bloques: [
-            {
-              clase: 'nota',
-              texto:
-                'La entidad contratante NO puede incluir requisitos de habilitación adicionales o diferentes a los contemplados en la ficha técnica o en los documentos de información complementaria, salvo que la normativa específica que regula el objeto exija algún requisito obligatorio. No debe exigirse documentación para acreditar requisitos que no deriven de una norma aplicable al objeto, como la inscripción en el RUC, en el RNP o la vigencia de poder.',
-            },
-            {
-              clase: 'redactado',
-              id: 'capacidad_legal_requisito',
-              etiqueta: 'Requisitos',
-              instruccion:
-                'Incluir los requisitos de habilitación para la actividad económica materia de la contratación previstos en los documentos de información complementaria aprobados por Perú Compras',
-                metodo: METODO_CAPACIDAD_LEGAL,
-              extension: 'parrafo',
-            },
-            {
-              clase: 'redactado',
-              id: 'capacidad_legal_acreditacion',
-              etiqueta: 'Acreditación',
-              instruccion:
- 'Incluir el documento con el que se acredita el requisito de habilitación del postor',
- metodo: METODO_CAPACIDAD_LEGAL,
-              extension: 'parrafo',
-            },
-            {
-              clase: 'tabla',
-              id: 'habilitacion_adicional',
-              etiqueta: 'Requisitos de habilitación adicionales',
-              instruccion: 'Solo si se determina que corresponden requisitos de habilitación adicionales',
-              columnas: [
-                'Nº',
-                'Requisito de Habilitación Adicional',
-                'Acreditación',
-                'Base Legal',
-                'Fecha de Publicación',
-              ],
-              minimo: 0,
-            },
+          // El formato los agrupa en dos y la plantilla los tenía
+          // sueltos. Observación de César (setiembre de 2026): "el
+          // punto 10 debe estar estructurado de la siguiente manera:
+          // 10.1 requisitos de calificación obligatorios, capacidad
+          // legal con requisitos y acreditación; 10.2 requisitos de
+          // calificación adicionales, participación en consorcio".
+          id: 'calificacion_obligatorios',
+          titulo: 'Requisitos de calificación obligatorios',
+          bloques: [],
+          subsecciones: [
+  {
+            id: 'capacidad_legal',
+            titulo: 'Capacidad legal',
+            bloques: [
+              {
+                clase: 'nota',
+                texto:
+                  'La entidad contratante NO puede incluir requisitos de habilitación adicionales o diferentes a los contemplados en la ficha técnica o en los documentos de información complementaria, salvo que la normativa específica que regula el objeto exija algún requisito obligatorio. No debe exigirse documentación para acreditar requisitos que no deriven de una norma aplicable al objeto, como la inscripción en el RUC, en el RNP o la vigencia de poder.',
+              },
+              {
+                clase: 'redactado',
+                id: 'capacidad_legal_requisito',
+                etiqueta: 'Requisitos',
+                instruccion:
+                  'Incluir los requisitos de habilitación para la actividad económica materia de la contratación previstos en los documentos de información complementaria aprobados por Perú Compras',
+                  metodo: METODO_CAPACIDAD_LEGAL,
+                extension: 'parrafo',
+              },
+              {
+                clase: 'redactado',
+                id: 'capacidad_legal_acreditacion',
+                etiqueta: 'Acreditación',
+                instruccion:
+   'Incluir el documento con el que se acredita el requisito de habilitación del postor',
+   metodo: METODO_CAPACIDAD_LEGAL,
+                extension: 'parrafo',
+              },
+              {
+                clase: 'tabla',
+                id: 'habilitacion_adicional',
+                etiqueta: 'Requisitos de habilitación adicionales',
+                instruccion: 'Solo si se determina que corresponden requisitos de habilitación adicionales',
+                columnas: [
+                  'Nº',
+                  'Requisito de Habilitación Adicional',
+                  'Acreditación',
+                  'Base Legal',
+                  'Fecha de Publicación',
+                ],
+                minimo: 0,
+              },
+            ],
+          },
           ],
         },
         {
-          id: 'consorcio',
-          titulo: 'Participación en consorcio',
-          condicion: 'exige_consorcio',
-          bloques: [
-            {
-              clase: 'nota',
-              texto:
-                'Requisito de calificación facultativo. Una vez incorporado, se considera obligatorio; deben eliminarse los que no se seleccionen.',
-            },
-            // Van como dos requisitos separados, no como un párrafo: en
-            // el original son B.1 y B.2, y la entidad puede exigir uno
-            // sin el otro.
-            {
-              clase: 'parrafo',
-              texto: 'El número máximo de consorciados es de {{consorcio_max}}.',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'consorcio_max',
-                  etiqueta: 'Número máximo de consorciados',
-                  ayuda:
-                    'Consignar el número máximo de integrantes del consorcio en función a la naturaleza de la prestación',
-                  tipo: 'numero',
-                  obligatorio: true,
-                },
-              ],
-            },
-            {
-              clase: 'parrafo',
-              texto: 'El porcentaje mínimo de participación de cada consorciado es de {{consorcio_pct}}.',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'consorcio_pct',
-                  etiqueta: 'Participación mínima por consorciado',
-                  ayuda: 'Consignar el porcentaje mínimo de participación de cada integrante del consorcio',
-                  tipo: 'numero',
-                  obligatorio: true,
-                },
-              ],
-            },
-            { clase: 'fijo', texto: 'Se acredita con la promesa de consorcio.' },
+          id: 'calificacion_adicionales',
+          titulo: 'Requisitos de calificación adicionales',
+          bloques: [],
+          subsecciones: [
+  {
+            id: 'consorcio',
+            titulo: 'Participación en consorcio',
+            condicion: 'exige_consorcio',
+            bloques: [
+              {
+                clase: 'nota',
+                texto:
+                  'Requisito de calificación facultativo. Una vez incorporado, se considera obligatorio; deben eliminarse los que no se seleccionen.',
+              },
+              // Van como dos requisitos separados, no como un párrafo: en
+              // el original son B.1 y B.2, y la entidad puede exigir uno
+              // sin el otro.
+              {
+                clase: 'parrafo',
+                texto: 'El número máximo de consorciados es de {{consorcio_max}}.',
+                campos: [
+                  {
+                    clase: 'campo',
+                    id: 'consorcio_max',
+                    etiqueta: 'Número máximo de consorciados',
+                    ayuda:
+                      'Consignar el número máximo de integrantes del consorcio en función a la naturaleza de la prestación',
+                    tipo: 'numero',
+                    obligatorio: true,
+                  },
+                ],
+              },
+              {
+                clase: 'parrafo',
+                texto: 'El porcentaje mínimo de participación de cada consorciado es de {{consorcio_pct}}.',
+                campos: [
+                  {
+                    clase: 'campo',
+                    id: 'consorcio_pct',
+                    etiqueta: 'Participación mínima por consorciado',
+                    ayuda: 'Consignar el porcentaje mínimo de participación de cada integrante del consorcio',
+                    tipo: 'numero',
+                    obligatorio: true,
+                  },
+                ],
+              },
+              { clase: 'fijo', texto: 'Se acredita con la promesa de consorcio.' },
+            ],
+          },
           ],
         },
       ],
