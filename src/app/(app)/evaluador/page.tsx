@@ -25,10 +25,10 @@ export default async function EvaluatorListPage() {
     .maybeSingle();
   const userRole = (profile?.profile_role as ProfileRole | null) || null;
 
-  if (!isRoleAllowed(userRole, ['entity'])) {
+  if (!isRoleAllowed(userRole, ['entity', 'consultant'])) {
     return (
       <RoleGateBlocked
-        allow={['entity']}
+        allow={['entity', 'consultant']}
         userRole={userRole}
         moduleName="El Evaluador de ofertas"
         reason="Evaluar ofertas es una facultad del comité de selección de la entidad pública. Los proveedores no pueden evaluar ofertas; sí pueden generar consultas, observaciones y apelaciones desde el módulo Generador."

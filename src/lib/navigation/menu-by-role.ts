@@ -243,6 +243,19 @@ export const MENU_SECTIONS: MenuSection[] = [
         color: 'emerald',
       },
       {
+        // El mismo evaluador que usa la entidad. El consultor evalúa
+        // ofertas para la entidad a la que asesora, así que la
+        // herramienta es la misma y solo cambia a cuenta de quién se
+        // hace. Observación de César (setiembre de 2026): "el evaluador
+        // de ofertas debe estar como consultor también".
+        label: 'Evaluador de ofertas',
+        href: '/evaluador',
+        icon: FileSearch,
+        description: 'Compara Bases con ofertas y dictamina por requisito, para la entidad a la que asesoras.',
+        roles: ['consultant'],
+        color: 'sky',
+      },
+      {
         label: 'Casos de estudio',
         href: '/casos',
         icon: Briefcase,
