@@ -124,6 +124,19 @@ export async function extraerTextoDocumento(
         const t = await transcribirPdfEscaneado(paraOcr, {
           nombre: opciones.nombre ?? archivo.name,
         });
+        // Una transcripción incompleta NO es el documento. Si algún
+        // tramo se perdió pese a los reintentos, decirlo y dejar que el
+        // que llama lo trate como ilegible: en una evaluación de
+        // ofertas, media oferta transcrita se dictamina como "ausencia
+        // total de la propuesta" y descalifica a alguien que sí había
+        // presentado sus documentos. Es preferible que el acta diga que
+        // no se pudo leer.
+        if (t.tramosFallidos > 0) {
+          throw new DocumentoIlegibleError(
+            `El PDF está escaneado y la transcripción quedó incompleta: ${t.tramosFallidos} tramo(s) de páginas no se pudieron leer, de ${t.transcritas} página(s) intentadas.`,
+            'Vuelve a subirlo, o sube el Word original si lo tienes: evaluar sobre una transcripción parcial descarta ofertas que sí cumplen.',
+          );
+        }
         if (t.texto.trim().length > 0) {
           return {
             texto: t.texto.trim(),

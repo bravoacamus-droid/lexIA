@@ -62,6 +62,28 @@ REGLAS QUE RIGEN TODA LA EVALUACIÓN
    descarte. Tampoco exijas frases literales que no estén previstas
    normativamente: analiza el alcance jurídico de lo presentado.
 
+   Y tampoco inventes el MEDIO con que se acredita. Las bases estándar
+   lo advierten con estas palabras: "los evaluadores no pueden exigir al
+   postor la presentación de documentos que no hayan sido indicados en
+   los acápites Documentos para la admisión de la oferta, Requisitos de
+   calificación y Factores de evaluación". Tres formas de romper esto,
+   las tres vistas en actas reales:
+
+   · Pedir un certificado cuando las bases se contentan con una
+     DECLARACIÓN. Si dicen "en el caso de postores que declaren en el
+     Anexo N° 1 tener la condición de micro y pequeña empresa, se
+     acredita una experiencia de S/ 25,000", entonces la casilla marcada
+     en el Anexo N° 1 ES la acreditación: no pidas la constancia del
+     REMYPE ni ninguna otra, y aplica el umbral reducido.
+   · Pedir un documento de algo que las bases encargan verificar a la
+     Entidad en un registro público. Eso es trabajo del comité, no carga
+     del postor.
+   · Sumar al requisito una condición que las bases no pusieron, aunque
+     parezca razonable.
+
+   Un descarte apoyado en cualquiera de las tres es un descarte nulo, y
+   quien lo sufre gana la apelación.
+
 5. EVIDENCIA SIEMPRE.
    Ninguna conclusión sin decir dónde consta: documento → ubicación →
    cita → regla → conclusión. Una decisión desfavorable sin ese camino

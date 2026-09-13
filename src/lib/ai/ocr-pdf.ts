@@ -54,6 +54,8 @@ export interface PdfTranscrito {
   transcritas: number;
   /** Tramos que no devolvieron nada, si los hubo. */
   tramosVacios: number;
+  /** Tramos que la API no pudo transcribir pese a los reintentos. */
+  tramosFallidos: number;
 }
 
 const INSTRUCCION = `Transcribe literalmente el texto de este documento en el rango de páginas que se te indica.
@@ -67,6 +69,11 @@ REGLAS:
   en la página. Si una página está en blanco o es ilegible, escribe
   "[página sin texto legible]" bajo su encabezado.
 · No repitas páginas fuera del rango pedido.`;
+
+/** Cuántas veces se reintenta un tramo antes de darlo por perdido. */
+const REINTENTOS_TRAMO = 3;
+
+const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
  * Transcribe un PDF escaneado.
@@ -94,32 +101,56 @@ export async function transcribirPdfEscaneado(
 
   const partes: string[] = [];
   let tramosVacios = 0;
+  let tramosFallidos = 0;
 
   try {
     for (let desde = 1; desde <= hasta; desde += TRAMO) {
       const fin = Math.min(desde + TRAMO - 1, hasta);
-      try {
-        const { text } = await generateText({
-          model: chatModel,
-          messages: [
-            {
-              role: 'user',
-              content: [
-                { type: 'file', data: archivo.uri, mimeType: 'application/pdf' },
-                { type: 'text', text: `${INSTRUCCION}\n\nRango: páginas ${desde} a ${fin}.` },
-              ],
-            },
-          ],
-          temperature: 0,
-        });
-        const limpio = text.trim();
-        if (limpio.length > 0) partes.push(limpio);
-        else tramosVacios++;
-      } catch (e) {
+      // Se reintenta antes de darlo por perdido. Un tramo que falla no
+      // es una página en blanco: es un corte de la API, y antes se
+      // anotaba como vacío y se seguía. Una oferta escaneada de la que
+      // solo se transcribían dos tramos llegaba al evaluador como si
+      // fuera la oferta entera, y el acta decía "ausencia total de la
+      // propuesta y documentos de acreditación del personal clave"
+      // sobre documentos que sí estaban. Observación de César
+      // (setiembre de 2026): "el postor sí adjuntó las constancias de
+      // trabajo por lo que sí debió ser calificada".
+      let logrado = '';
+      let hubaError = false;
+      for (let intento = 1; intento <= REINTENTOS_TRAMO; intento++) {
+        try {
+          const { text } = await generateText({
+            model: chatModel,
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'file', data: archivo.uri, mimeType: 'application/pdf' },
+                  { type: 'text', text: `${INSTRUCCION}\n\nRango: páginas ${desde} a ${fin}.` },
+                ],
+              },
+            ],
+            temperature: 0,
+          });
+          logrado = text.trim();
+          if (logrado.length > 0) break;
+        } catch (e) {
+          hubaError = true;
+          console.error(
+            `[ocr] ${nombre}: tramo ${desde}-${fin}, intento ${intento}: ${(e as Error).message.slice(0, 110)}`,
+          );
+        }
+        if (intento < REINTENTOS_TRAMO) await esperar(1500 * intento);
+      }
+      if (logrado.length > 0) {
+        partes.push(logrado);
+      } else if (hubaError) {
+        // La API no pudo con él: eso es una pérdida de contenido.
+        tramosFallidos++;
+      } else {
+        // El modelo respondió y no había nada que transcribir: un
+        // separador, una carátula en blanco. No es una pérdida.
         tramosVacios++;
-        console.error(
-          `[ocr] ${nombre}: falló el tramo ${desde}-${fin}: ${(e as Error).message.slice(0, 120)}`,
-        );
       }
     }
   } finally {
@@ -132,5 +163,6 @@ export async function transcribirPdfEscaneado(
     paginas: pages,
     transcritas: hasta,
     tramosVacios,
+    tramosFallidos,
   };
 }
