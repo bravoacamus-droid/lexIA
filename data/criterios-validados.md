@@ -321,6 +321,81 @@ N.° 7189-2026-S3).
 
 ---
 
+## Omitir un literal o párrafo del Anexo N° 3: el Tribunal está dividido
+
+**Pregunta.** El postor presentó el Anexo N° 3 —la declaración jurada de
+admisión— pero no reprodujo íntegramente su texto: le falta un literal o
+un párrafo del formato de las bases. ¿Es subsanable?
+
+**Respuesta.** No hay una respuesta única, y decirlo es parte de la
+respuesta: **las salas del Tribunal resuelven este punto en sentidos
+opuestos, y lo hacen sobre el mismo hecho**. En los dos casos que siguen
+lo omitido fue exactamente lo mismo —la segunda frase del numeral iv,
+«Asimismo, declaro cumplir con todas las condiciones establecidas en el
+requerimiento»— y el resultado fue el contrario.
+
+**Posición A — lo omitido ya estaba dicho, así que es forma y se
+subsana.** Resoluciones N.° 6127-2026-TCP-S1 y N.° 3074-2026-TCP-S3. El
+razonamiento: lo que se mira no es si el formato se copió al pie de la
+letra, sino si lo omitido incide en el contenido esencial. Como el
+postor sí declaró «conocer, aceptar y someterme a las bases, condiciones
+y reglas del procedimiento de selección», el Tribunal concluye que «aun
+cuando la redacción no reproduce íntegramente el texto previsto en el
+formato (...) ello no desnaturaliza el contenido esencial de la
+declaración», y **ordena a la Entidad otorgar dos (2) días hábiles para
+subsanar**. La 3074 lo enuncia en su sumilla: el análisis «debe centrarse
+en determinar si la omisión advertida incide o no en aspectos
+sustanciales», y la exclusión parcial del numeral iv «no desnaturaliza
+la finalidad de la declaración jurada ni genera incertidumbre respecto
+de la voluntad del postor».
+
+**Posición B — son dos declaraciones distintas y la que falta no se
+puede reconstruir.** Resoluciones N.° 08020-2026-TCP-S4,
+N.° 3286-2026-TCP-S4 y N.° 3386-2026-TCP-S1. La 8020 responde punto por
+punto al argumento de la posición A: que la aceptación de las bases
+comprenda implícitamente el cumplimiento del requerimiento «no resulta
+atendible», porque la propia Entidad distinguió ambas manifestaciones en
+el formato y usó «Asimismo» para introducir una declaración adicional;
+tenerlas por equivalentes «supondría privar de contenido y eficacia a la
+segunda manifestación». Y añade la razón que cierra la subsanación: «no
+corresponde que el Comité ni este Tribunal integren, presuman o
+reconstruyan una manifestación de voluntad que no fue consignada en la
+oferta». Por eso la omisión «sí incide en el contenido esencial del
+Anexo N° 3, pues modifica el alcance de la declaración jurada». La 3286
+y la 3386 lo dicen con las mismas palabras entre sí: el Anexo N° 3
+«constituye un requisito de admisión (...) este no resulta susceptible
+de subsanación», porque cualquier incorporación posterior «implicaría
+una alteración sustancial del contenido de la oferta, así como una
+vulneración al principio de igualdad de trato entre los postores».
+
+**Dónde está la frontera.** Las dos posiciones comparten el criterio del
+artículo 78.1 —se subsana lo que no altera el contenido esencial— y
+discrepan al aplicarlo. La A pregunta si el sentido de lo omitido consta
+de otro modo en el mismo documento; la B pregunta si lo omitido es, en
+sí mismo, una declaración exigida, y responde que integrarla después es
+añadir voluntad que no estaba. La distinción práctica: **una cosa es un
+error de transcripción o un dato objetivo, y otra una declaración
+expresa que el formato pedía**.
+
+**Qué recomendar.**
+
+- Al comité o al oficial de compras: antes de no admitir, verificar si
+  lo omitido es una declaración propia y distinta o una reiteración de
+  algo ya declarado. Si es lo segundo, la posición A tiene sustento y lo
+  que corresponde es requerir la subsanación en dos días hábiles. Si es
+  lo primero, motivar la decisión dejando constancia de que existe la
+  otra posición.
+- Al postor: reproducir el formato íntegro. La discusión se evita
+  copiando el anexo tal como viene en las bases integradas.
+- A la entidad: si el punto es previsible, resolverlo en la absolución
+  de consultas y observaciones.
+
+**Advertencia sobre el recuento.** Que haya más resoluciones de un lado
+no resuelve nada: mientras el Tribunal no unifique el criterio en un
+precedente de observancia obligatoria, las dos posiciones están vivas.
+
+---
+
 ## Certificado ISO de una versión anterior a la que exigen las bases: el Tribunal está dividido
 
 **Pregunta.** Las bases integradas exigen el certificado ISO 37001:2025

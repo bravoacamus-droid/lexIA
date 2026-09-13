@@ -232,6 +232,24 @@ export const CASOS: Caso[] = [
     debeCitarNorma: true,
   },
   {
+    id: 'anexo3-literal-omitido',
+    pregunta:
+      'Si omito un literal o párrafo del contenido del anexo 3 de las bases estándar, ¿es subsanable? Responde con dos posiciones: una que indique que sí es subsanable y otra que no lo es.',
+    porque:
+      'César, 13/09/2026. La respuesta traía las dos posiciones RAZONADAS, sin una sola resolución del Tribunal, y arrastraba como fuente el criterio del ISO 37001, que no viene al caso. La causa era la búsqueda: `hnsw.ef_search` se quedaba en 40 sin filtro y las 15.427 resoluciones no se alcanzaban nunca. Comprobado una a una en la biblioteca: a favor de subsanar, las Resoluciones 6127-2026-TCP-S1 y 3074-2026-TCP-S3; en contra, las 08020-2026-TCP-S4, 3286-2026-TCP-S4 y 3386-2026-TCP-S1. Las dos primeras y la 8020 resuelven LA MISMA omisión —la segunda frase del numeral iv— en sentidos opuestos',
+    debeDecir: [/[Aa]nexo N?[.°º ]{0,3}3/],
+    debeDistinguir: [
+      // Que advierta que el Tribunal está dividido.
+      /dos posiciones|posiciones (?:distintas|divergentes|opuestas|encontradas|contradictorias)|criterios? (?:distintos|divergentes|opuestos|discrepantes|divididos|contradictorios)|no (?:existe|hay) (?:un )?criterio (?:uniforme|un[íi]voco|[úu]nico)|tribunal[^.]{0,40}dividido/i,
+      // La posición que deja subsanar, con su razón.
+      /no desnaturaliza|no incide[^.]{0,60}(?:esencial|sustancial)|aspectos? sustanciales|dos \(?2\)? d[íi]as h[áa]biles|error (?:formal|material)/i,
+      // Y la que no, con la suya.
+      /no resulta susceptible de subsanaci[óo]n|no es subsanable|altera[^.]{0,60}contenido esencial|integr(?:en|ar)[^.]{0,60}manifestaci[óo]n de voluntad|reconstruy|igualdad de trato/i,
+      // Que nombre resoluciones de verdad, no "el Tribunal ha dicho".
+      /(?:6127|06127|3074|8020|08020|3286|3386)-2026/,
+    ],
+  },
+  {
     id: 'iso-version-anterior',
     pregunta:
       'Las bases integradas exigen el certificado ISO 37001:2025 para el factor de evaluación «integridad en la contratación pública». Un postor presentó un certificado ISO 37001:2016 vigente. ¿Corresponde otorgarle el puntaje?',
@@ -599,7 +617,15 @@ export async function recuperar(pregunta: string): Promise<ChatSource[]> {
         match_count: 8,
         filter_type: tipo,
       });
-      return (d ?? []) as Fragmento[];
+      const filas = (d ?? []) as Fragmento[];
+      // Espejo de `descartarLosQueNoVienenAlCaso` en la ruta: capa 1
+      // pide ocho por tipo y la colección de criterios tiene quince,
+      // así que sin filtro entraban siempre más de la mitad vinieran o
+      // no al caso. Se conserva el mejor de cada tipo y los que quedan
+      // a menos de 0.05 de él. La Ley no se filtra.
+      if (tipo === 'ley' || filas.length === 0) return filas;
+      const mejor = Math.max(...filas.map((f) => f.similarity ?? 0));
+      return filas.filter((f) => (f.similarity ?? 0) >= mejor - 0.05);
     }),
   );
   const yaEstan = new Set(fuentes.map((s) => s.chunk_id));

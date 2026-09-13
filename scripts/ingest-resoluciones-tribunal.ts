@@ -19,6 +19,7 @@
  *   npx tsx scripts/ingest-resoluciones-tribunal.ts --limit=10   (muestra)
  *   npx tsx scripts/ingest-resoluciones-tribunal.ts              (todo)
  *   npx tsx scripts/ingest-resoluciones-tribunal.ts --desde=2025 (por año)
+ *   npx tsx scripts/ingest-resoluciones-tribunal.ts --solo=8020-2026-S4
  */
 import { config as loadEnv } from 'dotenv';
 import { join } from 'node:path';
@@ -50,6 +51,15 @@ const ESTADO = join(process.cwd(), 'data', 'tcp-ingesta.state.jsonl');
 const CANDADO = join(process.cwd(), 'data', 'tcp-ingesta.lock');
 const LIMIT = Number(process.argv.find((a) => a.startsWith('--limit='))?.slice(8) || 0);
 const DESDE = Number(process.argv.find((a) => a.startsWith('--desde='))?.slice(8) || 2020);
+/**
+ * Una sola resolución, por su clave «numero-anio-SALA».
+ *
+ * El censo se hizo por ventanas de fechas y deja huecos: la
+ * 08020-2026-TCP-S4 no estaba, y es una de las que César cita al
+ * preguntar si es subsanable omitir un literal del Anexo N° 3. Sin esto
+ * había que relanzar la ingesta entera para traer una.
+ */
+const SOLO = (process.argv.find((a) => a.startsWith('--solo='))?.slice(7) || '').toUpperCase();
 const PAUSA_MS = 900; // cortesía con gob.pe
 /** Tope al que puede llegar la espera si el buscador va apretado. */
 const PAUSA_MAX_MS = 4000;
@@ -205,7 +215,7 @@ function cargarCenso(): IndexRow[] {
     }
   }
   return [...all.values()]
-    .filter((r) => r.anio >= DESDE)
+    .filter((r) => (SOLO ? r.key.toUpperCase() === SOLO : r.anio >= DESDE))
     // más reciente primero: año desc, correlativo desc
     .sort((a, b) => b.anio - a.anio || Number(b.numero.split('-')[0]) - Number(a.numero.split('-')[0]));
 }

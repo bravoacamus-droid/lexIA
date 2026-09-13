@@ -123,6 +123,46 @@ function rerankChunks(
   return out;
 }
 
+/**
+ * Capa 1 trae ocho por tipo; aquí se quedan los que tienen que ver.
+ *
+ * La colección de criterios validados tiene quince entradas, así que
+ * pedir ocho devolvía SIEMPRE más de la mitad, viniera o no al caso.
+ * César lo vio el 13/09/2026: preguntó si es subsanable omitir un
+ * literal del Anexo N° 3 y la respuesta arrastró como fuente el criterio
+ * sobre certificados ISO 37001 y el de quién absuelve las consultas
+ * cuando conduce un jurado. Su pregunta fue exactamente esa: «¿de dónde
+ * lo extrae?».
+ *
+ * No se usa un umbral absoluto —la similitud de una pregunta a otra no
+ * es comparable— sino la distancia al mejor de su tipo. En esa pregunta
+ * los dos que servían puntuaban 0.757 y el primero que no, 0.664: el
+ * salto se ve solo. Con 0.05 de margen entran los dos y se quedan fuera
+ * los seis.
+ *
+ * La Ley no se filtra: sus fragmentos son la regla aplicable y el
+ * trabajo del ancla normativa depende de que lleguen.
+ */
+const MARGEN_CAPA_1 = 0.05;
+
+function descartarLosQueNoVienenAlCaso(
+  filas: HybridSearchRow[],
+  tipo: string,
+): HybridSearchRow[] {
+  if (tipo === 'ley' || filas.length === 0) return filas;
+  const mejor = Math.max(...filas.map((f) => f.similarity));
+  const sobreviven = filas.filter((f) => f.similarity >= mejor - MARGEN_CAPA_1);
+  if (sobreviven.length < filas.length) {
+    console.log('[chat] capa_1_filtrada', {
+      tipo,
+      de: filas.length,
+      a: sobreviven.length,
+      mejor: Number(mejor.toFixed(3)),
+    });
+  }
+  return sobreviven;
+}
+
 export async function POST(req: Request) {
   // Verificación temprana de env vars críticas — devolvemos error claro si faltan
   if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
@@ -941,7 +981,8 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
             console.error('[chat] búsqueda de capa 1 falló:', tipo, error.message);
             return [];
           }
-          return (data ?? []) as HybridSearchRow[];
+          const filas = (data ?? []) as HybridSearchRow[];
+          return descartarLosQueNoVienenAlCaso(filas, tipo);
         }),
       );
 
