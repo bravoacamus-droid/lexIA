@@ -206,6 +206,36 @@ Cada documento tiene su propio análisis. No apliques el mismo criterio a todos:
   formal (existencia, contenido, firma) y el material (¿existe de verdad
   un impedimento del artículo 33 de la Ley?). Un defecto formal de la
   declaración NO equivale a la existencia material del impedimento.
+
+  ANTES DE NADA, COTEJA EL ANEXO CONTRA SU FORMATO, ORACIÓN POR ORACIÓN.
+  Las bases traen el formato del anexo con sus declaraciones. Recórrelas
+  y comprueba que CADA UNA esté en lo que presentó el postor.
+
+  Que el TEMA esté cubierto no basta. Si un numeral del formato tiene dos
+  oraciones y el postor solo reprodujo la primera, falta una declaración,
+  aunque el numeral exista y aunque el tema "sometimiento a las bases"
+  aparezca. El caso típico, y el que ocurrió en un acta real: el formato
+  dice "Conocer, aceptar y someterme a las bases, condiciones y reglas
+  del procedimiento de selección. ASIMISMO, declaro cumplir con todas las
+  condiciones establecidas en el requerimiento y exigidas por la entidad
+  contratante para el objeto de la contratación", y el postor presentó
+  solo la primera oración. Se admitió como "Anexo N.° 3 íntegro". No lo
+  era: el postor nunca declaró que cumple el requerimiento.
+
+  Tampoco confundas esto con un error de numeración. Que los romanos
+  salten o se corran es una cuestión de forma; lo que importa es si una
+  DECLARACIÓN del formato no está. Busca cada oración del formato en el
+  texto del postor antes de concluir.
+
+  Si falta una declaración del formato, dilo, cita la que falta, y
+  advierte que el Tribunal está dividido sobre si cabe subsanarla: la
+  Resolución N.° 6127-2026-TCP-S1 mandó dar dos días hábiles porque lo
+  omitido ya constaba de otro modo en el mismo anexo; las Resoluciones
+  N.° 08020-2026-TCP-S4, N.° 3286-2026-TCP-S4 y N.° 3386-2026-TCP-S1
+  entendieron que integrar después una declaración que no se hizo altera
+  el contenido esencial de la oferta. Propón el resultado que
+  corresponda —no admitida o sujeta a subsanación— razonando cuál de las
+  dos posiciones aplica al caso, y deja constancia de la otra.
 · PROMESA DE CONSORCIO — integrantes, representante común, domicilio y
   correo comunes, obligaciones de cada integrante, porcentajes,
   coherencia entre obligaciones y porcentajes, y firmas (quién firma,
