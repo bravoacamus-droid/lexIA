@@ -78,7 +78,7 @@ export function construirActa({ bases, postores, sesion }: DatosActa): string {
   const s = sesion ?? {};
   const partes: string[] = [];
 
-  partes.push(`# ACTA N.° ${s.numeroActa ?? HUECO}`);
+  partes.push(`# ACTA N.° ${s.numeroActa ?? `${HUECO}-[AÑO]-[SIGLAS]`}`);
   partes.push('## ACTA DE EVALUACIÓN DE OFERTAS');
 
   // ── Datos del procedimiento ──
@@ -91,7 +91,15 @@ export function construirActa({ bases, postores, sesion }: DatosActa): string {
         ['Procedimiento de selección', p.numero ?? HUECO],
         ['Objeto de contratación', p.objeto ?? HUECO],
         ['Denominación de la contratación', p.denominacion ?? HUECO],
-        ['Cuantía', p.cuantia ?? HUECO],
+        // La cuantía va SIEMPRE en blanco. Las bases no la publican
+        // —"no se da a conocer a los proveedores", numeral 53.4 del
+        // artículo 53 del Reglamento—, así que lo que el motor lee de
+        // ellas es esa frase, no la cifra, y ponerla en el acta es
+        // rellenar un dato con su propia ausencia. La cifra la conoce la
+        // Entidad y la escribe a mano. Observación de César (setiembre
+        // de 2026): "este campo debe dejarse en blanco para ser
+        // completado manualmente".
+        ['Cuantía', HUECO],
       ],
     ),
   );
@@ -182,7 +190,7 @@ export function construirActa({ bases, postores, sesion }: DatosActa): string {
     }
 
     // Subsanaciones de la etapa.
-    partes.push(`#### SUBSANACIÓN DE LA OFERTA EN LA ETAPA DE ${NOMBRE_ETAPA[etapa].toUpperCase()}`);
+    partes.push(`#### SUBSANACIÓN DE LA OFERTA EN LA ETAPA DE ${ETAPA_EN_ACTA[etapa]}`);
     const conSubsanacion = postores.filter((x) => (etapaDe(x, etapa)?.subsanaciones.length ?? 0) > 0);
     if (conSubsanacion.length === 0) {
       partes.push(
@@ -199,7 +207,7 @@ export function construirActa({ bases, postores, sesion }: DatosActa): string {
     }
 
     // Resultado consolidado de la etapa: la comparación que pidió César.
-    partes.push(`#### RESULTADO CONSOLIDADO DE LA ETAPA DE ${NOMBRE_ETAPA[etapa].toUpperCase()}`);
+    partes.push(`#### RESULTADO CONSOLIDADO DE LA ETAPA DE ${ETAPA_EN_ACTA[etapa]}${etapa === 'evaluacion' ? '' : ' DE OFERTAS'}`);
     partes.push(
       tabla(
         etapa === 'evaluacion'
@@ -331,6 +339,24 @@ export function construirActa({ bases, postores, sesion }: DatosActa): string {
 
   return partes.join('\n\n');
 }
+
+/**
+ * Cómo nombra cada etapa el ACTA, que no es como las nombra el motor.
+ *
+ * El modelo que entregó César —"Acta de Evaluación - OK.docx"— titula
+ * "ETAPA DE CALIFICACIÓN" y "ETAPA DE EVALUACIÓN TÉCNICA", mientras que
+ * NOMBRE_ETAPA dice "Requisitos de calificación" y "Factores de
+ * evaluación técnica", que es lo que describe el CONTENIDO de la etapa
+ * y sirve para los avisos. Mezclarlos dejaba encabezados como
+ * "RESULTADO CONSOLIDADO DE LA ETAPA DE FACTORES DE EVALUACIÓN TÉCNICA".
+ * Observación de César (setiembre de 2026): "LexIA no genera el formato
+ * de acuerdo a la estructura proporcionada".
+ */
+const ETAPA_EN_ACTA: Record<Etapa, string> = {
+  admision: 'ADMISIÓN',
+  calificacion: 'CALIFICACIÓN',
+  evaluacion: 'EVALUACIÓN TÉCNICA',
+};
 
 function textoEncabezado(etapa: Etapa): string {
   if (etapa === 'admision') return 'DETALLE DE LAS OFERTAS EN LA ETAPA DE ADMISIÓN';
