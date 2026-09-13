@@ -320,6 +320,22 @@ Extrae tres listas separadas:
    (habilitación, experiencia del postor, personal clave, equipamiento,
    infraestructura, consorcio…), CON SUS CIFRAS EXACTAS: montos, años,
    cantidades.
+
+   TODOS los que las Bases enumeran, sin excepción. Van rotulados con
+   letra o número —A, B, C…— bajo "REQUISITOS DE CALIFICACIÓN
+   OBLIGATORIOS" y "ADICIONALES": si ves una A y una B, en tu lista
+   tienen que estar las dos. Un requisito que no listes aquí NO SE
+   EVALÚA DESPUÉS, y el acta saldrá sin él.
+
+   Ojo con dos cosas que hacen que uno se pierda:
+   · Que bajo el rótulo solo haya una advertencia —"en el caso de
+     consorcios, cada integrante debe acreditar este requisito"— y el
+     detalle esté más adelante, en el anexo de términos de referencia.
+     El requisito existe igual: recoge el rótulo y busca su detalle en
+     el resto del documento.
+   · Que las Bases repitan el bloque en dos sitios. Es el mismo
+     requisito, no dos: únelos en una sola entrada con el detalle más
+     completo de los dos.
 3. FACTORES DE EVALUACIÓN TÉCNICA — Capítulo IV, cada uno con su
    PUNTAJE MÁXIMO y el documento con que se acredita.
 
