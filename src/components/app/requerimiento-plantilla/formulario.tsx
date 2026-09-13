@@ -77,6 +77,7 @@ import {
 } from './bloques';
 import { RevisionGlobal } from './revision-global';
 import { CargarProyecto } from './cargar-proyecto';
+import { Entrevista } from './entrevista';
 import { ApartadoPropio } from './apartado-propio';
 import { IndiceDocumento } from './indice-documento';
 
@@ -370,6 +371,20 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
       for (const k of condicionesEncendidas) condiciones[k] = true;
       return { ...p, campos, redacciones, tablas, extras, condiciones };
     });
+    marcarSucio();
+  };
+
+  /**
+   * Aplica de una vez lo que decidió la entrevista.
+   *
+   * A diferencia de `aplicarLote`, este apaga además de encender: la
+   * entrevista dice tanto lo que corresponde como lo que no, y si solo
+   * encendiera dejaría puesto lo que el usuario ya había marcado antes
+   * de contar su necesidad. Lo que no venga en el objeto se queda como
+   * estaba —lo que LexIA no supo decidir no se toca.
+   */
+  const aplicarCondiciones = (condiciones: Record<string, boolean>) => {
+    setR((p) => ({ ...p, condiciones: { ...p.condiciones, ...condiciones } }));
     marcarSucio();
   };
 
@@ -917,6 +932,8 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
               </p>
             </div>
           </Card>
+
+          <Entrevista id={id} onAplicar={aplicarCondiciones} />
 
           <CargarProyecto id={id} onAplicar={aplicarLote} />
 

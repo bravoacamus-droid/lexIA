@@ -61,6 +61,49 @@ export interface ResultadoEntrevista {
   condiciones: Record<string, boolean>;
 }
 
+/**
+ * Lo que no se deduce de la necesidad, por mucho que se cuente.
+ *
+ * Estos apartados no dependen de qué se contrata sino de una decisión
+ * de la Entidad —o de un documento que existe o no existe en el
+ * expediente—. La primera prueba en pantalla lo enseñó: de un relato
+ * sobre un grupo electrógeno, LexIA apagó confidencialidad, propiedad
+ * intelectual y seguridad de la información. Ninguna de las tres se
+ * sigue de comprar un generador; son política de la Entidad, y
+ * apagarlas por su cuenta le quita al documento una cláusula que quizá
+ * la Entidad pone siempre.
+ *
+ * No se le pasan al modelo: se devuelven como pregunta. Una regla en el
+ * texto del sistema se puede desobedecer; esto no.
+ */
+const INSTITUCIONALES: Record<string, string> = {
+  aplica_mype: '¿La contratación se sujeta al régimen de micro y pequeña empresa?',
+  adelanto_directo: '¿La Entidad otorgará adelanto directo? ¿En qué porcentaje?',
+  otorga_adelanto: '¿La Entidad otorgará adelanto directo? ¿En qué porcentaje?',
+  adelanto_avance: '¿La Entidad otorgará adelanto por avance?',
+  adelanto_materiales: '¿La Entidad otorgará adelanto para materiales, equipamiento o mobiliario?',
+  permite_pago_anticipado: '¿Se pagará por adelantado alguna parte de la prestación?',
+  reserva_prestaciones_esenciales: '¿Hay prestaciones que el contratista no podrá subcontratar?',
+  exige_consorcio: '¿Se exigirá algo particular a los postores que se presenten en consorcio?',
+  exige_requisitos_consorcio: '¿Se exigirá algo particular a los postores que se presenten en consorcio?',
+  aplica_confidencialidad: '¿La Entidad exige cláusula de confidencialidad en esta contratación?',
+  aplica_incumplimiento_confidencialidad:
+    '¿Se penaliza el incumplimiento del deber de confidencialidad?',
+  aplica_propiedad_intelectual: '¿Los productos de la contratación quedan en propiedad de la Entidad?',
+  aplica_seguridad_informacion: '¿El contratista tendrá acceso a sistemas o información de la Entidad?',
+  tiene_compatibilizacion: '¿El requerimiento cuenta ya con el documento de compatibilización?',
+};
+
+/**
+ * Lo que se le enseña al usuario junto al interruptor.
+ *
+ * La pregunta va aquí y no en la lista de preguntas: allí salían las
+ * nueve institucionales siempre iguales, repitiendo lo que ya decía la
+ * lista de dudas y dejando fuera, por el tope, las tres que sí eran de
+ * este caso. Junto a su interruptor, en cambio, se contesta con un clic.
+ */
+const razonInstitucional = (id: string) => `Lo decide la Entidad. ${INSTITUCIONALES[id]}`;
+
 const SISTEMA = `Eres LexIA, y estás ayudando a un área usuaria de una entidad pública peruana a formular su requerimiento bajo la Ley N° 32069 y su Reglamento.
 
 Te dan el relato de una necesidad y la lista de los apartados OPCIONALES del formato oficial que corresponde a esa contratación. Tu trabajo es decidir, para cada uno, si corresponde incluirlo.
@@ -74,7 +117,7 @@ REGLAS QUE NO PUEDES ROMPER
 - Ante la duda, NO SE SABE. Apagar de más le cuesta al usuario un clic; encender de más mete en el documento una exigencia que nadie pidió, y toda exigencia de más restringe la competencia.
 - Pero NO SE SABE tampoco es gratis: cada uno que dejes sin decidir se lo devuelves al área usuaria, que es justo de lo que se queja. Úsalo solo cuando falte un DATO CONCRETO que puedas nombrar en una pregunta. Si el dato que falta no lo sabes nombrar, entonces no te falta: decide.
 - Lo que la naturaleza del objeto resuelve, resuélvelo. Que unos útiles de escritorio no necesitan seguros, condiciones de operación ni visita al lugar no es una duda: es un no.
-- Hay apartados que NO dependen de lo que se contrata sino de una decisión de la Entidad o de cómo se comporte el mercado: el régimen de micro y pequeña empresa, el adelanto, el pago anticipado, la subcontratación, el consorcio. De la naturaleza del bien no se deduce ninguno. Déjalos en NO SE SABE y pregúntalos: encenderlos por tu cuenta es meter en el documento una decisión que no te toca.
+- La lista que te dan ya viene limpia de decisiones de política de la Entidad (adelantos, pago anticipado, régimen MYPE, consorcio, confidencialidad): esas se preguntan aparte y no tienes que pronunciarte sobre ellas. Sobre lo que sí te dan, decide por la naturaleza de lo que se contrata.
 - Decide por la naturaleza de lo que se contrata, no porque el apartado exista.
 - La razón es UNA frase, concreta y referida a ESTE caso. Nada de "podría corresponder según la naturaleza": eso no es una razón.
 - No inventes datos del relato. Si dices que corresponde mantenimiento, que sea porque el relato habla de un equipo que lo necesita, no porque los equipos suelen tenerlo.
@@ -102,7 +145,9 @@ export async function interpretarNecesidad(
     return { decisiones: [], preguntas: [], condiciones: {} };
   }
 
-  const lista = catalogo
+  // Los institucionales no entran en la lista que ve el modelo.
+  const decidibles = catalogo.filter((c) => !(c.id in INSTITUCIONALES));
+  const lista = decidibles
     .map((c) => `- ${c.id} → "${c.titulo}" (dentro de ${c.apartado})`)
     .join('\n');
 
@@ -124,13 +169,27 @@ Devuelve ahora el JSON.`;
   let mejor: ResultadoEntrevista = { decisiones: [], preguntas: [], condiciones: {} };
   for (let intento = 1; intento <= 3; intento++) {
     try {
-      const { text } = await generateText({ model: chatModel, system: SISTEMA, prompt, temperature: 0.2 });
-      const r = depurar(text, catalogo);
+      const { text } = await generateText({
+        model: chatModel,
+        system: SISTEMA,
+        prompt,
+        temperature: 0.2,
+        // Treinta y cuatro decisiones con su razón no caben en la
+        // respuesta por defecto: se cortaba a media frase y había que
+        // repetir la llamada entera.
+        maxTokens: 8192,
+      });
+      const { resultado: r, legible } = depurar(text, catalogo);
       const decididos = r.decisiones.filter((d) => d.estado !== 'no_se_sabe').length;
       if (decididos > mejor.decisiones.filter((d) => d.estado !== 'no_se_sabe').length) mejor = r;
       // La mitad decidida ya es una respuesta útil; por debajo, se
       // reintenta antes de devolverle el trabajo al usuario.
-      if (decididos >= catalogo.length / 2) return r;
+      // Se reintenta cuando la respuesta viene ROTA, no cuando viene
+      // prudente. Exigir la mitad de los decidibles dejaba la pantalla
+      // diecisiete segundos pensando para acabar devolviendo la primera
+      // respuesta, que decidía doce de veinticinco y era buena. Lo que
+      // no vale es un JSON ilegible o un puñado suelto de decisiones.
+      if (legible && decididos >= decidibles.length / 3) return r;
     } catch (e) {
       console.error('[entrevista] intento ' + intento + ' falló', (e as Error).message.slice(0, 90));
     }
@@ -161,11 +220,13 @@ function porDefecto(catalogo: Array<{ id: string; titulo: string }>): DecisionCo
 function depurar(
   crudo: string,
   catalogo: Array<{ id: string; titulo: string; apartado: string }>,
-): ResultadoEntrevista {
+): { resultado: ResultadoEntrevista; legible: boolean } {
   let datos: { decisiones?: unknown; preguntas?: unknown } = {};
+  let legible = true;
   try {
     datos = JSON.parse(crudo.replace(/^```json\s*|\s*```$/g, '').trim());
   } catch (e) {
+    legible = false;
     // Sin esto, un JSON roto se disfrazaba de "no se sabe" en los
     // treinta y cuatro interruptores y parecía prudencia del modelo.
     console.error('[entrevista] JSON ilegible', {
@@ -181,13 +242,19 @@ function depurar(
       id: c.id,
       titulo: c.titulo,
       estado: 'no_se_sabe',
-      razon: 'LexIA no se pronunció sobre este apartado.',
+      razon:
+        c.id in INSTITUCIONALES
+          ? razonInstitucional(c.id)
+          : 'LexIA no se pronunció sobre este apartado.',
     });
   }
 
   for (const bruto of Array.isArray(datos.decisiones) ? datos.decisiones : []) {
     const d = bruto as Record<string, unknown>;
     const id = String(d.id ?? '').trim();
+    // Si el modelo se pronuncia sobre uno institucional —no se lo hemos
+    // dado, pero podría deducirlo del nombre de otro— no se le hace caso.
+    if (id in INSTITUCIONALES) continue;
     const yaEsta = porId.get(id);
     if (!yaEsta) continue;
     const estado = String(d.estado ?? '').trim();
@@ -200,10 +267,15 @@ function depurar(
   const condiciones: Record<string, boolean> = {};
   for (const d of decisiones) condiciones[d.id] = d.estado === 'corresponde';
 
-  const preguntas = (Array.isArray(datos.preguntas) ? datos.preguntas : [])
-    .map((p) => String(p).trim())
-    .filter((p) => p.length > 10)
-    .slice(0, 8);
+  // Solo las de ESTE caso: las institucionales viajan como razón del
+  // interruptor que las necesita.
+  const preguntas = [
+    ...new Set(
+      (Array.isArray(datos.preguntas) ? datos.preguntas : [])
+        .map((p) => String(p).trim())
+        .filter((p) => p.length > 10),
+    ),
+  ].slice(0, 8);
 
-  return { decisiones, preguntas, condiciones };
+  return { resultado: { decisiones, preguntas, condiciones }, legible };
 }

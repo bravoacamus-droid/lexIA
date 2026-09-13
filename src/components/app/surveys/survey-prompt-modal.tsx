@@ -25,7 +25,7 @@ const SESSION_DISMISS_KEY = 'lexia.survey_prompt.dismissed_session';
 const ESPERA_INICIAL = 5000;
 /** Si estaba ocupado, cada cuánto se vuelve a mirar. */
 const REINTENTO = 4000;
-/** Silencio de teclado que se exige para considerarlo desocupado. */
+/** Silencio de teclado o de ratón que se exige para considerarlo desocupado. */
 const QUIETUD = 2500;
 
 /**
@@ -38,8 +38,16 @@ const QUIETUD = 2500;
  * "mesadepartes.m". No era un fallo de ese campo: le pasa a cualquier
  * caja de texto de la aplicación.
  */
-function estaOcupado(ultimaTecla: number) {
-  if (Date.now() - ultimaTecla < QUIETUD) return true;
+function estaOcupado(ultimoGesto: number) {
+  if (Date.now() - ultimoGesto < QUIETUD) return true;
+
+  // Y tampoco encima de algo que está cargando. Escribir la necesidad,
+  // pedirle a LexIA que proponga los apartados y esperar siete segundos
+  // deja el foco en un botón, no en una caja de texto: por ahí se colaba
+  // la encuesta justo cuando llegaba la respuesta. Todo lo que tarda en
+  // esta aplicación enseña la misma rueda, así que vale para cualquier
+  // pantalla, no solo para el generador.
+  if (document.querySelector('.animate-spin')) return true;
 
   const foco = document.activeElement as HTMLElement | null;
   if (foco) {
@@ -73,14 +81,20 @@ export function SurveyPromptModal() {
     setOpen(false);
   }, []);
 
-  // Marca de la última tecla, para saber si está escribiendo.
-  const ultimaTecla = useRef(0);
+  // Marca del último gesto, para saber si está en medio de algo. No
+  // solo teclas: quien acaba de pulsar un botón y espera el resultado
+  // está tan ocupado como quien escribe.
+  const ultimoGesto = useRef(0);
   useEffect(() => {
     const anotar = () => {
-      ultimaTecla.current = Date.now();
+      ultimoGesto.current = Date.now();
     };
     window.addEventListener('keydown', anotar, true);
-    return () => window.removeEventListener('keydown', anotar, true);
+    window.addEventListener('pointerdown', anotar, true);
+    return () => {
+      window.removeEventListener('keydown', anotar, true);
+      window.removeEventListener('pointerdown', anotar, true);
+    };
   }, []);
 
   useEffect(() => {
@@ -89,7 +103,7 @@ export function SurveyPromptModal() {
 
     const intentarAbrir = () => {
       if (!mounted) return;
-      if (estaOcupado(ultimaTecla.current)) {
+      if (estaOcupado(ultimoGesto.current)) {
         timer = setTimeout(intentarAbrir, REINTENTO);
         return;
       }
