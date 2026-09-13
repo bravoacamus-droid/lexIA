@@ -355,7 +355,11 @@ export const PLANTILLA_SERVICIOS_GENERAL: PlantillaRequerimiento = {
         {
           id: 'visita',
           titulo: 'Visita al lugar de ejecución del servicio',
-          condicion: 'prevé_visita',
+          // Sin tilde, como en los otros dos formatos que tienen este
+          // apartado. Con tilde era un interruptor distinto: lo que el
+          // área usuaria encendía aquí no se reconocía en ningún otro
+          // sitio que use el identificador normal.
+          condicion: 'preve_visita',
           bloques: [
             {
               clase: 'redactado',
