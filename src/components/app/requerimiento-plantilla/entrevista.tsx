@@ -13,6 +13,10 @@
  * treinta y cuatro interruptores sin enseñarlos antes sería peor que el
  * formulario que viene a sustituir.
  *
+ * Y con el mismo relato, el segundo paso: escribir el borrador de los
+ * apartados encendidos que estén en blanco —treinta y nueve cajas
+ * vacías en Bienes en General—, sin tocar lo que ya escribió nadie.
+ *
  * Lo que LexIA no sabe se queda como está, y lleva al lado la pregunta
  * que lo resolvería —no en una lista aparte al final, que decía lo
  * mismo con otras palabras—. Apagar de más cuesta un clic; encender de
@@ -20,7 +24,7 @@
  */
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Sparkles, Loader2, Check, X, CircleHelp, ChevronDown } from 'lucide-react';
+import { Sparkles, Loader2, Check, X, CircleHelp, ChevronDown, PenLine } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -36,16 +40,31 @@ interface Decision {
 export function Entrevista({
   id,
   onAplicar,
+  onRedactar,
 }: {
   id: string;
   /** Enciende y apaga de una vez; el formulario decide cómo guardarlo. */
   onAplicar: (condiciones: Record<string, boolean>) => void;
+  /** Los borradores, cada uno a su caja. */
+  onRedactar: (
+    cambios: Array<{ destino: 'redacciones' | 'campos'; bloqueId: string; texto: string }>,
+  ) => void;
 }) {
   const [relato, setRelato] = useState('');
   const [pensando, setPensando] = useState(false);
   const [decisiones, setDecisiones] = useState<Decision[] | null>(null);
   const [abierto, setAbierto] = useState(false);
   const [descartados, setDescartados] = useState<Set<string>>(new Set());
+  const [redactando, setRedactando] = useState(false);
+  /**
+   * Los interruptores tal como quedaron al aplicar.
+   *
+   * Se le mandan al servidor junto al relato porque el formulario aún no
+   * los ha guardado: sin esto, "redactar lo que falte" trabajaría sobre
+   * el estado anterior y dejaría en blanco justo los apartados que se
+   * acaban de encender.
+   */
+  const [aplicadas, setAplicadas] = useState<Record<string, boolean> | null>(null);
 
   async function preguntar() {
     if (relato.trim().length < 20) {
@@ -87,6 +106,7 @@ export function Entrevista({
     for (const d of corresponden) if (!descartados.has(d.id)) condiciones[d.id] = true;
     for (const d of noCorresponden) if (!descartados.has(d.id)) condiciones[d.id] = false;
     onAplicar(condiciones);
+    setAplicadas(condiciones);
     toast.success('Apartados ajustados', {
       description:
         dudas.length > 0
@@ -95,6 +115,68 @@ export function Entrevista({
     });
     setDecisiones(null);
     setAbierto(false);
+  }
+
+  /**
+   * La otra mitad: los textos.
+   *
+   * Solo toca lo que está EN BLANCO y dentro de un apartado encendido.
+   * Lo que ya escribió el área usuaria es suyo; para mejorarlo está el
+   * botón de cada apartado, que sí le manda su texto al modelo.
+   */
+  async function redactarEnBlanco() {
+    if (relato.trim().length < 20) {
+      toast.error('Cuéntame un poco más', {
+        description: 'El borrador sale de lo que cuentes aquí arriba.',
+      });
+      return;
+    }
+    setRedactando(true);
+    const aviso = toast.loading('Redactando los apartados en blanco…', {
+      description: 'Puede tardar un minuto. No se toca nada de lo que ya escribiste.',
+    });
+    try {
+      const res = await fetch(`/api/generadores/requerimientos/${id}/redactar-todo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ relato, condiciones: aplicadas ?? undefined }),
+      });
+      const j = await res.json();
+      if (!res.ok) {
+        toast.error('No se pudo redactar', {
+          id: aviso,
+          description: j?.detail ?? j?.error ?? `HTTP ${res.status}`,
+        });
+        return;
+      }
+      const textos = (j.textos ?? []) as Array<{
+        bloque_id: string;
+        destino: 'redacciones' | 'campos';
+        texto: string;
+      }>;
+      if (textos.length === 0) {
+        toast.info('No quedaba nada en blanco', {
+          id: aviso,
+          description: 'Todos los apartados encendidos ya tienen texto.',
+        });
+        return;
+      }
+      onRedactar(
+        textos.map((t) => ({ destino: t.destino, bloqueId: t.bloque_id, texto: t.texto })),
+      );
+      const fallidos = (j.fallidos ?? []).length as number;
+      toast.success(`${textos.length} apartados redactados`, {
+        id: aviso,
+        description:
+          (fallidos > 0 ? `${fallidos} no salieron y siguen en blanco. ` : '') +
+          'Son borradores: léelos en su sitio antes de exportar.' +
+          (j.recortado ? ' Quedaron más pendientes; vuelve a pulsar para seguir.' : ''),
+      });
+    } catch (e) {
+      toast.error('No se pudo redactar', { id: aviso, description: (e as Error).message });
+    } finally {
+      setRedactando(false);
+    }
   }
 
   const alternar = (idCond: string) =>
@@ -145,7 +227,28 @@ export function Entrevista({
             Ver la propuesta
           </Button>
         )}
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={redactarEnBlanco}
+          disabled={redactando || pensando}
+        >
+          {redactando ? (
+            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <PenLine className="mr-1.5 h-3.5 w-3.5" />
+          )}
+          {redactando ? 'Redactando…' : 'Redactar lo que esté en blanco'}
+        </Button>
       </div>
+
+      {aplicadas && !abierto && (
+        <p className="rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
+          Apartados ajustados. Con el mismo relato puedo escribir el borrador de los que quedaron
+          en blanco; lo que ya redactaste no se toca.
+        </p>
+      )}
 
       {decisiones && abierto && (
         <div className="space-y-3 rounded-lg border bg-muted/30 p-3">

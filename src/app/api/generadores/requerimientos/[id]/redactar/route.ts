@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { generateText } from 'ai';
 import { createClient } from '@/lib/supabase/server';
 import { chatModel, CHAT_MODEL_ID } from '@/lib/ai/gemini';
-import { embedOne } from '@/lib/ai/embeddings';
 import { recordAiUsage } from '@/lib/ai/usage-log';
 import { obtenerPlantilla } from '@/lib/generadores/plantillas';
 import {
@@ -13,6 +12,8 @@ import {
   limpiarRedaccion,
   redaccionUtil,
 } from '@/lib/generadores/redactor';
+import { adaptarCampo } from '@/lib/generadores/redaccion-masiva';
+import { sustentoNormativo } from '@/lib/generadores/sustento';
 import type { BloqueRedactado, Seccion } from '@/lib/generadores/plantilla-tipos';
 
 export const runtime = 'nodejs';
@@ -29,36 +30,6 @@ const Schema = z.object({
   texto_actual: z.string().max(20000).optional(),
 });
 
-/**
- * Un campo de texto largo se trata como un apartado redactable más.
- *
- * Cuando el campo es el hueco de un párrafo hay que decírselo al modelo
- * con la frase entera: si no, devuelve "Se consideran servicios
- * similares aquellos que…" para un párrafo que ya empieza con "Se
- * consideran servicios similares a los siguientes", y el documento sale
- * repitiendo la frase.
- */
-function adaptar(
-  c: { id: string; etiqueta: string; ayuda: string; metodo?: string },
-  parrafo?: string,
-): BloqueRedactado {
-  const instruccion = parrafo
-    ? `${c.ayuda}.
-
-Tu texto se inserta en el hueco de esta frase del documento:
-"${parrafo.replace(/\{\{[^}]+\}\}/g, '______')}"
-Escribe SOLO lo que va en el hueco, sin repetir el resto de la frase y sin volver a introducir el tema.`
-    : c.ayuda;
-  return {
-    clase: 'redactado',
-    id: c.id,
-    etiqueta: c.etiqueta,
-    instruccion,
-    metodo: c.metodo,
-    extension: 'parrafo',
-  };
-}
-
 /** Busca el bloque redactable por id, recorriendo también las subsecciones. */
 function buscarBloque(secciones: Seccion[], id: string): BloqueRedactado | null {
   for (const s of secciones) {
@@ -70,13 +41,13 @@ function buscarBloque(secciones: Seccion[], id: string): BloqueRedactado | null 
       // el boton de mejorar valga en los dos sitios y no haya que
       // mantener dos caminos.
       if (b.clase === 'campo' && b.tipo === 'texto_largo' && b.id === id) {
-        return adaptar(b);
+        return adaptarCampo(b);
       }
       // Y los que viven dentro de un párrafo, como "servicios similares":
       // el hueco es del usuario aunque el párrafo sea invariable.
       if (b.clase === 'parrafo') {
         const campo = b.campos.find((c) => c.id === id && c.tipo === 'texto_largo');
-        if (campo) return adaptar(campo, b.texto);
+        if (campo) return adaptarCampo(campo, b.texto);
       }
     }
     if (s.subsecciones) {
@@ -85,39 +56,6 @@ function buscarBloque(secciones: Seccion[], id: string): BloqueRedactado | null 
     }
   }
   return null;
-}
-
-/** Sustento normativo de la biblioteca para este apartado. */
-async function sustentoNormativo(consulta: string): Promise<string> {
-  try {
-    const embedding = await embedOne(consulta, 'RETRIEVAL_QUERY');
-    const supabase = createClient();
-    const { data } = await supabase.rpc('hybrid_search', {
-      query_text: consulta,
-      query_embedding: embedding as unknown as number[],
-      match_count: 5,
-      filter_type: null,
-    });
-    const filas = (data ?? []) as Array<{
-      content: string;
-      doc_title: string;
-      doc_type: string;
-      doc_number: string | null;
-    }>;
-    if (filas.length === 0) return '';
-    return filas
-      .map((f, i) => {
-        const etiqueta = `${f.doc_type}${f.doc_number ? ' ' + f.doc_number : ''}`;
-        return `[${i + 1}] ${etiqueta} — ${f.doc_title}\n${f.content.slice(0, 1200)}`;
-      })
-      .join('\n\n---\n\n');
-  } catch (e) {
-    // Sin sustento se redacta igual: el prompt ya prohíbe citar norma que
-    // no venga respaldada, así que la salida sale sin citas en vez de con
-    // citas inventadas.
-    console.error('[redactar] falló la búsqueda de sustento:', (e as Error).message);
-    return '';
-  }
 }
 
 /**

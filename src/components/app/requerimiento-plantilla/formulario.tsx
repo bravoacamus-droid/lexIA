@@ -933,7 +933,11 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
             </div>
           </Card>
 
-          <Entrevista id={id} onAplicar={aplicarCondiciones} />
+          <Entrevista
+            id={id}
+            onAplicar={aplicarCondiciones}
+            onRedactar={(cambios) => aplicarLote(cambios, [])}
+          />
 
           <CargarProyecto id={id} onAplicar={aplicarLote} />
 
