@@ -58,6 +58,8 @@ import {
   bloqueVisible as bloqueAplica,
   campoOpcionPropia,
   nuevoIdExtra,
+  numeralDeHija,
+  serieDeLetras,
 } from '@/lib/generadores/ensamblador';
 import {
   anclaApartado,
@@ -590,7 +592,13 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
     }
   };
 
-  const pintarSeccion = (s: Seccion, numero: string, nivel: number, controles?: ReactNode) => {
+  const pintarSeccion = (
+    s: Seccion,
+    numero: string,
+    nivel: number,
+    siguienteLetra: () => string,
+    controles?: ReactNode,
+  ) => {
     // Un apartado "de corresponder" ya no desaparece de la pantalla: se
     // muestra con su interruptor al lado del título, encendido o
     // apagado. Es la observación de César de agosto: "el botón de
@@ -750,13 +758,16 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
                 let sub = 0;
                 return hijas.map((h, iHija) => {
                   const entra = !h.condicion || r.condiciones[h.condicion];
-                  const suNumero = entra ? `${numero}.${++sub}` : '—';
+                  const suNumero = entra
+                    ? numeralDeHija(numero, () => ++sub, h, siguienteLetra)
+                    : '—';
                   return (
                     <div key={h.id} className="group/hija">
                       {pintarSeccion(
                         h,
                         suNumero,
                         nivel + 1,
+                        siguienteLetra,
                         // Van en la fila del título, no flotando sobre
                         // ella: encima del interruptor le tapaban la
                         // palabra «Corresponde».
@@ -1044,7 +1055,13 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
                             />
                           </>
                         ) : (
-                          pintarSeccion(apartado.seccion, numero, 1, colocacion)
+                          pintarSeccion(
+                            apartado.seccion,
+                            numero,
+                            1,
+                            serieDeLetras(),
+                            colocacion,
+                          )
                         )}
                       </>
                     );

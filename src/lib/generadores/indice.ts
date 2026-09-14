@@ -30,6 +30,8 @@ import {
   bloqueVisible,
   campoOpcionPropia,
   type RespuestasRequerimiento,
+  numeralDeHija,
+  serieDeLetras,
 } from './ensamblador';
 
 /** Estado de un apartado en el índice. */
@@ -163,7 +165,13 @@ export function construirIndice(
    * invariable no tiene entradas, pero sigue en el índice: sirve para
    * llegar hasta ella.
    */
-  const recorrer = (s: Seccion, numero: string, nivel: number, raiz: string) => {
+  const recorrer = (
+    s: Seccion,
+    numero: string,
+    nivel: number,
+    raiz: string,
+    siguienteLetra: () => string,
+  ) => {
     if (s.condicion && !respuestas.condiciones[s.condicion]) return;
     const entradas: EntradaIndice[] = [];
     bloques(s.bloques, entradas);
@@ -181,8 +189,13 @@ export function construirIndice(
     let sub = 0;
     for (const h of s.subsecciones ?? []) {
       if (h.condicion && !respuestas.condiciones[h.condicion]) continue;
-      sub++;
-      recorrer(h, `${numero}.${sub}`, nivel + 1, raiz);
+      recorrer(
+        h,
+        numeralDeHija(numero, () => ++sub, h, siguienteLetra),
+        nivel + 1,
+        raiz,
+        siguienteLetra,
+      );
     }
 
     // Y los que añadió la entidad dentro de esta sección.
@@ -243,7 +256,7 @@ export function construirIndice(
     const s = apartado.seccion;
     if (s.condicion && !respuestas.condiciones[s.condicion]) continue;
     n++;
-    recorrer(s, String(n), 1, s.id);
+    recorrer(s, String(n), 1, s.id, serieDeLetras());
   }
 
   return grupos;

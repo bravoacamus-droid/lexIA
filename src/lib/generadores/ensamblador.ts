@@ -725,7 +725,12 @@ export function ensamblarRequerimiento(
   };
 
   /** Numeración jerárquica: 1, 1.1, 1.1.1 — como el formato original. */
-  const escribirSeccion = (s: Seccion, numero: string, nivel: number) => {
+  const escribirSeccion = (
+    s: Seccion,
+    numero: string,
+    nivel: number,
+    siguienteLetra: () => string,
+  ) => {
     if (s.condicion && !respuestas.condiciones[s.condicion]) {
       omitidas.push(s.titulo);
       return;
@@ -739,8 +744,12 @@ export function ensamblarRequerimiento(
         omitidas.push(hija.titulo);
         continue;
       }
-      sub++;
-      escribirSeccion(hija, `${numero}.${sub}`, nivel + 1);
+      escribirSeccion(
+        hija,
+        numeralDeHija(numero, () => ++sub, hija, siguienteLetra),
+        nivel + 1,
+        siguienteLetra,
+      );
     }
 
     // Los apartados que la entidad añadió dentro de esta sección van
@@ -796,7 +805,8 @@ export function ensamblarRequerimiento(
       continue;
     }
     n++;
-    escribirSeccion(s, String(n), 1);
+    // Una serie de letras por apartado de primer nivel.
+    escribirSeccion(s, String(n), 1, serieDeLetras());
   }
 
   return {
@@ -805,6 +815,47 @@ export function ensamblarRequerimiento(
     avisos: verificarTopes(plantilla, respuestas, contexto),
     omitidas,
   };
+}
+
+/**
+ * La serie de letras de un apartado: A, B, C… y tras la Z, AA.
+ *
+ * Se crea una por apartado de primer nivel y se le va pidiendo la
+ * siguiente. Tiene que ser una sola para todo el apartado porque en
+ * REQUISITOS DE CALIFICACIÓN la serie cruza de un grupo al otro: la
+ * capacidad legal es la A dentro de los obligatorios y la experiencia
+ * del postor es la B dentro de los adicionales.
+ */
+export function serieDeLetras(): () => string {
+  let i = 0;
+  return () => {
+    let n = i++;
+    let letras = '';
+    do {
+      letras = String.fromCharCode(65 + (n % 26)) + letras;
+      n = Math.floor(n / 26) - 1;
+    } while (n >= 0);
+    return letras;
+  };
+}
+
+/**
+ * El rótulo de una subsección: "10.1" normalmente, "A" cuando el formato
+ * la numera con letra.
+ *
+ * Vive aquí porque lo consultan los tres sitios que numeran —el
+ * documento, la pantalla y el índice—. Cuando cada uno lo decidía por su
+ * cuenta, lo que se veía y lo que se exportaba podían no coincidir.
+ */
+export function numeralDeHija(
+  padre: string,
+  siguienteNumero: () => number,
+  hija: { numeralLiteral?: boolean },
+  siguienteLetra: () => string,
+): string {
+  // Una hija con letra no consume el número que le habría tocado: en el
+  // formato, los obligatorios son 10.1 y su único requisito es "A.".
+  return hija.numeralLiteral ? siguienteLetra() : `${padre}.${siguienteNumero()}`;
 }
 
 /**

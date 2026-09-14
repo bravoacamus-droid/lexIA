@@ -381,6 +381,24 @@ export interface Seccion {
    * diga.
    */
   renombrable?: boolean;
+  /**
+   * El numeral se rotula con letra, no con el número que le tocaría.
+   *
+   * En REQUISITOS DE CALIFICACIÓN el formato oficial no escribe
+   * "10.1.1. Capacidad legal" sino "A. Capacidad legal", y la serie de
+   * letras SIGUE de un grupo al otro: la capacidad legal cuelga de los
+   * obligatorios y la experiencia del postor de los adicionales, y aun
+   * así son A y B. Comprobado en el .docx de César: los dos párrafos
+   * comparten la misma lista de Word (numId 19, formato upperLetter).
+   *
+   * Observación de César del 13/09/2026 sobre Servicios – Comparación de
+   * precios: "a. Capacidad legal … b. Experiencia del postor en la
+   * especialidad".
+   *
+   * La serie corre por apartado de primer nivel, que es como la lleva el
+   * documento.
+   */
+  numeralLiteral?: boolean;
 }
 
 /** Tope normativo que el generador verifica al armar el documento. */
