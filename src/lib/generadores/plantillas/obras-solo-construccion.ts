@@ -28,6 +28,9 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_EQUIPAMIENTO_ESTRATEGICO,
+  METODO_PERSONAL_NO_CLAVE,
+  METODO_EQUIPAMIENTO_NO_ESTRATEGICO,
   METODO_FORMACION_PERSONAL_CLAVE,
   METODO_SIMILARES,
   METODO_EXPERIENCIA_PERSONAL_CLAVE,
@@ -327,6 +330,24 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
           ],
         },
         {
+          id: 'otras_disposiciones',
+          titulo: 'Otras disposiciones',
+          condicion: 'tiene_otras_disposiciones',
+          // Va entre el plan de trabajo y los anexos técnicos, donde lo
+          // pone el .docx. Observación de César.
+          bloques: [
+            { clase: 'nota', texto: '[Consignar todas las disposiciones necesarias adicionales para una correcta ejecución contractual, de conformidad con la ley y el reglamento.]' },
+            {
+              clase: 'redactado',
+              id: 'otras_disposiciones',
+              etiqueta: 'Otras disposiciones',
+              instruccion:
+                'Consignar las disposiciones adicionales necesarias para una correcta ejecución contractual, conforme a la Ley y el Reglamento',
+              extension: 'varios_parrafos',
+            },
+          ],
+        },
+        {
           id: 'anexos_tecnicos',
           titulo: 'Anexos técnicos',
           bloques: [
@@ -432,42 +453,51 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
           ],
         },
         {
-          id: 'plazo_ejecucion',
-          titulo: 'Plazo de ejecución total',
-          bloques: [
+          id: 'plazos',
+          titulo: 'Plazo de prestación',
+          // El formato cuelga de aquí el plazo total y el de respuestas;
+          // estaban sueltos. Observación de César.
+          bloques: [],
+          subsecciones: [
             {
-              clase: 'tabla',
               id: 'plazo_ejecucion',
-              etiqueta: 'Plazo por obligación',
-              instruccion:
-                'Detallar los días calendario por cada obligación: ejecución de obra (edificación o infraestructura, mobiliario, equipamiento, plan de contingencia) y puesta en servicio',
-              columnas: ['Obligaciones', 'Detalle', 'Días calendario'],
-              minimo: 1,
-            },
-          ],
-        },
-        {
-          id: 'plazo_respuestas',
-          titulo: 'Plazo para respuestas entre las partes',
-          bloques: [
-            {
-              clase: 'fijo',
-              texto:
-                'De acuerdo con lo establecido en el numeral 192.2 del artículo 192 del Reglamento, cuando este no establezca un plazo específico para la respuesta de las partes durante la ejecución contractual, se aplica el plazo máximo de respuesta establecido en el cuadro siguiente:',
-              fundamento: 'Reglamento, art. 192.2',
+              titulo: 'Plazo de ejecución total',
+              bloques: [
+                {
+                  clase: 'tabla',
+                  id: 'plazo_ejecucion',
+                  etiqueta: 'Plazo por obligación',
+                  instruccion:
+                    'Detallar los días calendario por cada obligación: ejecución de obra (edificación o infraestructura, mobiliario, equipamiento, plan de contingencia) y puesta en servicio',
+                  columnas: ['Obligaciones', 'Detalle', 'Días calendario'],
+                  minimo: 1,
+                },
+              ],
             },
             {
-              clase: 'campo',
-              id: 'plazo_respuesta',
-              etiqueta: 'Plazo máximo de respuesta',
-              ayuda: 'Consignar el plazo en días calendario',
-              tipo: 'dias',
-              obligatorio: true,
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'Antes del vencimiento de este plazo, las partes pueden acordar su prórroga para cada caso específico considerando la cláusula de notificaciones del contrato.',
+              id: 'plazo_respuestas',
+              titulo: 'Plazo para respuestas entre las partes',
+              bloques: [
+                {
+                  clase: 'fijo',
+                  texto:
+                    'De acuerdo con lo establecido en el numeral 192.2 del artículo 192 del Reglamento, cuando este no establezca un plazo específico para la respuesta de las partes durante la ejecución contractual, se aplica el plazo máximo de respuesta establecido en el cuadro siguiente:',
+                  fundamento: 'Reglamento, art. 192.2',
+                },
+                {
+                  clase: 'campo',
+                  id: 'plazo_respuesta',
+                  etiqueta: 'Plazo máximo de respuesta',
+                  ayuda: 'Consignar el plazo en días calendario',
+                  tipo: 'dias',
+                  obligatorio: true,
+                },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'Antes del vencimiento de este plazo, las partes pueden acordar su prórroga para cada caso específico considerando la cláusula de notificaciones del contrato.',
+                },
+              ],
             },
           ],
         },
@@ -572,8 +602,47 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
           ],
         },
         {
+          id: 'ahorros_pciv',
+          titulo: 'Repartición de los ahorros generados por propuestas de cambio de ingeniería de valor',
+          condicion: 'admite_pciv',
+          // El numeral faltaba. Observación de César.
+          bloques: [
+            { clase: 'nota', texto: '[De conformidad con el artículo 205 del Reglamento, la Entidad podrá prever la posibilidad de que el contratista presente Propuestas de Cambio de Ingeniería de Valor (PCIV) durante la ejecución contractual, con la finalidad de optimizar soluciones técnicas, procedimientos constructivos, materiales, equipos o procesos, siempre que dichas propuestas no afecten la funcionalidad, calidad, seguridad, vida útil, desempeño ni los objetivos de la obra.' },
+            { clase: 'fijo', texto: 'Cuando la Entidad apruebe una Propuesta de Cambio de Ingeniería de Valor y esta genere ahorros económicos debidamente sustentados, dichos ahorros se distribuirán entre la Entidad Contratante y el contratista, conforme a los porcentajes establecidos en la estrategia de contratación, los cuales deberán sumar el cien por ciento (100%).' },
+            { clase: 'fijo', texto: 'La distribución de los ahorros procederá únicamente respecto de las Propuestas de Cambio de Ingeniería de Valor que hayan sido evaluadas y aprobadas por la Entidad, conforme al procedimiento y condiciones establecidos en el Reglamento y en el contrato.' },
+            { clase: 'nota', texto: 'La distribución de los ahorros deberá sustentarse en la estrategia de contratación.' },
+            {
+              clase: 'redactado',
+              id: 'ahorros_reparto',
+              etiqueta: 'Reparto de los ahorros',
+              instruccion:
+                'Precisar los porcentajes en que se reparten los ahorros entre la Entidad y el contratista, y cómo se sustentan en la estrategia de contratación',
+              extension: 'varios_parrafos',
+            },
+          ],
+        },
+        {
+          id: 'ganancias_costo_reembolsable',
+          titulo: 'Repartición de las ganancias o pérdidas generadas en modalidad de costo reembolsable',
+          condicion: 'aplica_costo_reembolsable',
+          // El numeral faltaba. Observación de César.
+          bloques: [
+            { clase: 'nota', texto: '[Cuando la estrategia de contratación haya establecido que la ejecución de la obra se desarrollará bajo la modalidad de pago de costo reembolsable, la Entidad deberá definir el mecanismo de distribución de las ganancias o pérdidas que resulten al comparar el costo objetivo con el costo final reconocido de la ejecución contractual.' },
+            {
+              clase: 'redactado',
+              id: 'ganancias_costo_reembolsable',
+              etiqueta: 'Reparto de ganancias o pérdidas',
+              instruccion:
+                'Precisar cómo se reparten entre la Entidad y el contratista las ganancias o pérdidas que genere la modalidad de costo reembolsable, y con qué documentos se acreditan',
+              extension: 'varios_parrafos',
+            },
+          ],
+        },
+        {
           id: 'incentivos',
           titulo: 'Aplicación de incentivos',
+          condicion: 'aplica_incentivos',
+          // Cada incentivo con su subtítulo. Observación de César.
           bloques: [
             {
               // En Solo Construcción el incentivo por cumplimiento
@@ -583,21 +652,35 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
               texto:
                 'En el sistema de Solo Construcción la Entidad tiene la OBLIGACIÓN legal de establecer un incentivo por el cumplimiento anticipado de la fecha de culminación. Los incentivos deben ser objetivos, verificables, razonables y estar directamente vinculados al cumplimiento eficiente de las obligaciones contractuales, conforme al artículo 162 del Reglamento.',
             },
+          ],
+          subsecciones: [
             {
-              clase: 'redactado',
               id: 'incentivo_anticipado',
-              etiqueta: 'Incentivo por cumplimiento anticipado',
-              instruccion:
-                'Indicar las precisiones correspondientes y los componentes a los que sería aplicable el incentivo por cumplimiento anticipado de la fecha programada de culminación',
-              extension: 'parrafo',
+              titulo: 'Incentivo por cumplimiento anticipado de la fecha programada de la culminación de la prestación',
+              bloques: [
+                {
+                  clase: 'redactado',
+                  id: 'incentivo_anticipado',
+                  etiqueta: 'Incentivo por cumplimiento anticipado',
+                  instruccion:
+                    'Indicar las precisiones correspondientes y los componentes a los que sería aplicable el incentivo por cumplimiento anticipado de la fecha programada de culminación',
+                  extension: 'parrafo',
+                },
+              ],
             },
             {
-              clase: 'redactado',
               id: 'incentivo_ambiental',
-              etiqueta: 'Incentivo por excelencia ambiental y de seguridad',
-              instruccion:
-                'Indicar las precisiones para la aplicación del incentivo, señalando los indicadores iniciales respecto de los cuales se considerará su cumplimiento, el porcentaje de bonificación (de hasta 1% del monto del contrato original) y la forma de acreditación y otorgamiento',
-              extension: 'parrafo',
+              titulo: 'Incentivo por incorporación de excelencia en estándares ambientales y de seguridad',
+              bloques: [
+                {
+                  clase: 'redactado',
+                  id: 'incentivo_ambiental',
+                  etiqueta: 'Incentivo por excelencia ambiental y de seguridad',
+                  instruccion:
+                    'Indicar las precisiones para la aplicación del incentivo, señalando los indicadores iniciales respecto de los cuales se considerará su cumplimiento, el porcentaje de bonificación (de hasta 1% del monto del contrato original) y la forma de acreditación y otorgamiento',
+                  extension: 'parrafo',
+                },
+              ],
             },
           ],
         },
@@ -788,6 +871,38 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
             },
           ],
         },
+        {
+          // Incorporadas por César el 16/08/2026, tras señalarle que
+          // faltaban. El plazo de vicios ocultos en obras NO es libre:
+          // no puede bajar de siete años.
+          id: 'vicios_ocultos',
+          titulo: 'Responsabilidad por vicios ocultos',
+          bloques: [
+            {
+              clase: 'fijo',
+              texto:
+                'La recepción conforme de la obra otorgada por la Entidad no enerva su derecho a reclamar posteriormente por defectos o vicios ocultos, de conformidad con lo establecido en el literal b) del numeral 69.2 del artículo 69 de la Ley N° 32069 y el artículo 216 de su Reglamento.',
+              fundamento: 'Ley N° 32069, art. 69.2.b; Reglamento, art. 216',
+            },
+            {
+              clase: 'parrafo',
+              texto:
+                'El plazo de responsabilidad del contratista por vicios ocultos es de {{vicios_ocultos_plazo}}, contado a partir de la recepción total o parcial de la obra, según corresponda. Durante este periodo, el contratista es responsable por la calidad ofrecida y por los defectos que no eran detectables al momento de la recepción conforme.',
+              campos: [
+                {
+                  clase: 'campo',
+                  id: 'vicios_ocultos_plazo',
+                  etiqueta: 'Plazo de responsabilidad por vicios ocultos',
+                  ayuda: 'Consignar el tiempo, no menor de siete (7) años',
+                  tipo: 'texto',
+                  obligatorio: true,
+                  validacion: 'vicios_ocultos_min',
+                },
+              ],
+            },
+          ],
+        },
+        seccionAnticorrupcion(true)
       ],
     },
 
@@ -818,54 +933,64 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
         {
           id: 'conformidad',
           titulo: 'Conformidad de la prestación',
-          bloques: [
+          bloques: [],
+          // Los dos numerales que el formato cuelga de aquí. El
+          // segundo estaba al mismo nivel, no dentro, y empujaba la
+          // numeración del resto. Observación de César.
+          subsecciones: [
             {
-              clase: 'parrafo',
-              texto:
-                'El {{area_conformidad}} en calidad de área usuaria, es el competente para emitir la conformidad. Donde, en caso corresponda deberá señalar los días de retraso injustificado u otras penalidades que incurrió el contratista, para efectos la Dependencia Encargada de Contrataciones (DEC) proceda con la determinación el importe a penalizar.',
-              campos: [
+              id: 'conformidad_organo',
+              titulo: 'Órgano quien brindará la conformidad',
+              bloques: [
                 {
-                  clase: 'campo',
-                  id: 'area_conformidad',
-                  etiqueta: 'Área usuaria que otorga la conformidad',
-                  ayuda: 'Consignar el área usuaria',
-                  tipo: 'texto',
-                  obligatorio: true,
+                  clase: 'parrafo',
+                  texto:
+                    'El {{area_conformidad}} en calidad de área usuaria, es el competente para emitir la conformidad. Donde, en caso corresponda deberá señalar los días de retraso injustificado u otras penalidades que incurrió el contratista, para efectos la Dependencia Encargada de Contrataciones (DEC) proceda con la determinación el importe a penalizar.',
+                  campos: [
+                    {
+                      clase: 'campo',
+                      id: 'area_conformidad',
+                      etiqueta: 'Área usuaria que otorga la conformidad',
+                      ayuda: 'Consignar el área usuaria',
+                      tipo: 'texto',
+                      obligatorio: true,
+                    },
+                  ],
+                },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'Respecto del componente ejecución de obra, la verificación del cumplimiento contractual se efectuará mediante la aprobación de valorizaciones, inspecciones, pruebas, recepción de obra y demás mecanismos de control previstos en la Ley, su Reglamento y los documentos contractuales, según corresponda.',
+                },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'La conformidad de la prestación únicamente será emitida cuando las verificaciones efectuadas acrediten el cumplimiento integral de las obligaciones contractuales, sin perjuicio de la responsabilidad del contratista por errores, omisiones, deficiencias o vicios ocultos que pudieran detectarse con posterioridad, de conformidad con la normativa vigente.',
                 },
               ],
             },
             {
-              clase: 'fijo',
-              texto:
-                'Respecto del componente ejecución de obra, la verificación del cumplimiento contractual se efectuará mediante la aprobación de valorizaciones, inspecciones, pruebas, recepción de obra y demás mecanismos de control previstos en la Ley, su Reglamento y los documentos contractuales, según corresponda.',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'La conformidad de la prestación únicamente será emitida cuando las verificaciones efectuadas acrediten el cumplimiento integral de las obligaciones contractuales, sin perjuicio de la responsabilidad del contratista por errores, omisiones, deficiencias o vicios ocultos que pudieran detectarse con posterioridad, de conformidad con la normativa vigente.',
-            },
-          ],
-        },
-        {
-          id: 'verificaciones',
-          titulo: 'Verificaciones técnicas, validaciones o revisiones',
-          condicion: 'requiere_verificaciones',
-          bloques: [
-            {
-              clase: 'redactado',
               id: 'verificaciones',
-              etiqueta: 'Verificaciones técnicas',
-              instruccion:
-                'Precisar las verificaciones técnicas, inspecciones in situ, pruebas de control de calidad, ensayos de materiales, validaciones operativas y revisiones documentarias que la Entidad realizará a través de la supervisión de obra',
-                metodo: METODO_VERIFICACIONES,
-              ejemplo:
-                'La revisión y pronunciamiento sobre el Informe de Revisión del Expediente Técnico presentado por el contratista.\nLa verificación del control técnico, económico, administrativo y de seguridad de la ejecución física de la obra.\nLa validación de los metrados realmente ejecutados y el sustento documentario de las valorizaciones mensuales.\nLa revisión permanente de los registros y la absolución de consultas anotadas en el Cuaderno de Incidencias.\nLa verificación del cumplimiento de los protocolos de control de calidad, ensayos de materiales y pruebas operativas.\nEl seguimiento y control del cumplimiento del programa de ejecución de obra (ruta crítica).\nLa verificación de que la obra se ejecute en estricta conformidad con el Expediente Técnico aprobado.',
-              extension: 'lista',
-            },
-            {
-              clase: 'nota',
-              texto:
-                'El acto formal de recepción de la obra únicamente procede cuando las verificaciones del Comité de Recepción acrediten el cumplimiento integral de las obligaciones y el correcto funcionamiento de la infraestructura, sin perjuicio de la responsabilidad del contratista por vicios ocultos por un plazo NO MENOR DE SIETE (7) AÑOS, conforme al artículo 69 de la Ley.',
+              titulo: 'Verificaciones técnicas, validaciones o revisiones',
+              condicion: 'requiere_verificaciones',
+              bloques: [
+                {
+                  clase: 'redactado',
+                  id: 'verificaciones',
+                  etiqueta: 'Verificaciones técnicas',
+                  instruccion:
+                    'Precisar las verificaciones técnicas, inspecciones in situ, pruebas de control de calidad, ensayos de materiales, validaciones operativas y revisiones documentarias que la Entidad realizará a través de la supervisión de obra',
+                    metodo: METODO_VERIFICACIONES,
+                  ejemplo:
+                    'La revisión y pronunciamiento sobre el Informe de Revisión del Expediente Técnico presentado por el contratista.\nLa verificación del control técnico, económico, administrativo y de seguridad de la ejecución física de la obra.\nLa validación de los metrados realmente ejecutados y el sustento documentario de las valorizaciones mensuales.\nLa revisión permanente de los registros y la absolución de consultas anotadas en el Cuaderno de Incidencias.\nLa verificación del cumplimiento de los protocolos de control de calidad, ensayos de materiales y pruebas operativas.\nEl seguimiento y control del cumplimiento del programa de ejecución de obra (ruta crítica).\nLa verificación de que la obra se ejecute en estricta conformidad con el Expediente Técnico aprobado.',
+                  extension: 'lista',
+                },
+                {
+                  clase: 'nota',
+                  texto:
+                    'El acto formal de recepción de la obra únicamente procede cuando las verificaciones del Comité de Recepción acrediten el cumplimiento integral de las obligaciones y el correcto funcionamiento de la infraestructura, sin perjuicio de la responsabilidad del contratista por vicios ocultos por un plazo NO MENOR DE SIETE (7) AÑOS, conforme al artículo 69 de la Ley.',
+                },
+              ],
             },
           ],
         },
@@ -903,45 +1028,11 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
             },
           ],
         },
-
-        {
-          // Incorporadas por César el 16/08/2026, tras señalarle que
-          // faltaban. El plazo de vicios ocultos en obras NO es libre:
-          // no puede bajar de siete años.
-          id: 'vicios_ocultos',
-          titulo: 'Responsabilidad por vicios ocultos',
-          bloques: [
-            {
-              clase: 'fijo',
-              texto:
-                'La recepción conforme de la obra otorgada por la Entidad no enerva su derecho a reclamar posteriormente por defectos o vicios ocultos, de conformidad con lo establecido en el literal b) del numeral 69.2 del artículo 69 de la Ley N° 32069 y el artículo 216 de su Reglamento.',
-              fundamento: 'Ley N° 32069, art. 69.2.b; Reglamento, art. 216',
-            },
-            {
-              clase: 'parrafo',
-              texto:
-                'El plazo de responsabilidad del contratista por vicios ocultos es de {{vicios_ocultos_plazo}}, contado a partir de la recepción total o parcial de la obra, según corresponda. Durante este periodo, el contratista es responsable por la calidad ofrecida y por los defectos que no eran detectables al momento de la recepción conforme.',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'vicios_ocultos_plazo',
-                  etiqueta: 'Plazo de responsabilidad por vicios ocultos',
-                  ayuda: 'Consignar el tiempo, no menor de siete (7) años',
-                  tipo: 'texto',
-                  obligatorio: true,
-                  validacion: 'vicios_ocultos_min',
-                },
-              ],
-            },
-          ],
-        },
-
         // El artículo que César añadió en setiembre de 2026
         // (observación 17). Su .docx no lo trae, así que los cuatro
         // apartados nacen apagados: el documento no cambia mientras la
         // Entidad no active los que le apliquen.
         seccionConfidencialidad(false),
-        seccionAnticorrupcion(true),
       ],
     },
 
@@ -1007,199 +1098,331 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
             },
           ],
         },
+        {
+          id: 'personal_no_clave',
+          titulo: 'Personal no clave',
+          condicion: 'exige_personal_no_clave',
+          bloques: [
+            {
+              clase: 'tabla',
+              id: 'personal_no_clave',
+              metodo: METODO_PERSONAL_NO_CLAVE,
+              etiqueta: 'Personal no clave',
+              columnas: [
+                'Cargo y/o responsabilidad',
+                'Cant.',
+                'Profesión y grado o título profesional requerido',
+                'Experiencia mínima',
+              ],
+              minimo: 1,
+            },
+          ],
+        },
+        {
+          id: 'equipamiento_no_estrategico',
+          titulo: 'Equipamiento no estratégico',
+          condicion: 'exige_equipamiento_no_estrategico',
+          // El numeral faltaba. Observación de César. Los textos son los
+          // de ESTE formato, que los redacta a su manera.
+          bloques: [
+            { clase: 'nota', texto: '[La Entidad podrá requerir equipamiento no estratégico para la adecuada ejecución del componente de ejecución de la obra, siempre que dicho equipamiento resulte necesario para el cumplimiento de las obligaciones contractuales y guarde relación directa con la naturaleza, complejidad y alcance de los trabajos de construcción.' },
+            { clase: 'fijo', texto: 'Se considera equipamiento no estratégico a aquellos equipos, herramientas, instrumentos de medición, dispositivos de seguridad, software de gestión de obra, mobiliario para las instalaciones temporales u otros recursos que contribuyen al desarrollo de las actividades constructivas, pero cuya disponibilidad no resulta determinante para acreditar la capacidad técnica del contratista ni constituye un factor esencial (estratégico) para la ejecución del objeto contractual.' },
+            { clase: 'fijo', texto: 'La Entidad deberá establecer únicamente el equipamiento estrictamente necesario para la ejecución física de la obra, evitando requerimientos desproporcionados o que restrinjan injustificadamente la libre concurrencia.' },
+            {
+              clase: 'tabla',
+              id: 'equipamiento_no_estrategico',
+              etiqueta: 'Equipamiento no estratégico',
+              instruccion:
+                'Señalar el equipamiento no estratégico requerido, su cantidad y sus características mínimas',
+              metodo: METODO_EQUIPAMIENTO_NO_ESTRATEGICO,
+              columnas: ['Equipamiento', 'Cant.', 'Características mínimas'],
+              minimo: 0,
+            },
+          ],
+        }
       ],
     },
 
     {
       id: 'requisitos_calificacion',
       titulo: 'REQUISITOS DE CALIFICACIÓN',
-      bloques: [
-        {
-          clase: 'nota',
-          texto:
-            'En caso así se determine en la estrategia de contratación, la entidad contratante puede incluir cualquiera de los siguientes requisitos de calificación adicionales. Cabe señalar que, una vez incorporados en el presente numeral, los requisitos de calificación se consideran obligatorios, debiéndose eliminar aquellos que no hayan sido seleccionados.',
-        },
-      ],
+      bloques: [],
+      // El formato los agrupa en dos, y las cabezas van con letra
+      // en una sola serie que cruza de un grupo al otro, como en
+      // el .docx. Observación de César.
       subsecciones: [
         {
-          id: 'experiencia_postor',
-          titulo: 'Experiencia del postor en la especialidad',
+          id: 'calificacion_obligatorios',
+          titulo: 'Requisitos de calificación obligatorios',
           bloques: [
+          ],
+          subsecciones: [
             {
-              clase: 'nota',
-              texto:
-                'La especialidad de la obra la determina la entidad conforme al artículo 157 del Reglamento y el listado aprobado por la Dirección General de Abastecimiento mediante Resolución Directoral N° 0016-2025-EF/54.01. No pueden consignarse subespecialidades "afines", equivalentes, similares o análogas, ni establecerse tipologías específicas de obras como requisito de calificación.',
-            },
-            {
-              // En obras la experiencia se computa desde el ACTA DE
-              // RECEPCIÓN, no desde la conformidad ni el comprobante.
-              clase: 'parrafo',
-              texto:
-                'El postor debe acreditar un monto facturado acumulado equivalente a {{experiencia_monto}}, en la ejecución de obras en la especialidad y las subespecialidades correspondientes durante los veinticinco años anteriores a la fecha de la presentación de ofertas, que se computan desde la suscripción del acta de recepción de obra.',
-              campos: [
+              id: 'experiencia_postor',
+              titulo: 'Experiencia del postor en la especialidad',
+              numeralLiteral: true,
+              bloques: [
                 {
-                  clase: 'campo',
-                  id: 'experiencia_monto',
-                  etiqueta: 'Monto facturado acumulado exigido',
-                  ayuda:
-                    'Consignar el monto de facturación expresado en números y letras en la moneda de la convocatoria, monto que no puede ser mayor a una vez la cuantía de la contratación o del ítem correspondiente',
-                    metodo: METODO_SIMILARES,
-                  tipo: 'moneda',
-                  obligatorio: true,
-                  validacion: 'experiencia_max',
+                  clase: 'nota',
+                  texto:
+                    'La especialidad de la obra la determina la entidad conforme al artículo 157 del Reglamento y el listado aprobado por la Dirección General de Abastecimiento mediante Resolución Directoral N° 0016-2025-EF/54.01. No pueden consignarse subespecialidades "afines", equivalentes, similares o análogas, ni establecerse tipologías específicas de obras como requisito de calificación.',
+                },
+                { clase: 'titulo', texto: 'Requisitos:', nivel: 3 },
+                {
+                  // En obras la experiencia se computa desde el ACTA DE
+                  // RECEPCIÓN, no desde la conformidad ni el comprobante.
+                  clase: 'parrafo',
+                  texto:
+                    'El postor debe acreditar un monto facturado acumulado equivalente a {{experiencia_monto}}, en la ejecución de obras en la especialidad y las subespecialidades correspondientes durante los veinticinco años anteriores a la fecha de la presentación de ofertas, que se computan desde la suscripción del acta de recepción de obra.',
+                  campos: [
+                    {
+                      clase: 'campo',
+                      id: 'experiencia_monto',
+                      etiqueta: 'Monto facturado acumulado exigido',
+                      ayuda:
+                        'Consignar el monto de facturación expresado en números y letras en la moneda de la convocatoria, monto que no puede ser mayor a una vez la cuantía de la contratación o del ítem correspondiente',
+                        metodo: METODO_SIMILARES,
+                      tipo: 'moneda',
+                      obligatorio: true,
+                      validacion: 'experiencia_max',
+                    },
+                  ],
+                },
+                { clase: 'titulo', texto: 'Acreditación:', nivel: 3 },
+                { clase: 'fijo', texto: 'Se considera la siguiente especialidad y subespecialidades como experiencia del postor:' },
+                {
+                  clase: 'tabla',
+                  id: 'especialidades',
+                  etiqueta: 'Especialidad y subespecialidades',
+                  columnas: ['N.°', 'Especialidad', 'Subespecialidad(es) admitida(s)'],
+                  minimo: 1,
+                },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'La experiencia del postor en la especialidad se acredita con copia simple de: (i) contratos y sus respectivas actas de recepción de obra; (ii) contratos y sus respectivas resoluciones de liquidación; o (iii) contratos y sus respectivas constancias de prestación o cualquier otra documentación de la cual se desprenda fehacientemente que la obra fue concluida, así como el monto total que implicó su ejecución; correspondientes a un máximo de veinte (20) contrataciones.',
+                  fundamento: 'Plantilla — acreditación de experiencia, texto invariable',
+                },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'En caso el postor sustente su experiencia en la especialidad mediante contrataciones realizadas con privados, para acreditarla debe presentar de forma obligatoria comprobantes de pago cuya cancelación se acredite documental y fehacientemente con constancia de depósito, nota de abono, reporte de estado de cuenta, cualquier otro documento emitido por entidad del sistema financiero que acredite el abono o mediante cancelación en el mismo comprobante de pago, o comprobante de retención electrónico emitido por SUNAT por la retención del IGV. No es posible que acredite su experiencia únicamente con la presentación de contratos u órdenes de compra con conformidad o constancia de prestación o valorizaciones.',
+                },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'Los postores deben llenar y presentar el Anexo N° 11 referido a la Experiencia del Postor en la Especialidad.',
+                },
+                { clase: 'fijo', texto: EXPERIENCIA_TITULAR },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'Si el postor acredita experiencia de otra persona jurídica como consecuencia de una reorganización societaria, debe presentar adicionalmente el Anexo N° 15. Las personas jurídicas resultantes de un proceso de reorganización societaria no pueden acreditar como experiencia del postor en la especialidad que le hubiesen transmitido como parte de dicha reorganización las personas jurídicas sancionadas con inhabilitación vigente o definitiva.',
+                },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'Cuando en los contratos, órdenes de servicio o comprobantes de pago el monto facturado se encuentre expresado en moneda extranjera, debe indicarse el tipo de cambio venta publicado por la Superintendencia de Banca, Seguros y AFP correspondiente a la fecha de suscripción del contrato, de emisión de la orden de compra o de cancelación del comprobante de pago, según corresponda.',
                 },
               ],
             },
-            { clase: 'fijo', texto: 'Se considera la siguiente especialidad y subespecialidades como experiencia del postor:' },
             {
-              clase: 'tabla',
-              id: 'especialidades',
-              etiqueta: 'Especialidad y subespecialidades',
-              columnas: ['N.°', 'Especialidad', 'Subespecialidad(es) admitida(s)'],
-              minimo: 1,
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'La experiencia del postor en la especialidad se acredita con copia simple de: (i) contratos y sus respectivas actas de recepción de obra; (ii) contratos y sus respectivas resoluciones de liquidación; o (iii) contratos y sus respectivas constancias de prestación o cualquier otra documentación de la cual se desprenda fehacientemente que la obra fue concluida, así como el monto total que implicó su ejecución; correspondientes a un máximo de veinte (20) contrataciones.',
-              fundamento: 'Plantilla — acreditación de experiencia, texto invariable',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'En caso el postor sustente su experiencia en la especialidad mediante contrataciones realizadas con privados, para acreditarla debe presentar de forma obligatoria comprobantes de pago cuya cancelación se acredite documental y fehacientemente con constancia de depósito, nota de abono, reporte de estado de cuenta, cualquier otro documento emitido por entidad del sistema financiero que acredite el abono o mediante cancelación en el mismo comprobante de pago, o comprobante de retención electrónico emitido por SUNAT por la retención del IGV. No es posible que acredite su experiencia únicamente con la presentación de contratos u órdenes de compra con conformidad o constancia de prestación o valorizaciones.',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'Los postores deben llenar y presentar el Anexo N° 11 referido a la Experiencia del Postor en la Especialidad.',
-            },
-            { clase: 'fijo', texto: EXPERIENCIA_TITULAR },
-            {
-              clase: 'fijo',
-              texto:
-                'Si el postor acredita experiencia de otra persona jurídica como consecuencia de una reorganización societaria, debe presentar adicionalmente el Anexo N° 15. Las personas jurídicas resultantes de un proceso de reorganización societaria no pueden acreditar como experiencia del postor en la especialidad que le hubiesen transmitido como parte de dicha reorganización las personas jurídicas sancionadas con inhabilitación vigente o definitiva.',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'Cuando en los contratos, órdenes de servicio o comprobantes de pago el monto facturado se encuentre expresado en moneda extranjera, debe indicarse el tipo de cambio venta publicado por la Superintendencia de Banca, Seguros y AFP correspondiente a la fecha de suscripción del contrato, de emisión de la orden de compra o de cancelación del comprobante de pago, según corresponda.',
+              id: 'capacidad_tecnica',
+              titulo: 'Capacidad técnica y profesional',
+              numeralLiteral: true,
+              condicion: 'exige_capacidad_tecnica',
+              bloques: [
+                {
+                  clase: 'nota',
+                  texto:
+                    'La entidad debe verificar si existe ficha de homologación del sector que establezca la experiencia del personal clave. Como requisito de calificación solo puede consignarse "grado de bachiller" o "título profesional". Como mínimo debe considerarse personal clave al residente de obra, atendiendo a los requisitos del artículo 177 del Reglamento.',
+                },
+              ],
+              // Los dos numerales del formato: los cuadros estaban sueltos.
+              subsecciones: [
+                {
+                  id: 'calificaciones_personal',
+                  titulo: 'Calificaciones del personal clave',
+                  bloques: [
+                    { clase: 'titulo', texto: 'Requisitos:', nivel: 3 },
+                    {
+                      clase: 'tabla',
+                      id: 'calificaciones_personal_clave',
+                      metodo: METODO_FORMACION_PERSONAL_CLAVE,
+                      etiqueta: 'Calificaciones del personal clave',
+                      columnas: ['Cargo y/o responsabilidad', 'Profesión', 'Grado o título profesional requerido'],
+                      minimo: 1,
+                    },
+                    { clase: 'titulo', texto: 'Acreditación:', nivel: 3 },
+                    {
+                      clase: 'fijo',
+                      texto:
+                        'El postor debe señalar los nombres y apellidos, documento de identidad, el nombre de la universidad o institución educativa que expidió el grado o título profesional, y el grado o título profesional obtenido en el Anexo N° 19. En caso se declare estudios en el extranjero del personal clave, debe presentarse, adicionalmente, copia simple de la revalidación o reconocimiento del grado o título ante la SUNEDU.',
+                      fundamento: 'Plantilla — acreditación de calificaciones',
+                    },
+                  ],
+                },
+                {
+                  id: 'experiencia_personal',
+                  titulo: 'Experiencia del personal clave',
+                  bloques: [
+                    { clase: 'titulo', texto: 'Requisitos:', nivel: 3 },
+                    {
+                      clase: 'tabla',
+                      id: 'experiencia_personal_clave',
+                      etiqueta: 'Experiencia del personal clave',
+                      instruccion:
+                        'El tiempo de experiencia mínimo debe ser razonable y congruente con el periodo en el que el personal ejecuta las actividades y con la cuantía de la contratación',
+                        metodo: METODO_EXPERIENCIA_PERSONAL_CLAVE,
+                      columnas: [
+                        'Cargo y/o responsabilidad',
+                        'Cant.',
+                        'Tiempo de experiencia',
+                        'Cargo desempeñado',
+                        'Cómputo de experiencia',
+                      ],
+                      minimo: 1,
+                    },
+                    { clase: 'titulo', texto: 'Acreditación:', nivel: 3 },
+                    {
+                      clase: 'fijo',
+                      texto:
+                        'La experiencia del personal clave, será considerado en todas las Especialidad y subespecialidades, indicadas previamente en el requisito de calificación “experiencia del postor en la especialidad”.',
+                    },
+                    {
+                      clase: 'fijo',
+                      texto:
+                        'El postor debe señalar la denominación del puesto, cargo y/o posición, y tiempo de experiencia del personal clave propuesto (años, meses y días) en el Anexo N° 19.',
+                    },
+                  ],
+                },
+              ],
             },
           ],
         },
         {
-          id: 'capacidad_tecnica',
-          titulo: 'Capacidad técnica y profesional',
+          id: 'calificacion_adicionales',
+          titulo: 'Requisitos de calificación adicionales',
           bloques: [
             {
               clase: 'nota',
               texto:
-                'La entidad debe verificar si existe ficha de homologación del sector que establezca la experiencia del personal clave. Como requisito de calificación solo puede consignarse "grado de bachiller" o "título profesional". Como mínimo debe considerarse personal clave al residente de obra, atendiendo a los requisitos del artículo 177 del Reglamento.',
-            },
-            {
-              clase: 'tabla',
-              id: 'calificaciones_personal_clave',
-              metodo: METODO_FORMACION_PERSONAL_CLAVE,
-              etiqueta: 'Calificaciones del personal clave',
-              columnas: ['Cargo y/o responsabilidad', 'Profesión', 'Grado o título profesional requerido'],
-              minimo: 1,
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'El postor debe señalar los nombres y apellidos, documento de identidad, el nombre de la universidad o institución educativa que expidió el grado o título profesional, y el grado o título profesional obtenido en el Anexo N° 19. En caso se declare estudios en el extranjero del personal clave, debe presentarse, adicionalmente, copia simple de la revalidación o reconocimiento del grado o título ante la SUNEDU.',
-              fundamento: 'Plantilla — acreditación de calificaciones',
-            },
-            {
-              clase: 'tabla',
-              id: 'experiencia_personal_clave',
-              etiqueta: 'Experiencia del personal clave',
-              instruccion:
-                'El tiempo de experiencia mínimo debe ser razonable y congruente con el periodo en el que el personal ejecuta las actividades y con la cuantía de la contratación',
-                metodo: METODO_EXPERIENCIA_PERSONAL_CLAVE,
-              columnas: [
-                'Cargo y/o responsabilidad',
-                'Cant.',
-                'Tiempo de experiencia',
-                'Cargo desempeñado',
-                'Cómputo de experiencia',
-              ],
-              minimo: 1,
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'La experiencia del personal clave, será considerado en todas las Especialidad y subespecialidades, indicadas previamente en el requisito de calificación “experiencia del postor en la especialidad”.',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'El postor debe señalar la denominación del puesto, cargo y/o posición, y tiempo de experiencia del personal clave propuesto (años, meses y días) en el Anexo N° 19.',
+                'En caso así se determine en la estrategia de contratación, la entidad contratante puede incluir cualquiera de los siguientes requisitos de calificación adicionales. Cabe señalar que, una vez incorporados en el presente numeral, los requisitos de calificación se consideran obligatorios, debiéndose eliminar aquellos que no hayan sido seleccionados.',
             },
           ],
-        },
-        {
-          id: 'participacion_consorcio',
-          titulo: 'Participación en consorcio',
-          condicion: 'exige_requisitos_consorcio',
-          bloques: [
+          subsecciones: [
             {
-              clase: 'nota',
-              texto:
-                'Consignar uno o más de estos requisitos en caso así haya sido sustentado en la estrategia de contratación',
-            },
-            {
-              clase: 'parrafo',
-              texto:
-                'C.1 El número máximo de consorciados es de {{consorcio_maximo}}',
-              campos: [
+              id: 'equipamiento_estrategico',
+              titulo: 'Equipamiento estratégico',
+              numeralLiteral: true,
+              numeralPropio: 'B.3',
+              condicion: 'exige_equipamiento_estrategico',
+              bloques: [
                 {
-                  clase: 'campo',
-                  id: 'consorcio_maximo',
-                  etiqueta: 'Número máximo de consorciados',
-                  ayuda:
-                    'Consignar el número máximo de integrantes del consorcio en función a la naturaleza de la prestación',
-                  tipo: 'texto',
-                  obligatorio: true,
+                  clase: 'nota',
+                  texto:
+                    'Consignar el equipamiento requerido para elaborar el expediente técnico y para ejecutar la obra, según la especialidad y subespecialidad del proyecto.',
+                },
+                { clase: 'titulo', texto: 'Requisitos:', nivel: 3 },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'No corresponde solicitar como equipamiento que el postor cuente con oficinas, locales u otros espacios físicos. Asimismo, no se puede requerir características, años de antigüedad y demás condiciones del equipamiento que no consten en el expediente técnico o estructura de costos para la consultoría de obras.]',
+                  fundamento: 'Plantilla — prohibición expresa',
+                },
+                { clase: 'titulo', texto: 'Requisitos:', nivel: 3 },
+                {
+                  clase: 'tabla',
+                  id: 'equipamiento_diseno',
+                  metodo: METODO_EQUIPAMIENTO_ESTRATEGICO,
+                  etiqueta: 'Equipamiento estratégico — componente Diseño',
+                  columnas: ['Equipamiento estratégico', 'Cant.', 'Características mínimas del equipamiento'],
+                  minimo: 1,
+                },
+                {
+                  clase: 'tabla',
+                  id: 'equipamiento_construccion',
+                  metodo: METODO_EQUIPAMIENTO_ESTRATEGICO,
+                  etiqueta: 'Equipamiento estratégico — componente Construcción',
+                  columnas: ['Equipamiento estratégico', 'Cant.', 'Características mínimas del equipamiento'],
+                  minimo: 1,
+                },
+                { clase: 'titulo', texto: 'Acreditación:', nivel: 3 },
+                { clase: 'titulo', texto: 'Acreditación:', nivel: 3 },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'Copia simple de documentos que sustenten la propiedad, la posesión, el compromiso de compraventa o alquiler, u otro documento que acredite que la maquinaria y/o equipamiento estará disponible para la ejecución del proyecto.',
                 },
               ],
             },
             {
-              clase: 'parrafo',
-              texto:
-                'C.2 El porcentaje mínimo de participación de cada consorciado es de {{consorcio_participacion}}',
-              campos: [
+              id: 'participacion_consorcio',
+              titulo: 'Participación en consorcio',
+              numeralLiteral: true,
+              condicion: 'exige_requisitos_consorcio',
+              bloques: [
                 {
-                  clase: 'campo',
-                  id: 'consorcio_participacion',
-                  etiqueta: 'Participación mínima de cada consorciado',
-                  ayuda:
-                    'Consignar el porcentaje mínimo de participación de cada integrante del consorcio',
-                  tipo: 'texto',
-                  obligatorio: true,
+                  clase: 'nota',
+                  texto:
+                    'Consignar uno o más de estos requisitos en caso así haya sido sustentado en la estrategia de contratación',
+                },
+                { clase: 'titulo', texto: 'Requisitos:', nivel: 3 },
+                {
+                  clase: 'parrafo',
+                  texto:
+                    'C.1 El número máximo de consorciados es de {{consorcio_maximo}}',
+                  campos: [
+                    {
+                      clase: 'campo',
+                      id: 'consorcio_maximo',
+                      etiqueta: 'Número máximo de consorciados',
+                      ayuda:
+                        'Consignar el número máximo de integrantes del consorcio en función a la naturaleza de la prestación',
+                      tipo: 'texto',
+                      obligatorio: true,
+                    },
+                  ],
+                },
+                {
+                  clase: 'parrafo',
+                  texto:
+                    'C.2 El porcentaje mínimo de participación de cada consorciado es de {{consorcio_participacion}}',
+                  campos: [
+                    {
+                      clase: 'campo',
+                      id: 'consorcio_participacion',
+                      etiqueta: 'Participación mínima de cada consorciado',
+                      ayuda:
+                        'Consignar el porcentaje mínimo de participación de cada integrante del consorcio',
+                      tipo: 'texto',
+                      obligatorio: true,
+                    },
+                  ],
+                },
+                {
+                  clase: 'parrafo',
+                  texto:
+                    'C.3 El porcentaje mínimo de participación en la ejecución del contrato, para el integrante del consorcio que acredite mayor experiencia, es de {{consorcio_participacion_lider}}',
+                  campos: [
+                    {
+                      clase: 'campo',
+                      id: 'consorcio_participacion_lider',
+                      etiqueta: 'Participación mínima del consorciado con mayor experiencia',
+                      ayuda:
+                        'Consignar el porcentaje mínimo de participación en las obligaciones del integrante del consorcio que acredite la mayor experiencia',
+                      tipo: 'texto',
+                      obligatorio: true,
+                    },
+                  ],
+                },
+                { clase: 'titulo', texto: 'Acreditación:', nivel: 3 },
+                {
+                  clase: 'fijo',
+                  texto: 'Se acredita con la promesa de consorcio.',
+                  fundamento: 'Plantilla — participación en consorcio',
                 },
               ],
-            },
-            {
-              clase: 'parrafo',
-              texto:
-                'C.3 El porcentaje mínimo de participación en la ejecución del contrato, para el integrante del consorcio que acredite mayor experiencia, es de {{consorcio_participacion_lider}}',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'consorcio_participacion_lider',
-                  etiqueta: 'Participación mínima del consorciado con mayor experiencia',
-                  ayuda:
-                    'Consignar el porcentaje mínimo de participación en las obligaciones del integrante del consorcio que acredite la mayor experiencia',
-                  tipo: 'texto',
-                  obligatorio: true,
-                },
-              ],
-            },
-            {
-              clase: 'fijo',
-              texto: 'Se acredita con la promesa de consorcio.',
-              fundamento: 'Plantilla — participación en consorcio',
             },
           ],
         },
