@@ -32,6 +32,7 @@ import {
   type RespuestasRequerimiento,
   numeralDeHija,
   serieDeLetras,
+  seccionVisible,
 } from './ensamblador';
 
 /** Estado de un apartado en el índice. */
@@ -172,7 +173,7 @@ export function construirIndice(
     raiz: string,
     siguienteLetra: () => string,
   ) => {
-    if (s.condicion && !respuestas.condiciones[s.condicion]) return;
+    if (!seccionVisible(s, respuestas)) return;
     const entradas: EntradaIndice[] = [];
     bloques(s.bloques, entradas);
     grupos.push({
@@ -188,7 +189,7 @@ export function construirIndice(
     });
     let sub = 0;
     for (const h of s.subsecciones ?? []) {
-      if (h.condicion && !respuestas.condiciones[h.condicion]) continue;
+      if (!seccionVisible(h, respuestas)) continue;
       recorrer(
         h,
         numeralDeHija(numero, () => ++sub, h, siguienteLetra),
@@ -254,7 +255,7 @@ export function construirIndice(
     }
 
     const s = apartado.seccion;
-    if (s.condicion && !respuestas.condiciones[s.condicion]) continue;
+    if (!seccionVisible(s, respuestas)) continue;
     n++;
     recorrer(s, String(n), 1, s.id, serieDeLetras());
   }

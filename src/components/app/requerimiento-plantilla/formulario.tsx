@@ -608,6 +608,11 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
     //
     // Antes vivían todos juntos en un panel al principio, lejos del
     // apartado que encendían: había que recordar cuál era cuál.
+    // Un apartado que depende de una alternativa NO se pinta apagado:
+    // se esconde. No hay interruptor que enseñar —lo decide la opción
+    // elegida arriba— y dejarlo a la vista sería un título con nada
+    // debajo. Las seis tablas de consultoría de obras son así.
+    if (s.visibleSi && !bloqueAplica(s, r)) return null;
     const apagado = !!s.condicion && !r.condiciones[s.condicion];
     // Fuera los títulos, que ya los pinta la sección, y fuera lo que
     // depende de una opción que no se ha elegido.
@@ -757,6 +762,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
                 // subsección apagada no gasta número, igual que arriba.
                 let sub = 0;
                 return hijas.map((h, iHija) => {
+                  if (h.visibleSi && !bloqueAplica(h, r)) return null;
                   const entra = !h.condicion || r.condiciones[h.condicion];
                   const suNumero = entra
                     ? numeralDeHija(numero, () => ++sub, h, siguienteLetra)
@@ -848,7 +854,9 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
     let n = 0;
     return apartadosOrdenados(plantilla, r).map((a) => {
       const entra =
-        a.tipo === 'extra' || !a.seccion.condicion || r.condiciones[a.seccion.condicion];
+        a.tipo === 'extra' ||
+        ((!a.seccion.condicion || r.condiciones[a.seccion.condicion]) &&
+          (!a.seccion.visibleSi || bloqueAplica(a.seccion, r)));
       return { apartado: a, numero: entra ? String(++n) : '—' };
     });
   }, [plantilla, r]);

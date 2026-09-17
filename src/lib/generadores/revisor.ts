@@ -29,6 +29,7 @@
  * ensamblador y llegan aquí ya resueltos. El modelo solo juzga lo que
  * no se puede calcular.
  */
+import { seccionVisible } from './ensamblador';
 import type {
   Bloque,
   BloqueCampo,
@@ -166,7 +167,7 @@ export function inventarioRevisable(
   };
 
   const seccion = (s: Seccion) => {
-    if (s.condicion && !respuestas.condiciones[s.condicion]) return;
+    if (!seccionVisible(s, respuestas)) return;
     bloques(s.bloques, s.titulo);
     for (const h of s.subsecciones ?? []) seccion(h);
   };

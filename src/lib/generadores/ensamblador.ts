@@ -129,6 +129,24 @@ export interface ApartadoExtra {
 }
 
 /**
+ * Si un apartado entero entra en el documento.
+ *
+ * Dos motivos para que no entre: su interruptor está apagado, o depende
+ * de una alternativa que no es la elegida —los seis sistemas de entrega
+ * de consultoría de obras—. Vive aquí porque lo consultan el
+ * ensamblador, el índice, el revisor, la redacción en lote y la
+ * pantalla: si cada uno lo decidiera por su cuenta, lo que se ve y lo
+ * que se exporta acabarían discrepando.
+ */
+export function seccionVisible(
+  s: { condicion?: string; visibleSi?: Seccion['visibleSi'] },
+  respuestas: RespuestasRequerimiento,
+): boolean {
+  if (s.condicion && !respuestas.condiciones[s.condicion]) return false;
+  return bloqueVisible(s, respuestas);
+}
+
+/**
  * Si un bloque condicionado por una opción está a la vista.
  *
  * Vive aquí y no en cada sitio porque lo consultan el ensamblador, el
@@ -753,7 +771,7 @@ export function ensamblarRequerimiento(
     nivel: number,
     siguienteLetra: () => string,
   ) => {
-    if (s.condicion && !respuestas.condiciones[s.condicion]) {
+    if (!seccionVisible(s, respuestas)) {
       omitidas.push(s.titulo);
       return;
     }
@@ -762,7 +780,7 @@ export function ensamblarRequerimiento(
     escribirBloques(s.bloques, s.titulo);
     let sub = 0;
     for (const hija of hijasOrdenadas(s, respuestas)) {
-      if (hija.condicion && !respuestas.condiciones[hija.condicion]) {
+      if (!seccionVisible(hija, respuestas)) {
         omitidas.push(hija.titulo);
         continue;
       }
@@ -822,7 +840,7 @@ export function ensamblarRequerimiento(
     }
 
     const s = apartado.seccion;
-    if (s.condicion && !respuestas.condiciones[s.condicion]) {
+    if (!seccionVisible(s, respuestas)) {
       omitidas.push(s.titulo);
       continue;
     }

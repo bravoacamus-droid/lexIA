@@ -28,6 +28,7 @@ import {
   apartadosOrdenados,
   bloqueVisible,
   type RespuestasRequerimiento,
+  seccionVisible,
 } from './ensamblador';
 import {
   consultaNormativa,
@@ -92,7 +93,7 @@ export function apartadosPorRedactar(
   const salida: PorRedactar[] = [];
 
   const recorrerSeccion = (s: Seccion) => {
-    if (s.condicion && !respuestas.condiciones[s.condicion]) return;
+    if (!seccionVisible(s, respuestas)) return;
     for (const b of s.bloques) {
       if (!bloqueVisible(b, respuestas)) continue;
       if (b.clase === 'redactado') {

@@ -410,6 +410,16 @@ export interface Seccion {
    * formato. Observación de César del 16/09/2026.
    */
   numeralPropio?: string;
+  /**
+   * El numeral entero solo aplica a una alternativa ya elegida.
+   *
+   * Consultoría de obras trae seis tablas —"para el caso de solo
+   * formulación", "para el caso de solo diseño"…— y solo una
+   * corresponde. Hasta ahora eso solo podía expresarse bloque a bloque,
+   * y el título quedaba a la vista con el apartado vacío debajo.
+   * Observación de César del 16/09/2026.
+   */
+  visibleSi?: { condicion?: string; opcion?: string; valor?: string | string[] };
 }
 
 /** Tope normativo que el generador verifica al armar el documento. */
