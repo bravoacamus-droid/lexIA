@@ -30,12 +30,19 @@ import {
   ChevronRight,
   Plus,
   RotateCcw,
+  ListChecks,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import type {
   PlantillaRequerimiento,
@@ -863,6 +870,9 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
 
   // El índice se calcula aquí y no en el servidor: tiene que ponerse en
   // verde según se escribe, no en el siguiente guardado.
+  /** El índice, cuando no cabe en su columna, se abre desde el botón. */
+  const [panelAbierto, setPanelAbierto] = useState(false);
+
   const indice = useMemo(() => construirIndice(plantilla, r), [plantilla, r]);
   const resumen = useMemo(() => resumenIndice(indice), [indice]);
 
@@ -1127,8 +1137,17 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
           />
         </div>
 
-        {/* Estado del documento */}
-        <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+        {/* Estado del documento
+            ────────────────────────────────────────────────────────────
+            El mismo panel en dos sitios. En pantalla ancha va en su
+            columna; por debajo de 1024 px CSS la rejilla se colapsa y
+            ese panel caía al final de un documento larguísimo: en la
+            práctica, invisible. César, 17/09/2026: "tengo que reducir
+            para ver el índice a un 67%, el cual dificulta su
+            visualización" —un portátil con la escala de Windows al
+            125% deja el navegador en 1092 px, y al 150% en 910—.
+            Ahora, en esos anchos, se abre desde el botón flotante. */}
+        <div className="hidden space-y-4 lg:sticky lg:top-6 lg:block lg:self-start">
           {errores.length > 0 && (
             <Card className="border-destructive/40 p-4">
               <h3 className="flex items-center gap-1.5 text-sm font-semibold text-destructive">
@@ -1178,6 +1197,93 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
             </Card>
           )}
         </div>
+
+        {/* El mismo panel, al alcance en pantallas que no dan para dos
+            columnas. El botón lleva la cuenta, así que sirve de aviso
+            aun sin abrirlo. */}
+        <Sheet open={panelAbierto} onOpenChange={setPanelAbierto}>
+          <Button
+            type="button"
+            onClick={() => setPanelAbierto(true)}
+            className="fixed bottom-6 right-6 z-40 shadow-lg lg:hidden"
+            size="sm"
+          >
+            <ListChecks className="mr-1.5 h-4 w-4" />
+            Índice
+            {resumen.pendientes > 0 && (
+              <span
+                className="ml-2 rounded-full bg-primary-foreground/20 px-1.5 py-0.5 text-xs"
+                title={`${resumen.pendientes} apartados sin completar`}
+              >
+                {resumen.pendientes}
+              </span>
+            )}
+          </Button>
+          <SheetContent side="right" className="flex w-full flex-col gap-0 overflow-y-auto sm:max-w-md">
+            <SheetHeader className="mb-4">
+              <SheetTitle>Estado del documento</SheetTitle>
+            </SheetHeader>
+            <div className="space-y-4">
+          {errores.length > 0 && (
+            <Card className="border-destructive/40 p-4">
+              <h3 className="flex items-center gap-1.5 text-sm font-semibold text-destructive">
+                <CircleAlert className="h-4 w-4" />
+                Topes incumplidos ({errores.length})
+              </h3>
+              <ul className="mt-2 space-y-2">
+                {errores.map((a, i) => (
+                  <li key={i} className="text-xs leading-relaxed">
+                    {a.mensaje}
+                    <span className="mt-0.5 block text-muted-foreground">{a.fundamento}</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+
+          {advertencias.length > 0 && (
+            <Card className="border-amber-400/40 p-4">
+              <h3 className="flex items-center gap-1.5 text-sm font-semibold text-amber-600">
+                <AlertTriangle className="h-4 w-4" />
+                No se pudo verificar
+              </h3>
+              <ul className="mt-2 space-y-2">
+                {advertencias.map((a, i) => (
+                  <li key={i} className="text-xs leading-relaxed">
+                    {a.mensaje}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+
+          <IndiceDocumento
+                grupos={indice}
+                resumen={resumen}
+                // Al saltar a un apartado se cierra: si no, el propio panel
+                // tapa el sitio al que acaba de llevarte.
+                onDesplegar={(id) => {
+                  desplegar(id);
+                  setPanelAbierto(false);
+                }}
+              />
+
+          {estado.omitidas.length > 0 && (
+            <Card className="p-4">
+              <h3 className="flex items-center gap-1.5 text-sm font-semibold">
+                <EyeOff className="h-4 w-4" />
+                Fuera del documento ({estado.omitidas.length})
+              </h3>
+              <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                {estado.omitidas.map((o, i) => (
+                  <li key={i}>{o}</li>
+                ))}
+              </ul>
+            </Card>
+          )}
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </div>
   );
