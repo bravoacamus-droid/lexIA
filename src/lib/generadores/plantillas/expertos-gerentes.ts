@@ -125,43 +125,50 @@ export const PLANTILLA_EXPERTOS_GERENTES: PlantillaRequerimiento = {
       ],
       subsecciones: [
         {
-          id: 'informacion_experto',
-          titulo: 'Información de la contratación (solo para Expertos)',
-          condicion: 'es_experto',
-          bloques: [
-            {
-              clase: 'nota',
-              texto:
-                'Debe precisarse si la contratación es para uno o varios procedimientos de selección, el objeto de estos y las fechas estimadas de sus convocatorias, así como toda la información relevante que deba conocer el experto y los responsables de brindársela durante la ejecución contractual.',
-            },
-            {
-              clase: 'tabla',
-              id: 'informacion_experto',
-              etiqueta: 'Información del procedimiento',
-              columnas: ['Aspecto', 'Información a consignar'],
-              minimo: 1,
-            },
-          ],
-        },
-        {
-          id: 'informacion_proyecto',
-          titulo: 'Información del Proyecto (solo para Gerentes de Proyecto)',
-          condicion: 'es_gerente_proyecto',
-          bloques: [
-            {
-              clase: 'nota',
-              texto:
-                'Deben precisarse los datos del proyecto e incluirse la obligación de la Entidad de proporcionar toda la información relevante para la adecuada prestación del servicio (contrato de obra, información de preinversión, expediente técnico, entre otros).',
-            },
-            {
-              clase: 'tabla',
-              id: 'informacion_proyecto',
-              etiqueta: 'Información del proyecto',
-              columnas: ['Aspecto', 'Información a consignar'],
-              minimo: 1,
-            },
-          ],
-        },
+        id: 'caracteristicas_tecnicas',
+        titulo: 'Características técnicas y condiciones de ejecución del servicio',
+        bloques: [],
+        subsecciones: [
+          {
+            id: 'informacion_experto',
+            titulo: 'Información de la contratación (solo para Expertos)',
+            condicion: 'es_experto',
+            bloques: [
+              {
+                clase: 'nota',
+                texto:
+                  'Debe precisarse si la contratación es para uno o varios procedimientos de selección, el objeto de estos y las fechas estimadas de sus convocatorias, así como toda la información relevante que deba conocer el experto y los responsables de brindársela durante la ejecución contractual.',
+              },
+              {
+                clase: 'tabla',
+                id: 'informacion_experto',
+                etiqueta: 'Información del procedimiento',
+                columnas: ['Aspecto', 'Información a consignar'],
+                minimo: 1,
+              },
+            ],
+          },
+          {
+            id: 'informacion_proyecto',
+            titulo: 'Información del Proyecto (solo para Gerentes de Proyecto)',
+            condicion: 'es_gerente_proyecto',
+            bloques: [
+              {
+                clase: 'nota',
+                texto:
+                  'Deben precisarse los datos del proyecto e incluirse la obligación de la Entidad de proporcionar toda la información relevante para la adecuada prestación del servicio (contrato de obra, información de preinversión, expediente técnico, entre otros).',
+              },
+              {
+                clase: 'tabla',
+                id: 'informacion_proyecto',
+                etiqueta: 'Información del proyecto',
+                columnas: ['Aspecto', 'Información a consignar'],
+                minimo: 1,
+              },
+            ],
+          },
+        ],
+      },
         {
           id: 'actividades',
           titulo: 'Actividades a desarrollar',
@@ -495,20 +502,67 @@ export const PLANTILLA_EXPERTOS_GERENTES: PlantillaRequerimiento = {
           ],
         },
         {
-          id: 'verificaciones',
-          titulo: 'Verificaciones técnicas, validaciones o revisiones para la conformidad del servicio',
-          condicion: 'requiere_verificaciones',
-          bloques: [
+          id: 'conformidad',
+          titulo: 'Conformidad de la prestación',
+          // El numeral entero faltaba: de los recursos de la Entidad se
+          // pasaba a las verificaciones, y quién otorga la conformidad
+          // no se preguntaba en ninguna parte. Observación de César.
+          bloques: [],
+          subsecciones: [
             {
-              clase: 'redactado',
+              id: 'conformidad_organo',
+              titulo: 'Órgano quien brindará la conformidad',
+              bloques: [
+                {
+                  clase: 'parrafo',
+                  texto:
+                    'El {{area_conformidad}} en calidad de área usuaria, es el competente para emitir la conformidad. Donde, en caso corresponda deberá señalar los días de retraso injustificado u otras penalidades que incurrió el contratista, para efectos la Dependencia Encargada de Contrataciones (DEC) proceda con la determinación el importe a penalizar.',
+                  campos: [
+                    {
+                      clase: 'campo',
+                      id: 'area_conformidad',
+                      etiqueta: 'Área usuaria que otorga la conformidad',
+                      ayuda: 'Consignar el área usuaria',
+                      tipo: 'texto',
+                      obligatorio: true,
+                    },
+                  ],
+                },
+                {
+                  clase: 'parrafo',
+                  texto:
+                    'La conformidad se emite en un plazo máximo de siete (7) días calendario contabilizados desde el día siguiente de recibido {{objeto_conformidad}}',
+                  campos: [
+                    {
+                      clase: 'campo',
+                      id: 'objeto_conformidad',
+                      etiqueta: 'Qué se recibe',
+                      ayuda:
+                        'Consignar el entregable, o finalizado el/los servicio/s que fue materia de contratación, completar según corresponda',
+                      tipo: 'texto',
+                      obligatorio: true,
+                    },
+                  ],
+                },
+              ],
+            },
+            {
               id: 'verificaciones',
-              etiqueta: 'Verificaciones para la conformidad',
-              instruccion:
-                'Precisar las verificaciones técnicas, revisiones documentarias y validaciones que la Entidad realizará para comprobar que el servicio se ejecutó conforme a los Términos de Referencia, el contrato y los resultados esperados. La conformidad solo se emite cuando las verificaciones acrediten el cumplimiento integral',
-                metodo: METODO_VERIFICACIONES,
-              ejemplo:
-                'La revisión del cumplimiento de los Términos de Referencia.\nLa evaluación del cumplimiento de las funciones asignadas.\nLa verificación de los informes de seguimiento y control del proyecto.\nLa revisión del monitoreo efectuado respecto del alcance, plazo, costo, calidad y riesgos.\nLa evaluación de las recomendaciones formuladas para la toma de decisiones.\nLa verificación del cumplimiento del cronograma de actividades y de los entregables comprometidos.\nLa revisión de la documentación técnica que sustenta los informes presentados.',
-              extension: 'lista',
+              titulo: 'Verificaciones técnicas, validaciones o revisiones para la conformidad del servicio',
+              condicion: 'requiere_verificaciones',
+              bloques: [
+                {
+                  clase: 'redactado',
+                  id: 'verificaciones',
+                  etiqueta: 'Verificaciones para la conformidad',
+                  instruccion:
+                    'Precisar las verificaciones técnicas, revisiones documentarias y validaciones que la Entidad realizará para comprobar que el servicio se ejecutó conforme a los Términos de Referencia, el contrato y los resultados esperados. La conformidad solo se emite cuando las verificaciones acrediten el cumplimiento integral',
+                    metodo: METODO_VERIFICACIONES,
+                  ejemplo:
+                    'La revisión del cumplimiento de los Términos de Referencia.\nLa evaluación del cumplimiento de las funciones asignadas.\nLa verificación de los informes de seguimiento y control del proyecto.\nLa revisión del monitoreo efectuado respecto del alcance, plazo, costo, calidad y riesgos.\nLa evaluación de las recomendaciones formuladas para la toma de decisiones.\nLa verificación del cumplimiento del cronograma de actividades y de los entregables comprometidos.\nLa revisión de la documentación técnica que sustenta los informes presentados.',
+                  extension: 'lista',
+                },
+              ],
             },
           ],
         },
@@ -566,139 +620,182 @@ export const PLANTILLA_EXPERTOS_GERENTES: PlantillaRequerimiento = {
       id: 'requisitos_calificacion',
       titulo: 'REQUISITOS DE CALIFICACIÓN',
       bloques: [],
+      // El formato agrupa los requisitos bajo "obligatorios"; aquí
+      // colgaban sueltos del numeral 10. Este formato no tiene
+      // adicionales. Observación de César del 16/09/2026.
       subsecciones: [
         {
-          id: 'capacidad_legal',
-          titulo: 'Capacidad legal',
-          condicion: 'exige_habilitacion',
+          id: 'calificacion_obligatorios',
+          titulo: 'Requisitos de calificación obligatorios',
           bloques: [
-            {
-              clase: 'nota',
-              texto:
-                'En el caso de gerentes de proyecto, el numeral 222.2 del artículo 222 del Reglamento establece que debe ser un profesional colegiado y habilitado de la carrera de ingeniería, arquitectura o afines a la gestión de proyectos, por lo que la colegiatura debe requerirse de manera obligatoria al inicio de la ejecución del servicio.',
-            },
-            {
-              clase: 'redactado',
-              id: 'capacidad_legal_requisito',
-              etiqueta: 'Requisitos',
-              instruccion:
-                'Incluir los requisitos relacionados a la habilitación para llevar a cabo la actividad materia de la contratación',
-                metodo: METODO_CAPACIDAD_LEGAL,
-              extension: 'parrafo',
-            },
-            {
-              clase: 'redactado',
-              id: 'capacidad_legal_acreditacion',
-              etiqueta: 'Acreditación',
-              instruccion:
- 'Incluir el documento con el que se acredita el requisito de habilitación',
- metodo: METODO_CAPACIDAD_LEGAL,
-              extension: 'parrafo',
-            },
           ],
-        },
-        {
-          id: 'formacion_academica',
-          titulo: 'Formación académica',
-          bloques: [
+          subsecciones: [
             {
-              clase: 'nota',
-              texto:
-                'Como requisito de calificación solo puede consignarse "grado de bachiller" o "título profesional", según el perfil definido por el área usuaria. Conforme al artículo 16 de la Ley N° 30512, los títulos que se otorgan según el nivel del programa formativo son título profesional, título profesional técnico y título de segunda especialidad.',
-            },
-            {
-              clase: 'tabla',
-              id: 'formacion_academica',
-              metodo: METODO_FORMACION_PERSONAL_CLAVE,
-              etiqueta: 'Formación académica exigida',
-              columnas: ['Cargo y/o responsabilidad', 'Profesión', 'Grado o título profesional requerido'],
-              minimo: 1,
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'El postor debe señalar su nombre y apellidos, documento de identidad, el nombre de la universidad o institución educativa que expidió el grado o título profesional, y el grado o título profesional obtenido en el Anexo N° 15, adjuntando en su oferta copia del grado de bachiller o título profesional. En caso se acredite estudios en el extranjero, debe presentarse, adicionalmente, copia simple de la revalidación o reconocimiento del grado o título ante la SUNEDU.',
-              fundamento: 'Plantilla — acreditación de formación académica',
-            },
-          ],
-        },
-        {
-          id: 'certificaciones',
-          titulo: 'Certificaciones del postor',
-          condicion: 'exige_certificaciones',
-          bloques: [
-            {
-              clase: 'nota',
-              texto:
-                'Para los gerentes de proyecto, incluir la certificación oficial en el contrato estandarizado elegido; para los expertos, la certificación que la entidad contratante sustente en la estrategia de contratación.',
-            },
-            {
-              clase: 'tabla',
-              id: 'certificaciones',
-              etiqueta: 'Certificaciones exigidas',
-              columnas: ['Cargo y/o responsabilidad', 'Materia o área de capacitación', 'Cantidad de horas'],
-              minimo: 1,
-            },
-            { clase: 'fijo', texto: 'Se acredita con la presentación de la certificación correspondiente.' },
-          ],
-        },
-        {
-          id: 'experiencia_postor',
-          titulo: 'Experiencia del postor',
-          bloques: [
-            {
-              clase: 'nota',
-              texto:
-                'La entidad puede considerar un tiempo de experiencia mayor al establecido en los artículos 57 y 222 del Reglamento, siempre que sea razonable y congruente con el periodo en el que el postor ejecuta las actividades, de forma que no restrinja la participación. Al calificar debe valorarse de manera integral la documentación: aunque la denominación no coincida literalmente con la de las bases, se valida la experiencia si las actividades realizadas corresponden a la especialidad requerida.',
-            },
-            {
-              // Aquí la experiencia se mide en años y cargos, no en
-              // monto facturado. Por eso no hay tope de tres veces la
-              // cuantía ni régimen MYPE en esta plantilla.
-              clase: 'tabla',
-              id: 'experiencia_postor',
-              metodo: METODO_EXPERIENCIA_PERSONAL_CLAVE,
-              etiqueta: 'Experiencia mínima requerida',
-              columnas: [
-                'Cargo y/o responsabilidad',
-                'Cant.',
-                'Tiempo de experiencia',
-                'Cargo desempeñado',
-                'Cómputo de experiencia',
-              ],
-              minimo: 1,
-            },
-            {
-              clase: 'parrafo',
-              texto: 'Se consideran como trabajos o prestaciones similares a los siguientes {{trabajos_similares}}.',
-              campos: [
+              id: 'capacidad_legal',
+              titulo: 'Capacidad legal',
+              numeralLiteral: true,
+              condicion: 'exige_habilitacion',
+              bloques: [
                 {
-                  clase: 'campo',
-                  id: 'trabajos_similares',
-                  etiqueta: 'Trabajos o prestaciones similares',
-                  ayuda:
- 'Consignar los trabajos o prestaciones similares',
- metodo: METODO_SIMILARES,
-                  tipo: 'texto_largo',
-                  obligatorio: true,
+                  clase: 'nota',
+                  texto:
+                    'En el caso de gerentes de proyecto, el numeral 222.2 del artículo 222 del Reglamento establece que debe ser un profesional colegiado y habilitado de la carrera de ingeniería, arquitectura o afines a la gestión de proyectos, por lo que la colegiatura debe requerirse de manera obligatoria al inicio de la ejecución del servicio.',
+                },
+                { clase: 'titulo', texto: 'Requisitos:', nivel: 3 },
+                {
+                  clase: 'redactado',
+                  id: 'capacidad_legal_requisito',
+                  etiqueta: 'Requisitos',
+                  instruccion:
+                    'Incluir los requisitos relacionados a la habilitación para llevar a cabo la actividad materia de la contratación',
+                    metodo: METODO_CAPACIDAD_LEGAL,
+                  extension: 'parrafo',
+                },
+                { clase: 'titulo', texto: 'Acreditación:', nivel: 3 },
+                {
+                  clase: 'redactado',
+                  id: 'capacidad_legal_acreditacion',
+                  etiqueta: 'Acreditación',
+                  instruccion:
+                'Incluir el documento con el que se acredita el requisito de habilitación',
+                metodo: METODO_CAPACIDAD_LEGAL,
+                  extension: 'parrafo',
                 },
               ],
             },
             {
-              clase: 'fijo',
-              texto:
-                'La experiencia del postor se acredita con copia simple de cualquiera de los siguientes documentos: (i) contratos y su respectiva conformidad; (ii) constancias; (iii) certificados; o (iv) cualquier otra documentación que, de manera fehaciente, demuestre la experiencia del postor.',
-              fundamento: 'Plantilla — acreditación de experiencia, texto invariable',
+              id: 'capacidad_tecnica',
+              titulo: 'Capacidad técnica y profesional',
+                numeralLiteral: true,
+              bloques: [],
+              subsecciones: [
+                {
+                  id: 'calificaciones_postor',
+                  titulo: 'Calificaciones del postor',
+                  bloques: [],
+                  subsecciones: [
+                    {
+                      id: 'formacion_academica',
+                      titulo: 'Formación académica',
+                      bloques: [
+                        {
+                          clase: 'nota',
+                          texto:
+                            'Como requisito de calificación solo puede consignarse "grado de bachiller" o "título profesional", según el perfil definido por el área usuaria. Conforme al artículo 16 de la Ley N° 30512, los títulos que se otorgan según el nivel del programa formativo son título profesional, título profesional técnico y título de segunda especialidad.',
+                        },
+                        { clase: 'titulo', texto: 'Requisitos:', nivel: 3 },
+                        {
+                          clase: 'tabla',
+                          id: 'formacion_academica',
+                          metodo: METODO_FORMACION_PERSONAL_CLAVE,
+                          etiqueta: 'Formación académica exigida',
+                          columnas: ['Cargo y/o responsabilidad', 'Profesión', 'Grado o título profesional requerido'],
+                          minimo: 1,
+                        },
+                        { clase: 'titulo', texto: 'Acreditación:', nivel: 3 },
+                        {
+                          clase: 'fijo',
+                          texto:
+                            'El postor debe señalar su nombre y apellidos, documento de identidad, el nombre de la universidad o institución educativa que expidió el grado o título profesional, y el grado o título profesional obtenido en el Anexo N° 15, adjuntando en su oferta copia del grado de bachiller o título profesional. En caso se acredite estudios en el extranjero, debe presentarse, adicionalmente, copia simple de la revalidación o reconocimiento del grado o título ante la SUNEDU.',
+                          fundamento: 'Plantilla — acreditación de formación académica',
+                        },
+                      ],
+                    },
+                    {
+                      id: 'certificaciones',
+                      titulo: 'Certificaciones del postor',
+                      condicion: 'exige_certificaciones',
+                      bloques: [
+                        {
+                          clase: 'nota',
+                          texto:
+                            'Para los gerentes de proyecto, incluir la certificación oficial en el contrato estandarizado elegido; para los expertos, la certificación que la entidad contratante sustente en la estrategia de contratación.',
+                        },
+                        { clase: 'titulo', texto: 'Requisitos:', nivel: 3 },
+                        {
+                          clase: 'tabla',
+                          id: 'certificaciones',
+                          etiqueta: 'Certificaciones exigidas',
+                          columnas: ['Cargo y/o responsabilidad', 'Materia o área de capacitación', 'Cantidad de horas'],
+                          minimo: 1,
+                        },
+                        { clase: 'titulo', texto: 'Acreditación:', nivel: 3 },
+                        { clase: 'fijo', texto: 'Se acredita con la presentación de la certificación correspondiente.' },
+                      ],
+                    },
+                  ],
+                },
+              ],
             },
             {
-              clase: 'fijo',
-              texto:
-                'Los documentos que acreditan la experiencia deben incluir los nombres y apellidos del postor, el cargo desempeñado, el plazo de la prestación indicando el día, mes y año de inicio y culminación, el nombre de la entidad u organización que emite el documento, la fecha de emisión y nombres y apellidos de quien suscribe el documento.',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'En caso los documentos que acreditan la experiencia establezcan está en meses sin especificar los días se debe considerar el mes completo. Se considera aquella experiencia que no tenga una antigüedad mayor a veinticinco años anteriores a la fecha de la presentación de ofertas (Anexo N° 11). De presentarse experiencia ejecutada paralelamente (traslape), para el cómputo de la misma sólo se considera una vez el periodo traslapado. En ningún caso corresponde exigir que el postor acredite experiencia en más de un cargo.',
+              id: 'experiencia_especialidad',
+              titulo: 'Experiencia del postor en la especialidad',
+                numeralLiteral: true,
+              bloques: [],
+              subsecciones: [
+                {
+                  id: 'experiencia_postor',
+                  titulo: 'Experiencia del postor',
+                  bloques: [
+                    {
+                      clase: 'nota',
+                      texto:
+                        'La entidad puede considerar un tiempo de experiencia mayor al establecido en los artículos 57 y 222 del Reglamento, siempre que sea razonable y congruente con el periodo en el que el postor ejecuta las actividades, de forma que no restrinja la participación. Al calificar debe valorarse de manera integral la documentación: aunque la denominación no coincida literalmente con la de las bases, se valida la experiencia si las actividades realizadas corresponden a la especialidad requerida.',
+                    },
+                    { clase: 'titulo', texto: 'Requisitos:', nivel: 3 },
+                    {
+                      // Aquí la experiencia se mide en años y cargos, no en
+                      // monto facturado. Por eso no hay tope de tres veces la
+                      // cuantía ni régimen MYPE en esta plantilla.
+                      clase: 'tabla',
+                      id: 'experiencia_postor',
+                      metodo: METODO_EXPERIENCIA_PERSONAL_CLAVE,
+                      etiqueta: 'Experiencia mínima requerida',
+                      columnas: [
+                        'Cargo y/o responsabilidad',
+                        'Cant.',
+                        'Tiempo de experiencia',
+                        'Cargo desempeñado',
+                        'Cómputo de experiencia',
+                      ],
+                      minimo: 1,
+                    },
+                    {
+                      clase: 'parrafo',
+                      texto: 'Se consideran como trabajos o prestaciones similares a los siguientes {{trabajos_similares}}.',
+                      campos: [
+                        {
+                          clase: 'campo',
+                          id: 'trabajos_similares',
+                          etiqueta: 'Trabajos o prestaciones similares',
+                          ayuda:
+                    'Consignar los trabajos o prestaciones similares',
+                    metodo: METODO_SIMILARES,
+                          tipo: 'texto_largo',
+                          obligatorio: true,
+                        },
+                      ],
+                    },
+                    { clase: 'titulo', texto: 'Acreditación:', nivel: 3 },
+                    {
+                      clase: 'fijo',
+                      texto:
+                        'La experiencia del postor se acredita con copia simple de cualquiera de los siguientes documentos: (i) contratos y su respectiva conformidad; (ii) constancias; (iii) certificados; o (iv) cualquier otra documentación que, de manera fehaciente, demuestre la experiencia del postor.',
+                      fundamento: 'Plantilla — acreditación de experiencia, texto invariable',
+                    },
+                    {
+                      clase: 'fijo',
+                      texto:
+                        'Los documentos que acreditan la experiencia deben incluir los nombres y apellidos del postor, el cargo desempeñado, el plazo de la prestación indicando el día, mes y año de inicio y culminación, el nombre de la entidad u organización que emite el documento, la fecha de emisión y nombres y apellidos de quien suscribe el documento.',
+                    },
+                    {
+                      clase: 'fijo',
+                      texto:
+                        'En caso los documentos que acreditan la experiencia establezcan está en meses sin especificar los días se debe considerar el mes completo. Se considera aquella experiencia que no tenga una antigüedad mayor a veinticinco años anteriores a la fecha de la presentación de ofertas (Anexo N° 11). De presentarse experiencia ejecutada paralelamente (traslape), para el cómputo de la misma sólo se considera una vez el periodo traslapado. En ningún caso corresponde exigir que el postor acredite experiencia en más de un cargo.',
+                    },
+                  ],
+                },
+              ],
             },
           ],
         },
