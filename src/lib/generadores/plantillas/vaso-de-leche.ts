@@ -391,32 +391,53 @@ export const PLANTILLA_VASO_DE_LECHE: PlantillaRequerimiento = {
         {
           id: 'garantia_comercial',
           titulo: 'Garantía comercial',
-          bloques: [
+          bloques: [],
+          // Alcance, condiciones y período van cada uno con su
+          // subtítulo, como en el .docx. Observación de César.
+          subsecciones: [
             {
-              clase: 'fijo',
-              texto:
-                'La garantía comercial comprende el reemplazo de los productos que, con posterioridad a la conformidad de la entrega, presenten defectos de fabricación, alteraciones en su composición, contaminación, envases deteriorados o con pérdida de hermeticidad, rotulado incorrecto, vencimiento anticipado o cualquier otra condición que los haga no aptos para el consumo humano, siempre que dichas situaciones no sean atribuibles a un almacenamiento o manipulación inadecuados por parte de la Entidad.',
-              fundamento: 'Plantilla — alcance de la garantía',
+              id: 'garantia_alcance',
+              titulo: 'Alcance de la garantía',
+              bloques: [
+                {
+                  clase: 'fijo',
+                  texto:
+                    'La garantía comercial comprende el reemplazo de los productos que, con posterioridad a la conformidad de la entrega, presenten defectos de fabricación, alteraciones en su composición, contaminación, envases deteriorados o con pérdida de hermeticidad, rotulado incorrecto, vencimiento anticipado o cualquier otra condición que los haga no aptos para el consumo humano, siempre que dichas situaciones no sean atribuibles a un almacenamiento o manipulación inadecuados por parte de la Entidad.',
+                  fundamento: 'Plantilla — alcance de la garantía',
+                },
+              ],
             },
             {
-              clase: 'fijo',
-              texto:
-                'Para la atención de la garantía, el contratista deberá contar con una línea telefónica fija o móvil para las coordinaciones que correspondan, cuyo horario de atención debe ser de lunes a viernes de 8:30 - 18:00 horas.',
+              id: 'garantia_condiciones',
+              titulo: 'Condiciones de la garantía',
+              bloques: [
+                {
+                  clase: 'fijo',
+                  texto:
+                    'Para la atención de la garantía, el contratista deberá contar con una línea telefónica fija o móvil para las coordinaciones que correspondan, cuyo horario de atención debe ser de lunes a viernes de 8:30 - 18:00 horas.',
+                },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'El plazo máximo para la entrega de los bienes a reemplazar, serán dentro de cinco (5) días calendario computados a partir del día siguiente de la notificación al contratista. La notificación será efectuada por el comprador público a través de correo electrónico que fue autorizado por el contratista.',
+                },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'Los bienes para remplazar deben ser nuevos y debe tener las mismas características del bien contratado. Todos los gastos deberán ser cubiertos por el contratista.',
+                },
+              ],
             },
             {
-              clase: 'fijo',
-              texto:
-                'El plazo máximo para la entrega de los bienes a reemplazar, serán dentro de cinco (5) días calendario computados a partir del día siguiente de la notificación al contratista. La notificación será efectuada por el comprador público a través de correo electrónico que fue autorizado por el contratista.',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'Los bienes para remplazar deben ser nuevos y debe tener las mismas características del bien contratado. Todos los gastos deberán ser cubiertos por el contratista.',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'La garantía comercial del producto se extenderá hasta la fecha de vencimiento consignada en el envase, siempre que el producto haya sido almacenado conforme a las condiciones establecidas por el fabricante.',
+              id: 'garantia_periodo',
+              titulo: 'Período de garantía',
+              bloques: [
+                {
+                  clase: 'fijo',
+                  texto:
+                    'La garantía comercial del producto se extenderá hasta la fecha de vencimiento consignada en el envase, siempre que el producto haya sido almacenado conforme a las condiciones establecidas por el fabricante.',
+                },
+              ],
             },
           ],
         },
@@ -552,6 +573,59 @@ export const PLANTILLA_VASO_DE_LECHE: PlantillaRequerimiento = {
         ),
 
         seccionPenalidades('larga', false, 'bien'),
+        {
+          // Faltaban las dos, entre las penalidades y la solución de
+          // controversias, que es donde las pone el .docx. Observación
+          // de César del 16/09/2026. El texto es el mismo de Bienes en
+          // General, que viene del mismo formato oficial.
+          id: 'subcontratacion',
+          titulo: 'Subcontratación',
+          bloques: [
+            {
+              clase: 'opcion',
+              id: 'subcontratacion',
+              etiqueta: 'Subcontratación',
+              instruccion: 'Indicar si se permite o se prohíbe la subcontratación',
+              opciones: [
+                {
+                  valor: 'prohibida',
+                  texto: 'Se encuentra prohibida la subcontratación de las prestaciones objeto del contrato.',
+                },
+                {
+                  valor: 'permitida',
+                  texto:
+                    'El contratista puede subcontratar hasta un máximo del 40% del monto del contrato vigente de conformidad con lo dispuesto en el artículo 108 del Reglamento. Se consideran prestaciones esenciales que no pueden ser materia de subcontratación las siguientes:',
+                },
+              ],
+            },
+            {
+              clase: 'redactado',
+              id: 'prestaciones_no_subcontratables',
+              etiqueta: 'Prestaciones que no pueden subcontratarse',
+              instruccion:
+                'Completar las prestaciones esenciales que, de acuerdo con lo determinado por el área usuaria en las especificaciones técnicas, no pueden ser materia de subcontratación',
+              extension: 'lista',
+              // Solo tiene sentido si se permitió subcontratar: si está
+              // prohibida, la pregunta no existe.
+              visibleSi: { opcion: 'subcontratacion', valor: 'permitida' },
+            },
+          ],
+        },
+        {
+          id: 'reajuste',
+          titulo: 'Reajuste de los pagos',
+          condicion: 'tiene_reajuste',
+          bloques: [
+            {
+              clase: 'redactado',
+              id: 'reajuste',
+              etiqueta: 'Reajuste de los pagos',
+              instruccion:
+                'Consignar las fórmulas de reajuste correspondientes y el procedimiento, de acuerdo con lo previsto en el numeral 136.2 del artículo 136 del Reglamento. Si no corresponde, consignar "NO APLICA"',
+              extension: 'parrafo',
+            },
+          ],
+        },
         seccionControversias(true),
 
         {
@@ -751,7 +825,7 @@ export const PLANTILLA_VASO_DE_LECHE: PlantillaRequerimiento = {
         },
         {
           id: 'verificacion_calidad',
-          titulo: 'Documentación para la verificación de la calidad del producto',
+          titulo: 'Documentación para la verificación de la calidad del producto durante la ejecución contractual',
           condicion: 'requiere_certificados',
           bloques: [
             {
@@ -771,177 +845,188 @@ export const PLANTILLA_VASO_DE_LECHE: PlantillaRequerimiento = {
     {
       id: 'requisitos_calificacion',
       titulo: 'REQUISITOS DE CALIFICACIÓN',
-      bloques: [
-        {
-          clase: 'nota',
-          texto:
-            'Consignar uno o más de los requisitos siguientes, en caso así haya sido sustentado en la estrategia de contratación',
-        },
-        {
-          clase: 'fijo',
-          texto:
-            'Para determinar que los postores cuentan con las capacidades necesarias para ejecutar el contrato, los evaluadores incorporan obligatoriamente los siguientes requisitos de calificación:',
-        },
-      ],
+      bloques: [],
+      // El formato los agrupa en dos, y las cabezas van con letra
+      // en una sola serie que cruza de un grupo al otro, como en
+      // el .docx. Observación de César.
       subsecciones: [
         {
-          id: 'experiencia_postor',
-          titulo: 'Experiencia del postor en la especialidad',
+          id: 'calificacion_obligatorios',
+          titulo: 'Requisitos de calificación obligatorios',
           bloques: [
             {
-              clase: 'parrafo',
-              texto:
-                'El postor debe acreditar un monto facturado acumulado equivalente a {{experiencia_monto}}, por la venta de bienes iguales o similares al objeto de la convocatoria, durante los diez años anteriores a la fecha de la presentación de ofertas, que se computan desde la fecha de la conformidad o emisión del comprobante de pago, según corresponda.',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'experiencia_monto',
-                  etiqueta: 'Monto facturado acumulado exigido',
-                  ayuda:
-                    'Consignar el monto de facturación expresado en números y letras en la moneda de la convocatoria, monto que no puede ser mayor a tres veces la cuantía de la contratación o del ítem',
-                  tipo: 'moneda',
-                  obligatorio: true,
-                  validacion: 'experiencia_max',
-                },
-              ],
-            },
-            {
-              clase: 'parrafo',
-              texto: 'Se consideran bienes similares a los siguientes {{bienes_similares}}',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'bienes_similares',
-                  etiqueta: 'Bienes similares',
-                  ayuda:
- 'Consignar los bienes similares al objeto convocado',
- metodo: METODO_SIMILARES,
-                  tipo: 'texto_largo',
-                  obligatorio: true,
-                },
-              ],
-            },
-            {
               clase: 'fijo',
               texto:
-                'La experiencia del postor en la especialidad se acredita con un máximo de veinte contrataciones mediante copia simple de: (i) contratos u órdenes de compra, y su respectiva conformidad o constancia de prestación; o (ii) comprobantes de pago cuya cancelación se acredite documental y fehacientemente, con constancia de depósito, nota de abono, reporte de estado de cuenta, cualquier otro documento emitido por entidad del sistema financiero que acredite el abono o mediante cancelación en el mismo comprobante de pago, o comprobante de retención electrónico emitido por SUNAT por la retención del IGV. En caso el postor sustente su experiencia en la especialidad mediante contrataciones realizadas con privados, para acreditarla debe presentar de forma obligatoria lo indicado en el numeral (ii) del presente párrafo; no es posible que acredite su experiencia únicamente con la presentación de contratos u órdenes de compra con conformidad o constancia de prestación.',
-              fundamento: 'Plantilla — acreditación de experiencia, texto invariable',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'En caso los postores presenten varios comprobantes de pago para acreditar una sola contratación, se debe acreditar que corresponden a dicha contratación; de lo contrario, se asumirá que los comprobantes acreditan contrataciones independientes, en cuyo caso solo se considerará, para la evaluación, las veinte primeras contrataciones indicadas en el Anexo Nº 11 referido a la Experiencia del Postor en la Especialidad.',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'En el caso de suministro, solo se considera como experiencia la parte del contrato que haya sido ejecutada durante los diez años anteriores a la fecha de presentación de ofertas, debiendo adjuntarse copia de las conformidades correspondientes a tal parte o los respectivos comprobantes de pago cancelados.',
-            },
-            { clase: 'fijo', texto: EXPERIENCIA_TITULAR },
-            {
-              clase: 'fijo',
-              texto:
-                'Si el postor acredita experiencia de otra persona jurídica como consecuencia de una reorganización societaria, debe presentar adicionalmente el Anexo N° 13.',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'Las personas jurídicas resultantes de un proceso de reorganización societaria no pueden acreditar como experiencia del postor en la especialidad aquella que le hubieran transmitido como parte de dicha reorganización las personas jurídicas sancionadas con inhabilitación vigente o definitiva.',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'Cuando en los contratos, órdenes de compra o comprobantes de pago el monto facturado se encuentre expresado en moneda extranjera, debe indicarse el tipo de cambio venta publicado por la Superintendencia de Banca, Seguros y AFP correspondiente a la fecha de suscripción del contrato, de emisión de la orden de compra o de cancelación del comprobante de pago, según corresponda.',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'Sin perjuicio de lo anterior, los postores deben llenar y presentar el Anexo Nº 11 referido a la Experiencia del Postor en la Especialidad.',
+                'Para determinar que los postores cuentan con las capacidades necesarias para ejecutar el contrato, los evaluadores incorporan obligatoriamente los siguientes requisitos de calificación:',
             },
           ],
           subsecciones: [
-          {
-            id: 'experiencia_mype',
-            titulo: 'Régimen para micro y pequeña empresa',
-            condicion: 'aplica_mype',
-            bloques: [
-              {
-                clase: 'nota',
-                texto:
-                  'Este texto se incluye en procedimientos de selección por relación de ítems, cuando la cuantía de la contratación de algún ítem corresponda al monto de una Licitación Pública abreviada de bienes.',
-              },
-              {
-                clase: 'parrafo',
-                texto:
-                  'En el caso de postores que declaren en el Anexo N° 1 tener la condición de micro y pequeña empresa, se acredita una experiencia de {{experiencia_monto_mype}}, por la venta de bienes iguales o similares al objeto de la convocatoria, durante los diez años anteriores a la fecha de la presentación de ofertas que se computarán desde la fecha de la conformidad o emisión del comprobante de pago, según corresponda. En el caso de consorcios, todos los integrantes deben contar con la condición de micro y pequeña empresa.',
-                campos: [
-                  {
-                    clase: 'campo',
-                    id: 'experiencia_monto_mype',
-                    etiqueta: 'Monto exigido a micro y pequeña empresa',
-                    ayuda:
-                      'Consignar el monto de facturación expresado en números y letras en la moneda de la convocatoria, monto que no debe superar el 25% de la cuantía de la contratación del ítem',
-                    tipo: 'moneda',
-                    obligatorio: true,
-                    validacion: 'experiencia_mype',
-                  },
-                ],
-              },
-            ],
-          },
+            {
+              id: 'experiencia_postor',
+              titulo: 'Experiencia del postor en la especialidad',
+              numeralLiteral: true,
+              bloques: [
+                { clase: 'titulo', texto: 'Requisitos:', nivel: 3 },
+                {
+                  clase: 'parrafo',
+                  texto:
+                    'El postor debe acreditar un monto facturado acumulado equivalente a {{experiencia_monto}}, por la venta de bienes iguales o similares al objeto de la convocatoria, durante los diez años anteriores a la fecha de la presentación de ofertas, que se computan desde la fecha de la conformidad o emisión del comprobante de pago, según corresponda.',
+                  campos: [
+                    {
+                      clase: 'campo',
+                      id: 'experiencia_monto',
+                      etiqueta: 'Monto facturado acumulado exigido',
+                      ayuda:
+                        'Consignar el monto de facturación expresado en números y letras en la moneda de la convocatoria, monto que no puede ser mayor a tres veces la cuantía de la contratación o del ítem',
+                      tipo: 'moneda',
+                      obligatorio: true,
+                      validacion: 'experiencia_max',
+                    },
+                  ],
+                },
+                {
+                visibleSi: { condicion: 'aplica_mype' },
+                  clase: 'parrafo',
+                  texto:
+                    'En el caso de postores que declaren en el Anexo N° 1 tener la condición de micro y pequeña empresa, se acredita una experiencia de {{experiencia_monto_mype}}, por la venta de bienes iguales o similares al objeto de la convocatoria, durante los diez años anteriores a la fecha de la presentación de ofertas que se computarán desde la fecha de la conformidad o emisión del comprobante de pago, según corresponda. En el caso de consorcios, todos los integrantes deben contar con la condición de micro y pequeña empresa.',
+                  campos: [
+                    {
+                      clase: 'campo',
+                      id: 'experiencia_monto_mype',
+                      etiqueta: 'Monto exigido a micro y pequeña empresa',
+                      ayuda:
+                        'Consignar el monto de facturación expresado en números y letras en la moneda de la convocatoria, monto que no debe superar el 25% de la cuantía de la contratación del ítem',
+                      tipo: 'moneda',
+                      obligatorio: true,
+                      validacion: 'experiencia_mype',
+                    },
+                  ],
+                },
+                {
+                  clase: 'parrafo',
+                  texto: 'Se consideran bienes similares a los siguientes {{bienes_similares}}',
+                  campos: [
+                    {
+                      clase: 'campo',
+                      id: 'bienes_similares',
+                      etiqueta: 'Bienes similares',
+                      ayuda:
+                'Consignar los bienes similares al objeto convocado',
+                metodo: METODO_SIMILARES,
+                      tipo: 'texto_largo',
+                      obligatorio: true,
+                    },
+                  ],
+                },
+                { clase: 'titulo', texto: 'Acreditación:', nivel: 3 },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'La experiencia del postor en la especialidad se acredita con un máximo de veinte contrataciones mediante copia simple de: (i) contratos u órdenes de compra, y su respectiva conformidad o constancia de prestación; o (ii) comprobantes de pago cuya cancelación se acredite documental y fehacientemente, con constancia de depósito, nota de abono, reporte de estado de cuenta, cualquier otro documento emitido por entidad del sistema financiero que acredite el abono o mediante cancelación en el mismo comprobante de pago, o comprobante de retención electrónico emitido por SUNAT por la retención del IGV. En caso el postor sustente su experiencia en la especialidad mediante contrataciones realizadas con privados, para acreditarla debe presentar de forma obligatoria lo indicado en el numeral (ii) del presente párrafo; no es posible que acredite su experiencia únicamente con la presentación de contratos u órdenes de compra con conformidad o constancia de prestación.',
+                  fundamento: 'Plantilla — acreditación de experiencia, texto invariable',
+                },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'En caso los postores presenten varios comprobantes de pago para acreditar una sola contratación, se debe acreditar que corresponden a dicha contratación; de lo contrario, se asumirá que los comprobantes acreditan contrataciones independientes, en cuyo caso solo se considerará, para la evaluación, las veinte primeras contrataciones indicadas en el Anexo Nº 11 referido a la Experiencia del Postor en la Especialidad.',
+                },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'En el caso de suministro, solo se considera como experiencia la parte del contrato que haya sido ejecutada durante los diez años anteriores a la fecha de presentación de ofertas, debiendo adjuntarse copia de las conformidades correspondientes a tal parte o los respectivos comprobantes de pago cancelados.',
+                },
+                { clase: 'fijo', texto: EXPERIENCIA_TITULAR },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'Si el postor acredita experiencia de otra persona jurídica como consecuencia de una reorganización societaria, debe presentar adicionalmente el Anexo N° 13.',
+                },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'Las personas jurídicas resultantes de un proceso de reorganización societaria no pueden acreditar como experiencia del postor en la especialidad aquella que le hubieran transmitido como parte de dicha reorganización las personas jurídicas sancionadas con inhabilitación vigente o definitiva.',
+                },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'Cuando en los contratos, órdenes de compra o comprobantes de pago el monto facturado se encuentre expresado en moneda extranjera, debe indicarse el tipo de cambio venta publicado por la Superintendencia de Banca, Seguros y AFP correspondiente a la fecha de suscripción del contrato, de emisión de la orden de compra o de cancelación del comprobante de pago, según corresponda.',
+                },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'Sin perjuicio de lo anterior, los postores deben llenar y presentar el Anexo Nº 11 referido a la Experiencia del Postor en la Especialidad.',
+                },
+              ],
+            },
           ],
         },
         {
-          id: 'consorcio',
-          titulo: 'Participación en consorcio',
-          condicion: 'exige_consorcio',
+          id: 'calificacion_adicionales',
+          titulo: 'Requisitos de calificación adicionales',
           bloques: [
             {
-              clase: 'parrafo',
-              texto: 'El número máximo de consorciados es de {{consorcio_max}}.',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'consorcio_max',
-                  etiqueta: 'Número máximo de consorciados',
-                  ayuda:
-                    'Consignar el número máximo de integrantes del consorcio en función a la naturaleza de la prestación',
-                  tipo: 'numero',
-                  obligatorio: true,
-                },
-              ],
-            },
-            {
-              clase: 'parrafo',
-              texto: 'El porcentaje mínimo de participación de cada consorciado es de {{consorcio_pct}}.',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'consorcio_pct',
-                  etiqueta: 'Participación mínima por consorciado',
-                  ayuda: 'Consignar el porcentaje mínimo de participación de cada integrante del consorcio',
-                  tipo: 'numero',
-                  obligatorio: true,
-                },
-              ],
-            },
-            {
-              clase: 'parrafo',
+              clase: 'nota',
               texto:
-                'El porcentaje mínimo de participación en la ejecución del contrato, para el integrante del consorcio que acredite mayor experiencia, es de {{consorcio_pct_experiencia}}.',
-              campos: [
+                'Consignar uno o más de los requisitos siguientes, en caso así haya sido sustentado en la estrategia de contratación',
+            }
+            ],
+          subsecciones: [
+            {
+              id: 'consorcio',
+              titulo: 'Participación en consorcio',
+              numeralLiteral: true,
+              condicion: 'exige_consorcio',
+              bloques: [
+                { clase: 'titulo', texto: 'Requisitos:', nivel: 3 },
                 {
-                  clase: 'campo',
-                  id: 'consorcio_pct_experiencia',
-                  etiqueta: 'Participación mínima del consorciado con mayor experiencia',
-                  ayuda:
-                    'Consignar el porcentaje mínimo de participación en las obligaciones del integrante del consorcio que acredite la mayor experiencia',
-                  tipo: 'numero',
-                  obligatorio: true,
+                  clase: 'parrafo',
+                  texto: 'El número máximo de consorciados es de {{consorcio_max}}.',
+                  campos: [
+                    {
+                      clase: 'campo',
+                      id: 'consorcio_max',
+                      etiqueta: 'Número máximo de consorciados',
+                      ayuda:
+                        'Consignar el número máximo de integrantes del consorcio en función a la naturaleza de la prestación',
+                      tipo: 'numero',
+                      obligatorio: true,
+                    },
+                  ],
                 },
+                {
+                  clase: 'parrafo',
+                  texto: 'El porcentaje mínimo de participación de cada consorciado es de {{consorcio_pct}}.',
+                  campos: [
+                    {
+                      clase: 'campo',
+                      id: 'consorcio_pct',
+                      etiqueta: 'Participación mínima por consorciado',
+                      ayuda: 'Consignar el porcentaje mínimo de participación de cada integrante del consorcio',
+                      tipo: 'numero',
+                      obligatorio: true,
+                    },
+                  ],
+                },
+                {
+                  clase: 'parrafo',
+                  texto:
+                    'El porcentaje mínimo de participación en la ejecución del contrato, para el integrante del consorcio que acredite mayor experiencia, es de {{consorcio_pct_experiencia}}.',
+                  campos: [
+                    {
+                      clase: 'campo',
+                      id: 'consorcio_pct_experiencia',
+                      etiqueta: 'Participación mínima del consorciado con mayor experiencia',
+                      ayuda:
+                        'Consignar el porcentaje mínimo de participación en las obligaciones del integrante del consorcio que acredite la mayor experiencia',
+                      tipo: 'numero',
+                      obligatorio: true,
+                    },
+                  ],
+                },
+                { clase: 'titulo', texto: 'Acreditación:', nivel: 3 },
+                { clase: 'fijo', texto: 'Se acredita con la promesa de consorcio.' },
               ],
             },
-            { clase: 'fijo', texto: 'Se acredita con la promesa de consorcio.' },
           ],
         },
       ],
