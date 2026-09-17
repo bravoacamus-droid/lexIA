@@ -26,6 +26,7 @@ import {
   seccionFinalidadPublica,
   seccionObjetivo,
   seccionAntecedentes,
+  seccionAdelantoDirecto,
   seccionPenalidades,
   seccionControversias,
   seccionViciosOcultos,
@@ -46,7 +47,16 @@ export const PLANTILLA_SERVICIOS_COMPARACION_PRECIOS: PlantillaRequerimiento = {
   subtitulo: 'SERVICIOS - COMPARACIÓN DE PRECIOS',
   origen: 'PROCEDIMIENTOS DE SELECCIÓN/2. SERVICIOS/4. Servicios compración de precios.docx',
 
-  validaciones: [VALIDACION_EXPERIENCIA, VALIDACION_MYPE],
+  validaciones: [
+    {
+      // El tope viene con el numeral que se añadió por observación de
+      // César: el formato de este documento no lo enuncia, pero el
+      // adelanto que se le añadió sí.
+      id: 'adelanto_directo_max',
+      descripcion: 'Los adelantos directos no pueden exceder en conjunto el 30% del monto del contrato original.',
+      fundamento: 'Reglamento, art. 137 — adelanto directo',
+    },
+VALIDACION_EXPERIENCIA, VALIDACION_MYPE],
 
   secciones: [
     seccionEncabezado(
@@ -398,6 +408,16 @@ export const PLANTILLA_SERVICIOS_COMPARACION_PRECIOS: PlantillaRequerimiento = {
             },
           ],
         },
+
+        // El formato no trae este numeral, pero César pidió que el
+        // adelanto directo esté en todos los de bienes y servicios, sean
+        // contratos menores o procedimientos de selección (16/09/2026):
+        // "la observación realizada debe aplicarse para todos los tipos
+        // de bienes y servicios". Declarado como aparte en
+        // scripts/lib/divergencias-requerimiento.ts.
+        seccionAdelantoDirecto(
+          'Aplica únicamente cuando corresponda otorgar adelantos directos y así se haya previsto y sustentado en la estrategia de contratación, conforme al artículo 137 del Reglamento. En caso contrario, consignar "NO APLICA".',
+        ),
 
         seccionPenalidades('larga', false, 'servicio'),
 

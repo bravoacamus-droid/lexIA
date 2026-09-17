@@ -212,11 +212,22 @@ export const PLANTILLA_EXPERTOS_GERENTES: PlantillaRequerimiento = {
             {
               clase: 'redactado',
               id: 'plan_trabajo',
-              etiqueta: 'Plan de trabajo',
+              etiqueta: 'Contenido mínimo del plan de trabajo',
               instruccion:
-                'Establecer el contenido mínimo del Plan de Trabajo, el plazo para su presentación, el medio de presentación y el plazo con el que contará el área usuaria para su revisión y aprobación',
+              'Enumerar el contenido mínimo que debe tener el plan de trabajo, vinculado al objeto y a las actividades de la prestación',
               ejemplo:
                 'La Entidad requerirá la presentación del Plan de Trabajo dentro de los cinco (5) días calendario siguientes al perfeccionamiento del contrato.\n\nEl Plan de Trabajo deberá contener, como mínimo: objetivos del servicio; alcance de la gestión del proyecto; metodología de dirección y seguimiento; organización del servicio y responsables; cronograma general de actividades; programación de reuniones de coordinación; estrategia para el seguimiento del alcance, plazo, costo y calidad; metodología para la identificación y seguimiento de riesgos; relación de entregables y cronograma de presentación; y mecanismos de comunicación con la Entidad y demás actores.\n\nSerá presentado mediante la Mesa de Partes Virtual o el correo electrónico institucional y evaluado por el área usuaria dentro del plazo máximo de tres (3) días hábiles. De no emitirse pronunciamiento dentro de dicho plazo, el Plan de Trabajo se entenderá aprobado.',
+              extension: 'lista',
+            },
+            {
+              // El formato de lista sirve para enumerar el contenido
+              // mínimo, no para las condiciones: la oportunidad, el medio
+              // de entrega o el plazo de evaluación no son viñetas.
+              clase: 'redactado',
+              id: 'plan_trabajo_condiciones',
+              etiqueta: 'Condiciones del plan de trabajo',
+              instruccion:
+                'Precisar las condiciones y criterios que deberá considerar el plan, la oportunidad y el plazo de presentación, el medio de entrega, el plazo del área usuaria para su evaluación cuando corresponda y las demás condiciones necesarias para su revisión y aprobación, sin incorporar exigencias innecesarias',
               extension: 'varios_parrafos',
             },
           ],
@@ -382,9 +393,38 @@ export const PLANTILLA_EXPERTOS_GERENTES: PlantillaRequerimiento = {
           titulo: 'Subcontratación',
           bloques: [
             {
-              clase: 'fijo',
-              texto: 'La subcontratación se encuentra prohibida en esta contratación.',
-              fundamento: 'Plantilla — expertos y gerentes de proyectos',
+              // La frase de prohibición es la de SU formato, palabra por
+              // palabra; la alternativa de permitirla y el campo para
+              // reservar prestaciones se añaden por observación de César
+              // del 16/09/2026: la observación de la subcontratación
+              // "debe aplicarse para todos los tipos de bienes,
+              // servicios y consultoría de obras", y solo la ejecución
+              // de obras queda exceptuada.
+              clase: 'opcion',
+              id: 'subcontratacion',
+              etiqueta: 'Subcontratación',
+              instruccion: 'Indicar si se permite o se prohíbe la subcontratación',
+              opciones: [
+                {
+                  valor: 'prohibida',
+                  texto: 'La subcontratación se encuentra prohibida en esta contratación.',
+                },
+                {
+                  valor: 'permitida',
+                  texto:
+                    'El contratista puede subcontratar hasta un máximo del 40% del monto del contrato vigente de conformidad con lo dispuesto en el artículo 108 del Reglamento. Se consideran prestaciones esenciales que no pueden ser materia de subcontratación las siguientes:',
+                },
+              ],
+            },
+            {
+              clase: 'redactado',
+              id: 'prestaciones_no_subcontratables',
+              etiqueta: 'Prestaciones que no pueden subcontratarse',
+              instruccion:
+                'Completar las prestaciones esenciales que, de acuerdo con lo determinado por el área usuaria en los términos de referencia, no pueden ser materia de subcontratación',
+              extension: 'lista',
+              // Solo tiene sentido si se permitió subcontratar.
+              visibleSi: { opcion: 'subcontratacion', valor: 'permitida' },
             },
           ],
         },

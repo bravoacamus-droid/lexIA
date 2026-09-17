@@ -492,6 +492,16 @@ export const PLANTILLA_VASO_DE_LECHE: PlantillaRequerimiento = {
                   texto:
                     'El contrato se rige por la modalidad de pago de Precios Unitarios, de conformidad con el artículo 130 del Reglamento. Es aplicable cuando no puede conocerse con exactitud o precisión las cantidades o magnitudes requeridas.',
                 },
+                {
+                  valor: 'esquema_mixto',
+                  texto:
+                    'El contrato se rige por un Esquema mixto, de conformidad con el artículo 130 del Reglamento. Es aplicable cuando la entidad contratante puede utilizar más de una modalidad de pago en un mismo contrato.',
+                },
+                {
+                  valor: 'costo_reembolsable',
+                  texto:
+                    'El contrato se rige por la modalidad de Costo reembolsable, de conformidad con el artículo 130 del Reglamento. Es aplicable cuando la entidad contratante requiere reembolsar al contratista los costos reales en que incurre durante la ejecución del contrato.',
+                },
               ],
             },
             {

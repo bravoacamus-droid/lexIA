@@ -248,13 +248,35 @@ export const respuestasVacias = (): RespuestasRequerimiento => ({
  * el distribuidor y este archivo, y si el valor por defecto se calculara
  * en cada uno acabarian discrepando el formulario y el Word.
  */
+/**
+ * Con qué interruptores nace un requerimiento: con TODOS encendidos.
+ *
+ * Hasta el 16/09/2026 nacían apagados salvo los pocos marcados
+ * `condicionPorDefecto`, porque los apartados «de corresponder» del
+ * formato son, por definición, los que no siempre van. Pero eso obliga
+ * al área usuaria a descubrir uno por uno qué existe: lo que no se ve
+ * no se enciende, y el apartado acaba faltando en el documento.
+ *
+ * César lo zanjó al absolver las preguntas pendientes: «todos los
+ * botones sin excepción dejar encendido, el área usuaria apagará en
+ * caso no corresponda». Apagar lo que sobra se ve; encontrar lo que
+ * falta, no.
+ *
+ * Se recorren las secciones Y los bloques: un interruptor que solo
+ * gobierna un bloque suelto —el pago anticipado, la conformidad de las
+ * accesorias— también es un botón de la pantalla.
+ */
 export function condicionesPorDefecto(
   plantilla: PlantillaRequerimiento | null | undefined,
 ): Record<string, boolean> {
   const fuera: Record<string, boolean> = {};
   const recorrer = (secciones: Seccion[]) => {
     for (const s of secciones) {
-      if (s.condicion && s.condicionPorDefecto) fuera[s.condicion] = true;
+      if (s.condicion) fuera[s.condicion] = true;
+      for (const b of s.bloques) {
+        const condicion = 'visibleSi' in b ? b.visibleSi?.condicion : undefined;
+        if (condicion) fuera[condicion] = true;
+      }
       if (s.subsecciones) recorrer(s.subsecciones);
     }
   };

@@ -306,11 +306,22 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
             {
               clase: 'redactado',
               id: 'plan_trabajo',
-              etiqueta: 'Plan de trabajo',
+              etiqueta: 'Contenido mínimo del plan de trabajo',
               instruccion:
-                'Establecer el contenido mínimo del Plan de Trabajo, el plazo y medio para su presentación, y el plazo para su revisión y aprobación. Debe guardar concordancia con el expediente técnico, el calendario de avance de obra, el cronograma de ejecución y el programa de utilización de recursos',
+              'Enumerar el contenido mínimo que debe tener el plan de trabajo, vinculado al objeto y a las actividades de la prestación',
               ejemplo:
                 'El Plan de Trabajo deberá contener, como mínimo: objetivos y alcance de la obra; metodología constructiva; organización del proyecto y responsabilidades del personal clave; cronograma general de ejecución y programación de hitos contractuales; programación de recursos humanos, equipos, maquinaria y materiales; programa de abastecimiento de materiales e insumos críticos; plan de aseguramiento y control de la calidad; Plan de Seguridad y Salud en el Trabajo; Plan de Manejo Ambiental; identificación de riesgos y medidas de mitigación; procedimiento de coordinación con la Entidad y la supervisión; metodología para el seguimiento y control del avance físico; y plan de gestión de la información y metodologías colaborativas (BIM u otras), cuando corresponda.',
+              extension: 'lista',
+            },
+            {
+              // El formato de lista sirve para enumerar el contenido
+              // mínimo, no para las condiciones: la oportunidad, el medio
+              // de entrega o el plazo de evaluación no son viñetas.
+              clase: 'redactado',
+              id: 'plan_trabajo_condiciones',
+              etiqueta: 'Condiciones del plan de trabajo',
+              instruccion:
+                'Precisar las condiciones y criterios que deberá considerar el plan, la oportunidad y el plazo de presentación, el medio de entrega, el plazo del área usuaria para su evaluación cuando corresponda y las demás condiciones necesarias para su revisión y aprobación, sin incorporar exigencias innecesarias',
               extension: 'varios_parrafos',
             },
           ],
@@ -417,30 +428,6 @@ export const PLANTILLA_OBRAS_SOLO_CONSTRUCCION: PlantillaRequerimiento = {
               clase: 'fijo',
               texto:
                 'No se considera subcontratación la adquisición de bienes o materiales, aun cuando dicha adquisición incluya actividades complementarias como el transporte y la colocación. El contratista mantiene la responsabilidad por la ejecución total del contrato frente a la entidad contratante.',
-            },
-            {
-              // La lista de prestaciones esenciales. El .docx de obras no
-              // la trae —y antes estaba metida a la fuerza dentro del
-              // párrafo del 40%, de modo que el documento salía con los
-              // dos puntos y nada debajo—. Observación 15 de César
-              // (setiembre de 2026): "debe haber un campo para que el
-              // área usuaria pueda establecer qué materias NO pueden ser
-              // subcontratadas", y la hace valer para todos los
-              // formatos. Va bajo interruptor y apagada: así el
-              // documento por defecto sigue siendo el de su formato.
-              clase: 'fijo',
-              texto:
-                'Se consideran prestaciones esenciales que no pueden ser materia de subcontratación las siguientes:',
-              visibleSi: { condicion: 'reserva_prestaciones_esenciales' },
-            },
-            {
-              clase: 'redactado',
-              id: 'prestaciones_no_subcontratables',
-              etiqueta: 'Prestaciones que no pueden subcontratarse',
-              instruccion:
-                'Completar las prestaciones esenciales que, de acuerdo con lo determinado por el área usuaria, no pueden ser materia de subcontratación',
-              extension: 'lista',
-              visibleSi: { condicion: 'reserva_prestaciones_esenciales' },
             },
           ],
         },

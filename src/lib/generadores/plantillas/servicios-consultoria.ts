@@ -281,11 +281,22 @@ export const PLANTILLA_SERVICIOS_CONSULTORIA: PlantillaRequerimiento = {
             {
               clase: 'redactado',
               id: 'plan_trabajo',
-              etiqueta: 'Plan de trabajo',
+              etiqueta: 'Contenido mínimo del plan de trabajo',
               instruccion:
-                'Delimitar el contenido, condiciones y oportunidad de entrega del plan, así como el plazo con el que cuenta el área usuaria para su aprobación',
+              'Enumerar el contenido mínimo que debe tener el plan de trabajo, vinculado al objeto y a las actividades de la prestación',
               ejemplo:
                 'El Plan de Trabajo deberá contener, como mínimo: objetivos y alcance de la consultoría; metodología que será empleada; relación y secuencia de las actividades a ejecutar; cronograma detallado de ejecución; relación del equipo consultor y distribución de responsabilidades; productos y entregables comprometidos; mecanismos de coordinación con el área usuaria; y riesgos identificados con sus medidas de mitigación.',
+              extension: 'lista',
+            },
+            {
+              // El formato de lista sirve para enumerar el contenido
+              // mínimo, no para las condiciones: la oportunidad, el medio
+              // de entrega o el plazo de evaluación no son viñetas.
+              clase: 'redactado',
+              id: 'plan_trabajo_condiciones',
+              etiqueta: 'Condiciones del plan de trabajo',
+              instruccion:
+                'Precisar las condiciones y criterios que deberá considerar el plan, la oportunidad y el plazo de presentación, el medio de entrega, el plazo del área usuaria para su evaluación cuando corresponda y las demás condiciones necesarias para su revisión y aprobación, sin incorporar exigencias innecesarias',
               extension: 'varios_parrafos',
             },
           ],
@@ -398,14 +409,44 @@ export const PLANTILLA_SERVICIOS_CONSULTORIA: PlantillaRequerimiento = {
                     'El contrato se rige por la modalidad de pago de Precios Unitarios, de conformidad con el artículo 130 del Reglamento. Es aplicable cuando no puede conocerse con exactitud o precisión las cantidades o magnitudes requeridas.',
                 },
                 {
+                  valor: 'esquema_mixto',
+                  texto:
+                    'El contrato se rige por un Esquema mixto, de conformidad con el artículo 130 del Reglamento. Es aplicable cuando la entidad contratante puede utilizar más de una modalidad de pago en un mismo contrato.',
+                },
+                {
                   valor: 'tarifas',
                   texto:
                     'El contrato se rige por la modalidad de pago de Tarifas, de conformidad con el artículo 130 del Reglamento. Es aplicable cuando no puede conocerse con precisión el tiempo de prestación del servicio.',
                 },
                 {
-                  valor: 'esquema_mixto',
+                  valor: 'porcentajes',
                   texto:
-                    'El contrato se rige por un Esquema mixto, de conformidad con el artículo 130 del Reglamento. Es aplicable cuando la entidad contratante puede utilizar más de una modalidad de pago en un mismo contrato.',
+                    'El contrato se rige por la modalidad de pago en base a porcentajes, de conformidad con el artículo 130 del Reglamento. Es aplicable en la contratación de servicios de cobranzas, recuperaciones o prestaciones de naturaleza similar. Dicho porcentaje incluye todos los conceptos que comprende la contraprestación.',
+                },
+                {
+                  valor: 'honorario_comision',
+                  texto:
+                    'El contrato se rige por la modalidad de pago en base a un honorario fijo y una comisión de éxito, de conformidad con el artículo 130 del Reglamento. Es aplicable cuando la entidad contratante requiere que el postor formule su oferta contemplando un monto fijo y un monto adicional como incentivo pagado al alcanzarse el resultado esperado.',
+                },
+                {
+                  valor: 'consumo',
+                  texto:
+                    'El contrato se rige por la modalidad de Pago por consumo, de conformidad con el artículo 130 del Reglamento. Es aplicable a servicios de consumo variable cuando la unidad de medida del pago sea la hora de labor profesional especializada.',
+                },
+                {
+                  valor: 'contingencia_disponibilidad',
+                  texto:
+                    'El contrato se rige por la modalidad de Pago por disponibilidad, de conformidad con el artículo 286 del Reglamento. Solo es aplicable a contratos de contingencia para situaciones de emergencia: el contratista recibe un pago periódico por mantener la rotación, el stock o la capacidad de respuesta, se active o no la ejecución del contrato.',
+                },
+                {
+                  valor: 'contingencia_activacion',
+                  texto:
+                    'El contrato se rige por la modalidad de Pago por activación, de conformidad con el artículo 286 del Reglamento. Solo es aplicable a contratos de contingencia para situaciones de emergencia: el contratista recibe el pago únicamente cuando se cumple la condición que activa la ejecución del contrato, al precio pactado en este.',
+                },
+                {
+                  valor: 'contingencia_mixto',
+                  texto:
+                    'El contrato se rige por la modalidad de Pago mixto, de conformidad con el artículo 286 del Reglamento. Solo es aplicable a contratos de contingencia para situaciones de emergencia cuyos costos de instalación o inicio superan el 10% del monto contractual: ese monto se paga al producirse el evento que activa el contrato y el resto se divide en pagos periódicos.',
                 },
               ],
             },

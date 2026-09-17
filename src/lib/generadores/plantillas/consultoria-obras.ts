@@ -402,14 +402,24 @@ export const PLANTILLA_CONSULTORIA_OBRAS: PlantillaRequerimiento = {
                     'El contrato se rige por la modalidad de pago de Suma Alzada, de conformidad con el artículo 130 del Reglamento. Es aplicable cuando las cantidades, magnitudes y calidades de la prestación están definidas en los términos de referencia.',
                 },
                 {
-                  valor: 'tarifas',
+                  valor: 'precios_unitarios',
                   texto:
-                    'El contrato se rige por la modalidad de pago de Tarifas, de conformidad con el artículo 130 del Reglamento. Es aplicable cuando no puede conocerse con precisión el tiempo de prestación del servicio.',
+                    'El contrato se rige por la modalidad de pago de Precios Unitarios, de conformidad con el artículo 130 del Reglamento. Es aplicable cuando no puede conocerse con exactitud o precisión las cantidades o magnitudes requeridas.',
                 },
                 {
                   valor: 'esquema_mixto',
                   texto:
                     'El contrato se rige por un Esquema mixto, de conformidad con el artículo 130 del Reglamento. Es aplicable cuando la entidad contratante puede utilizar más de una modalidad de pago en un mismo contrato.',
+                },
+                {
+                  valor: 'costo_reembolsable',
+                  texto:
+                    'El contrato se rige por la modalidad de Costo reembolsable, de conformidad con el artículo 130 del Reglamento. Es aplicable cuando la entidad contratante requiere reembolsar al contratista los costos reales en que incurre durante la ejecución del contrato.',
+                },
+                {
+                  valor: 'tarifas',
+                  texto:
+                    'El contrato se rige por la modalidad de pago de Tarifas, de conformidad con el artículo 130 del Reglamento. Es aplicable cuando no puede conocerse con precisión el tiempo de prestación del servicio.',
                 },
               ],
             },
@@ -508,9 +518,37 @@ export const PLANTILLA_CONSULTORIA_OBRAS: PlantillaRequerimiento = {
             },
           ],
         },
-        seccionAdelantoDirecto(
-          'El otorgamiento de adelantos directos es FACULTATIVO y procede solo cuando la Entidad determine su necesidad y así se haya sustentado en la estrategia de contratación, conforme al artículo 66 de la Ley N° 32069 y al artículo 178 de su Reglamento. Si no corresponde, consignar "NO APLICA".',
-        ),
+        {
+          // Consultoría de obras conserva SU texto, no el unificado.
+          // Su formato no parametriza el adelanto: fija diez días para
+          // pedirlo, la relación de documentos, siete días para
+          // entregarlo y la prohibición de fideicomisos del numeral
+          // 178.2. Unificarlo le quitaba todo eso. César, al absolver
+          // las preguntas pendientes (16/09/2026): la observación del
+          // adelanto vale para bienes y servicios, "quedando exceptuado
+          // la consultoría de obras y ejecución de obras, el cual debe
+          // mantener el texto que indica en el formato".
+          id: 'adelanto_directo',
+          titulo: 'Adelanto directo',
+          condicion: 'otorga_adelanto',
+          bloques: [
+            { clase: 'nota', texto: '[El presente numeral será aplicable únicamente cuando, por la naturaleza, complejidad o condiciones de ejecución de la consultoría de obra, la Entidad determine la necesidad de otorgar adelantos directos y dicha condición haya sido prevista y sustentada en la estrategia de contratación, de conformidad con el artículo 66 de la Ley N.° 32069 y el artículo 178 de su Reglamento.\n\nImportante: El otorgamiento de adelantos directos es facultativo. En caso la Entidad determine que no corresponde su otorgamiento, deberá consignarse “NO APLICA” en el presente numeral.]' },
+            {
+              clase: 'fijo',
+              texto: 'El contratista deberá solicitar el adelanto dentro de los diez (10) días calendario contados desde el día siguiente del perfeccionamiento del contrato o desde el cumplimiento de la condición establecida para su otorgamiento, según corresponda, adjuntando:',
+              fundamento: 'Reglamento, art. 178',
+            },
+            { clase: 'fijo', texto: 'Solicitud de adelanto.\nComprobante de pago correspondiente.\nGarantía por adelanto otorgada mediante carta fianza o póliza de caución, emitida conforme a la normativa vigente.', lista: true },
+            { clase: 'fijo', texto: 'La garantía deberá ser emitida por el mismo monto del adelanto solicitado y cumplir las condiciones de incondicionalidad, solidaridad, irrevocabilidad y realización automática, manteniéndose vigente hasta la amortización total del adelanto otorgado.' },
+            { clase: 'fijo', texto: 'La Entidad entregará el adelanto dentro de los siete (7) días calendario siguientes a la presentación de la solicitud, siempre que se cumplan los requisitos establecidos en el contrato y en la normativa vigente.' },
+            { clase: 'fijo', texto: 'La amortización del adelanto se efectuará mediante descuentos proporcionales en los pagos parciales que correspondan durante la ejecución contractual.' },
+            {
+              clase: 'fijo',
+              texto: 'No procede la constitución de fideicomisos para garantizar adelantos en consultorías de obra, de conformidad con el numeral 178.2 del Reglamento.',
+              fundamento: 'Reglamento, num. 178.2',
+            },
+          ],
+        },
 
         // Su .docx cierra las penalidades con el tope conjunto del 10%.
         seccionPenalidades('larga', 'componentes', 'servicio'),

@@ -854,6 +854,48 @@ export const METODO_VERIFICACIONES =
   ' Antes de redactar, evalúa si por la naturaleza y complejidad de esta contratación hace falta comprobar algo. Hace falta cuando una característica exigida NO se puede comprobar mirando el entregable —resistencia, composición, rendimiento, calibración, seguridad, interoperabilidad, condiciones sanitarias— y solo se acredita con una prueba, un ensayo, una inspección o una revisión documental específica. No hace falta cuando el propio entregable evidencia el cumplimiento, y en ese caso dilo en una línea y no propongas ninguna. Si corresponde, precisa de cada una, según aplique: qué aspecto o característica se verifica; con qué método o procedimiento; qué prueba, ensayo, inspección, simulación o revisión documental; con qué criterios objetivos se determina el cumplimiento; en qué momento se verifica; y qué evidencia sustenta la conformidad. Cada verificación debe ser objetiva, pertinente, necesaria, proporcional y estar directamente vinculada a las características, condiciones, actividades, entregables y resultados exigidos: no pidas ensayos de más, que encarecen la oferta y dejan fuera a quien no puede costearlos. No inventes métodos, normas técnicas, parámetros, tolerancias, equipos, laboratorios, frecuencias ni criterios de aceptación que no estén sustentados en lo que se te ha dado; si el ensayo corresponde pero su parámetro es un dato del área usuaria —edad de rotura, número de probetas, tolerancia admisible—, nómbralo con [Pendiente: qué falta] en vez de callarlo.';
 
 /** El párrafo con la modalidad de pago, que ahora se elige. */
+/**
+ * Las modalidades de pago del artículo 130 del Reglamento, y las tres
+ * que el artículo 286 reserva a los contratos de contingencia.
+ *
+ * Estaban escritas a mano en cada plantilla, con cinco redacciones
+ * distintas para la misma modalidad. Aquí está la redacción de
+ * referencia, que es la que se usa al AÑADIR una modalidad a un
+ * formato; las que cada formato ya traía no se tocan, porque salen de
+ * su .docx.
+ *
+ * Qué modalidades ofrece cada formato lo fijó César al absolver las
+ * preguntas pendientes (16/09/2026), formato por formato.
+ */
+export const MODALIDAD_PAGO: Record<string, string> = {
+  suma_alzada:
+    'El contrato se rige por la modalidad de pago de Suma Alzada, de conformidad con el artículo 130 del Reglamento. Es aplicable cuando las cantidades, magnitudes y calidades de la prestación están definidas en el requerimiento.',
+  precios_unitarios:
+    'El contrato se rige por la modalidad de pago de Precios Unitarios, de conformidad con el artículo 130 del Reglamento. Es aplicable cuando no puede conocerse con exactitud o precisión las cantidades o magnitudes requeridas.',
+  esquema_mixto:
+    'El contrato se rige por un Esquema mixto, de conformidad con el artículo 130 del Reglamento. Es aplicable cuando la entidad contratante puede utilizar más de una modalidad de pago en un mismo contrato.',
+  costo_reembolsable:
+    'El contrato se rige por la modalidad de Costo reembolsable, de conformidad con el artículo 130 del Reglamento. Es aplicable cuando la entidad contratante requiere reembolsar al contratista los costos reales en que incurre durante la ejecución del contrato.',
+  tarifas:
+    'El contrato se rige por la modalidad de pago de Tarifas, de conformidad con el artículo 130 del Reglamento. Es aplicable cuando no puede conocerse con precisión el tiempo de prestación del servicio; se valoriza multiplicando la tarifa por el tiempo real de ejecución. Las tarifas incluyen costos directos, cargas sociales, tributos, gastos generales y utilidades.',
+  porcentajes:
+    'El contrato se rige por la modalidad de pago en base a porcentajes, de conformidad con el artículo 130 del Reglamento. Es aplicable en la contratación de servicios de cobranzas, recuperaciones o prestaciones de naturaleza similar. Dicho porcentaje incluye todos los conceptos que comprende la contraprestación.',
+  honorario_comision:
+    'El contrato se rige por la modalidad de pago en base a un honorario fijo y una comisión de éxito, de conformidad con el artículo 130 del Reglamento. Es aplicable cuando la entidad contratante requiere que el postor formule su oferta contemplando un monto fijo y un monto adicional como incentivo pagado al alcanzarse el resultado esperado.',
+  consumo:
+    'El contrato se rige por la modalidad de Pago por consumo, de conformidad con el artículo 130 del Reglamento. Es aplicable a servicios de consumo variable cuando la unidad de medida del pago sea la hora de labor profesional especializada.',
+
+  // Las tres del artículo 286, y solo para contratos de contingencia:
+  // el texto lo dice, porque un formato de servicios en general no es
+  // el sitio donde deba elegirse un pago por disponibilidad sin saberlo.
+  contingencia_disponibilidad:
+    'El contrato se rige por la modalidad de Pago por disponibilidad, de conformidad con el artículo 286 del Reglamento. Solo es aplicable a contratos de contingencia para situaciones de emergencia: el contratista recibe un pago periódico por mantener la rotación, el stock o la capacidad de respuesta, se active o no la ejecución del contrato.',
+  contingencia_activacion:
+    'El contrato se rige por la modalidad de Pago por activación, de conformidad con el artículo 286 del Reglamento. Solo es aplicable a contratos de contingencia para situaciones de emergencia: el contratista recibe el pago únicamente cuando se cumple la condición que activa la ejecución del contrato, al precio pactado en este.',
+  contingencia_mixto:
+    'El contrato se rige por la modalidad de Pago mixto, de conformidad con el artículo 286 del Reglamento. Solo es aplicable a contratos de contingencia para situaciones de emergencia cuyos costos de instalación o inicio superan el 10% del monto contractual: ese monto se paga al producirse el evento que activa el contrato y el resto se divide en pagos periódicos.',
+};
+
 export function bloqueModalidadPago(): Bloque {
   return {
     clase: 'parrafo',

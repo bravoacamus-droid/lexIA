@@ -28,6 +28,7 @@ import {
   bloquesPagoAnticipado,
   METODO_VERIFICACIONES,
   METODO_RECURSOS_ENTIDAD,
+  seccionAdelantoDirecto,
   seccionConfidencialidad,
   seccionAnticorrupcion,
   seccionViciosOcultos,
@@ -50,7 +51,16 @@ export const PLANTILLA_UIT_LOCADORES: PlantillaRequerimiento = {
     'SERVICIOS TÉCNICOS, PROFESIONALES Y/O ESPECIALIZADOS REALIZADOS POR PERSONAS NATURALES (LOCADOR)',
   origen: 'MENORES A 8 UIT/ANEXO 3 - TÉRMINOS DE REFERENCIA - LOCADORES.docx',
 
-  validaciones: [VALIDACION_PENALIDADES],
+  validaciones: [
+    {
+      // El tope viene con el numeral que se añadió por observación de
+      // César: el formato de este documento no lo enuncia, pero el
+      // adelanto que se le añadió sí.
+      id: 'adelanto_directo_max',
+      descripcion: 'Los adelantos directos no pueden exceder en conjunto el 30% del monto del contrato original.',
+      fundamento: 'Reglamento, art. 137 — adelanto directo',
+    },
+VALIDACION_PENALIDADES],
 
   secciones: [
     ...seccionesCabecera8Uit({
@@ -190,9 +200,29 @@ export const PLANTILLA_UIT_LOCADORES: PlantillaRequerimiento = {
                     'De acuerdo con el objeto contractual, la modalidad de pago es Suma Alzada. Es aplicable cuando las cantidades, magnitudes y calidades de la prestación están definidas en los términos de referencia.',
                 },
                 {
+                  valor: 'precios_unitarios',
+                  texto:
+                    'El contrato se rige por la modalidad de pago de Precios Unitarios, de conformidad con el artículo 130 del Reglamento. Es aplicable cuando no puede conocerse con exactitud o precisión las cantidades o magnitudes requeridas.',
+                },
+                {
+                  valor: 'esquema_mixto',
+                  texto:
+                    'El contrato se rige por un Esquema mixto, de conformidad con el artículo 130 del Reglamento. Es aplicable cuando la entidad contratante puede utilizar más de una modalidad de pago en un mismo contrato.',
+                },
+                {
                   valor: 'tarifas',
                   texto:
                     'De acuerdo con el objeto contractual, la modalidad de pago es Tarifas. Es aplicable cuando no puede conocerse con precisión el tiempo de prestación del servicio.',
+                },
+                {
+                  valor: 'porcentajes',
+                  texto:
+                    'El contrato se rige por la modalidad de pago en base a porcentajes, de conformidad con el artículo 130 del Reglamento. Es aplicable en la contratación de servicios de cobranzas, recuperaciones o prestaciones de naturaleza similar. Dicho porcentaje incluye todos los conceptos que comprende la contraprestación.',
+                },
+                {
+                  valor: 'honorario_comision',
+                  texto:
+                    'El contrato se rige por la modalidad de pago en base a un honorario fijo y una comisión de éxito, de conformidad con el artículo 130 del Reglamento. Es aplicable cuando la entidad contratante requiere que el postor formule su oferta contemplando un monto fijo y un monto adicional como incentivo pagado al alcanzarse el resultado esperado.',
                 },
                 {
                   valor: 'consumo',
@@ -290,6 +320,16 @@ export const PLANTILLA_UIT_LOCADORES: PlantillaRequerimiento = {
             },
           ],
         },
+
+        // El formato no trae este numeral, pero César pidió que el
+        // adelanto directo esté en todos los de bienes y servicios, sean
+        // contratos menores o procedimientos de selección (16/09/2026):
+        // "la observación realizada debe aplicarse para todos los tipos
+        // de bienes y servicios". Declarado como aparte en
+        // scripts/lib/divergencias-requerimiento.ts.
+        seccionAdelantoDirecto(
+          'Aplica únicamente cuando corresponda otorgar adelantos directos y así se haya previsto y sustentado en la estrategia de contratación, conforme al artículo 137 del Reglamento. En caso contrario, consignar "NO APLICA".',
+        ),
 
         seccionPenalidades8Uit({ objeto: 'servicio' }),
 

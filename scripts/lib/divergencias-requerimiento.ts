@@ -58,55 +58,12 @@ export const DIVERGENCIAS_DECLARADAS: DivergenciaDeclarada[] = [
   // documentos, art. 178 del Reglamento— que la estructura unificada
   // sustituye por un plazo que fija la Entidad. PENDIENTE DE CONFIRMAR
   // CON CÉSAR: es el único formato donde unificar quita texto oficial.
-  {
-    plantilla: 'ps-consultoria-obras',
-    fragmento: 'La entidad contratante otorgará',
-    motivo: 'Obs. 13: adelanto directo unificado con el modelo de los demás formatos.',
-  },
-  {
-    plantilla: 'ps-consultoria-obras',
-    fragmento: 'adelantos directos por el',
-    motivo: 'Obs. 13: adelanto directo unificado con el modelo de los demás formatos.',
-  },
-  {
-    plantilla: 'ps-consultoria-obras',
-    fragmento: 'El contratista debe solicitar los adelantos dentro de los',
-    motivo: 'Obs. 13: adelanto directo unificado con el modelo de los demás formatos.',
-  },
-  {
-    plantilla: 'ps-consultoria-obras',
-    fragmento:
-      'días siguientes de perfeccionamiento del contrato, adjuntando a su solicitud la garantía por adelantos acompañada del comprobante de pago correspondiente.',
-    motivo: 'Obs. 13: adelanto directo unificado con el modelo de los demás formatos.',
-  },
-  {
-    plantilla: 'ps-consultoria-obras',
-    fragmento:
-      'días calendario siguientes a la presentación de la solicitud, siempre que esta cumpla con los requisitos establecidos en el contrato y en la normativa vigente.',
-    motivo: 'Obs. 13: adelanto directo unificado con el modelo de los demás formatos.',
-  },
-  {
-    plantilla: 'ps-consultoria-obras',
-    fragmento: 'La Entidad otorgará el adelanto dentro de los',
-    motivo: 'Obs. 13: adelanto directo unificado con el modelo de los demás formatos.',
-  },
   // ── Observación 15 (setiembre de 2026): el área usuaria debe poder
-  // decir qué prestaciones no se subcontratan "en todos los formatos".
-  // Los dos de ejecución de obras no traen esa frase en su .docx, así
-  // que va bajo interruptor y apagada: el documento por defecto sigue
-  // siendo el de su formato, y solo aparece si la Entidad la activa.
-  {
-    plantilla: 'ps-obras-diseno-construccion',
-    fragmento:
-      'Se consideran prestaciones esenciales que no pueden ser materia de subcontratación las siguientes:',
-    motivo: 'Obs. 15: lista de prestaciones esenciales, opcional, apagada por defecto.',
-  },
-  {
-    plantilla: 'ps-obras-solo-construccion',
-    fragmento:
-      'Se consideran prestaciones esenciales que no pueden ser materia de subcontratación las siguientes:',
-    motivo: 'Obs. 15: lista de prestaciones esenciales, opcional, apagada por defecto.',
-  },
+  // decir qué prestaciones no se subcontratan. César acotó el alcance
+  // el 16/09/2026: vale para bienes, servicios y consultoría de obras,
+  // "quedando exceptuado solo ejecución de obras, el cual debe mantener
+  // el texto que indica en el formato de requerimiento". Por eso los dos
+  // formatos de obras ya no la llevan, ni siquiera bajo interruptor.
 
   // ── Observación 17 (setiembre de 2026): "este artículo debe ser
   // reemplazado por el siguiente texto". Es redacción de César, no de
@@ -154,5 +111,152 @@ export const DIVERGENCIAS_DECLARADAS: DivergenciaDeclarada[] = [
     fragmento:
       'En este supuesto, el área usuaria emitirá una primera conformidad para efectos estrictamente administrativos de pago',
     motivo: 'Obs. 20: pago anticipado disponible en todos los formatos, apagado por defecto.',
+  },
+  {
+    plantilla: 'ps-bienes-comparacion-precios',
+    fragmento:
+      'La entidad contratante otorgará',
+    motivo:
+      'César, al absolver las preguntas pendientes (16/09/2026): el adelanto directo va en TODOS los formatos de bienes y servicios, menores y de procedimiento de selección. Estos tres no lo traen en su .docx.',
+  },
+  {
+    plantilla: 'ps-bienes-comparacion-precios',
+    fragmento:
+      'adelantos directos por el',
+    motivo:
+      'César, al absolver las preguntas pendientes (16/09/2026): el adelanto directo va en TODOS los formatos de bienes y servicios, menores y de procedimiento de selección. Estos tres no lo traen en su .docx.',
+  },
+  {
+    plantilla: 'ps-bienes-comparacion-precios',
+    fragmento:
+      'del monto del contrato original.',
+    motivo:
+      'César, al absolver las preguntas pendientes (16/09/2026): el adelanto directo va en TODOS los formatos de bienes y servicios, menores y de procedimiento de selección. Estos tres no lo traen en su .docx.',
+  },
+  {
+    plantilla: 'ps-bienes-comparacion-precios',
+    fragmento:
+      'El contratista debe solicitar los adelantos dentro de los',
+    motivo:
+      'César, al absolver las preguntas pendientes (16/09/2026): el adelanto directo va en TODOS los formatos de bienes y servicios, menores y de procedimiento de selección. Estos tres no lo traen en su .docx.',
+  },
+  {
+    plantilla: 'ps-bienes-comparacion-precios',
+    fragmento:
+      'días siguientes de perfeccionamiento del contrato, adjuntando a su solicitud la garantía por adelantos acompañada del comprobante de pago correspondiente.',
+    motivo:
+      'César, al absolver las preguntas pendientes (16/09/2026): el adelanto directo va en TODOS los formatos de bienes y servicios, menores y de procedimiento de selección. Estos tres no lo traen en su .docx.',
+  },
+  {
+    plantilla: 'ps-bienes-comparacion-precios',
+    fragmento:
+      'La Entidad otorgará el adelanto dentro de los',
+    motivo:
+      'César, al absolver las preguntas pendientes (16/09/2026): el adelanto directo va en TODOS los formatos de bienes y servicios, menores y de procedimiento de selección. Estos tres no lo traen en su .docx.',
+  },
+  {
+    plantilla: 'ps-bienes-comparacion-precios',
+    fragmento:
+      'días calendario siguientes a la presentación de la solicitud, siempre que esta cumpla con los requisitos establecidos en el contrato y en la normativa vigente.',
+    motivo:
+      'César, al absolver las preguntas pendientes (16/09/2026): el adelanto directo va en TODOS los formatos de bienes y servicios, menores y de procedimiento de selección. Estos tres no lo traen en su .docx.',
+  },
+  {
+    plantilla: 'ps-servicios-comparacion-precios',
+    fragmento:
+      'La entidad contratante otorgará',
+    motivo:
+      'César, al absolver las preguntas pendientes (16/09/2026): el adelanto directo va en TODOS los formatos de bienes y servicios, menores y de procedimiento de selección. Estos tres no lo traen en su .docx.',
+  },
+  {
+    plantilla: 'ps-servicios-comparacion-precios',
+    fragmento:
+      'adelantos directos por el',
+    motivo:
+      'César, al absolver las preguntas pendientes (16/09/2026): el adelanto directo va en TODOS los formatos de bienes y servicios, menores y de procedimiento de selección. Estos tres no lo traen en su .docx.',
+  },
+  {
+    plantilla: 'ps-servicios-comparacion-precios',
+    fragmento:
+      'del monto del contrato original.',
+    motivo:
+      'César, al absolver las preguntas pendientes (16/09/2026): el adelanto directo va en TODOS los formatos de bienes y servicios, menores y de procedimiento de selección. Estos tres no lo traen en su .docx.',
+  },
+  {
+    plantilla: 'ps-servicios-comparacion-precios',
+    fragmento:
+      'El contratista debe solicitar los adelantos dentro de los',
+    motivo:
+      'César, al absolver las preguntas pendientes (16/09/2026): el adelanto directo va en TODOS los formatos de bienes y servicios, menores y de procedimiento de selección. Estos tres no lo traen en su .docx.',
+  },
+  {
+    plantilla: 'ps-servicios-comparacion-precios',
+    fragmento:
+      'días siguientes de perfeccionamiento del contrato, adjuntando a su solicitud la garantía por adelantos acompañada del comprobante de pago correspondiente.',
+    motivo:
+      'César, al absolver las preguntas pendientes (16/09/2026): el adelanto directo va en TODOS los formatos de bienes y servicios, menores y de procedimiento de selección. Estos tres no lo traen en su .docx.',
+  },
+  {
+    plantilla: 'ps-servicios-comparacion-precios',
+    fragmento:
+      'La Entidad otorgará el adelanto dentro de los',
+    motivo:
+      'César, al absolver las preguntas pendientes (16/09/2026): el adelanto directo va en TODOS los formatos de bienes y servicios, menores y de procedimiento de selección. Estos tres no lo traen en su .docx.',
+  },
+  {
+    plantilla: 'ps-servicios-comparacion-precios',
+    fragmento:
+      'días calendario siguientes a la presentación de la solicitud, siempre que esta cumpla con los requisitos establecidos en el contrato y en la normativa vigente.',
+    motivo:
+      'César, al absolver las preguntas pendientes (16/09/2026): el adelanto directo va en TODOS los formatos de bienes y servicios, menores y de procedimiento de selección. Estos tres no lo traen en su .docx.',
+  },
+  {
+    plantilla: 'uit-locadores',
+    fragmento:
+      'La entidad contratante otorgará',
+    motivo:
+      'César, al absolver las preguntas pendientes (16/09/2026): el adelanto directo va en TODOS los formatos de bienes y servicios, menores y de procedimiento de selección. Estos tres no lo traen en su .docx.',
+  },
+  {
+    plantilla: 'uit-locadores',
+    fragmento:
+      'adelantos directos por el',
+    motivo:
+      'César, al absolver las preguntas pendientes (16/09/2026): el adelanto directo va en TODOS los formatos de bienes y servicios, menores y de procedimiento de selección. Estos tres no lo traen en su .docx.',
+  },
+  {
+    plantilla: 'uit-locadores',
+    fragmento:
+      'del monto del contrato original.',
+    motivo:
+      'César, al absolver las preguntas pendientes (16/09/2026): el adelanto directo va en TODOS los formatos de bienes y servicios, menores y de procedimiento de selección. Estos tres no lo traen en su .docx.',
+  },
+  {
+    plantilla: 'uit-locadores',
+    fragmento:
+      'El contratista debe solicitar los adelantos dentro de los',
+    motivo:
+      'César, al absolver las preguntas pendientes (16/09/2026): el adelanto directo va en TODOS los formatos de bienes y servicios, menores y de procedimiento de selección. Estos tres no lo traen en su .docx.',
+  },
+  {
+    plantilla: 'uit-locadores',
+    fragmento:
+      'días siguientes de perfeccionamiento del contrato, adjuntando a su solicitud la garantía por adelantos acompañada del comprobante de pago correspondiente.',
+    motivo:
+      'César, al absolver las preguntas pendientes (16/09/2026): el adelanto directo va en TODOS los formatos de bienes y servicios, menores y de procedimiento de selección. Estos tres no lo traen en su .docx.',
+  },
+  {
+    plantilla: 'uit-locadores',
+    fragmento:
+      'La Entidad otorgará el adelanto dentro de los',
+    motivo:
+      'César, al absolver las preguntas pendientes (16/09/2026): el adelanto directo va en TODOS los formatos de bienes y servicios, menores y de procedimiento de selección. Estos tres no lo traen en su .docx.',
+  },
+  {
+    plantilla: 'uit-locadores',
+    fragmento:
+      'días calendario siguientes a la presentación de la solicitud, siempre que esta cumpla con los requisitos establecidos en el contrato y en la normativa vigente.',
+    motivo:
+      'César, al absolver las preguntas pendientes (16/09/2026): el adelanto directo va en TODOS los formatos de bienes y servicios, menores y de procedimiento de selección. Estos tres no lo traen en su .docx.',
   },
 ];

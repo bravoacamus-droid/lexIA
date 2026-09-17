@@ -88,24 +88,21 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
           titulo: 'Descripción general del servicio a contratar',
           bloques: [
             {
-              clase: 'redactado',
-              id: 'descripcion_general',
-              etiqueta: 'Descripción general del servicio',
-              instruccion:
-                'Describir de manera general el servicio objeto de la contratación, indicando de forma resumida las prestaciones que serán ejecutadas',
-              extension: 'parrafo',
-            },
-            {
-              // Cuando hay varios ítems, el formato pide identificarlos
-              // uno a uno con su descripción.
+              // Un cuadro, no un párrafo libre. Aquí había las dos cosas:
+              // una caja de texto para describir el servicio y, debajo,
+              // un cuadro por ítem. César, al absolver las preguntas
+              // pendientes (16/09/2026): "eliminar la ventana donde se
+              // describe el texto... reemplazar por una ventana en la que
+              // se puede detallar el ítem y descripción del servicio".
+              // Es como ya estaba en los cuatro formatos de servicios de
+              // procedimiento de selección.
               clase: 'tabla',
               id: 'descripcion_items',
-              etiqueta: 'Descripción por ítem',
+              etiqueta: 'Servicios requeridos',
               instruccion:
-                'Cuando la contratación comprenda más de un ítem o paquete, identificar cada uno señalando su respectiva descripción',
-              columnas: ['Ítem', 'Descripción del servicio'],
-              minimo: 0,
-              complementaria: true,
+                'Describir de manera general el servicio objeto de la contratación, indicando de forma resumida las prestaciones que serán ejecutadas. Cuando comprenda más de un ítem o paquete, identificar cada uno con su descripción',
+              columnas: ['N.°', 'Descripción del servicio'],
+              minimo: 1,
             },
             {
               // Estaba en las otras diez plantillas y no en esta.
