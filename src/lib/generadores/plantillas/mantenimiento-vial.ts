@@ -19,6 +19,8 @@
  */
 import type { PlantillaRequerimiento } from '../plantilla-tipos';
 import {
+  METODO_EQUIPAMIENTO_ESTRATEGICO,
+  METODO_INFRAESTRUCTURA_ESTRATEGICA,
   METODO_EXPERIENCIA_PERSONAL_CLAVE,
   METODO_PERSONAL_NO_CLAVE,
   METODO_EQUIPAMIENTO_NO_ESTRATEGICO,
@@ -228,35 +230,57 @@ export const PLANTILLA_MANTENIMIENTO_VIAL: PlantillaRequerimiento = {
               texto:
                 'Aplica cuando resulte necesario establecer un período durante el cual el contratista garantice la calidad y correcta ejecución de las actividades realizadas. Comprende la subsanación de deficiencias, errores constructivos, incumplimientos técnicos o deterioros prematuros atribuibles al contratista detectados tras la conformidad.',
             },
+          ],
+          // Alcance, condiciones y período van cada uno con su
+          // subtítulo, como en el .docx. Observación de César.
+          subsecciones: [
             {
-              clase: 'fijo',
-              texto:
-                'Durante el período de garantía, el contratista será responsable de subsanar, sin costo adicional para la Entidad, las deficiencias técnicas, omisiones o incumplimientos detectados en las actividades ejecutadas que resulten atribuibles al servicio contratado.',
-              fundamento: 'Plantilla — alcance de la garantía',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'La Entidad comunicará las observaciones al contratista mediante correo electrónico institucional u otro medio que permita acreditar su recepción.',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'El contratista deberá iniciar las acciones de subsanación dentro del plazo máximo de dos (2) días hábiles de recibida la comunicación y efectuar las correcciones correspondientes dentro del plazo que se establezca en el requerimiento, considerando la naturaleza y complejidad de las observaciones formuladas.',
-            },
-            { clase: 'fijo', texto: 'Las subsanaciones efectuadas no generarán costo adicional alguno para la Entidad.' },
-            {
-              clase: 'parrafo',
-              texto:
-                'El período de garantía será de {{garantia_periodo}}, computado a partir del día siguiente del otorgamiento de la conformidad del servicio.',
-              campos: [
+              id: 'garantia_alcance',
+              titulo: 'Alcance de la garantía',
+              bloques: [
                 {
-                  clase: 'campo',
-                  id: 'garantia_periodo',
-                  etiqueta: 'Período de garantía',
-                  ayuda: 'Consignar el plazo, por ejemplo: treinta (30) días calendario, seis (6) meses o un (1) año',
-                  tipo: 'texto',
-                  obligatorio: true,
+                  clase: 'fijo',
+                  texto:
+                    'Durante el período de garantía, el contratista será responsable de subsanar, sin costo adicional para la Entidad, las deficiencias técnicas, omisiones o incumplimientos detectados en las actividades ejecutadas que resulten atribuibles al servicio contratado.',
+                  fundamento: 'Plantilla — alcance de la garantía',
+                },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'La Entidad comunicará las observaciones al contratista mediante correo electrónico institucional u otro medio que permita acreditar su recepción.',
+                },
+              ],
+            },
+            {
+              id: 'garantia_condiciones',
+              titulo: 'Condiciones de la garantía',
+              bloques: [
+                {
+                  clase: 'fijo',
+                  texto:
+                    'El contratista deberá iniciar las acciones de subsanación dentro del plazo máximo de dos (2) días hábiles de recibida la comunicación y efectuar las correcciones correspondientes dentro del plazo que se establezca en el requerimiento, considerando la naturaleza y complejidad de las observaciones formuladas.',
+                },
+                { clase: 'fijo', texto: 'Las subsanaciones efectuadas no generarán costo adicional alguno para la Entidad.' },
+              ],
+            },
+            {
+              id: 'garantia_periodo',
+              titulo: 'Período de garantía',
+              bloques: [
+                {
+                  clase: 'parrafo',
+                  texto:
+                    'El período de garantía será de {{garantia_periodo}}, computado a partir del día siguiente del otorgamiento de la conformidad del servicio.',
+                  campos: [
+                    {
+                      clase: 'campo',
+                      id: 'garantia_periodo',
+                      etiqueta: 'Período de garantía',
+                      ayuda: 'Consignar el plazo, por ejemplo: treinta (30) días calendario, seis (6) meses o un (1) año',
+                      tipo: 'texto',
+                      obligatorio: true,
+                    },
+                  ],
                 },
               ],
             },
@@ -481,6 +505,24 @@ export const PLANTILLA_MANTENIMIENTO_VIAL: PlantillaRequerimiento = {
           ],
         },
 
+        {
+          // Entre la subcontratación y la solución de controversias, que
+          // es donde lo pone el .docx. Observación de César del
+          // 16/09/2026.
+          id: 'reajuste',
+          titulo: 'Reajuste de los pagos',
+          condicion: 'tiene_reajuste',
+          bloques: [
+            {
+              clase: 'redactado',
+              id: 'reajuste',
+              etiqueta: 'Reajuste de los pagos',
+              instruccion:
+                'Consignar las fórmulas de reajuste correspondientes y el procedimiento, de acuerdo con lo previsto en el numeral 136.2 del artículo 136 del Reglamento. Si no corresponde, consignar "NO APLICA"',
+              extension: 'parrafo',
+            },
+          ],
+        },
         seccionControversias(true, 'servicios'),
 
         {
@@ -542,41 +584,51 @@ export const PLANTILLA_MANTENIMIENTO_VIAL: PlantillaRequerimiento = {
         {
           id: 'conformidad',
           titulo: 'Conformidad de la prestación',
-          bloques: [
+          bloques: [],
+          // Los dos numerales que el formato cuelga de aquí. El
+          // segundo estaba al mismo nivel, no dentro, y empujaba la
+          // numeración del resto. Observación de César.
+          subsecciones: [
             {
-              clase: 'redactado',
-              id: 'conformidad',
-              etiqueta: 'Conformidad',
-              instruccion:
-                'Precisar el órgano competente para emitir la conformidad, qué se verifica y en qué plazo',
-              extension: 'varios_parrafos',
+              id: 'conformidad_organo',
+              titulo: 'Órgano quien brindará la conformidad',
+              bloques: [
+                {
+                  clase: 'redactado',
+                  id: 'conformidad',
+                  etiqueta: 'Conformidad',
+                  instruccion:
+                    'Precisar el órgano competente para emitir la conformidad, qué se verifica y en qué plazo',
+                  extension: 'varios_parrafos',
+                },
+                {
+                  clase: 'redactado',
+                  id: 'conformidad_accesorias',
+                  etiqueta: 'Conformidad de las prestaciones accesorias',
+                  instruccion:
+                    'Señalar quién otorga la conformidad de cada prestación accesoria, qué se verifica y en qué plazo, cuando corresponda',
+                  extension: 'parrafo',
+                  // El formato lo pide "cuando corresponda": sin prestaciones
+                  // accesorias no hay conformidad accesoria que regular.
+                  visibleSi: { condicion: 'tiene_prestaciones_accesorias' },
+                },
+              ],
             },
             {
-              clase: 'redactado',
-              id: 'conformidad_accesorias',
-              etiqueta: 'Conformidad de las prestaciones accesorias',
-              instruccion:
-                'Señalar quién otorga la conformidad de cada prestación accesoria, qué se verifica y en qué plazo, cuando corresponda',
-              extension: 'parrafo',
-              // El formato lo pide "cuando corresponda": sin prestaciones
-              // accesorias no hay conformidad accesoria que regular.
-              visibleSi: { condicion: 'tiene_prestaciones_accesorias' },
-            },
-          ],
-        },
-        {
-          id: 'verificaciones',
-          titulo: 'Verificaciones técnicas, validaciones o revisiones para la conformidad del servicio',
-          condicion: 'requiere_verificaciones',
-          bloques: [
-            {
-              clase: 'redactado',
               id: 'verificaciones',
-              etiqueta: 'Verificaciones para la conformidad',
-              instruccion:
-                'Precisar las verificaciones técnicas, pruebas funcionales, ensayos, inspecciones, validaciones operativas o revisiones documentarias que la Entidad realizará para comprobar el cumplimiento de las obligaciones contractuales, los términos de referencia y los niveles de servicio. La conformidad solo se emite cuando esas verificaciones acrediten el cumplimiento',
-                metodo: METODO_VERIFICACIONES,
-              extension: 'lista',
+              titulo: 'Verificaciones técnicas, validaciones o revisiones para la conformidad del servicio',
+              condicion: 'requiere_verificaciones',
+              bloques: [
+                {
+                  clase: 'redactado',
+                  id: 'verificaciones',
+                  etiqueta: 'Verificaciones para la conformidad',
+                  instruccion:
+                    'Precisar las verificaciones técnicas, pruebas funcionales, ensayos, inspecciones, validaciones operativas o revisiones documentarias que la Entidad realizará para comprobar el cumplimiento de las obligaciones contractuales, los términos de referencia y los niveles de servicio. La conformidad solo se emite cuando esas verificaciones acrediten el cumplimiento',
+                    metodo: METODO_VERIFICACIONES,
+                  extension: 'lista',
+                },
+              ],
             },
           ],
         },
@@ -695,233 +747,332 @@ export const PLANTILLA_MANTENIMIENTO_VIAL: PlantillaRequerimiento = {
     {
       id: 'requisitos_calificacion',
       titulo: 'REQUISITOS DE CALIFICACIÓN',
-      bloques: [
-        {
-          clase: 'nota',
-          texto:
-            'Cuando así se determine durante la estrategia de contratación, la Entidad podrá incorporar uno o más de los requisitos de calificación facultativos previstos en el presente numeral, siempre que resulten necesarios y guarden relación con el objeto de la contratación.',
-        },
-        {
-          clase: 'nota',
-          texto:
-            'Los requisitos de calificación que sean incorporados tendrán carácter obligatorio para el procedimiento de selección, por lo que deberán eliminarse aquellos que no hayan sido considerados por la Entidad.',
-        },
-      ],
+      bloques: [],
+      // El formato los agrupa en dos, y las cabezas van con letra
+      // en una sola serie que cruza de un grupo al otro, como en
+      // el .docx. Observación de César.
       subsecciones: [
         {
-          id: 'experiencia_postor',
-          titulo: 'Experiencia del postor en la especialidad',
+          id: 'calificacion_obligatorios',
+          titulo: 'Requisitos de calificación obligatorios',
           bloques: [
             {
-              // Veinticinco años: el horizonte más largo de las quince
-              // plantillas. Y el tope es de UNA vez la cuantía.
-              clase: 'parrafo',
-              texto:
-                'El postor debe acreditar un monto facturado acumulado equivalente a {{experiencia_monto}}, por la contratación de servicios iguales o similares al objeto de la convocatoria, durante los veinticinco años anteriores a la fecha de la presentación de ofertas que se computan desde la fecha de la conformidad o emisión del comprobante de pago, según corresponda.',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'experiencia_monto',
-                  etiqueta: 'Monto facturado acumulado exigido',
-                  ayuda:
-                    'Consignar el monto de facturación expresado en números y letras en la moneda de la convocatoria, monto que no puede ser mayor a una vez el valor de la cuantía de la contratación o del ítem',
-                  tipo: 'moneda',
-                  obligatorio: true,
-                  validacion: 'experiencia_max',
-                },
-              ],
-            },
-            {
-              clase: 'parrafo',
-              texto: 'Se consideran servicios similares a los siguientes: {{servicios_similares}}',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'servicios_similares',
-                  etiqueta: 'Servicios similares',
-                  ayuda:
- 'Consignar los servicios similares al objeto convocado',
- metodo: METODO_SIMILARES,
-                  tipo: 'texto_largo',
-                  obligatorio: true,
-                },
-              ],
-            },
-            {
               clase: 'fijo',
               texto:
-                'La experiencia del postor en la especialidad se acredita con un máximo de veinte contrataciones, mediante copia simple de: (i) contratos u órdenes de servicios, y su respectiva conformidad o constancia de prestación o liquidación; o (ii) comprobantes de pago cuya cancelación se acredite documental y fehacientemente, con constancia de depósito, nota de abono, reporte de estado de cuenta o cualquier otro documento emitido por entidad del sistema financiero que acredite el abono o mediante cancelación en el mismo comprobante de pago o comprobante de retención electrónico emitido por SUNAT por la retención del IGV. En caso el postor sustente su experiencia en la especialidad mediante contrataciones realizadas con privados, para acreditarla debe presentar de forma obligatoria lo indicado en el numeral (ii) del presente párrafo; no es posible que acredite su experiencia únicamente con la presentación de contratos u órdenes de servicios con conformidad o constancia de prestación.',
-              fundamento: 'Plantilla — acreditación de experiencia, texto invariable',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'En caso los postores presenten varios comprobantes de pago para acreditar una sola contratación, se debe acreditar que corresponden a dicha contratación; de lo contrario, se asume que los comprobantes acreditan contrataciones independientes, en cuyo caso solo se considerará, para la evaluación, las veinte (20) primeras contrataciones indicadas en el Anexo Nº 11 referido a la Experiencia del Postor en la Especialidad.',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'En el caso de servicios de ejecución periódica o continuada, solo se considera como experiencia la parte del contrato que haya sido ejecutada durante los veinticinco años anteriores a la fecha de presentación de ofertas, debiendo adjuntarse copia de las conformidades correspondientes a tal parte o los respectivos comprobantes de pago cancelados.',
-            },
-            { clase: 'fijo', texto: EXPERIENCIA_TITULAR },
-            {
-              clase: 'fijo',
-              texto:
-                'Si el postor acredita experiencia de otra persona jurídica como consecuencia de una reorganización societaria, debe presentar adicionalmente el Anexo N° 12. Las personas jurídicas resultantes de un proceso de reorganización societaria no pueden acreditar como experiencia del postor en la especialidad que le hubiesen transmitido como parte de dicha reorganización las personas jurídicas sancionadas con inhabilitación vigente o definitiva.',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'Cuando en los contratos, órdenes de servicios o comprobantes de pago el monto facturado se encuentre expresado en moneda extranjera, debe indicarse el tipo de cambio venta publicado por la Superintendencia de Banca, Seguros y AFP correspondiente a la fecha de suscripción del contrato, de emisión de la orden de servicio o de cancelación del comprobante de pago, según corresponda.',
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'Sin perjuicio de lo anterior, los postores deben llenar y presentar el Anexo Nº 11 referido a la Experiencia del Postor en la Especialidad.',
+                'Para determinar que los postores cuentan con las capacidades necesarias para ejecutar el contrato, los evaluadores incorporan obligatoriamente los siguientes requisitos de calificación:',
             },
           ],
           subsecciones: [
-          {
-            id: 'experiencia_mype',
-            titulo: 'Régimen para micro y pequeña empresa',
-            condicion: 'aplica_mype',
-            bloques: [
+            {
+              id: 'experiencia_postor',
+              titulo: 'Experiencia del postor en la especialidad',
+              numeralLiteral: true,
+              bloques: [
+                { clase: 'titulo', texto: 'Requisitos:', nivel: 3 },
+                {
+                  // Veinticinco años: el horizonte más largo de las quince
+                  // plantillas. Y el tope es de UNA vez la cuantía.
+                  clase: 'parrafo',
+                  texto:
+                    'El postor debe acreditar un monto facturado acumulado equivalente a {{experiencia_monto}}, por la contratación de servicios iguales o similares al objeto de la convocatoria, durante los veinticinco años anteriores a la fecha de la presentación de ofertas que se computan desde la fecha de la conformidad o emisión del comprobante de pago, según corresponda.',
+                  campos: [
+                    {
+                      clase: 'campo',
+                      id: 'experiencia_monto',
+                      etiqueta: 'Monto facturado acumulado exigido',
+                      ayuda:
+                        'Consignar el monto de facturación expresado en números y letras en la moneda de la convocatoria, monto que no puede ser mayor a una vez el valor de la cuantía de la contratación o del ítem',
+                      tipo: 'moneda',
+                      obligatorio: true,
+                      validacion: 'experiencia_max',
+                    },
+                  ],
+                },
+                {
+                visibleSi: { condicion: 'aplica_mype' },
+                  clase: 'parrafo',
+                  texto:
+                    'En el caso de postores que declaren en el Anexo N° 1 tener la condición de micro y pequeña empresa, se acredita una experiencia de {{experiencia_monto_mype}}, por la contratación de servicios iguales o similares al objeto de la convocatoria, durante los veinticinco (25) años anteriores a la fecha de la presentación de ofertas que se computa desde la fecha de la conformidad o emisión del comprobante de pago, según corresponda. En el caso de consorcios, todos los integrantes deben contar con la condición de micro y pequeña empresa.',
+                  campos: [
+                    {
+                      clase: 'campo',
+                      id: 'experiencia_monto_mype',
+                      etiqueta: 'Monto exigido a micro y pequeña empresa',
+                      ayuda:
+                        'Consignar el monto de facturación expresado en números y letras en la moneda de la convocatoria, monto que no debe superar el 25% de la cuantía de la contratación del ítem',
+                      tipo: 'moneda',
+                      obligatorio: true,
+                      validacion: 'experiencia_mype',
+                    },
+                  ],
+                },
+                {
+                  clase: 'parrafo',
+                  texto: 'Se consideran servicios similares a los siguientes: {{servicios_similares}}',
+                  campos: [
+                    {
+                      clase: 'campo',
+                      id: 'servicios_similares',
+                      etiqueta: 'Servicios similares',
+                      ayuda:
+                'Consignar los servicios similares al objeto convocado',
+                metodo: METODO_SIMILARES,
+                      tipo: 'texto_largo',
+                      obligatorio: true,
+                    },
+                  ],
+                },
+                { clase: 'titulo', texto: 'Acreditación:', nivel: 3 },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'La experiencia del postor en la especialidad se acredita con un máximo de veinte contrataciones, mediante copia simple de: (i) contratos u órdenes de servicios, y su respectiva conformidad o constancia de prestación o liquidación; o (ii) comprobantes de pago cuya cancelación se acredite documental y fehacientemente, con constancia de depósito, nota de abono, reporte de estado de cuenta o cualquier otro documento emitido por entidad del sistema financiero que acredite el abono o mediante cancelación en el mismo comprobante de pago o comprobante de retención electrónico emitido por SUNAT por la retención del IGV. En caso el postor sustente su experiencia en la especialidad mediante contrataciones realizadas con privados, para acreditarla debe presentar de forma obligatoria lo indicado en el numeral (ii) del presente párrafo; no es posible que acredite su experiencia únicamente con la presentación de contratos u órdenes de servicios con conformidad o constancia de prestación.',
+                  fundamento: 'Plantilla — acreditación de experiencia, texto invariable',
+                },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'En caso los postores presenten varios comprobantes de pago para acreditar una sola contratación, se debe acreditar que corresponden a dicha contratación; de lo contrario, se asume que los comprobantes acreditan contrataciones independientes, en cuyo caso solo se considerará, para la evaluación, las veinte (20) primeras contrataciones indicadas en el Anexo Nº 11 referido a la Experiencia del Postor en la Especialidad.',
+                },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'En el caso de servicios de ejecución periódica o continuada, solo se considera como experiencia la parte del contrato que haya sido ejecutada durante los veinticinco años anteriores a la fecha de presentación de ofertas, debiendo adjuntarse copia de las conformidades correspondientes a tal parte o los respectivos comprobantes de pago cancelados.',
+                },
+                { clase: 'fijo', texto: EXPERIENCIA_TITULAR },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'Si el postor acredita experiencia de otra persona jurídica como consecuencia de una reorganización societaria, debe presentar adicionalmente el Anexo N° 12. Las personas jurídicas resultantes de un proceso de reorganización societaria no pueden acreditar como experiencia del postor en la especialidad que le hubiesen transmitido como parte de dicha reorganización las personas jurídicas sancionadas con inhabilitación vigente o definitiva.',
+                },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'Cuando en los contratos, órdenes de servicios o comprobantes de pago el monto facturado se encuentre expresado en moneda extranjera, debe indicarse el tipo de cambio venta publicado por la Superintendencia de Banca, Seguros y AFP correspondiente a la fecha de suscripción del contrato, de emisión de la orden de servicio o de cancelación del comprobante de pago, según corresponda.',
+                },
+                {
+                  clase: 'fijo',
+                  texto:
+                    'Sin perjuicio de lo anterior, los postores deben llenar y presentar el Anexo Nº 11 referido a la Experiencia del Postor en la Especialidad.',
+                },
+              ],
+            },
+            {
+              id: 'capacidad_tecnica',
+              titulo: 'Capacidad técnica y profesional',
+              numeralLiteral: true,
+              condicion: 'exige_capacidad_tecnica',
+              bloques: [
+                {
+                  clase: 'nota',
+                  texto:
+                    'Este requisito debe completarse para cada integrante del personal clave, considerando el de cada prestación (diseño y/o mantenimiento). El tiempo de experiencia mínimo debe ser razonable y congruente con el periodo en el que el personal ejecuta las actividades y con la cuantía de la contratación. La colegiatura y habilitación de los profesionales debe requerirse para el inicio de su participación efectiva, tanto para los titulados en el Perú como en el extranjero.',
+                },
+              ],
+              // Los dos numerales que el formato cuelga de aquí: los
+              // cuadros estaban sueltos, sin sus subtítulos.
+              subsecciones: [
+                {
+                  id: 'capacidad_tecnica_experiencia',
+                  titulo: 'Experiencia del personal clave',
+                  condicion: 'exige_experiencia_personal',
+                  bloques: [
+                    { clase: 'titulo', texto: 'Requisitos:', nivel: 3 },
+                    {
+                      clase: 'tabla',
+                      id: 'experiencia_personal_clave',
+                      metodo: METODO_EXPERIENCIA_PERSONAL_CLAVE,
+                      etiqueta: 'Experiencia del personal clave',
+                      columnas: [
+                        'Cargo y/o responsabilidad',
+                        'Cant.',
+                        'Tiempo de experiencia',
+                        'Cargo desempeñado',
+                        'Cómputo de experiencia',
+                      ],
+                      minimo: 1,
+                    },
+                    { clase: 'titulo', texto: 'Acreditación:', nivel: 3 },
+                    {
+                      clase: 'fijo',
+                      texto:
+                        'El postor debe señalar la denominación del puesto, cargo y/o posición; y tiempo de experiencia del personal clave propuesto (años, meses y días) en el Anexo N° 16, adjuntando en su oferta, copia simple de cualquiera de los siguientes documentos: (i) contratos y su respectiva conformidad; (ii) constancias; (iii) certificados; o (iv) cualquier otra documentación que, de manera fehaciente, demuestre la experiencia del personal propuesto.',
+                      fundamento: 'Plantilla — acreditación del personal clave',
+                    },
+                  ],
+                },
+                {
+                  id: 'capacidad_tecnica_calificaciones',
+                  titulo: 'Calificaciones del personal clave',
+                  condicion: 'exige_calificaciones_personal',
+                  bloques: [
+                    { clase: 'titulo', texto: 'Requisitos:', nivel: 3 },
+                    {
+                      clase: 'tabla',
+                      id: 'calificaciones_personal_clave',
+                      etiqueta: 'Calificaciones del personal clave',
+                      instruccion:
+                        'Como requisito de calificación solo puede consignarse "grado de bachiller" o "título profesional", según el perfil definido por el área usuaria',
+                        metodo: METODO_FORMACION_PERSONAL_CLAVE,
+                      columnas: ['Cargo y/o responsabilidad', 'Profesión', 'Grado o título profesional requerido'],
+                      minimo: 1,
+                    },
+                    { clase: 'titulo', texto: 'Acreditación:', nivel: 3 },
+                    {
+                      clase: 'fijo',
+                      texto:
+                        'El postor debe señalar los nombres y apellidos, documento de identidad, el nombre de la universidad o institución educativa que expidió el grado o título profesional, y el grado o título profesional obtenido en el Anexo N° 16, adjuntando en su oferta copia del grado de bachiller o título profesional. En caso se acredite estudios en el extranjero del personal clave, debe presentarse, adicionalmente, copia simple de la revalidación o reconocimiento del grado o título ante la SUNEDU.',
+                      fundamento: 'Plantilla — acreditación de calificaciones',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: 'calificacion_adicionales',
+          titulo: 'Requisitos de calificación adicionales',
+          bloques: [
+            {
+              clase: 'nota',
+              texto:
+                'Cuando así se determine durante la estrategia de contratación, la Entidad podrá incorporar uno o más de los requisitos de calificación facultativos previstos en el presente numeral, siempre que resulten necesarios y guarden relación con el objeto de la contratación.',
+            },
+            {
+              clase: 'nota',
+              texto:
+                'Los requisitos de calificación que sean incorporados tendrán carácter obligatorio para el procedimiento de selección, por lo que deberán eliminarse aquellos que no hayan sido considerados por la Entidad.',
+            },
+          ],
+          subsecciones: [
+            {
+              id: 'capacidad_tecnica_equipamiento',
+            numeralPropio: 'B.3',
+              titulo: 'Equipamiento estratégico',
+              numeralLiteral: true,
+              condicion: 'exige_equipamiento_estrategico',
+              bloques: [
               {
                 clase: 'nota',
                 texto:
-                  'Este texto se incluye en procedimientos por relación de ítems cuando la cuantía de algún ítem corresponda al monto de un Concurso Público Abreviado.',
+                  '[consignar solo el equipamiento clasificado como estratégico para ejecutar la prestación objeto de la convocatoria, según la estrategia de contratación, que debe ser acreditada].',
               },
+              { clase: 'titulo', texto: 'Requisitos:', nivel: 3 },
               {
-                clase: 'parrafo',
-                texto:
-                  'En el caso de postores que declaren en el Anexo N° 1 tener la condición de micro y pequeña empresa, se acredita una experiencia de {{experiencia_monto_mype}}, por la contratación de servicios iguales o similares al objeto de la convocatoria, durante los veinticinco (25) años anteriores a la fecha de la presentación de ofertas que se computa desde la fecha de la conformidad o emisión del comprobante de pago, según corresponda. En el caso de consorcios, todos los integrantes deben contar con la condición de micro y pequeña empresa.',
-                campos: [
-                  {
-                    clase: 'campo',
-                    id: 'experiencia_monto_mype',
-                    etiqueta: 'Monto exigido a micro y pequeña empresa',
-                    ayuda:
-                      'Consignar el monto de facturación expresado en números y letras en la moneda de la convocatoria, monto que no debe superar el 25% de la cuantía de la contratación del ítem',
-                    tipo: 'moneda',
-                    obligatorio: true,
-                    validacion: 'experiencia_mype',
-                  },
-                ],
+                clase: 'tabla',
+                id: 'equipamiento_estrategico',
+                metodo: METODO_EQUIPAMIENTO_ESTRATEGICO,
+                etiqueta: 'Requisitos',
+                columnas: ['Equipamiento estratégico', 'Cant.', 'Características mínimas del equipamiento'],
+                minimo: 1,
               },
-            ],
-          },
-          ],
-        },
-        {
-          id: 'capacidad_tecnica',
-          titulo: 'Capacidad técnica y profesional',
-          condicion: 'exige_capacidad_tecnica',
-          bloques: [
+              { clase: 'titulo', texto: 'Acreditación:', nivel: 3 },
             {
-              clase: 'nota',
-              texto:
-                'Este requisito debe completarse para cada integrante del personal clave, considerando el de cada prestación (diseño y/o mantenimiento). El tiempo de experiencia mínimo debe ser razonable y congruente con el periodo en el que el personal ejecuta las actividades y con la cuantía de la contratación. La colegiatura y habilitación de los profesionales debe requerirse para el inicio de su participación efectiva, tanto para los titulados en el Perú como en el extranjero.',
-            },
-            {
-              clase: 'tabla',
-              id: 'experiencia_personal_clave',
-              metodo: METODO_EXPERIENCIA_PERSONAL_CLAVE,
-              etiqueta: 'Experiencia del personal clave',
-              columnas: [
-                'Cargo y/o responsabilidad',
-                'Cant.',
-                'Tiempo de experiencia',
-                'Cargo desempeñado',
-                'Cómputo de experiencia',
+                clase: 'fijo',
+                texto:
+                  'Copia simple de documentos que sustenten la propiedad, la posesión, el compromiso de compraventa o alquiler, u otro documento que acredite que el equipamiento estratégico estará disponible para la ejecución del contrato.',
+                fundamento: 'Plantilla — requisitos de calificación',
+              },
               ],
-              minimo: 1,
             },
             {
-              clase: 'fijo',
-              texto:
-                'El postor debe señalar la denominación del puesto, cargo y/o posición; y tiempo de experiencia del personal clave propuesto (años, meses y días) en el Anexo N° 16, adjuntando en su oferta, copia simple de cualquiera de los siguientes documentos: (i) contratos y su respectiva conformidad; (ii) constancias; (iii) certificados; o (iv) cualquier otra documentación que, de manera fehaciente, demuestre la experiencia del personal propuesto.',
-              fundamento: 'Plantilla — acreditación del personal clave',
+              id: 'capacidad_tecnica_infraestructura',
+            numeralPropio: 'B.4',
+              titulo: 'Infraestructura estratégica',
+              numeralLiteral: true,
+              condicion: 'exige_infraestructura',
+              bloques: [
+              {
+                clase: 'nota',
+                texto:
+                  '[Consignar solo la infraestructura clasificada como estratégica para ejecutar la prestación objeto de la convocatoria, según la estrategia de contratación, que debe ser acreditada].',
+              },
+              { clase: 'titulo', texto: 'Requisitos:', nivel: 3 },
+              {
+                clase: 'tabla',
+                id: 'infraestructura_estrategica',
+                metodo: METODO_INFRAESTRUCTURA_ESTRATEGICA,
+                etiqueta: 'Requisitos',
+                columnas: ['Infraestructura estratégica', 'Cant.', 'Características mínimas de la infraestructura'],
+                minimo: 1,
+              },
+              { clase: 'titulo', texto: 'Acreditación:', nivel: 3 },
+            {
+                clase: 'fijo',
+                texto:
+                  'Copia simple de documentos que sustenten la propiedad, la posesión, el compromiso de compraventa o alquiler, u otro documento que acredite que la infraestructura estratégica estará disponible para la ejecución del contrato.',
+                fundamento: 'Plantilla — requisitos de calificación',
+              },
+              ],
             },
             {
-              clase: 'tabla',
-              id: 'calificaciones_personal_clave',
-              etiqueta: 'Calificaciones del personal clave',
-              instruccion:
-                'Como requisito de calificación solo puede consignarse "grado de bachiller" o "título profesional", según el perfil definido por el área usuaria',
-                metodo: METODO_FORMACION_PERSONAL_CLAVE,
-              columnas: ['Cargo y/o responsabilidad', 'Profesión', 'Grado o título profesional requerido'],
-              minimo: 1,
-            },
-            {
-              clase: 'fijo',
-              texto:
-                'El postor debe señalar los nombres y apellidos, documento de identidad, el nombre de la universidad o institución educativa que expidió el grado o título profesional, y el grado o título profesional obtenido en el Anexo N° 16, adjuntando en su oferta copia del grado de bachiller o título profesional. En caso se acredite estudios en el extranjero del personal clave, debe presentarse, adicionalmente, copia simple de la revalidación o reconocimiento del grado o título ante la SUNEDU.',
-              fundamento: 'Plantilla — acreditación de calificaciones',
-            },
-          ],
-        },
-        {
-          id: 'participacion_consorcio',
-          titulo: 'Participación en consorcio',
-          condicion: 'exige_requisitos_consorcio',
-          bloques: [
-            {
-              clase: 'nota',
-              texto:
-                'Consignar uno o más de los requisitos siguientes, en caso así haya sido sustentado en la estrategia de contratación',
-            },
-            {
-              clase: 'parrafo',
-              texto:
-                'C.1 El número máximo de consorciados es de {{consorcio_maximo}}',
-              campos: [
+              id: 'participacion_consorcio',
+              titulo: 'Participación en consorcio',
+              numeralLiteral: true,
+              condicion: 'exige_requisitos_consorcio',
+              bloques: [
                 {
-                  clase: 'campo',
-                  id: 'consorcio_maximo',
-                  etiqueta: 'Número máximo de consorciados',
-                  ayuda:
-                    'Consignar el número máximo de integrantes del consorcio en función a la naturaleza de la prestación',
-                  tipo: 'texto',
-                  obligatorio: true,
+                  clase: 'nota',
+                  texto:
+                    'Consignar uno o más de los requisitos siguientes, en caso así haya sido sustentado en la estrategia de contratación',
+                },
+                { clase: 'titulo', texto: 'Requisitos:', nivel: 3 },
+                {
+                  clase: 'parrafo',
+                  texto:
+                    'C.1 El número máximo de consorciados es de {{consorcio_maximo}}',
+                  campos: [
+                    {
+                      clase: 'campo',
+                      id: 'consorcio_maximo',
+                      etiqueta: 'Número máximo de consorciados',
+                      ayuda:
+                        'Consignar el número máximo de integrantes del consorcio en función a la naturaleza de la prestación',
+                      tipo: 'texto',
+                      obligatorio: true,
+                    },
+                  ],
+                },
+                {
+                  clase: 'parrafo',
+                  texto:
+                    'C.2 El porcentaje mínimo de participación de cada consorciado es de {{consorcio_participacion}}',
+                  campos: [
+                    {
+                      clase: 'campo',
+                      id: 'consorcio_participacion',
+                      etiqueta: 'Participación mínima de cada consorciado',
+                      ayuda:
+                        'Consignar el porcentaje mínimo de participación de cada integrante del consorcio',
+                      tipo: 'texto',
+                      obligatorio: true,
+                    },
+                  ],
+                },
+                {
+                  clase: 'parrafo',
+                  texto:
+                    'C.3 El porcentaje mínimo de participación en la ejecución del contrato, para el integrante del consorcio que acredite mayor experiencia, es de {{consorcio_participacion_lider}}',
+                  campos: [
+                    {
+                      clase: 'campo',
+                      id: 'consorcio_participacion_lider',
+                      etiqueta: 'Participación mínima del consorciado con mayor experiencia',
+                      ayuda:
+                        'Consignar el porcentaje mínimo de participación en las obligaciones del integrante del consorcio que acredite la mayor experiencia',
+                      tipo: 'texto',
+                      obligatorio: true,
+                    },
+                  ],
+                },
+                { clase: 'titulo', texto: 'Acreditación:', nivel: 3 },
+                {
+                  clase: 'fijo',
+                  texto: 'Se acredita con la promesa de consorcio.',
+                  fundamento: 'Plantilla — participación en consorcio',
                 },
               ],
-            },
-            {
-              clase: 'parrafo',
-              texto:
-                'C.2 El porcentaje mínimo de participación de cada consorciado es de {{consorcio_participacion}}',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'consorcio_participacion',
-                  etiqueta: 'Participación mínima de cada consorciado',
-                  ayuda:
-                    'Consignar el porcentaje mínimo de participación de cada integrante del consorcio',
-                  tipo: 'texto',
-                  obligatorio: true,
-                },
-              ],
-            },
-            {
-              clase: 'parrafo',
-              texto:
-                'C.3 El porcentaje mínimo de participación en la ejecución del contrato, para el integrante del consorcio que acredite mayor experiencia, es de {{consorcio_participacion_lider}}',
-              campos: [
-                {
-                  clase: 'campo',
-                  id: 'consorcio_participacion_lider',
-                  etiqueta: 'Participación mínima del consorciado con mayor experiencia',
-                  ayuda:
-                    'Consignar el porcentaje mínimo de participación en las obligaciones del integrante del consorcio que acredite la mayor experiencia',
-                  tipo: 'texto',
-                  obligatorio: true,
-                },
-              ],
-            },
-            {
-              clase: 'fijo',
-              texto: 'Se acredita con la promesa de consorcio.',
-              fundamento: 'Plantilla — participación en consorcio',
             },
           ],
         },
