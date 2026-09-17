@@ -872,9 +872,11 @@ export function serieDeLetras(): () => string {
 export function numeralDeHija(
   padre: string,
   siguienteNumero: () => number,
-  hija: { numeralLiteral?: boolean },
+  hija: { numeralLiteral?: boolean; numeralPropio?: string },
   siguienteLetra: () => string,
 ): string {
+  // Un rótulo escrito en el formato manda sobre todo lo demás.
+  if (hija.numeralPropio) return hija.numeralPropio;
   // Una hija con letra no consume el número que le habría tocado: en el
   // formato, los obligatorios son 10.1 y su único requisito es "A.".
   return hija.numeralLiteral ? siguienteLetra() : `${padre}.${siguienteNumero()}`;

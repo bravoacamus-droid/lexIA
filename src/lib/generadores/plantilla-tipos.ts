@@ -399,6 +399,17 @@ export interface Seccion {
    * documento.
    */
   numeralLiteral?: boolean;
+  /**
+   * El rótulo exacto del numeral, cuando el formato lo trae escrito.
+   *
+   * En Servicios de Consultoría en General los requisitos adicionales
+   * están rotulados "B.3." y "B.4." en el propio .docx —no los numera
+   * Word, están tecleados— aunque cuelguen del 10.2 y la serie de
+   * letras vaya por la C. Es un desliz del formato oficial, pero es lo
+   * que el documento dice, y el requerimiento tiene que salir como su
+   * formato. Observación de César del 16/09/2026.
+   */
+  numeralPropio?: string;
 }
 
 /** Tope normativo que el generador verifica al armar el documento. */
