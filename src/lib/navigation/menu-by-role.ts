@@ -243,6 +243,22 @@ export const MENU_SECTIONS: MenuSection[] = [
         color: 'emerald',
       },
       {
+        // El consultor es el ÚNICO rol con los siete perfiles emisores
+        // habilitados —los seis de la entidad y el del postor, porque
+        // asesora a los dos lados—, y aun así no tenía por dónde entrar
+        // al generador: `PERFILES_POR_ROL.consultant` los permitía todos
+        // y el menú no lo llevaba a ninguna parte. Es el mismo fallo que
+        // César reportó en agosto con el módulo de requerimiento:
+        // construido, permitido y inalcanzable.
+        label: 'Generador',
+        href: '/generador',
+        icon: FilePen,
+        description:
+          'Documentos de los siete perfiles emisores: área usuaria, DEC, legal, titular, AGA, defensa ante fiscalización y postor.',
+        roles: ['consultant'],
+        color: 'amber',
+      },
+      {
         // El mismo evaluador que usa la entidad. El consultor evalúa
         // ofertas para la entidad a la que asesora, así que la
         // herramienta es la misma y solo cambia a cuenta de quién se
