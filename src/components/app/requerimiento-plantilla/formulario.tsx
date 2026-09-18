@@ -873,6 +873,32 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
   /** El índice, cuando no cabe en su columna, se abre desde el botón. */
   const [panelAbierto, setPanelAbierto] = useState(false);
 
+  /**
+   * ¿Cabe la columna del índice al lado del formulario?
+   *
+   * Se MIDE el sitio que hay, no el ancho de la ventana. Con un corte
+   * por ventana —`lg:`, 1024 px— pasaban las dos cosas malas: con la
+   * barra lateral desplegada, una ventana de 1100 px pintaba las dos
+   * columnas y dejaba el formulario en 444 px; y con la barra plegada,
+   * una de 1000 px daba sitio de sobra y no las pintaba. La barra se
+   * pliega y se despliega sin que la ventana cambie, así que la ventana
+   * no es el dato.
+   *
+   * El índice pide 320 px y el formulario necesita unos 620 para que
+   * los interruptores no se salgan del borde —eso ya pasó en agosto—.
+   */
+  const zona = useRef<HTMLDivElement>(null);
+  const [cabeElIndice, setCabeElIndice] = useState(true);
+  useEffect(() => {
+    const el = zona.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const mirar = new ResizeObserver(([entrada]) => {
+      setCabeElIndice(entrada.contentRect.width >= 980);
+    });
+    mirar.observe(el);
+    return () => mirar.disconnect();
+  }, []);
+
   const indice = useMemo(() => construirIndice(plantilla, r), [plantilla, r]);
   const resumen = useMemo(() => resumenIndice(indice), [indice]);
 
@@ -931,7 +957,10 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
           —Entregable, Adelanto directo— quedaban fuera de pantalla,
           imposibles de ver y de pulsar. Con `minmax(0,1fr)` la
           columna puede encogerse y el contenido se ajusta. */}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div
+        ref={zona}
+        className={cn('grid gap-6', cabeElIndice && 'grid-cols-[minmax(0,1fr)_320px]')}
+      >
         {/* Formulario */}
         <div className="space-y-6">
           <Card className="p-5">
@@ -1147,7 +1176,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
             visualización" —un portátil con la escala de Windows al
             125% deja el navegador en 1092 px, y al 150% en 910—.
             Ahora, en esos anchos, se abre desde el botón flotante. */}
-        <div className="hidden space-y-4 lg:sticky lg:top-6 lg:block lg:self-start">
+        <div className={cn('space-y-4 lg:sticky lg:top-6 lg:self-start', !cabeElIndice && 'hidden')}>
           {errores.length > 0 && (
             <Card className="border-destructive/40 p-4">
               <h3 className="flex items-center gap-1.5 text-sm font-semibold text-destructive">
@@ -1205,7 +1234,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
           <Button
             type="button"
             onClick={() => setPanelAbierto(true)}
-            className="fixed bottom-6 right-6 z-40 shadow-lg lg:hidden"
+            className={cn('fixed bottom-6 right-6 z-40 shadow-lg', cabeElIndice && 'hidden')}
             size="sm"
           >
             <ListChecks className="mr-1.5 h-4 w-4" />
