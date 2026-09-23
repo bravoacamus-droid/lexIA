@@ -66,6 +66,7 @@ import {
   campoOpcionPropia,
   nuevoIdExtra,
   numeralDeHija,
+  rotuloDeNumeral,
   serieDeLetras,
 } from '@/lib/generadores/ensamblador';
 import {
@@ -190,9 +191,9 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
   // ── Mutadores ───────────────────────────────────────────────────────
   const setCampo = (k: string, v: string) => {
     setR((p) => ({ ...p, campos: { ...p.campos, [k]: v } }));
-    // La denominación del expediente y la del numeral 1 son la misma:
+    // La denominación del expediente y la del cuadro de datos son la misma:
     // se escribe en el documento y el expediente la sigue. Antes se
-    // pedía tres veces —al crear, en el expediente y en el numeral 1—.
+    // pedía tres veces —al crear, en el expediente y en el cuadro de datos—.
     if (k === 'denominacion') setDenominacion(v);
     marcarSucio();
   };
@@ -621,6 +622,9 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
     // debajo. Las seis tablas de consultoría de obras son así.
     if (s.visibleSi && !bloqueAplica(s, r)) return null;
     const apagado = !!s.condicion && !r.condiciones[s.condicion];
+    // Como sale en el Word: «IV.», «4.1», «A.». Vacío en el cuadro de
+    // datos, que no se numera.
+    const rotulo = numero === '—' ? '' : rotuloDeNumeral(plantilla, numero, nivel);
     // Fuera los títulos, que ya los pinta la sección, y fuera lo que
     // depende de una opción que no se ha elegido.
     //
@@ -656,13 +660,13 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
                   nivel === 1 ? 'text-base' : 'text-sm text-muted-foreground',
                 )}
               >
-                {numero}.
+                {rotulo}
               </span>
               <Input
                 value={r.titulos[s.id] ?? s.titulo}
                 onChange={(e) => setTitulo(s.id, e.target.value)}
                 placeholder={s.titulo}
-                aria-label={`Título del numeral ${numero}`}
+                aria-label={`Título del numeral ${rotulo}`}
                 className="h-8 max-w-md border-transparent bg-transparent px-1 font-semibold hover:border-input focus:border-input"
               />
             </div>
@@ -674,7 +678,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
                 apagado && 'text-muted-foreground/70',
               )}
             >
-              {apagado ? s.titulo : `${numero}. ${s.titulo}`}
+              {apagado || !rotulo ? s.titulo : `${rotulo} ${s.titulo}`}
             </h3>
           )}
           <div className="flex shrink-0 items-center gap-1">
@@ -762,12 +766,15 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
           // suyas.
           const admiteAnadir = (s.subsecciones?.length ?? 0) > 0;
           if (hijas.length === 0 && propias.length === 0 && !admiteAnadir) return null;
+          // Un solo contador para las hijas y los apartados propios, como
+          // en el ensamblador: los propios siguen donde acabaron las hijas
+          // que de verdad entran.
+          let sub = 0;
           return (
             <div className="mt-4 space-y-5">
               {(() => {
                 // La numeración de las hijas sigue la del documento: una
                 // subsección apagada no gasta número, igual que arriba.
-                let sub = 0;
                 return hijas.map((h, iHija) => {
                   if (h.visibleSi && !bloqueAplica(h, r)) return null;
                   const entra = !h.condicion || r.condiciones[h.condicion];
@@ -819,7 +826,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
                 <div key={e.id} id={anclaApartado(e.id)} className="scroll-mt-24 border-l pl-4">
                   <ApartadoPropio
                     extra={e}
-                    numero={`${numero}.${hijas.length + i + 1}`}
+                    numero={rotuloDeNumeral(plantilla, `${numero}.${sub + i + 1}`, nivel + 1)}
                     onChange={(cambio) => cambiarExtra(e.id, cambio)}
                     onBorrar={() => borrarExtra(e.id)}
                   />
@@ -864,6 +871,8 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
         a.tipo === 'extra' ||
         ((!a.seccion.condicion || r.condiciones[a.seccion.condicion]) &&
           (!a.seccion.visibleSi || bloqueAplica(a.seccion, r)));
+      // El cuadro de datos no gasta número: en el formato no lo tiene.
+      if (a.tipo === 'seccion' && a.seccion.sinNumero) return { apartado: a, numero: '' };
       return { apartado: a, numero: entra ? String(++n) : '—' };
     });
   }, [plantilla, r]);
@@ -966,8 +975,8 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
           <Card className="p-5">
             <h2 className="text-sm font-semibold">Datos del expediente</h2>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              La denominación de la contratación se escribe una sola vez, en el numeral 1 del
-              documento; aquí no se repite.
+              La denominación de la contratación se escribe una sola vez, en el cuadro de datos que
+              abre el documento; aquí no se repite.
             </p>
             <div className="mt-4 max-w-xs">
               <Label htmlFor="cuantia" className="text-sm font-medium">
@@ -1007,6 +1016,10 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
                 apartado.tipo === 'extra'
                   ? apartado.extra.titulo.trim() || 'Apartado adicional'
                   : apartado.seccion.titulo;
+              // Como en el Word: «IV.» en los anexos de 8 UIT, nada en el
+              // cuadro de datos.
+              const rotulo =
+                numero && numero !== '—' ? rotuloDeNumeral(plantilla, numero, 1) : '';
               return (
                 <div
                   key={apartado.id}
@@ -1061,7 +1074,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
                           >
                             <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                             <span>
-                              {numero}. {titulo}
+                              {rotulo ? `${rotulo} ${titulo}` : titulo}
                             </span>
                           </button>
                         </>
@@ -1084,7 +1097,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
                           type="button"
                           onClick={() => alternarPliegue(apartado.id)}
                           title="Plegar este apartado"
-                          aria-label={`Plegar ${numero}`}
+                          aria-label={`Plegar ${rotulo || titulo}`}
                           className="absolute -left-5 top-1 text-muted-foreground/60 transition hover:text-foreground"
                         >
                           <ChevronDown className="h-4 w-4" />
@@ -1096,7 +1109,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
                             </div>
                             <ApartadoPropio
                               extra={apartado.extra}
-                              numero={numero}
+                              numero={rotulo}
                               onChange={(cambio) => cambiarExtra(apartado.id, cambio)}
                               onBorrar={() => borrarExtra(apartado.id)}
                             />

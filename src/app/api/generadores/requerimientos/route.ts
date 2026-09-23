@@ -85,7 +85,7 @@ export async function POST(req: Request) {
       denominacion: parsed.data.denominacion,
       cuantia: parsed.data.cuantia ?? null,
       // La denominación se escribe UNA vez. El campo homónimo del
-      // formato se siembra aquí para que el numeral 1 no la vuelva a
+      // formato se siembra aquí para que el cuadro de datos no la vuelva a
       // pedir. Observación de César del 18/08/2026.
       respuestas: {
         campos: { denominacion: parsed.data.denominacion },

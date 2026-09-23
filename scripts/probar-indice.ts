@@ -133,7 +133,23 @@ const hayOpcionales = listarPlantillas().some((p) =>
     .some((e) => e.estado === 'opcional'),
 );
 comprobar('un apartado opcional vacío NO se marca en rojo: no falta, es que no aplica', hayOpcionales);
-comprobar('nada aparece completo si no se ha escrito nada', !entradas.some((e) => e.estado === 'completo'));
+// Salvo lo que el formato ya trae escrito —el procedimiento de
+// penalidades—: el documento sale con ese texto, así que no falta nada.
+// El índice lo marcaba en rojo mientras el Word lo llevaba completo.
+const conTextoDelFormato = new Set<string>();
+const recogerPredeterminados = (s: Seccion) => {
+  for (const b of s.bloques) if (b.clase === 'redactado' && b.predeterminado) conTextoDelFormato.add(b.id);
+  for (const h of s.subsecciones ?? []) recogerPredeterminados(h);
+};
+plantilla.secciones.forEach(recogerPredeterminados);
+comprobar(
+  'nada aparece completo si no se ha escrito nada, salvo lo que ya trae el formato',
+  !entradas.some((e) => e.estado === 'completo' && !conTextoDelFormato.has(e.id)),
+);
+comprobar(
+  'y lo que ya trae el formato sale completo, como en el documento',
+  entradas.filter((e) => conTextoDelFormato.has(e.id)).every((e) => e.estado === 'completo'),
+);
 
 const conAlgo = construirIndice(plantilla, {
   ...respuestasVacias(),

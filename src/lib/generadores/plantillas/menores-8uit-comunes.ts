@@ -248,6 +248,8 @@ export function seccionEncabezado8Uit(ayudaDenominacion: string): Seccion {
   return {
     id: 'encabezado',
     titulo: 'Datos de la contratación',
+    // El cuadro de datos del formato no lleva número: ver `Seccion.sinNumero`.
+    sinNumero: true,
     bloques: [
       {
         clase: 'campo',

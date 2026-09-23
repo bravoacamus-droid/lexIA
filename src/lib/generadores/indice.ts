@@ -30,9 +30,12 @@ import {
   bloqueVisible,
   campoOpcionPropia,
   type RespuestasRequerimiento,
+  hijasOrdenadas,
   numeralDeHija,
+  rotuloDeNumeral,
   serieDeLetras,
   seccionVisible,
+  textoRedactado,
 } from './ensamblador';
 
 /** Estado de un apartado en el índice. */
@@ -50,6 +53,10 @@ export interface EntradaIndice {
 export interface GrupoIndice {
   id: string;
   /** Numeración que le toca en el documento: 1, 1.1, 1.1.1… */
+  /**
+   * El numeral tal como sale en el documento —«IV.», «4.1», «A.»—, o
+   * vacío para el cuadro de datos, que no se numera.
+   */
   numero: string;
   titulo: string;
   /** Profundidad, para sangrar el índice como el documento. */
@@ -113,7 +120,7 @@ export function construirIndice(
           entradas.push({
             id: b.id,
             etiqueta: b.etiqueta,
-            estado: (respuestas.redacciones[b.id] ?? '').trim() ? 'completo' : 'pendiente',
+            estado: textoRedactado(b, respuestas) ? 'completo' : 'pendiente',
             ancla,
           });
           break;
@@ -178,7 +185,7 @@ export function construirIndice(
     bloques(s.bloques, entradas);
     grupos.push({
       id: s.id,
-      numero,
+      numero: rotuloDeNumeral(plantilla, numero, nivel),
       titulo: s.titulo,
       nivel,
       raiz,
@@ -188,7 +195,10 @@ export function construirIndice(
       pendientes: entradas.filter((e) => e.estado === 'pendiente').length,
     });
     let sub = 0;
-    for (const h of s.subsecciones ?? []) {
+    // En el orden que eligió la entidad, como el documento: con
+    // `s.subsecciones` el índice seguía numerando en el orden de la
+    // plantilla después de mover un numeral.
+    for (const h of hijasOrdenadas(s, respuestas)) {
       if (!seccionVisible(h, respuestas)) continue;
       recorrer(
         h,
@@ -207,7 +217,7 @@ export function construirIndice(
       const completo = !!extra.texto.trim();
       grupos.push({
         id: extra.id,
-        numero: `${numero}.${sub}`,
+        numero: rotuloDeNumeral(plantilla, `${numero}.${sub}`, nivel + 1),
         titulo,
         nivel: nivel + 1,
         raiz,
@@ -235,7 +245,7 @@ export function construirIndice(
       const completo = !!extra.texto.trim();
       grupos.push({
         id: extra.id,
-        numero: String(n),
+        numero: rotuloDeNumeral(plantilla, String(n), 1),
         titulo,
         nivel: 1,
         raiz: extra.id,
@@ -256,6 +266,12 @@ export function construirIndice(
 
     const s = apartado.seccion;
     if (!seccionVisible(s, respuestas)) continue;
+    // El cuadro de datos sigue en el índice —tiene campos que llenar—,
+    // pero sin número, como en el formato.
+    if (s.sinNumero) {
+      recorrer(s, '', 1, s.id, serieDeLetras());
+      continue;
+    }
     n++;
     recorrer(s, String(n), 1, s.id, serieDeLetras());
   }

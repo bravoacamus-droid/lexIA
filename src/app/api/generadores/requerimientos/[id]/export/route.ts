@@ -7,7 +7,7 @@ import {
   normalizarRespuestas,
   type RespuestasRequerimiento,
 } from '@/lib/generadores/ensamblador';
-import { markdownToDocxBuffer } from '@/lib/docx-from-markdown';
+import { requerimientoADocx } from '@/lib/generadores/documento';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -91,10 +91,9 @@ export async function GET(req: Request, ctx: { params: { id: string } }) {
     });
   }
 
-  const buf = await markdownToDocxBuffer(doc.markdown, {
-    title: plantilla.encabezado,
-    subtitle: plantilla.subtitulo,
-  });
+  // El Word sale de las piezas, no del Markdown: con el Markdown se
+  // perdía la forma del formato de César. Ver `generadores/documento.ts`.
+  const buf = await requerimientoADocx(doc.piezas, plantilla);
 
   return new NextResponse(buf as unknown as BodyInit, {
     status: 200,

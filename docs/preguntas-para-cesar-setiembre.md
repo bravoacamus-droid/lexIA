@@ -124,11 +124,73 @@ avisos: la campana lleva a las preferencias de notificación por correo.
 
 ---
 
+## 7 · Consultas y observaciones
+
+Está construida con tus dos modelos del concurso de mantenimiento vial
+—el pliego que presenta el participante y el que responde el comité—.
+El Word sale apaisado, con las ocho columnas del formato y el escrito
+por tramos dentro de la celda: referencia, sustento fáctico, sustento
+jurídico con una viñeta por norma, y solicitud.
+
+**Quién ve cada lado.** Hoy lo hemos repartido así: la entidad absuelve,
+el proveedor formula, y el consultor ve las dos puertas porque asesora
+a ambos. ¿Es como lo trabajas? Si una entidad necesita también formular
+—por ejemplo para preparar el escrito de un tercero—, lo abrimos.
+
+**Las citas marcadas.** A-LexIA comprueba cada norma que cita: si no la
+trae el sustento ni está en la biblioteca, o si es del régimen derogado
+—la Ley N° 30225, su TUO, el OSCE—, la marca en ámbar y la fila pasa a
+«Requieren revisión». **No la borra**, porque un escrito que se presenta
+a una entidad no puede llevar un texto recortado por el programa sin
+que nadie lo vea. ¿Te parece bien que lo deje a tu criterio, o prefieres
+que directamente no escriba la cita que no puede respaldar?
+
+**Un aviso honesto sobre el límite.** Que una norma «esté en el
+sustento» no quiere decir que la respalde el OECE: los pronunciamientos
+transcriben los argumentos de los participantes, así que a veces la
+norma está ahí porque alguien la invocó en su escrito. A-LexIA no
+distingue las dos cosas; quien firma, sí.
+
+---
+
+## 8 · Los formatos del requerimiento
+
+Nos dijiste que «los formatos que están en el Software aún no están de
+acuerdo a la estructura alcanzada». Tenías razón, y era de fondo: el
+Word se reconstruía desde un texto intermedio y en el camino perdía la
+forma de tus quince formatos. Ahora se compone directamente con sus
+medidas —las sacamos abriendo tus .docx por dentro—: Arial 10, A4 con
+márgenes de 3 cm, el cuadro de datos con las etiquetas en gris, títulos
+con sangría francesa, cuadros con la cabecera gris y, en los de menor
+cuantía, la ficha de una columna. Y ya no lleva el «Generado con
+A-LexIA» que salía arriba de todo.
+
+**Una pregunta sobre la numeración.** En tus quince formatos el cuadro
+de datos (órgano, POI, CMN, denominación) no lleva número y el «1.» es
+la finalidad pública. A-LexIA lo numeraba como «1. Datos de la
+contratación» y todo quedaba corrido un número; ya está corregido.
+
+Pero en agosto nos pediste, para los formatos de menor a 8 UIT, que
+finalidad, objetivo y antecedentes llevaran «2, 3 y 4 respectivamente,
+esto según modelo de requerimiento». Tu modelo (los anexos 1, 2 y 3)
+los numera en romanos —**I, II, III**— y sin contar el cuadro de datos.
+Hemos seguido el modelo, que es al que remitías. Si prefieres «2, 3 y
+4», es un cambio de una línea.
+
+---
+
 ## Lo que ya está listo para que pruebes
 
 **El rediseño completo.** Marca A-LexIA, el compañero con sus efectos, el
 menú por verbos (Consultar · Generar · Evaluar), y todas las pantallas
 rehechas en escritorio y en móvil, con tema claro y oscuro.
+
+**El Word del requerimiento.** Descarga cualquiera de tus requerimientos
+y compáralo con tu formato: debería verse igual. Si algo no cuadra
+—un ancho de columna, una sangría— dinos cuál y en qué formato.
+
+**Consultas y observaciones.** Las dos caras, con su Word en el formato
+de tus modelos. Está en Evaluar › Consultas y observaciones.
 
 **La biblioteca.** Las directivas ya no se ven duplicadas: cada norma
 aparece una vez y despliega sus partes —el texto, la resolución que la

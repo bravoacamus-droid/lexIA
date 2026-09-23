@@ -2,8 +2,10 @@
  * Ensamblador de requerimientos.
  *
  * Toma una plantilla codificada (ver plantilla-tipos.ts) más las
- * respuestas del usuario y produce el documento en Markdown, que el
- * exportador existente (docx-from-markdown.ts) convierte a Word.
+ * respuestas del usuario y produce el documento dos veces: en Markdown,
+ * para la vista previa y la descarga en .md, y en piezas (piezas.ts),
+ * de las que sale el Word (documento.ts). El Word salía antes del
+ * Markdown y en el viaje perdía la forma del formato de César.
  *
  * EL ENSAMBLADOR NO REDACTA. Recorre la plantilla en orden y decide, por
  * el tipo de cada bloque, si copia texto invariable, sustituye un dato o
@@ -30,6 +32,11 @@ import type {
   Bloque,
   BloqueCampo,
 } from './plantilla-tipos';
+import {
+  elementosDeLista,
+  textoAPiezas,
+  type Pieza,
+} from './piezas';
 import { z } from 'zod';
 
 export interface RespuestasRequerimiento {
@@ -168,6 +175,22 @@ export function bloqueVisible(
   return Array.isArray(cond.valor) ? cond.valor.includes(elegida) : cond.valor === elegida;
 }
 
+/**
+ * El texto con el que sale un apartado redactado: lo que escribió la
+ * entidad o, si no escribió nada, el que trae el formato.
+ *
+ * Vive aquí porque lo leen el ensamblador y el índice. El índice lo leía
+ * a su manera, sin el texto del formato, y marcaba en rojo como
+ * pendiente el procedimiento de penalidades de las quince plantillas
+ * aunque el documento ya salía con él.
+ */
+export function textoRedactado(
+  b: { id: string; predeterminado?: string },
+  respuestas: RespuestasRequerimiento,
+): string {
+  return (respuestas.redacciones[b.id] ?? b.predeterminado ?? '').trim();
+}
+
 /** Dónde se guarda un texto del usuario. Lo comparten revisor y reparto. */
 export type DestinoRespuesta = 'redacciones' | 'campos' | 'extras' | 'tablas';
 
@@ -229,7 +252,13 @@ export interface Aviso {
 }
 
 export interface DocumentoEnsamblado {
+  /** Para la vista previa y la descarga en `.md`. */
   markdown: string;
+  /**
+   * El mismo documento, con su estructura. De aquí sale el Word: ver
+   * `piezas.ts` para por qué no sale del Markdown.
+   */
+  piezas: Pieza[];
   faltantes: Falta[];
   avisos: Aviso[];
   /** Secciones omitidas por no cumplirse su condición. */
@@ -309,7 +338,7 @@ export function normalizarRespuestas(
    * del formato cuando está vacío.
    *
    * La denominación se pedía tres veces —al crear, en los datos del
-   * expediente y en el numeral 1— y era la misma. Se escribe una vez y
+   * expediente y en el cuadro de datos— y era la misma. Se escribe una vez y
    * el campo del documento la toma de ahí. Observación de César del
    * 18/08/2026.
    */
@@ -585,10 +614,15 @@ export function ensamblarRequerimiento(
   contexto: ContextoContratacion = {},
 ): DocumentoEnsamblado {
   const partes: string[] = [];
+  const piezas: Pieza[] = [];
   const faltantes: Falta[] = [];
   const omitidas: string[] = [];
 
   partes.push(`# ${plantilla.encabezado}`, '', `## ${plantilla.subtitulo}`, '');
+  piezas.push(
+    { clase: 'titulo', rol: 'encabezado', nivel: 0, texto: plantilla.encabezado },
+    { clase: 'titulo', rol: 'subtitulo', nivel: 0, texto: plantilla.subtitulo },
+  );
 
   const valorCampo = (campo: BloqueCampo, seccion: string): string | null => {
     const v = (respuestas.campos[campo.id] ?? '').trim();
@@ -612,6 +646,7 @@ export function ensamblarRequerimiento(
       switch (b.clase) {
         case 'titulo':
           partes.push(`${'#'.repeat(Math.min(b.nivel + 2, 6))} ${b.texto}`, '');
+          piezas.push({ clase: 'titulo', nivel: b.nivel, texto: b.texto });
           break;
 
         case 'fijo':
@@ -631,8 +666,16 @@ export function ensamblarRequerimiento(
               else partes.push(`${marcaDeLista(b.marcador ?? 'vineta', n++)} ${t}`);
             }
             partes.push('');
+            const conEncabezado = renglones[0]?.endsWith(':') ?? false;
+            piezas.push({
+              clase: 'lista',
+              encabezado: conEncabezado ? renglones[0] : undefined,
+              marca: b.marcador ?? 'vineta',
+              elementos: conEncabezado ? renglones.slice(1) : renglones,
+            });
           } else {
             partes.push(b.texto, '');
+            piezas.push(...textoAPiezas(b.texto));
           }
           break;
 
@@ -641,6 +684,7 @@ export function ensamblarRequerimiento(
           // requerimiento. Van en cursiva para que se distingan y puedan
           // retirarse antes de remitir el expediente.
           partes.push(`> *${b.texto}*`, '');
+          piezas.push({ clase: 'nota', texto: b.texto });
           break;
 
         case 'campo': {
@@ -651,6 +695,12 @@ export function ensamblarRequerimiento(
           // diga "según corresponda".
           if (v === null && !b.obligatorio) break;
           partes.push(`**${b.etiqueta}:** ${v ?? pendiente(b.etiqueta)}`, '');
+          piezas.push({
+            clase: 'campo',
+            etiqueta: b.etiqueta,
+            valor: v ?? '',
+            pendiente: v === null,
+          });
           break;
         }
 
@@ -664,6 +714,7 @@ export function ensamblarRequerimiento(
             texto = texto.replaceAll(`{{${campo.id}}}`, relleno);
           }
           partes.push(contraer(texto), '');
+          piezas.push({ clase: 'parrafo', texto: contraer(texto) });
           break;
         }
 
@@ -676,8 +727,10 @@ export function ensamblarRequerimiento(
               : '';
           if (op) {
             partes.push(op.texto, '');
+            piezas.push(...textoAPiezas(op.texto));
           } else if (propia) {
             partes.push(propia, '');
+            piezas.push(...textoAPiezas(propia));
           } else {
             faltantes.push({
               seccion,
@@ -686,6 +739,7 @@ export function ensamblarRequerimiento(
               ayuda: b.instruccion,
             });
             partes.push(pendiente(b.etiqueta), '');
+            piezas.push({ clase: 'pendiente', etiqueta: b.etiqueta });
           }
           break;
         }
@@ -694,12 +748,21 @@ export function ensamblarRequerimiento(
           // Si el area usuaria no escribio nada pero el formato trae
           // su texto, ese texto va al documento y el apartado NO se
           // cuenta como pendiente: no le falta nada.
-          const texto = (respuestas.redacciones[b.id] ?? b.predeterminado ?? '').trim();
+          const texto = textoRedactado(b, respuestas);
           if (texto) {
             partes.push(
               b.extension === 'lista' ? enLista(texto, respuestas.marcadores[b.id]) : texto,
               '',
             );
+            if (b.extension === 'lista') {
+              piezas.push({
+                clase: 'lista',
+                marca: respuestas.marcadores[b.id] ?? 'vineta',
+                elementos: elementosDeLista(texto),
+              });
+            } else {
+              piezas.push(...textoAPiezas(texto));
+            }
           } else {
             faltantes.push({
               seccion,
@@ -708,6 +771,7 @@ export function ensamblarRequerimiento(
               ayuda: b.instruccion,
             });
             partes.push(pendiente(b.etiqueta), '');
+            piezas.push({ clase: 'pendiente', etiqueta: b.etiqueta });
           }
           break;
         }
@@ -740,11 +804,13 @@ export function ensamblarRequerimiento(
             // como un error de armado en el Word. Se omite y se deja
             // constancia de por qué.
             partes.push(`*No aplica: ${b.etiqueta.toLowerCase()}.*`, '');
+            piezas.push({ clase: 'parrafo', texto: `*No aplica: ${b.etiqueta.toLowerCase()}.*` });
           } else {
             // Con filas exigidas se emite igual, aunque estén vacías: el
             // formato oficial lleva la tabla y quitarla cambiaría el
             // documento. El hueco ya quedó anotado en `faltantes`.
             partes.push(tablaMarkdown(b.columnas, filas), '');
+            piezas.push({ clase: 'tabla', columnas: b.columnas, filas, conContenido });
           }
 
           // Los cuadros que la entidad añadió después, cada uno con su
@@ -756,6 +822,13 @@ export function ensamblarRequerimiento(
               if (conAlgo.length === 0 && !grupo.titulo.trim()) continue;
               if (grupo.titulo.trim()) partes.push(`**${grupo.titulo.trim()}**`, '');
               partes.push(tablaMarkdown(b.columnas, grupo.filas), '');
+              piezas.push({
+                clase: 'tabla',
+                titulo: grupo.titulo.trim() || undefined,
+                columnas: b.columnas,
+                filas: grupo.filas,
+                conContenido: conAlgo.length,
+              });
             }
           }
           break;
@@ -776,7 +849,9 @@ export function ensamblarRequerimiento(
       return;
     }
     const suTitulo = (s.renombrable && respuestas.titulos[s.id]?.trim()) || s.titulo;
-    partes.push(`${'#'.repeat(Math.min(nivel + 2, 6))} ${numero}. ${suTitulo}`, '');
+    const rotulo = rotuloDeNumeral(plantilla, numero, nivel);
+    partes.push(`${'#'.repeat(Math.min(nivel + 2, 6))} ${rotulo} ${suTitulo}`, '');
+    piezas.push({ clase: 'titulo', nivel, numero: rotulo, texto: suTitulo });
     escribirBloques(s.bloques, s.titulo);
     let sub = 0;
     for (const hija of hijasOrdenadas(s, respuestas)) {
@@ -799,11 +874,15 @@ export function ensamblarRequerimiento(
       sub++;
       const titulo = extra.titulo.trim() || 'Apartado adicional';
       const texto = extra.texto.trim();
-      partes.push(`${'#'.repeat(Math.min(nivel + 3, 6))} ${numero}.${sub}. ${titulo}`, '');
+      const rotulo = rotuloDeNumeral(plantilla, `${numero}.${sub}`, nivel + 1);
+      partes.push(`${'#'.repeat(Math.min(nivel + 3, 6))} ${rotulo} ${titulo}`, '');
+      piezas.push({ clase: 'titulo', nivel: nivel + 1, numero: rotulo, texto: titulo });
       if (texto) {
         partes.push(texto, '');
+        piezas.push(...textoAPiezas(texto));
       } else {
         partes.push(pendiente(titulo), '');
+        piezas.push({ clase: 'pendiente', etiqueta: titulo });
         faltantes.push({
           seccion: s.titulo,
           bloque: extra.id,
@@ -814,6 +893,27 @@ export function ensamblarRequerimiento(
     }
   };
 
+  /**
+   * El cuadro que abre el formato: órgano, POI, CMN y denominación.
+   *
+   * Sus campos se escriben como los de cualquier apartado —para que el
+   * Markdown y los pendientes sigan igual—, y después se recogen en un
+   * solo cuadro de dos columnas. No lleva título: en el formato no lo
+   * tiene.
+   */
+  const escribirDatos = (s: Seccion) => {
+    const desde = piezas.length;
+    escribirBloques(s.bloques, s.titulo);
+    const propias = piezas.splice(desde);
+    const filas = propias.flatMap((p) =>
+      p.clase === 'campo' ? [{ etiqueta: p.etiqueta, valor: p.valor, pendiente: p.pendiente }] : [],
+    );
+    if (filas.length > 0) piezas.push({ clase: 'datos', filas });
+    // Lo que no sea un campo —no lo hay hoy en ninguna plantilla— sale
+    // detrás del cuadro en vez de perderse.
+    piezas.push(...propias.filter((p) => p.clase !== 'campo'));
+  };
+
   let n = 0;
   for (const apartado of apartadosOrdenados(plantilla, respuestas)) {
     if (apartado.tipo === 'extra') {
@@ -821,14 +921,18 @@ export function ensamblarRequerimiento(
       const titulo = extra.titulo.trim() || 'Apartado adicional';
       const texto = extra.texto.trim();
       n++;
-      partes.push(`### ${n}. ${titulo}`, '');
+      const rotulo = rotuloDeNumeral(plantilla, String(n), 1);
+      partes.push(`### ${rotulo} ${titulo}`, '');
+      piezas.push({ clase: 'titulo', nivel: 1, numero: rotulo, texto: titulo });
       if (texto) {
         partes.push(texto, '');
+        piezas.push(...textoAPiezas(texto));
       } else {
         // Un apartado propio sin contenido es un olvido, no una
         // sección "de corresponder": se marca como pendiente igual que
         // cualquier otro dato obligatorio.
         partes.push(pendiente(titulo), '');
+        piezas.push({ clase: 'pendiente', etiqueta: titulo });
         faltantes.push({
           seccion: titulo,
           bloque: extra.id,
@@ -844,6 +948,10 @@ export function ensamblarRequerimiento(
       omitidas.push(s.titulo);
       continue;
     }
+    if (s.sinNumero) {
+      escribirDatos(s);
+      continue;
+    }
     n++;
     // Una serie de letras por apartado de primer nivel.
     escribirSeccion(s, String(n), 1, serieDeLetras());
@@ -851,6 +959,7 @@ export function ensamblarRequerimiento(
 
   return {
     markdown: partes.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n',
+    piezas,
     faltantes,
     avisos: verificarTopes(plantilla, respuestas, contexto),
     omitidas,
@@ -887,6 +996,58 @@ export function serieDeLetras(): () => string {
  * documento, la pantalla y el índice—. Cuando cada uno lo decidía por su
  * cuenta, lo que se veía y lo que se exportaba podían no coincidir.
  */
+/** 4 → «IV». Los anexos de menores a 8 UIT numeran así sus apartados. */
+export function aRomano(n: number): string {
+  const tabla: Array<[number, string]> = [
+    [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'],
+    [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
+  ];
+  let resto = n;
+  let romano = '';
+  for (const [valor, letras] of tabla) {
+    while (resto >= valor) {
+      romano += letras;
+      resto -= valor;
+    }
+  }
+  return romano;
+}
+
+/**
+ * El numeral tal como se imprime en el formato de César.
+ *
+ * Se midió en los quince formatos, en la numeración de Word de cada uno:
+ *
+ *   · Los procedimientos de selección numeran «1.», «2.»… y las hijas
+ *     «1.1», «1.1.1», sin punto al final: Word las pinta con numeración
+ *     legal.
+ *   · Los tres anexos de menores a 8 UIT numeran en romanos —«I.»,
+ *     «IV.»— y las hijas igual que los otros: «4.1». La numeración legal
+ *     convierte el IV del padre en 4.
+ *   · Las hijas con letra van con punto: «A.», «B.3.». El formato no es
+ *     del todo constante con «B.3» —mantenimiento vial lo escribe sin
+ *     punto—, y se sigue a la mayoría.
+ *
+ * `numero` es el numeral interno, siempre en arábigos, porque de él se
+ * derivan los de las hijas. Esto solo decide cómo se escribe. Lo usan el
+ * documento, el formulario y el índice: si cada uno lo escribiera a su
+ * manera, la pantalla diría una cosa y el Word otra.
+ */
+export function rotuloDeNumeral(
+  plantilla: Pick<PlantillaRequerimiento, 'familia'>,
+  numero: string,
+  nivel: number,
+): string {
+  if (!numero) return '';
+  if (nivel === 1) {
+    const base =
+      plantilla.familia === 'menor_8_uit' && /^\d+$/.test(numero) ? aRomano(Number(numero)) : numero;
+    return `${base}.`;
+  }
+  if (/^\d+(?:\.\d+)+$/.test(numero)) return numero;
+  return /[.)]$/.test(numero) ? numero : `${numero}.`;
+}
+
 export function numeralDeHija(
   padre: string,
   siguienteNumero: () => number,

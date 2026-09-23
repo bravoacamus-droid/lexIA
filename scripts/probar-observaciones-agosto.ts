@@ -202,11 +202,21 @@ function numeralesDeCabecera() {
   r.redacciones.objetivo_general = 'Objetivo de prueba.';
   r.redacciones.antecedentes = 'Antecedentes de prueba.';
   const doc = ensamblarRequerimiento(p, r, { cuantia: 20_000 });
+  // César pidió «2, 3 y 4 respectivamente, esto según modelo de
+  // requerimiento». Contaba desde el «1.» que A-LexIA le daba entonces al
+  // cuadro de datos. Su modelo —el ANEXO 1, 2 y 3— no numera ese cuadro y
+  // escribe los apartados en romanos: I, II, III. Se sigue el modelo, que
+  // es a lo que él remite; está en las preguntas para César por si
+  // prefiere los arábigos.
   comprobar(
-    'y el documento los numera 2, 3 y 4',
-    /2\.\s*FINALIDAD PÚBLICA/i.test(doc.markdown) &&
-      /3\.\s*OBJETIVO DE LA CONTRATACIÓN/i.test(doc.markdown) &&
-      /4\.\s*ANTECEDENTES/i.test(doc.markdown),
+    'y el documento los numera como el modelo: I, II y III',
+    /I\.\s*FINALIDAD PÚBLICA/.test(doc.markdown) &&
+      /II\.\s*OBJETIVO DE LA CONTRATACIÓN/.test(doc.markdown) &&
+      /III\.\s*ANTECEDENTES/.test(doc.markdown),
+  );
+  comprobar(
+    'y el cuadro de datos no gasta número',
+    !/#+ \S+ Datos de la contratación/.test(doc.markdown),
   );
   comprobar(
     'y el texto del área usuaria sale bajo cada uno',
@@ -262,7 +272,8 @@ function ordenDeSubnumerales() {
   comprobar('al mover, cambia el orden', movido[posA] === b && movido[posB] === a);
 
   const doc = ensamblarRequerimiento(p, r, { cuantia: 20_000 });
-  const numerales = [...doc.markdown.matchAll(/^#### (\d+\.\d+)\. (.+)$/gm)].map((m) => m[2]);
+  // «4.1 Título», sin punto tras el numeral, como en el formato.
+  const numerales = [...doc.markdown.matchAll(/^#### (\d+\.\d+) (.+)$/gm)].map((m) => m[2]);
   // Se compara con el título de la subsección que se movió, no con uno
   // escrito a mano: al añadir apartados nuevos al formato, la primera
   // subsección cambia y la prueba se caía sin que nada estuviera mal.
@@ -478,10 +489,18 @@ function hoja5() {
     r.condiciones.tiene_entregables = true;
     r.tablas.entregables = [['1', 'Informe final', '10 días', 'Detalle']];
     r.campos.entregables_canal = 'mesadepartes@entidad.gob.pe';
+    // Observación 12 de César (setiembre): el medio ya no es un texto fijo
+    // —«Mesa de Partes virtual de la Entidad y/o correo electrónico»—
+    // sino una elección entre mesa de partes, correo o ambos. Se comprueba
+    // que la elección llega al documento.
+    r.campos.entregables_canal_medio =
+      'la mesa de partes virtual de la Entidad y el correo electrónico institucional';
     const salida = ensamblarRequerimiento(plantilla, r, { cuantia: 30_000 });
     comprobar(
-      `${id}: el entregable cierra con la condición del formato`,
-      salida.markdown.includes('Mesa de Partes virtual de la Entidad y/o correo electrónico'),
+      `${id}: el entregable cierra con el medio que eligió la entidad`,
+      salida.markdown.includes(
+        'presentados a través de la mesa de partes virtual de la Entidad y el correo electrónico institucional',
+      ),
     );
     comprobar(`${id}: y remite a ${cierre}`, salida.markdown.includes(cierre));
     comprobar(
@@ -631,23 +650,41 @@ function hoja8() {
       'Los servicios materia de la presente convocatoria se prestan en el plazo de trescientos sesenta y cinco (365) días calendario',
     ),
   );
+  // El hito era un texto fijo del formato; después pasó a elegirse entre
+  // los seis que prevé la norma («elegir desde cuándo se cuenta el
+  // plazo»). Sin elegir, queda pendiente; elegido, sale en el párrafo.
   comprobar(
-    'y con el hito de cómputo que trae el formato',
-    doc.markdown.includes('notificación de la orden de servicio o suscripción del contrato'),
+    'y sin elegir el hito, queda pendiente en vez de inventarse',
+    doc.markdown.includes('[PENDIENTE: Inicio del cómputo]'),
   );
+  {
+    const conHito = normalizarRespuestas(respuestasVacias(), 'Servicio de mantenimiento');
+    conHito.campos.plazo_servicio = 'trescientos sesenta y cinco (365)';
+    conHito.campos.inicio_computo =
+      'computados a partir del día siguiente de la notificación de la orden de servicio';
+    comprobar(
+      'y con el hito elegido, sale en el párrafo del plazo',
+      ensamblarRequerimiento(p, conHito, { cuantia: 30_000 }).markdown.includes(
+        'días calendario, computados a partir del día siguiente de la notificación de la orden de servicio',
+      ),
+    );
+  }
   comprobar('el lugar también', doc.markdown.includes('El servicio se presta en Av. Abancay'));
   comprobar(
     'y hay lugar y plazo para la prestación accesoria',
     (doc.markdown.match(/Prestación accesoria/g) ?? []).length >= 2,
   );
 
-  // Las cinco modalidades del formato, incluida la que faltaba.
+  // Las modalidades del ANEXO 2 de César son siete: suma alzada,
+  // precios unitarios, esquema mixto, tarifas, porcentajes, honorario
+  // fijo con comisión de éxito y pago por consumo. La prueba pedía cinco,
+  // que eran las que había cuando se escribió.
   const modalidad = todosLosBloques(p.secciones).find(
     (b) => 'id' in b && b.id === 'modalidad_pago',
   ) as { opciones?: Array<{ valor: string }> } | undefined;
   comprobar(
-    `están las cinco modalidades de pago (${modalidad?.opciones?.length ?? 0})`,
-    (modalidad?.opciones?.length ?? 0) === 5,
+    `están las siete modalidades de pago del formato (${modalidad?.opciones?.length ?? 0})`,
+    (modalidad?.opciones?.length ?? 0) === 7,
   );
   comprobar(
     'incluido el pago por consumo, que faltaba',
@@ -859,32 +896,42 @@ function ultimosPendientes() {
 function resolucionYConfidencialidad() {
   console.log("\n── Obs. 35: \"no está ordenado, está todo el texto seguido\" ──");
   const p = obtenerPlantilla('uit-tdr')!;
-  const doc = ensamblarRequerimiento(p, normalizarRespuestas(respuestasVacias(), 'x'), {
+  // Con la plantilla, como lo hace la aplicación: así se encienden los
+  // interruptores que el formato trae encendidos, y la confidencialidad
+  // de 8 UIT es uno de ellos.
+  const doc = ensamblarRequerimiento(p, normalizarRespuestas(respuestasVacias(), 'x', p), {
     cuantia: 20_000,
   });
 
-  // Las ocho causales de resolución, una por renglón.
+  // Las ocho causales de resolución, una por renglón y con su letra: los
+  // dos párrafos que cierran el apartado las citan como «a)» y «b)», así
+  // que no pueden ir con viñeta (commit 2728e41).
   const causales = (
     doc.markdown.match(
-      /^- (Ocurre un caso fortuito|Se produce el incumplimiento|Se presenta un hecho|Por incumplimiento|Por la presentación|Se configura una condición|Se alcanza el monto|Cuando la entidad sustente)/gm,
+      /^[a-h]\) (Ocurre un caso fortuito|Se produce el incumplimiento|Se presenta un hecho|Por incumplimiento|Por la presentación|Se configura una condición|Se alcanza el monto|Cuando la entidad sustente)/gm,
     ) ?? []
   ).length;
   comprobar(`las causales de resolución salen enumeradas (${causales})`, causales === 8);
 
-  // El encabezado de una enumeración no es un elemento de ella.
+  // Observación 17 de César (setiembre): «este artículo debe ser
+  // reemplazado por el siguiente texto». El artículo que esta prueba
+  // miraba ya no existe; se comprueba lo mismo —que el encabezado no sea
+  // un elemento más y que la obligación alcance al personal— sobre el
+  // texto que lo sustituyó.
   comprobar(
     'el encabezado de la lista no lleva viñeta',
-    doc.markdown.includes('Se considera información confidencial, sin carácter limitativo:') &&
-      !doc.markdown.includes('- Se considera información confidencial'),
+    doc.markdown.includes('En tal sentido, se obliga a:') &&
+      !/^- En tal sentido, se obliga a:/m.test(doc.markdown),
   );
   comprobar(
-    'y la segunda lista tiene el suyo, que faltaba',
-    doc.markdown.includes('El contratista se compromete a:') &&
-      !doc.markdown.includes('- El contratista se compromete a:'),
+    'y lo que sigue sí va en lista',
+    /^- Utilizar la información exclusivamente para el cumplimiento del objeto contractual\./m.test(
+      doc.markdown,
+    ),
   );
   comprobar(
-    'con la obligación de extenderla a su personal, que también faltaba',
-    doc.markdown.includes('Extender esta obligación a su personal, técnicos, subcontratistas'),
+    'con la obligación de extenderla a su personal',
+    doc.markdown.includes('Extender estas obligaciones a su personal, colaboradores y terceros'),
   );
 }
 

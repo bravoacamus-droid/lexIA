@@ -205,7 +205,9 @@ console.log('\n── Un apartado propio dentro de otra sección ──');
   );
   comprobar(
     'se numera como subapartado, no como apartado suelto',
-    /#{4,6} \d+(?:\.\d+)+\. Monitoreo y seguimiento/.test(doc.markdown),
+    // «5.3», sin punto final: las hijas numeradas van con la numeración
+    // legal de Word en los quince formatos. Ver `rotuloDeNumeral`.
+    /#{4,6} \d+(?:\.\d+)+ Monitoreo y seguimiento/.test(doc.markdown),
   );
   comprobar(
     'NO aparece entre los apartados de primer nivel',

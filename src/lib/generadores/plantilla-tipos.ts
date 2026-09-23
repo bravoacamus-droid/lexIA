@@ -382,6 +382,17 @@ export interface Seccion {
    */
   renombrable?: boolean;
   /**
+   * La sección no se numera: es el cuadro de datos que abre el formato.
+   *
+   * Los quince formatos de César arrancan igual —un cuadro de cuatro
+   * filas con el órgano, la actividad del POI, el número de CMN y la
+   * denominación— y ese cuadro NO lleva número: el «1.» es la finalidad
+   * pública. A-LexIA lo trataba como un apartado más, «1. Datos de la
+   * contratación», y todo el documento quedaba corrido un número
+   * respecto del formato oficial.
+   */
+  sinNumero?: boolean;
+  /**
    * El numeral se rotula con letra, no con el número que le tocaría.
    *
    * En REQUISITOS DE CALIFICACIÓN el formato oficial no escribe

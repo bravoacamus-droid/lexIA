@@ -119,7 +119,7 @@ export function IndiceDocumento({
                   <X className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
                 )}
                 <span>
-                  {g.numero}. {g.titulo}
+                  {g.numero ? `${g.numero} ${g.titulo}` : g.titulo}
                 </span>
               </button>
 

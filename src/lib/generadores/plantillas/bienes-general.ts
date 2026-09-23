@@ -107,6 +107,8 @@ export const PLANTILLA_BIENES_GENERAL: PlantillaRequerimiento = {
     {
       id: 'encabezado',
       titulo: 'Datos de la contratación',
+      // El cuadro de datos del formato no lleva número: ver `Seccion.sinNumero`.
+      sinNumero: true,
       bloques: [
         {
           clase: 'campo',
