@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
+import { RelativeTime } from '@/components/ui/relative-time';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScanSearch, Plus, FileCheck2, Clock, AlertCircle, HelpCircle } from 'lucide-react';
@@ -10,7 +11,6 @@ import {
   EncabezadoDeSeccion,
   NotaDelCompanero,
 } from '@/components/app/seccion/piezas';
-import { formatRelative } from '@/lib/utils';
 import { RoleGateBlocked, isRoleAllowed } from '@/components/app/role-gate';
 import type { ProfileRole } from '@/lib/auth/session';
 
@@ -120,9 +120,9 @@ export default async function RevisorTdrListPage() {
                       <StatusBadge status={au.status} />
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Creada {formatRelative(au.created_at)}
+                      Creada <RelativeTime date={au.created_at} />
                       {au.completed_at && (
-                        <> · Completada {formatRelative(au.completed_at)}</>
+                        <> · Completada <RelativeTime date={au.completed_at} /></>
                       )}
                       {au.status === 'done' && au.result?.stats && (
                         <>

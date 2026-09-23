@@ -2,10 +2,10 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
+import { RelativeTime } from '@/components/ui/relative-time';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Clock, Star, BookOpen, Phone } from 'lucide-react';
-import { formatRelative } from '@/lib/utils';
 import { CallActions } from '@/components/app/voice/call-actions';
 import { TurnMarkdown } from '@/components/app/voice/turn-markdown';
 
@@ -95,7 +95,7 @@ export default async function LlamadaDetailPage({ params }: Props) {
                       : 'Eliminada'}
               </Badge>
               <span className="text-xs text-muted-foreground">
-                {formatRelative(c.started_at)}
+                <RelativeTime date={c.started_at} />
               </span>
               {c.duration_seconds && (
                 <span className="text-xs font-mono text-muted-foreground">

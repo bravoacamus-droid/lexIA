@@ -1,13 +1,13 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
+import { RelativeTime } from '@/components/ui/relative-time';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ClipboardList, Plus, ArrowRight, Building2 } from 'lucide-react';
 import { RoleGateBlocked, isRoleAllowed } from '@/components/app/role-gate';
 import { OBJETO_LABELS } from '@/lib/requerimientos/catalog';
 import { SUBTIPO_META, type SubtipoRequerimiento } from '@/lib/requerimientos/subtipos';
-import { formatRelative } from '@/lib/utils';
 import type { ProfileRole } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
@@ -150,7 +150,7 @@ export default async function RequerimientosListPage() {
                         {r.denominacion}
                       </h3>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Actualizado {formatRelative(r.updated_at)} · Año {r.anio}
+                        Actualizado <RelativeTime date={r.updated_at} /> · Año {r.anio}
                       </p>
                     </div>
                   </div>

@@ -15,9 +15,10 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { RelativeTime } from '@/components/ui/relative-time';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { cn, formatRelative } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 type Status =
   | 'cumple' | 'subsanable' | 'no_cumple'
@@ -184,7 +185,7 @@ export function EvaluationResultView({
           <h1 className="font-semibold text-3xl sm:text-4xl tracking-tight">{title}</h1>
           {completedAt && (
             <p className="mt-1 text-xs text-muted-foreground">
-              Completada {formatRelative(completedAt)}
+              Completada <RelativeTime date={completedAt} />
             </p>
           )}
         </motion.header>

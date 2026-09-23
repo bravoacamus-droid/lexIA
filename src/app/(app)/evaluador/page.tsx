@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
+import { RelativeTime } from '@/components/ui/relative-time';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FileSearch, Plus, FileCheck2, Clock, AlertCircle, HelpCircle } from 'lucide-react';
@@ -10,7 +11,6 @@ import {
   EncabezadoDeSeccion,
   NotaDelCompanero,
 } from '@/components/app/seccion/piezas';
-import { formatRelative } from '@/lib/utils';
 import { RoleGateBlocked, isRoleAllowed } from '@/components/app/role-gate';
 import type { ProfileRole } from '@/lib/auth/session';
 
@@ -119,10 +119,10 @@ export default async function EvaluatorListPage() {
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {ev.offer_files?.length || 0} ofertas ·{' '}
-                      Creada {formatRelative(ev.created_at)}
+                      Creada <RelativeTime date={ev.created_at} />
                       {ev.completed_at && (
                         <>
-                          {' '}· Completada {formatRelative(ev.completed_at)}
+                          {' '}· Completada <RelativeTime date={ev.completed_at} />
                         </>
                       )}
                     </p>

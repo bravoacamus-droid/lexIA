@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
-import { cn, formatRelative } from '@/lib/utils';
+import { RelativeTime } from '@/components/ui/relative-time';
+import { cn } from '@/lib/utils';
 import {
   GENERATOR_PERFILES,
   PERFIL_COLORS,
@@ -109,7 +110,7 @@ export function GeneratorHistoryTabs({ convos }: { convos: ConvoRow[] }) {
                       {c.title || 'Nueva conversación'}
                     </h3>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      Actualizada {formatRelative(c.updated_at)}
+                      Actualizada <RelativeTime date={c.updated_at} />
                     </p>
                   </div>
                 </div>

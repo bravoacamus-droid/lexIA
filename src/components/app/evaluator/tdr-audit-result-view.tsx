@@ -19,9 +19,10 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { RelativeTime } from '@/components/ui/relative-time';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { cn, formatRelative } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 type Severity = 'critico' | 'alto' | 'medio' | 'bajo';
 
@@ -152,7 +153,7 @@ export function TdrAuditResultView({ id: _id, title, result, completedAt }: Prop
           <p className="mt-2 text-sm text-muted-foreground">
             <span className="font-semibold text-foreground">{result.tipo_documento}</span> ·{' '}
             {result.objeto_inferido}
-            {completedAt && <> · Completada {formatRelative(completedAt)}</>}
+            {completedAt && <> · Completada <RelativeTime date={completedAt} /></>}
           </p>
         </motion.header>
 

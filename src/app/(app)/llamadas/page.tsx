@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
+import { RelativeTime } from '@/components/ui/relative-time';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Phone, Mic, Star, Clock, BookOpen, Crown, ShieldCheck } from 'lucide-react';
-import { formatRelative } from '@/lib/utils';
 import { checkFeatureGate } from '@/lib/billing/feature-gate';
 import { getCurrentUserWithRole } from '@/lib/auth/session';
 import { getTier } from '@/lib/billing/tiers';
@@ -213,7 +213,7 @@ function CallCard({
               </span>
             )}
             <span className="text-xs text-muted-foreground">
-              {formatRelative(call.started_at)}
+              <RelativeTime date={call.started_at} />
             </span>
             {call.rag_queries_count > 0 && (
               <span className="text-[10px] text-muted-foreground">

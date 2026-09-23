@@ -1,9 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
+import { RelativeTime } from '@/components/ui/relative-time';
 import { Badge } from '@/components/ui/badge';
 import { RoleGateBlocked } from '@/components/app/role-gate';
 import { Lock, AlertCircle } from 'lucide-react';
-import { formatRelative } from '@/lib/utils';
 import { AdminScrapingPanel } from '@/components/app/admin/admin-scraping-panel';
 
 export const dynamic = 'force-dynamic';
@@ -127,7 +127,7 @@ export default async function AdminScrapingPage() {
                       {source?.label || r.source_id}
                     </p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {formatRelative(r.started_at)} · {r.links_found ?? 0} links · {r.docs_new ?? 0} nuevos · {r.chunks_inserted ?? 0} chunks
+                      <RelativeTime date={r.started_at} /> · {r.links_found ?? 0} links · {r.docs_new ?? 0} nuevos · {r.chunks_inserted ?? 0} chunks
                     </p>
                   </div>
                   <Badge

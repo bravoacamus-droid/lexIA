@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
+import { RelativeTime } from '@/components/ui/relative-time';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,7 +29,6 @@ import {
   RocketIllustration,
 } from '@/components/app/cuenta/illustrations';
 import { UsageRing } from '@/components/app/cuenta/usage-ring';
-import { formatRelative } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Tu plan y consumo' };
@@ -610,7 +610,7 @@ export default async function SubscriptionPage() {
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-medium truncate">{a.title}</p>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {formatRelative(a.ts)}
+                        <RelativeTime date={a.ts} />
                       </p>
                     </div>
                   </li>
