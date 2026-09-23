@@ -239,6 +239,14 @@ export const MENU_SECTIONS: MenuSection[] = [
             color: 'evaluar',
           },
           {
+            label: 'Consultas y observaciones',
+            href: '/evaluar/consultas',
+            icon: MessagesSquare,
+            description:
+              'Formula consultas y observaciones a las bases, o absuélvelas como comité, con la estructura del formato oficial.',
+            color: 'evaluar',
+          },
+          {
             label: 'Revisión de mi oferta',
             href: '/revision-oferta',
             icon: ShieldCheck,

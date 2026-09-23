@@ -15,7 +15,8 @@ import type { LucideIcon } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import type { ProfileRole } from '@/lib/auth/session';
 import { Companero } from '@/components/marca/companero';
-import { cn, formatRelative } from '@/lib/utils';
+import { RelativeTime } from '@/components/ui/relative-time';
+import { cn } from '@/lib/utils';
 import {
   Pagina,
   MigaDePan,
@@ -48,6 +49,8 @@ interface Paso {
   /** Roles que lo ven; vacío = todos. */
   roles?: ProfileRole[];
   nota?: string;
+  /** Cuando la nota lleva a algo que sí existe. */
+  notaHref?: string;
 }
 
 const PASOS: Paso[] = [
@@ -67,9 +70,13 @@ const PASOS: Paso[] = [
     descripcion:
       'Analiza las bases administrativas o integradas e identifica inconsistencias y aspectos que requieren atención.',
     icono: FileText,
+    // La revisión automática de las bases no está construida; lo que sí,
+    // y es a donde lleva la nota, es formular las consultas y
+    // observaciones que salen de esa revisión.
     href: null,
     llamada: 'Evaluar bases',
     nota: 'Formulación de consultas y observaciones',
+    notaHref: '/evaluar/consultas',
   },
   {
     numero: '03',
@@ -87,7 +94,7 @@ const PASOS: Paso[] = [
     descripcion:
       'Analiza y absuelve las consultas y observaciones formuladas por los participantes, con sustento normativo.',
     icono: MessagesSquare,
-    href: null,
+    href: '/evaluar/consultas',
     llamada: 'Evaluar y absolver',
   },
 ];
@@ -179,7 +186,7 @@ export default async function EvaluarPage() {
                       {e.title || 'Evaluación sin título'}
                     </span>
                     <span className="shrink-0 text-[11.5px] text-muted-foreground">
-                      {formatRelative(e.created_at as string)}
+                      <RelativeTime date={e.created_at as string} />
                     </span>
                   </Link>
                 </li>
@@ -243,11 +250,20 @@ function TarjetaDePaso({ paso, ultimo }: { paso: Paso; ultimo: boolean }) {
       <h3 className="mt-4 text-pretty text-[17px] font-bold leading-snug tracking-tight">
         {paso.titulo}
       </h3>
-      {paso.nota && (
-        <span className="mt-2 inline-flex rounded-lg bg-evaluar-50 px-2.5 py-1.5 text-[11.5px] font-medium text-evaluar-700 dark:bg-evaluar-900/40 dark:text-evaluar-300">
-          {paso.nota}
-        </span>
-      )}
+      {paso.nota &&
+        (paso.notaHref ? (
+          <Link
+            href={paso.notaHref}
+            className="mt-2 inline-flex items-center gap-1 rounded-lg bg-evaluar-50 px-2.5 py-1.5 text-[11.5px] font-medium text-evaluar-700 transition-colors hover:bg-evaluar-100 dark:bg-evaluar-900/40 dark:text-evaluar-300 dark:hover:bg-evaluar-900/60"
+          >
+            {paso.nota}
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+        ) : (
+          <span className="mt-2 inline-flex rounded-lg bg-evaluar-50 px-2.5 py-1.5 text-[11.5px] font-medium text-evaluar-700 dark:bg-evaluar-900/40 dark:text-evaluar-300">
+            {paso.nota}
+          </span>
+        ))}
       <p className="mt-2 flex-1 text-pretty text-[13px] leading-relaxed text-muted-foreground">
         {paso.descripcion}
       </p>
