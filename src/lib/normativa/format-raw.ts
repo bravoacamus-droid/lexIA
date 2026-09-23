@@ -444,6 +444,104 @@ function restoreChunkBoundaries(text: string): string {
   return out;
 }
 
+/**
+ * Parte los párrafos que se han quedado enormes.
+ *
+ * Corta por el fin de oración más cercano al centro que deje dos
+ * mitades legibles. Nunca inventa puntuación: si no hay dónde cortar
+ * —una tabla del PDF sin un solo punto— el párrafo se queda como está.
+ *
+ * Es idempotente: pasarlo dos veces sobre el mismo texto no cambia
+ * nada, y por eso puede correr a mitad del proceso y otra vez al
+ * final, cuando las reglas posteriores ya han recompuesto párrafos.
+ */
+function cortarMuros(entrada: string): string {
+  let text = entrada;
+  const MAX_PARA_CHARS = 1200;
+  for (let pass = 0; pass < 8; pass++) {
+    const paragraphs = text.split(/\n\n+/);
+    let changed = false;
+    for (let i = 0; i < paragraphs.length; i++) {
+      const p = paragraphs[i];
+      if (p.length <= MAX_PARA_CHARS) continue;
+      // Si el párrafo EMPIEZA con marcador (heading, bullet, sub-numeral
+      // en negrita), la primera línea es el header y el resto es el
+      // cuerpo. Solo trabajamos sobre el cuerpo, dejando el header
+      // intacto. Si el cuerpo también supera MAX_PARA_CHARS, se corta.
+      let bodyStart = 0;
+      if (/^(#|>|\||\*\*|-\s|[0-9]+\.)/.test(p)) {
+        const nl = p.indexOf('\n');
+        if (nl !== -1) {
+          bodyStart = nl + 1;
+        } else {
+          // Sin salto dentro, el encabezado es el marcador y el cuerpo
+          // es el resto de la misma línea. Antes aquí se hacía
+          // `continue` y el párrafo se quedaba entero: de 469 muros que
+          // empiezan en negrita, 344 no llevan ningún salto, y el mayor
+          // medía casi 16 000 caracteres.
+          //
+          // Un encabezado, una cita o una fila de tabla sí se dejan
+          // enteros: partirlos rompería lo que son.
+          if (/^(#|>|\|)/.test(p)) continue;
+          const marcador = p.match(/^(?:\*\*[^*]{1,24}\*\*|-|[0-9]+\.)\s*/);
+          bodyStart = marcador ? marcador[0].length : 0;
+        }
+        if (p.length - bodyStart <= MAX_PARA_CHARS) continue;
+      }
+      // Trabajamos sobre `body` pero preservamos el header al reconstruir.
+      const header = p.slice(0, bodyStart);
+      const body = p.slice(bodyStart);
+      // Buscar todos los "fin de oración" con prioridad:
+      //   1. `. ` + Mayúscula (más seguro — inicio real de nueva oración)
+      //   2. `; ` (fin de cláusula)
+      //   3. `. ` sin Mayúscula (dentro de citas continuadas)
+      // Tomamos los del primer nivel que exista.
+      const findEnds = (rx: RegExp): number[] => {
+        const out: number[] = [];
+        let m: RegExpExecArray | null;
+        rx.lastIndex = 0;
+        while ((m = rx.exec(body)) !== null) out.push(m.index + m[0].length);
+        return out;
+      };
+      // Se prueba nivel por nivel y se baja al siguiente si ninguno de
+      // los candidatos sirve. Antes se elegía el primer nivel que
+      // devolviera *algo*: un párrafo de 7 400 caracteres con un solo
+      // «. Mayúscula» pegado a un extremo se quedaba entero, teniendo
+      // veintidós «. » repartidos por el medio.
+      const center = body.length / 2;
+      const mejorCorte = (candidatos: number[]): number => {
+        let corte = -1;
+        let dist = Infinity;
+        for (const end of candidatos) {
+          if (end < 200 || body.length - end < 200) continue;
+          const d = Math.abs(end - center);
+          if (d < dist) {
+            dist = d;
+            corte = end;
+          }
+        }
+        return corte;
+      };
+      let bestCut = -1;
+      for (const rx of [/\.\s+(?=[A-ZÁÉÍÓÚ])/g, /;\s+/g, /\.\s+/g]) {
+        bestCut = mejorCorte(findEnds(rx));
+        if (bestCut >= 0) break;
+      }
+      if (bestCut < 0) continue;
+      // Cortar y meter salto doble, preservando el header original
+      paragraphs[i] =
+        header +
+        body.slice(0, bestCut).trimEnd() +
+        '\n\n' +
+        body.slice(bestCut).trimStart();
+      changed = true;
+    }
+    if (!changed) break;
+    text = paragraphs.join('\n\n');
+  }
+  return text;
+}
+
 export function formatNormativaText(
   raw: string | null | undefined,
   opts: FormatOptions = {},
@@ -928,68 +1026,7 @@ export function formatNormativaText(
   //               Aplicado hasta 3 pasadas hasta que ningún párrafo
   //               supere el umbral. Se preserva SIEMPRE el ". " (no se
   //               inventa puntuación).
-  const MAX_PARA_CHARS = 1200;
-  for (let pass = 0; pass < 8; pass++) {
-    const paragraphs = text.split(/\n\n+/);
-    let changed = false;
-    for (let i = 0; i < paragraphs.length; i++) {
-      const p = paragraphs[i];
-      if (p.length <= MAX_PARA_CHARS) continue;
-      // Si el párrafo EMPIEZA con marcador (heading, bullet, sub-numeral
-      // en negrita), la primera línea es el header y el resto es el
-      // cuerpo. Solo trabajamos sobre el cuerpo, dejando el header
-      // intacto. Si el cuerpo también supera MAX_PARA_CHARS, se corta.
-      let bodyStart = 0;
-      if (/^(#|>|\||\*\*|-\s|[0-9]+\.)/.test(p)) {
-        const nl = p.indexOf('\n');
-        if (nl === -1) continue;
-        bodyStart = nl + 1;
-        if (p.length - bodyStart <= MAX_PARA_CHARS) continue;
-      }
-      // Trabajamos sobre `body` pero preservamos el header al reconstruir.
-      const header = p.slice(0, bodyStart);
-      const body = p.slice(bodyStart);
-      // Buscar todos los "fin de oración" con prioridad:
-      //   1. `. ` + Mayúscula (más seguro — inicio real de nueva oración)
-      //   2. `; ` (fin de cláusula)
-      //   3. `. ` sin Mayúscula (dentro de citas continuadas)
-      // Tomamos los del primer nivel que exista.
-      const findEnds = (rx: RegExp): number[] => {
-        const out: number[] = [];
-        let m: RegExpExecArray | null;
-        rx.lastIndex = 0;
-        while ((m = rx.exec(body)) !== null) out.push(m.index + m[0].length);
-        return out;
-      };
-      let sentenceEnds = findEnds(/\.\s+(?=[A-ZÁÉÍÓÚ])/g);
-      if (sentenceEnds.length === 0) sentenceEnds = findEnds(/;\s+/g);
-      if (sentenceEnds.length === 0) sentenceEnds = findEnds(/\.\s+/g);
-      if (sentenceEnds.length === 0) continue;
-      // Encontrar el corte más cercano al centro que deje dos mitades
-      // razonables (> 200 chars cada una).
-      const center = body.length / 2;
-      let bestCut = -1;
-      let bestDist = Infinity;
-      for (const end of sentenceEnds) {
-        if (end < 200 || body.length - end < 200) continue;
-        const d = Math.abs(end - center);
-        if (d < bestDist) {
-          bestDist = d;
-          bestCut = end;
-        }
-      }
-      if (bestCut < 0) continue;
-      // Cortar y meter salto doble, preservando el header original
-      paragraphs[i] =
-        header +
-        body.slice(0, bestCut).trimEnd() +
-        '\n\n' +
-        body.slice(bestCut).trimStart();
-      changed = true;
-    }
-    if (!changed) break;
-    text = paragraphs.join('\n\n');
-  }
+  text = cortarMuros(text);
 
   // 5) Insertar salto ANTES de bullets Unicode inline
   text = text.replace(/([^\n])\s+([●○◦•▪]\s)/g, '$1\n$2');
@@ -1347,9 +1384,20 @@ export function formatNormativaText(
   // Si el documento termina en tabla, cerrar con línea vacía
   if (prevWasTableRow) ensureBlankBefore();
 
-  return joined
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .replace(/[ \t]{2,}/g, ' ')
-    .trim();
+  // Encabezados que se quedaron sin texto. Ocurre cuando una regla
+  // marca como sección algo que el filtro de ruido del PDF borra
+  // después: queda la línea «##» suelta, que se ve como un hueco en el
+  // documento y como una entrada vacía en el índice lateral.
+  const sinVacios = joined.filter((l) => !/^#{1,6}\s*$/.test(l.trim()));
+
+  // Última pasada del cortador: el paso anterior recompone párrafos
+  // juntando líneas, y de ahí salen muros que la pasada de en medio
+  // ya no llegó a ver.
+  return cortarMuros(
+    sinVacios
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/[ \t]{2,}/g, ' ')
+      .trim(),
+  );
 }
