@@ -76,7 +76,11 @@ const requestSchema = z.object({
    * ambas leyes en una misma búsqueda.
    */
   law: z.enum(['ley_32069', 'ley_30225']).nullable().optional(),
-  limit: z.number().int().min(1).max(50).optional(),
+  // Hasta 300 solo para listar sin consulta: las directivas y los
+  // lineamientos se agrupan en actos del lado del cliente, y un acto
+  // partido entre dos páginas se ve como dos actos distintos. La
+  // búsqueda sigue topada en 50 —ahí cada resultado cuesta.
+  limit: z.number().int().min(1).max(300).optional(),
   offset: z.number().int().min(0).optional(),
 });
 
@@ -335,7 +339,7 @@ export async function POST(req: Request) {
       if (b.matchedCount !== a.matchedCount) return b.matchedCount - a.matchedCount;
       return b.finalScore - a.finalScore;
     })
-    .slice(0, limit)
+    .slice(0, Math.min(limit, 50))
     .map((r) => ({
       document_id: r.document_id,
       doc_type: r.doc_type,

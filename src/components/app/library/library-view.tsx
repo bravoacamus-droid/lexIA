@@ -8,6 +8,8 @@ import { TagSearchInput } from '@/components/app/library/tag-search-input';
 import { LawSelectorCard, type LawFilter } from '@/components/app/law-selector';
 import { FoldersPanel } from '@/components/app/library/folders-panel';
 import { MigaDePan } from '@/components/app/seccion/piezas';
+import { agruparEnActos, TIPOS_CON_PARTES } from '@/lib/normativa/actos';
+import { TarjetaDeActo } from '@/components/app/library/tarjeta-de-acto';
 import { DocumentCard } from '@/components/app/library/document-card';
 import { SaveToFolderDialog } from '@/components/app/library/save-to-folder';
 import type { NormativeDocType } from '@/lib/supabase/types';
@@ -215,7 +217,14 @@ interface BrowseDoc {
   /** metadata.entidad — OECE / Perú Compras / DGA / SUNARP.
    *  metadata.anio — año del documento según su numeración; es el que
    *  manda para ordenar y agrupar. */
-  metadata?: { entidad?: string | null; anio?: string | null } | null;
+  /** `package_folder` es la carpeta del acto: la clave con la que se
+   *  juntan la directiva, su resolución aprobatoria, sus
+   *  modificatorias y sus anexos en una sola tarjeta. */
+  metadata?: {
+    entidad?: string | null;
+    anio?: string | null;
+    package_folder?: string | null;
+  } | null;
 }
 
 interface SearchResult {
@@ -412,7 +421,13 @@ export function LibraryView({
 
         // En modo browse sin query: usar limit más alto para tener pesado inicial
         const hasSearchInput = debounced.length > 0 || tags.length > 0;
-        const initialLimit = hasSearchInput ? 12 : pageSize;
+        // Los tipos que se muestran agrupados —directivas,
+        // lineamientos, código de ética, bases estándar— se juntan en
+        // el cliente, así que un acto partido entre dos páginas se
+        // vería como dos actos distintos. Son menos de cien
+        // documentos en total: caben en una página.
+        const porActos = type != null && TIPOS_CON_PARTES.has(type);
+        const initialLimit = hasSearchInput ? 12 : porActos ? 300 : pageSize;
         const law = lawFilter && lawFilter.length === 1 ? lawFilter[0] : null;
         const res = await fetch('/api/search', {
           method: 'POST',
@@ -428,7 +443,7 @@ export function LibraryView({
             dateFrom: quickFilter === 'recent' ? fechaCorteRecientes() : null,
             limit: initialLimit,
             // Paginado: cada página REEMPLAZA la lista, no se acumula.
-            offset: hasSearchInput ? 0 : pagina * pageSize,
+            offset: hasSearchInput || porActos ? 0 : pagina * pageSize,
           }),
         });
         const json = await res.json();
@@ -1002,13 +1017,26 @@ function BrowseList({
   }
   return (
     <div>
-      <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-3">
-        {folderName
-          ? `${folderName} · ${docs.length} documento${docs.length === 1 ? '' : 's'}`
-          : total != null
-            ? `Recientes · ${docs.length} de ${total}`
-            : `Recientes · ${docs.length}`}
-      </p>
+      {/* El recuento cuenta lo que se ve. Con las directivas agrupadas,
+          decir «62 de 62» y pintar 34 tarjetas es una contradicción a la
+          vista; se dice cuántos actos son y de cuántas piezas salen. */}
+      {(() => {
+        const actos = agruparEnActos(docs).length;
+        const piezas = docs.length;
+        const cuenta =
+          actos === piezas
+            ? `${piezas} documento${piezas === 1 ? '' : 's'}`
+            : `${actos} norma${actos === 1 ? '' : 's'} · ${piezas} documento${piezas === 1 ? '' : 's'}`;
+        return (
+          <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-3">
+            {folderName
+              ? `${folderName} · ${cuenta}`
+              : total != null && total !== piezas
+                ? `Recientes · ${cuenta} de ${total}`
+                : `Recientes · ${cuenta}`}
+          </p>
+        );
+      })()}
       {/* Agrupación por AÑO (pedido de César 01/08/2026: "ordenar por
           tipo de documento y año para que se vea más ordenado"). El
           endpoint ya entrega ordenado por fecha descendente, así que
@@ -1019,20 +1047,35 @@ function BrowseList({
             <div className="flex items-center gap-2 pt-2">
               <h3 className="text-sm font-bold tracking-tight">{anio}</h3>
               <span className="text-[11px] text-muted-foreground">
-                {documentos.length} documento{documentos.length === 1 ? '' : 's'}
+                {agruparEnActos(documentos).length}{' '}
+                {agruparEnActos(documentos).length === 1 ? 'documento' : 'documentos'}
               </span>
               <div className="flex-1 h-px bg-border" />
             </div>
-            {documentos.map((d) => (
-              <DocumentCard
-                key={d.id}
-                document={d}
-                volverHref={volverHref}
-                isSaved={savedIds.has(d.id)}
-                onSave={() => onSave(d.id)}
-                onUnsave={() => onUnsave(d.id)}
-              />
-            ))}
+            {/* Un acto con varias piezas se pinta una sola vez; uno
+                con una sola pieza, como la tarjeta de siempre. Así la
+                lista no tiene dos aspectos distintos sin motivo. */}
+            {agruparEnActos(documentos).map((acto) =>
+              acto.partes.length > 1 ? (
+                <TarjetaDeActo
+                  key={acto.clave}
+                  acto={acto}
+                  volverHref={volverHref}
+                  savedIds={savedIds}
+                  onSave={onSave}
+                  onUnsave={onUnsave}
+                />
+              ) : (
+                <DocumentCard
+                  key={acto.clave}
+                  document={acto.principal}
+                  volverHref={volverHref}
+                  isSaved={savedIds.has(acto.principal.id)}
+                  onSave={() => onSave(acto.principal.id)}
+                  onUnsave={() => onUnsave(acto.principal.id)}
+                />
+              ),
+            )}
           </section>
         ))}
       </div>

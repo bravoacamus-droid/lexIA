@@ -255,6 +255,24 @@ export function DocumentViewer({
   // secciones detectadas por la TOC (útil para pronunciamientos y
   // opiniones cuyos "CUESTIONAMIENTO N° 1" son texto plano, no headings
   // markdown).
+  /**
+   * En qué documentos se muestra el panel de resumen de la derecha.
+   *
+   * César lo pidió fuera de las opiniones, los pronunciamientos y las
+   * resoluciones del Tribunal (23/09/2026): «considero que el resumen
+   * que está a la derecha debe ser eliminado y dejar más limpio la
+   * página». Son justo los tres tipos donde el documento ya viene
+   * estructurado por secciones y el resumen compite con el texto. En
+   * una directiva o una ley, donde no hay esa estructura, sigue
+   * ayudando, así que ahí se queda.
+   *
+   * El resumen no se borra: sigue alimentando la ficha de la biblioteca
+   * y las respuestas del chat. Lo que se quita es el panel.
+   */
+  const conPanelDeResumen = !['opinion', 'pronunciamiento', 'resolucion_tce'].includes(
+    doc.type as string,
+  );
+
   const renderedContent = useMemo(
     () => renderWithHighlights(injectSectionAnchors(text, toc), annotations),
     [text, toc, annotations],
@@ -441,7 +459,21 @@ export function DocumentViewer({
         )}
 
         {/* Main content — expande cuando no hay TOC */}
-        <main className={cn('col-span-12 min-w-0', toc.length > 0 ? 'lg:col-span-7' : 'lg:col-span-9')}>
+        {/* El ancho del texto depende de cuántas columnas laterales
+            quedan: sin el panel de resumen, el documento se queda con
+            lo que sobra en vez de dejar un hueco. */}
+        <main
+          className={cn(
+            'col-span-12 min-w-0',
+            toc.length > 0
+              ? conPanelDeResumen
+                ? 'lg:col-span-7'
+                : 'lg:col-span-10'
+              : conPanelDeResumen
+                ? 'lg:col-span-9'
+                : 'lg:col-span-12',
+          )}
+        >
           <motion.header
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
@@ -546,8 +578,14 @@ export function DocumentViewer({
           </article>
         </main>
 
-        {/* Sidebar derecho: Resumen IA + Relacionados + Mis resaltados */}
-        <aside className="hidden lg:block col-span-3 space-y-5">
+        {/* Columna derecha: resumen (cuando toca) y los resaltados del
+            usuario. Si no hay ni lo uno ni lo otro, no se pinta. */}
+        <aside
+          className={cn(
+            'hidden space-y-5 lg:block',
+            conPanelDeResumen ? 'col-span-3' : 'col-span-2',
+          )}
+        >
           {/* Resumen IA generado + Documentos relacionados.
               Bug reportado César 08/07/2026: cuando el panel derecho es
               más alto que el viewport visible, la parte inferior queda
@@ -557,16 +595,18 @@ export function DocumentViewer({
               preguntas + relacionados + mis resaltados sin perder la
               vista fija al hacer scroll del documento principal. */}
           <div className="sticky top-32 space-y-5 max-h-[calc(100vh-8rem)] overflow-y-auto scrollbar-thin pr-1">
-            <SummaryPanel
-              documentId={doc.id}
-              docType={doc.type}
-              initialSummary={initialSummary}
-              initialGeneratedAt={initialSummaryGeneratedAt}
-              initialModel={initialSummaryModel}
-              rawText={doc.raw_text || undefined}
-              savedAt={saved ? new Date().toISOString() : null}
-              sectionAnchors={sectionAnchors}
-            />
+            {conPanelDeResumen && (
+              <SummaryPanel
+                documentId={doc.id}
+                docType={doc.type}
+                initialSummary={initialSummary}
+                initialGeneratedAt={initialSummaryGeneratedAt}
+                initialModel={initialSummaryModel}
+                rawText={doc.raw_text || undefined}
+                savedAt={saved ? new Date().toISOString() : null}
+                sectionAnchors={sectionAnchors}
+              />
+            )}
             {/* Mis resaltados */}
           <Card className="p-4">
             <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">

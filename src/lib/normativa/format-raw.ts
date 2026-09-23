@@ -36,7 +36,7 @@ const TITULO_RX = /^(T[ÍI]TULO\s+[IVXLCDM]+|CAP[ÍI]TULO\s+[IVXLCDM]+|SECCI[ÓO
 // Nombres de secciones frecuentes en pronunciamientos/opiniones que
 // deberían actuar como headings (H2) para dar estructura.
 // Fix 08/07/2026: CUESTIONAMIENTO → CUESTIONAMIENTOS? (plural).
-const SECCION_MAYUSCULA_RX = /^(ANTECEDENTES|CUESTIONAMIENTOS?|AN[ÁA]LISIS|CONCLUSI[ÓO]N|VISTO|RESULTA|CONSIDERANDO|SE\s+RESUELVE|POR\s+TANTO|EL\s+TRIBUNAL|MOTIVO\s+DE\s+LA\s+ELEVACI[ÓO]N|MATERIA|POSICI[ÓO]N|OPINI[ÓO]N|BASE\s+LEGAL|CONCLUSIONES|RECOMENDACIONES|MARCO\s+NORMATIVO)(\s|:|$)/i;
+const SECCION_MAYUSCULA_RX = /^(ANTECEDENTES|PROCEDENCIA\s+DEL\s+RECURSO|PRETENSIONES|FIJACI[ÓO]N\s+DE\s+PUNTOS\s+CONTROVERTIDOS|AN[ÁA]LISIS\s+DE\s+LOS\s+PUNTOS\s+CONTROVERTIDOS|PUNTOS\s+CONTROVERTIDOS|LA\s+SALA\s+RESUELVE|FUNDAMENTACI[ÓO]N|HECHOS|PETITORIO|CUESTIONAMIENTOS?|CONSULTAS?[0-9]?|AN[ÁA]LISIS|CONCLUSI[ÓO]N|VISTO|RESULTA|CONSIDERANDO|SE\s+RESUELVE|POR\s+TANTO|EL\s+TRIBUNAL|MOTIVO\s+DE\s+LA\s+ELEVACI[ÓO]N|MATERIA|POSICI[ÓO]N|OPINI[ÓO]N|BASE\s+LEGAL|CONCLUSIONES|RECOMENDACIONES|MARCO\s+NORMATIVO)(\s|:|$)/i;
 
 // Marcadores de callout — inicio de párrafo con palabra en mayúscula
 // que debe resaltarse con caja destacada (feedback César 30/06/2026).
@@ -495,7 +495,7 @@ export function formatNormativaText(
   // de sección, la sección "2. CUESTIONAMIENTOS" quedaba inline sin
   // convertirse en heading.
   const SECCION_NAMES =
-    'ANTECEDENTES|CUESTIONAMIENTOS?|CUESTIONAMIENTOS?\\s+[ÚU]NICO|AN[ÁA]LISIS|POSICI[ÓO]N|OPINI[ÓO]N|CONCLUSI[ÓO]N|CONCLUSIONES|RECOMENDACIONES|BASE\\s+LEGAL|MARCO\\s+NORMATIVO|MATERIA|PRONUNCIAMIENTO';
+    'ANTECEDENTES|PROCEDENCIA\\s+DEL\\s+RECURSO|PRETENSIONES|FIJACI[ÓO]N\\s+DE\\s+PUNTOS\\s+CONTROVERTIDOS|AN[ÁA]LISIS\\s+DE\\s+LOS\\s+PUNTOS\\s+CONTROVERTIDOS|PUNTOS\\s+CONTROVERTIDOS|LA\\s+SALA\\s+RESUELVE|FUNDAMENTACI[ÓO]N|HECHOS|PETITORIO|CUESTIONAMIENTOS?|CONSULTAS?[0-9]?(?:\\s+Y\\s+AN[ÁA]LISIS)?|CUESTIONAMIENTOS?\\s+[ÚU]NICO|AN[ÁA]LISIS|POSICI[ÓO]N|OPINI[ÓO]N|CONCLUSI[ÓO]N|CONCLUSIONES|RECOMENDACIONES|BASE\\s+LEGAL|MARCO\\s+NORMATIVO|MATERIA|PRONUNCIAMIENTO';
 
   // Nombres típicos de secciones de DIRECTIVAS (con romano)
   const DIRECTIVA_SECCIONES =
@@ -503,12 +503,31 @@ export function formatNormativaText(
 
   // Nombres de secciones de RESOLUCIONES/ACTOS ADMINISTRATIVOS (sin numeral)
   const RES_SECCIONES =
-    'VISTOS?|CONSIDERANDO|RESULTA|SE\\s+RESUELVE|POR\\s+TANTO|EL\\s+TRIBUNAL';
+    'VISTOS?|CONSIDERANDO|RESULTA|SE\\s+RESUELVE|LA\\s+SALA\\s+RESUELVE|PROCEDENCIA\\s+DEL\\s+RECURSO|PRETENSIONES|POR\\s+TANTO|EL\\s+TRIBUNAL';
+
+  // 0-bis) La llamada a pie de página que el PDF pega al rótulo de la
+  // sección: «2. CONSULTAS1 Y ANÁLISIS». El dígito no es parte del
+  // nombre y afea el índice.
+  text = text.replace(/([A-ZÁÉÍÓÚÑ]{5,})[0-9](?=\s|$)/g, '$1');
 
   // 1) Insertar salto ANTES de "N. SECCION" (numeral árabe + palabra)
   text = text.replace(
     new RegExp(`([^\\n])\\s+(\\d{1,2}[.)]?\\s+(?:${SECCION_NAMES}|${DIRECTIVA_SECCIONES}))\\b`, 'g'),
     '$1\n\n$2\n',
+  );
+
+  // 1-bis) Insertar salto ANTES de "LETRA. SECCION" — las
+  // resoluciones del Tribunal rotulan así sus apartados:
+  // «A. PROCEDENCIA DEL RECURSO», «B. PRETENSIONES», «C. FIJACIÓN
+  // DE PUNTOS CONTROVERTIDOS». Sin esto se quedaban embebidos en el
+  // párrafo anterior y no salían en el índice, que es justo lo que
+  // pidió César el 23/09/2026: «CADA RESOLUCIÓN debe identificarse».
+  text = text.replace(
+    new RegExp(
+      `([^\\n])\\s+([A-Z]\\.[  ]*(?:${SECCION_NAMES}))\\b`,
+      'g',
+    ),
+    '$1\n\n## $2\n',
   );
 
   // 2) Insertar salto ANTES de "ROMANO. SECCION" (I. FINALIDAD, IV. BASE LEGAL, etc.)
@@ -528,6 +547,33 @@ export function formatNormativaText(
 
   // 4) "Que," al inicio de considerandos → salto (típico en resoluciones)
   text = text.replace(/([.;])\s+(Que,\s+)/g, '$1\n\n$2');
+
+  // 4-bis) Sub-numerales inline: "2.1.", "2.1.1.".
+  //
+  // En una opinión del DTN la estructura real son los numerales: «2.1.»
+  // es cada consulta formulada y «2.1.1.» su desarrollo. El PDF llega en
+  // una sola línea, así que esos numerales quedaban enterrados a mitad
+  // de párrafo y era imposible ver dónde empieza cada pregunta —la
+  // observación de César del 23/09/2026: «NO se puede diferenciar en qué
+  // parte se encuentran las preguntas realizadas».
+  //
+  // Se exige el punto final del numeral y que lo siguiente empiece por
+  // mayúscula, comilla o signo de interrogación. Sin esas dos guardas se
+  // partirían cosas como «el numeral 11.3 del artículo» o «S/ 1.5
+  // millones», que llevan el mismo dibujo pero no son estructura.
+  text = text.replace(
+    /([^\n])[  ]+(\d{1,2}\.\d{1,2}(?:\.\d{1,2})?\.)[  ]+(?=[“"«¿A-ZÁÉÍÓÚÑ])/g,
+    '$1\n\n$2 ',
+  );
+
+  // 4-ter) La consulta propiamente dicha —el numeral seguido de una
+  // comilla o de «¿»— pasa a encabezado, para que salga en el índice
+  // lateral y se pueda saltar de pregunta en pregunta. Es toda la
+  // línea: la pregunta es el encabezado, no un rótulo aparte.
+  text = text.replace(
+    /^(\d{1,2}\.\d{1,2}\.)[  ]+([“"«¿].*)$/gm,
+    '### $1 $2',
+  );
 
   // 4a) Insertar salto ANTES de "Artículo N.- ..." (con o sin guión) que
   //     aparece INLINE en un blob. Común en Códigos (Ética), Directivas,
@@ -741,7 +787,21 @@ export function formatNormativaText(
     const NORM_INSTRUMENTS =
       /\b(Directiva\s+N[°º.]?\s*\d{3,4}-\d{4}-EF\/\d+(?:\.\d+)?|Resoluci[óo]n\s+Directoral\s+N[°º.]?\s*\d{3,4}-\d{4}-EF\/\d+(?:\.\d+)?|Ley\s+N[°º.]?\s*\d{4,5}|Decreto\s+Supremo\s+N[°º.]?\s*\d{3}-\d{4}-EF)/gi;
     const instrumentHits = (text.match(NORM_INSTRUMENTS) || []).length;
-    if (instrumentHits >= 4) {
+    // Esta regla se pensó para el Tablero Normativo del OECE, que es
+    // literalmente una lista de instrumentos pegados uno detrás de
+    // otro. Con el umbral en «4 o más menciones» se disparaba también
+    // en cualquier opinión o resolución —que citan normas todo el
+    // rato— y partía la prosa en viñetas absurdas: «Ley N° 27269, Ley
+    // de Firmas y Certificados Digitales…» en mitad de una frase.
+    // César lo marcó en amarillo el 23/09/2026.
+    //
+    // Lo que distingue una lista de un texto que cita normas no es
+    // cuántas menciones hay, sino cuán juntas están: en el tablero van
+    // una tras otra; en una opinión están repartidas en párrafos
+    // largos. Se pide densidad, no cantidad.
+    const caracteresPorMencion =
+      instrumentHits > 0 ? text.length / instrumentHits : Infinity;
+    if (instrumentHits >= 8 && caracteresPorMencion < 400) {
       text = text.replace(NORM_INSTRUMENTS, (m) => `\n- **${m}**`);
     }
 
