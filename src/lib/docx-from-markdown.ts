@@ -32,7 +32,7 @@ export async function markdownToDocxBuffer(
       alignment: AlignmentType.RIGHT,
       children: [
         new TextRun({
-          text: 'Generado con LexIA · ' + new Date().toLocaleString('es-PE'),
+          text: 'Generado con A-LexIA · ' + new Date().toLocaleString('es-PE'),
           italics: true,
           color: '94A3B8',
           size: 16,
@@ -214,9 +214,9 @@ export async function markdownToDocxBuffer(
   }
 
   const doc = new Document({
-    creator: 'LexIA',
+    creator: 'A-LexIA',
     title: meta.title,
-    description: meta.subtitle || 'Documento generado por LexIA Contrataciones',
+    description: meta.subtitle || 'Documento generado por A-LexIA Contrataciones',
     numbering: {
       config: [
         {
@@ -245,7 +245,7 @@ export async function markdownToDocxBuffer(
      * todo el documento, cuerpo a 10 puntos y secundarios a 9.
      *
      * Estaba en Georgia 11. Un requerimiento no es un documento de
-     * LexIA: lo firma el área usuaria y va al expediente, donde tiene
+     * A-LexIA: lo firma el área usuaria y va al expediente, donde tiene
      * que parecerse a los demás.
      */
     styles: {

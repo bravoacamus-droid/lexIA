@@ -26,14 +26,14 @@ export class PdfHasNoTextError extends Error {
 
 /** Mensaje en español listo para mostrar al usuario final. */
 export const PDF_OCR_INSTRUCTIONS =
-  'Este PDF está escaneado (sin texto seleccionable) y LexIA no puede leer ' +
+  'Este PDF está escaneado (sin texto seleccionable) y A-LexIA no puede leer ' +
   'imágenes todavía. Para resolverlo:\n\n' +
   '1. Adobe Acrobat: Herramientas → Reconocer texto → En este archivo, y ' +
   'guarda el PDF.\n' +
   '2. Online gratis: ilovepdf.com/es/ocr-pdf o smallpdf.com/es/ocr-pdf.\n' +
   '3. Word: abre el PDF directamente en Word — convierte el OCR automático ' +
   'y luego exporta como PDF.\n\n' +
-  'Una vez convertido, vuelve a subirlo. Próximamente LexIA incluirá OCR ' +
+  'Una vez convertido, vuelve a subirlo. Próximamente A-LexIA incluirá OCR ' +
   'automático integrado.';
 
 interface ExtractOptions {

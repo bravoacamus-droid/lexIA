@@ -27,7 +27,7 @@ interface Props {
 /**
  * Input de búsqueda que acepta múltiples términos como chips
  * concatenables. Inspirado en el feature de LEX Contrataciones pero
- * con identidad visual LexIA (azul brand, fondo claro).
+ * con identidad visual A-LexIA (azul brand, fondo claro).
  *
  * Interacción:
  *   - Enter (o coma) → convierte el input actual en chip

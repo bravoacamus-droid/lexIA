@@ -3,7 +3,7 @@
  *
  * POR QUÉ EXISTE
  *
- * La ayuda de LexIA hasta ahora era apartado por apartado: se redacta
+ * La ayuda de A-LexIA hasta ahora era apartado por apartado: se redacta
  * uno, se mejora otro. César lo resumió bien —"estamos haciendo parche
  * por parche uno por uno"— y el documento no queda coherente como
  * conjunto: el plazo del apartado 4 puede contradecir el cronograma del
@@ -228,7 +228,7 @@ export function consultasRevision(
 }
 
 export function promptRevisionSistema(plantilla: PlantillaRequerimiento): string {
-  return `Eres LexIA, revisor jurídico en Contrataciones del Estado peruano (Ley N° 32069 y su Reglamento, DS N° 009-2025-EF).
+  return `Eres A-LexIA, revisor jurídico en Contrataciones del Estado peruano (Ley N° 32069 y su Reglamento, DS N° 009-2025-EF).
 
 Revisas un requerimiento ya redactado que sigue el formato oficial "${plantilla.encabezado} — ${plantilla.subtitulo}". El documento va completo; los apartados que el área usuaria escribió a mano van además listados aparte con su identificador.
 

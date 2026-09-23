@@ -23,7 +23,7 @@ export default async function AjustesPage() {
       <header>
         <h1 className="font-semibold text-3xl tracking-tight">Ajustes</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Personaliza tu perfil y preferencias de LexIA.
+          Personaliza tu perfil y preferencias de A-LexIA.
         </p>
       </header>
 

@@ -27,7 +27,7 @@ const COMMON_RULES = `REGLAS COMUNES OBLIGATORIAS:
 // ════════════════════════════════════════════════════════
 // 1. CONSULTAS Y OBSERVACIONES (proveedor)
 // ════════════════════════════════════════════════════════
-export const CONSULTAS_OBSERVACIONES_SYSTEM = `Eres LexIA. Estás asistiendo a un PROVEEDOR del Estado peruano a redactar el escrito de "OBSERVACIONES Y/O CONSULTAS" durante la etapa correspondiente del procedimiento de selección, bajo la Ley N° 32069 y su Reglamento (DS N° 009-2025-EF).
+export const CONSULTAS_OBSERVACIONES_SYSTEM = `Eres A-LexIA. Estás asistiendo a un PROVEEDOR del Estado peruano a redactar el escrito de "OBSERVACIONES Y/O CONSULTAS" durante la etapa correspondiente del procedimiento de selección, bajo la Ley N° 32069 y su Reglamento (DS N° 009-2025-EF).
 
 ═══════════════════════════════════════════════════════════════════
 DIFERENCIA ENTRE CONSULTA Y OBSERVACIÓN
@@ -157,7 +157,7 @@ ${COMMON_RULES}`;
 // ════════════════════════════════════════════════════════
 // 2. PLIEGO DE ABSOLUCIÓN (entidad)
 // ════════════════════════════════════════════════════════
-export const PLIEGO_ABSOLUCION_SYSTEM = `Eres LexIA. Estás asistiendo al COMITÉ DE SELECCIÓN (o al Oficial de Compra, en SIE) de una entidad pública peruana a redactar el "PLIEGO DE ABSOLUCIÓN DE CONSULTAS Y OBSERVACIONES" durante la etapa correspondiente del procedimiento de selección, bajo la Ley N° 32069 y su Reglamento (DS N° 009-2025-EF).
+export const PLIEGO_ABSOLUCION_SYSTEM = `Eres A-LexIA. Estás asistiendo al COMITÉ DE SELECCIÓN (o al Oficial de Compra, en SIE) de una entidad pública peruana a redactar el "PLIEGO DE ABSOLUCIÓN DE CONSULTAS Y OBSERVACIONES" durante la etapa correspondiente del procedimiento de selección, bajo la Ley N° 32069 y su Reglamento (DS N° 009-2025-EF).
 
 ═══════════════════════════════════════════════════════════════════
 OBJETIVO
@@ -300,7 +300,7 @@ ${COMMON_RULES}`;
 // ════════════════════════════════════════════════════════
 // 3. BASES ESTÁNDAR (entidad)
 // ════════════════════════════════════════════════════════
-export const BASES_ESTANDAR_SYSTEM = `Eres LexIA. Estás ayudando a un FUNCIONARIO DE LOGÍSTICA (entidad pública peruana) a llenar las Bases Estándar oficiales de la DIRECCIÓN GENERAL DE ABASTECIMIENTO (DGA) aprobadas por la RM N° 001-2026-EF/54.01 para un procedimiento de selección bajo la Ley N° 32069 y su Reglamento (DS N° 009-2025-EF).
+export const BASES_ESTANDAR_SYSTEM = `Eres A-LexIA. Estás ayudando a un FUNCIONARIO DE LOGÍSTICA (entidad pública peruana) a llenar las Bases Estándar oficiales de la DIRECCIÓN GENERAL DE ABASTECIMIENTO (DGA) aprobadas por la RM N° 001-2026-EF/54.01 para un procedimiento de selección bajo la Ley N° 32069 y su Reglamento (DS N° 009-2025-EF).
 
 ═══════════════════════════════════════════════════════════════════
 SELECCIÓN DE LA PLANTILLA — los 19 tipos oficiales disponibles
@@ -508,7 +508,7 @@ ${COMMON_RULES}`;
 // 5. ARMADO DE OFERTA (proveedor) — genera la oferta completa a
 //    partir de las Bases Integradas y los datos del proveedor.
 // ════════════════════════════════════════════════════════
-export const ARMADO_OFERTA_SYSTEM = `Eres LexIA. Estás asistiendo a un PROVEEDOR del Estado peruano a ARMAR su OFERTA COMPLETA para presentar en un procedimiento de selección, bajo la Ley N° 32069 y su Reglamento (DS N° 009-2025-EF).
+export const ARMADO_OFERTA_SYSTEM = `Eres A-LexIA. Estás asistiendo a un PROVEEDOR del Estado peruano a ARMAR su OFERTA COMPLETA para presentar en un procedimiento de selección, bajo la Ley N° 32069 y su Reglamento (DS N° 009-2025-EF).
 
 ═══════════════════════════════════════════════════════════════════
 OBJETIVO
@@ -737,7 +737,7 @@ ${COMMON_RULES}`;
 // ════════════════════════════════════════════════════════
 // 6. APELACIONES (proveedor)
 // ════════════════════════════════════════════════════════
-export const APELACIONES_SYSTEM = `Eres LexIA. Estás asistiendo a un PROVEEDOR del Estado peruano a redactar un escrito de "Recurso de Apelación" durante un procedimiento de selección, bajo la Ley N° 32069 y su Reglamento (DS N° 009-2025-EF).
+export const APELACIONES_SYSTEM = `Eres A-LexIA. Estás asistiendo a un PROVEEDOR del Estado peruano a redactar un escrito de "Recurso de Apelación" durante un procedimiento de selección, bajo la Ley N° 32069 y su Reglamento (DS N° 009-2025-EF).
 
 ═══════════════════════════════════════════════════════════════════
 COMPETENCIA Y BASE LEGAL — identifica la vía correcta

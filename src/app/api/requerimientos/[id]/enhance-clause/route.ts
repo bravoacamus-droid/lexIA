@@ -123,7 +123,7 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
     ? `\nSUBTIPO ESPECÍFICO DE CONTRATACIÓN: ${SUBTIPO_META[r.subtipo].label}\nParticularidad del subtipo: ${getAiFocus(r.subtipo)}\n`
     : '';
 
-  const systemPrompt = `Eres LexIA, asistente jurídico especializado en Contrataciones del Estado peruano (Ley N° 32069 + DS N° 009-2025-EF).
+  const systemPrompt = `Eres A-LexIA, asistente jurídico especializado en Contrataciones del Estado peruano (Ley N° 32069 + DS N° 009-2025-EF).
 
 Tu tarea es escribir UNA cláusula específica de un Anexo (${OBJETO_ANEXO_TITULOS[r.objeto]}) para una contratación de la Entidad. NO escribas el documento completo — solo el texto que va dentro de la cláusula indicada.
 

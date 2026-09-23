@@ -3,13 +3,19 @@ import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ShieldCheck, Plus, FileCheck2, Clock, AlertCircle } from 'lucide-react';
+import { ShieldCheck, Plus, FileCheck2, Clock, AlertCircle, HelpCircle } from 'lucide-react';
+import {
+  Pagina,
+  MigaDePan,
+  EncabezadoDeSeccion,
+  NotaDelCompanero,
+} from '@/components/app/seccion/piezas';
 import { formatRelative } from '@/lib/utils';
 import { RoleGateBlocked, isRoleAllowed } from '@/components/app/role-gate';
 import type { ProfileRole } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Auto-revisión de oferta' };
+export const metadata = { title: 'Revisión de mi oferta' };
 
 export default async function RevisionOfertaListPage() {
   const supabase = createClient();
@@ -54,23 +60,35 @@ export default async function RevisionOfertaListPage() {
   }>;
 
   return (
-    <div className="container max-w-5xl py-8 space-y-6">
-      <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div>
-          <h1 className="font-semibold text-3xl tracking-tight">Auto-revisión de tu oferta</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Antes de presentar, LexIA audita tu propia propuesta contra las Bases del
-            proceso. Detecta lo que el comité te puede observar y lo que puede sacarte
-            del proceso.
-          </p>
-        </div>
+    <Pagina className="max-w-[1100px]">
+      <MigaDePan
+        trozos={[
+          { label: 'Inicio', href: '/app' },
+          { label: 'Evaluar', href: '/evaluar' },
+          { label: 'Revisión de mi oferta' },
+        ]}
+      />
+
+      <EncabezadoDeSeccion
+        icono={ShieldCheck}
+        familia="evaluar"
+        titulo="Revisión de mi oferta"
+        bajada="Antes de presentarla, A-LexIA contrasta tu propuesta con las bases del proceso y te dice qué te puede observar el comité y qué puede dejarte fuera."
+        aside={
+          <NotaDelCompanero icono={HelpCircle} familia="evaluar" className="max-w-[300px]">
+            Lo mismo que mirará el comité, pero a tiempo para corregirlo.
+          </NotaDelCompanero>
+        }
+      />
+
+      <div className="flex justify-end">
         <Button asChild size="lg" variant="default">
           <Link href="/revision-oferta/nuevo">
             <Plus className="h-4 w-4" />
-            Nueva auto-revisión
+            Nueva revisión
           </Link>
         </Button>
-      </header>
+      </div>
 
       {list.length === 0 ? (
         <Card className="p-12 text-center">
@@ -113,7 +131,7 @@ export default async function RevisionOfertaListPage() {
           ))}
         </div>
       )}
-    </div>
+    </Pagina>
   );
 }
 

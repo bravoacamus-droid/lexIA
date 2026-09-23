@@ -10,7 +10,7 @@ export default function TerminosPage() {
 
       <h2>1. Aceptación</h2>
       <p>
-        Al usar LexIA Contrataciones (en adelante, &quot;la Plataforma&quot;), aceptas estos
+        Al usar A-LexIA Contrataciones (en adelante, &quot;la Plataforma&quot;), aceptas estos
         Términos y Condiciones. Si no estás de acuerdo, por favor no uses la
         Plataforma.
       </p>
@@ -25,7 +25,7 @@ export default function TerminosPage() {
 
       <h2>3. Alcance del soporte normativo</h2>
       <p>
-        Las respuestas y documentos generados por LexIA tienen carácter
+        Las respuestas y documentos generados por A-LexIA tienen carácter
         REFERENCIAL y se basan en la Ley N° 32069, su Reglamento, directivas,
         opiniones y resoluciones disponibles al momento de la consulta. Estas
         salidas no sustituyen la asesoría legal calificada ni la decisión del

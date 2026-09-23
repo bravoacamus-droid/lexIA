@@ -128,7 +128,7 @@ export function OnboardingWizard({ next, defaultFullName }: Props) {
           fieldIssues ? `${errCode} (${fieldIssues})` : errCode,
         );
       }
-      toast.success('¡Listo! Bienvenido a LexIA.');
+      toast.success('¡Listo! Bienvenido a A-LexIA.');
       router.push(next);
       router.refresh();
     } catch (e) {
@@ -359,7 +359,7 @@ export function OnboardingWizard({ next, defaultFullName }: Props) {
                   size="lg"
                   variant="glow"
                 >
-                  Empezar a usar LexIA
+                  Empezar a usar A-LexIA
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>

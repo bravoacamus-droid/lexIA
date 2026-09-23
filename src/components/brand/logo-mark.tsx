@@ -1,34 +1,23 @@
-import Image from 'next/image';
-import { cn } from '@/lib/utils';
+import { LogoAlexia } from '@/components/marca/logo-alexia';
 
+/**
+ * Adaptador de la marca anterior.
+ *
+ * Conserva la API que ya consumen una decena de archivos —login,
+ * cabecera pública, pie, avatar del chat— pero sirve los activos nuevos
+ * de `public/marca/`. Así el cambio de marca llega a todos a la vez; lo
+ * nuevo debería importar directamente `@/components/marca/logo-alexia`.
+ */
 interface LogoMarkProps {
   className?: string;
-  /** Altura en px. Ancho calculado manteniendo el ratio del PNG. */
+  /** Altura en píxeles. El ancho se calcula solo. */
   height?: number;
   alt?: string;
   priority?: boolean;
 }
 
-/**
- * Variante minimalista de la marca (sin tagline, ratio ~3:1).
- * Usar en topbar, sidebar, footer, breadcrumbs y donde el espacio sea limitado.
- */
-export function LogoMark({
-  className,
-  height = 32,
-  alt = 'LexIA Contrataciones',
-  priority = false,
-}: LogoMarkProps) {
-  // Ratio nativo del PNG: 1600×510 ≈ 3.137:1
-  const width = Math.round(height * 3.137);
+export function LogoMark({ className, height = 32, priority = false }: LogoMarkProps) {
   return (
-    <Image
-      src="/brand/logo-mark.png"
-      alt={alt}
-      width={width}
-      height={height}
-      priority={priority}
-      className={cn('h-auto select-none', className)}
-    />
+    <LogoAlexia href={null} alto={height} conLema={false} className={className} prioridad={priority} />
   );
 }

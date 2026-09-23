@@ -44,7 +44,7 @@ export default async function NuevaRevisionPage() {
             </p>
             <p className="text-foreground/80 leading-relaxed">
               Sube las <strong>Bases del proceso</strong> y <strong>tu oferta</strong> tal
-              y como la presentarías. LexIA va a auditar cada requisito y te va a decir:
+              y como la presentarías. A-LexIA va a auditar cada requisito y te va a decir:
               ✅ qué está bien, 🟡 qué riesgos formales podrías subsanar y 🔴 qué te
               puede sacar del proceso si lo presentas así.
             </p>

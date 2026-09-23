@@ -156,7 +156,7 @@ function ChunkSheetContent({
         <p className="mt-6 text-xs text-muted-foreground leading-relaxed">
           {focus
             ? `Se destacó automáticamente el fragmento que corresponde a "${focus}" citado en la respuesta. `
-            : 'Este es el fragmento que sustenta la afirmación que estaba citada en la respuesta de LexIA. '}
+            : 'Este es el fragmento que sustenta la afirmación que estaba citada en la respuesta de A-LexIA. '}
           Para revisar el documento completo, abre el visor de la biblioteca.
         </p>
       </div>

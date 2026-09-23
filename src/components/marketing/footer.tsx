@@ -53,7 +53,7 @@ export function MarketingFooter() {
 
         <div className="mt-12 pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <p className="text-xs text-slate-500">
-            © {new Date().getFullYear()} LexIA · Corporación Gung Ho E.I.R.L. Todos los derechos reservados.
+            © {new Date().getFullYear()} A-LexIA · Corporación Gung Ho E.I.R.L. Todos los derechos reservados.
           </p>
           <p className="text-xs text-slate-500">
             Hecho en Lima con Next.js, Supabase y mucha jurisprudencia.

@@ -43,7 +43,7 @@ import { chatModel } from '@/lib/ai/gemini';
 import { condicionesPorApartado } from './indice';
 import type { PlantillaRequerimiento } from './plantilla-tipos';
 
-/** Qué decidió LexIA sobre un interruptor, y por qué. */
+/** Qué decidió A-LexIA sobre un interruptor, y por qué. */
 export interface DecisionCondicion {
   id: string;
   /** El apartado que gobierna, para poder enseñárselo al usuario. */
@@ -67,7 +67,7 @@ export interface ResultadoEntrevista {
  * Estos apartados no dependen de qué se contrata sino de una decisión
  * de la Entidad —o de un documento que existe o no existe en el
  * expediente—. La primera prueba en pantalla lo enseñó: de un relato
- * sobre un grupo electrógeno, LexIA apagó confidencialidad, propiedad
+ * sobre un grupo electrógeno, A-LexIA apagó confidencialidad, propiedad
  * intelectual y seguridad de la información. Ninguna de las tres se
  * sigue de comprar un generador; son política de la Entidad, y
  * apagarlas por su cuenta le quita al documento una cláusula que quizá
@@ -104,7 +104,7 @@ const INSTITUCIONALES: Record<string, string> = {
  */
 const razonInstitucional = (id: string) => `Lo decide la Entidad. ${INSTITUCIONALES[id]}`;
 
-const SISTEMA = `Eres LexIA, y estás ayudando a un área usuaria de una entidad pública peruana a formular su requerimiento bajo la Ley N° 32069 y su Reglamento.
+const SISTEMA = `Eres A-LexIA, y estás ayudando a un área usuaria de una entidad pública peruana a formular su requerimiento bajo la Ley N° 32069 y su Reglamento.
 
 Te dan el relato de una necesidad y la lista de los apartados OPCIONALES del formato oficial que corresponde a esa contratación. Tu trabajo es decidir, para cada uno, si corresponde incluirlo.
 
@@ -165,7 +165,7 @@ Devuelve ahora el JSON.`;
 
   // Se reintenta si la respuesta no sirve. Una respuesta rota dejaba los
   // treinta y cuatro interruptores en "no se sabe", que para el usuario
-  // es indistinguible de que LexIA fuera prudente.
+  // es indistinguible de que A-LexIA fuera prudente.
   let mejor: ResultadoEntrevista = { decisiones: [], preguntas: [], condiciones: {} };
   for (let intento = 1; intento <= 3; intento++) {
     try {
@@ -205,7 +205,7 @@ function porDefecto(catalogo: Array<{ id: string; titulo: string }>): DecisionCo
     id: c.id,
     titulo: c.titulo,
     estado: 'no_se_sabe' as const,
-    razon: 'LexIA no pudo pronunciarse; decídelo tú.',
+    razon: 'A-LexIA no pudo pronunciarse; decídelo tú.',
   }));
 }
 
@@ -245,7 +245,7 @@ function depurar(
       razon:
         c.id in INSTITUCIONALES
           ? razonInstitucional(c.id)
-          : 'LexIA no se pronunció sobre este apartado.',
+          : 'A-LexIA no se pronunció sobre este apartado.',
     });
   }
 

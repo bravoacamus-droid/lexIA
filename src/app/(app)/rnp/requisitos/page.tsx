@@ -107,7 +107,7 @@ export default async function RequisitosRnpPage() {
           >
             Aumento de CMC
           </Link>
-          : al generar el escrito, LexIA produce además un checklist personalizado
+          : al generar el escrito, A-LexIA produce además un checklist personalizado
           según tu tipo de proveedor (PJ/PN) y régimen.
         </p>
       </Card>

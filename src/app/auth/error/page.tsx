@@ -71,7 +71,7 @@ const VARIANTS: Record<string, ErrorVariant> = {
     title: 'Enlace incompleto',
     description:
       'El enlace que abriste no contiene la información necesaria. Es posible que haya sido copiado parcialmente.',
-    causes: ['Vuelve a abrir el correo y haz clic directamente en el botón "Ingresar a LexIA"'],
+    causes: ['Vuelve a abrir el correo y haz clic directamente en el botón "Ingresar a A-LexIA"'],
     cta: 'Solicitar uno nuevo',
   },
   generic: {

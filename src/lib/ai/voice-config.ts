@@ -50,14 +50,14 @@ export const VOICE_INITIAL_GREETING =
  * 3 saludos iniciales alternados aleatoriamente para que la conversación
  * se sienta más natural (feedback César 02/07/2026).
  *
- * Cada saludo mantiene: (1) identificación como LexIA, (2) especialidad
+ * Cada saludo mantiene: (1) identificación como A-LexIA, (2) especialidad
  * en contrataciones públicas, (3) invitación a consultar. La variación
  * evita que llamadas consecutivas suenen exactamente iguales.
  */
 const VOICE_GREETING_TEMPLATES = [
-  '¡Hola! Bienvenido a LexIA Contrataciones. Soy tu asistente inteligente especializado en contrataciones públicas. Estoy listo para ayudarte con respuestas claras y sustentadas. ¿En qué puedo ayudarte hoy?',
-  '¡Hola! Soy LexIA, tu asistente inteligente en contrataciones públicas. Estoy aquí para ayudarte a resolver tus consultas con información clara y sustentada. ¿Cuál es tu consulta?',
-  '¡Hola! Bienvenido a LexIA Contrataciones. Soy tu asistente especializado en contrataciones públicas. Cuéntame tu consulta y con gusto te ayudaré.',
+  '¡Hola! Bienvenido a A-LexIA Contrataciones. Soy tu asistente inteligente especializado en contrataciones públicas. Estoy listo para ayudarte con respuestas claras y sustentadas. ¿En qué puedo ayudarte hoy?',
+  '¡Hola! Soy A-LexIA, tu asistente inteligente en contrataciones públicas. Estoy aquí para ayudarte a resolver tus consultas con información clara y sustentada. ¿Cuál es tu consulta?',
+  '¡Hola! Bienvenido a A-LexIA Contrataciones. Soy tu asistente especializado en contrataciones públicas. Cuéntame tu consulta y con gusto te ayudaré.',
 ];
 
 /**
@@ -163,7 +163,7 @@ export function buildVoiceSystemPrompt(lawFilter: string[] | null): string {
     ? '\n\nCuando el usuario pregunte sobre procedimientos convocados antes de abril de 2025, aplica la Ley 30225 y su Reglamento (DS 344-2018-EF y modificatorias). Cuando pregunte por procedimientos posteriores, aplica la Ley 32069.'
     : '';
 
-  return `Eres el Abogado Virtual de LexIA, asistente especializado EXCLUSIVAMENTE en Contrataciones del Estado peruano.
+  return `Eres el Abogado Virtual de A-LexIA, asistente especializado EXCLUSIVAMENTE en Contrataciones del Estado peruano.
 
 Tu ámbito normativo activo en esta llamada es: ${scope}.${legacyLine}
 
@@ -290,7 +290,7 @@ export const VOICE_TOOLS = [
       {
         name: 'search_normativa',
         description:
-          'Busca en la base normativa de LexIA (Ley 32069, Reglamento, directivas, opiniones DTN, pronunciamientos, resoluciones). Devuelve los 5 fragmentos más relevantes con su fuente. SIEMPRE usar esta función antes de citar normativa al usuario.',
+          'Busca en la base normativa de A-LexIA (Ley 32069, Reglamento, directivas, opiniones DTN, pronunciamientos, resoluciones). Devuelve los 5 fragmentos más relevantes con su fuente. SIEMPRE usar esta función antes de citar normativa al usuario.',
         parameters: {
           type: 'object',
           properties: {

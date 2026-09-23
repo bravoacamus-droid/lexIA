@@ -44,7 +44,7 @@ export default async function NuevoRevisorTdrPage() {
             </p>
             <p className="text-foreground/80 leading-relaxed">
               Sube el PDF de tu <strong>TDR</strong> (servicios/consultorías) o{' '}
-              <strong>EETT</strong> (bienes/obras). LexIA va a auditar todo el documento
+              <strong>EETT</strong> (bienes/obras). A-LexIA va a auditar todo el documento
               buscando vicios: 🔴 direccionamiento a marca, 🟠 personal desproporcionado,
               🟡 ambigüedades, plazos insustentables, equipamiento restrictivo y más.
               Cada hallazgo viene con cita literal del texto, sustento normativo y

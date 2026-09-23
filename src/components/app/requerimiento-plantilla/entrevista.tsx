@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * "Cuéntame qué necesitas" y LexIA decide qué apartados corresponden.
+ * "Cuéntame qué necesitas" y A-LexIA decide qué apartados corresponden.
  *
  * César, trasladando a sus colegas: la estructura les parece correcta
  * "pero llenar uno a uno es un poco tedioso y genera mayor tiempo". En
@@ -17,7 +17,7 @@
  * apartados encendidos que estén en blanco —treinta y nueve cajas
  * vacías en Bienes en General—, sin tocar lo que ya escribió nadie.
  *
- * Lo que LexIA no sabe se queda como está, y lleva al lado la pregunta
+ * Lo que A-LexIA no sabe se queda como está, y lleva al lado la pregunta
  * que lo resolvería —no en una lista aparte al final, que decía lo
  * mismo con otras palabras—. Apagar de más cuesta un clic; encender de
  * más mete en el documento una exigencia que nadie pidió.
@@ -82,7 +82,7 @@ export function Entrevista({
       });
       const j = await res.json();
       if (!res.ok) {
-        toast.error('LexIA no pudo leer la necesidad', {
+        toast.error('A-LexIA no pudo leer la necesidad', {
           description: j?.detail ?? j?.error ?? `HTTP ${res.status}`,
         });
         return;
@@ -91,7 +91,7 @@ export function Entrevista({
       setDescartados(new Set());
       setAbierto(true);
     } catch (e) {
-      toast.error('LexIA no pudo leer la necesidad', { description: (e as Error).message });
+      toast.error('A-LexIA no pudo leer la necesidad', { description: (e as Error).message });
     } finally {
       setPensando(false);
     }
@@ -199,7 +199,7 @@ export function Entrevista({
         <div>
           <h3 className="text-sm font-medium">Cuéntame qué necesitas</h3>
           <p className="text-xs text-muted-foreground">
-            En dos o tres líneas: qué se va a contratar, para qué, quién lo usa y dónde. LexIA
+            En dos o tres líneas: qué se va a contratar, para qué, quién lo usa y dónde. A-LexIA
             decide qué apartados del formato corresponden y te dice por qué.
           </p>
         </div>

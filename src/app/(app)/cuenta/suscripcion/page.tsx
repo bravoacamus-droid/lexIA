@@ -231,7 +231,7 @@ export default async function SubscriptionPage() {
   }> = [
     {
       key: 'chat_message',
-      label: 'Chat con LexIA',
+      label: 'Chat con A-LexIA',
       icon: <MessageSquare className="h-4 w-4" />,
       used: usageThisMonth.chat_message,
       limit: tierDef.quotas.chat_message,
@@ -294,7 +294,7 @@ export default async function SubscriptionPage() {
       (c): ActivityItem => ({
         id: `chat-${c.id}`,
         kind: 'chat',
-        title: c.title || 'Conversación con LexIA',
+        title: c.title || 'Conversación con A-LexIA',
         ts: c.updated_at,
       }),
     ),
@@ -367,7 +367,7 @@ export default async function SubscriptionPage() {
       return `Estás alcanzando el límite en ${overCap.label}. Actualiza tu plan para no interrumpir tu flujo de trabajo.`;
     }
     if (tier === 'free_trial' && trialDaysLeft <= 7) {
-      return `Tu prueba termina en ${trialDaysLeft} día${trialDaysLeft === 1 ? '' : 's'}. Elige un plan para conservar tu historial y seguir usando LexIA.`;
+      return `Tu prueba termina en ${trialDaysLeft} día${trialDaysLeft === 1 ? '' : 's'}. Elige un plan para conservar tu historial y seguir usando A-LexIA.`;
     }
     if (tier === 'starter' && gen >= 10) {
       return 'Estás usando mucho el generador de documentos. En Pro tienes 80 generaciones al mes + evaluador ampliado.';
@@ -390,7 +390,7 @@ export default async function SubscriptionPage() {
         <h1 className="font-semibold text-3xl tracking-tight">Tu plan y consumo</h1>
         <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
           Administra tu suscripción, revisa tu consumo y descubre el valor que
-          generas con LexIA.
+          generas con A-LexIA.
         </p>
       </header>
 
@@ -478,7 +478,7 @@ export default async function SubscriptionPage() {
             <div>
               <div className="flex items-center gap-1.5 mb-0.5">
                 <h2 className="text-base font-semibold">
-                  Valor generado este mes con LexIA
+                  Valor generado este mes con A-LexIA
                 </h2>
                 <Info className="h-3.5 w-3.5 text-muted-foreground" />
               </div>
@@ -526,7 +526,7 @@ export default async function SubscriptionPage() {
           {(saved > 0 || savedPrev > 0) && (
             <div className="mt-4 pt-3 border-t border-violet-200/50 dark:border-violet-800/40">
               <p className="text-[11px] text-muted-foreground">
-                Gracias a LexIA has optimizado tu trabajo y tomado mejores
+                Gracias a A-LexIA has optimizado tu trabajo y tomado mejores
                 decisiones basadas en normativa. Guardaste {saved} documento
                 {saved === 1 ? '' : 's'} en tu biblioteca este mes.
               </p>
@@ -594,7 +594,7 @@ export default async function SubscriptionPage() {
           {activity.length === 0 ? (
             <p className="text-xs text-muted-foreground italic">
               Aún no hay actividad este mes. Empieza con una conversación en
-              Chat LexIA.
+              Chat A-LexIA.
             </p>
           ) : (
             <ul className="space-y-3">
@@ -658,7 +658,7 @@ export default async function SubscriptionPage() {
                   </span>
                 </div>
                 <h2 className="text-xl font-bold mb-1">
-                  Desbloquea todo el poder de LexIA
+                  Desbloquea todo el poder de A-LexIA
                 </h2>
                 <p className="text-sm text-white/85 mb-4">
                   Actualiza tu plan y lleva tu productividad al siguiente nivel.
@@ -700,7 +700,7 @@ export default async function SubscriptionPage() {
         )}
       </div>
 
-      {/* ═══ LexIA recomienda ═══════════════════════════════════════ */}
+      {/* ═══ A-LexIA recomienda ═══════════════════════════════════════ */}
       <Card className="p-5 bg-gradient-to-br from-amber-50 via-white to-brand-50/40 dark:from-amber-950/30 dark:via-background dark:to-brand-950/20 border-amber-200/60 dark:border-amber-900/40">
         <div className="flex items-start gap-3">
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-white shrink-0">
@@ -708,7 +708,7 @@ export default async function SubscriptionPage() {
           </span>
           <div className="flex-1 min-w-0">
             <p className="text-[10px] uppercase tracking-widest font-semibold text-amber-700 dark:text-amber-300 mb-0.5">
-              LexIA recomienda
+              A-LexIA recomienda
             </p>
             <p className="text-sm text-foreground/90 leading-relaxed">
               {recommendedTip}

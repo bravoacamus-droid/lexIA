@@ -67,11 +67,20 @@ export default function PricingPage() {
 
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur-xl">
         <div className="container max-w-6xl py-4 flex items-center justify-between">
+          {/* El logotipo con el nombre es más ancho que el isotipo que
+              había antes: en un teléfono, junto a los dos botones, se
+              salía de la pantalla. Baja de tamaño y el enlace de sesión
+              —que ya está en el botón de al lado— se esconde. */}
           <Link href="/" className="inline-flex items-center">
-            <LogoMark height={40} />
+            <span className="sm:hidden">
+              <LogoMark height={28} />
+            </span>
+            <span className="hidden sm:inline-flex">
+              <LogoMark height={40} />
+            </span>
           </Link>
           <div className="flex items-center gap-2">
-            <Button asChild variant="ghost" size="sm" className="text-slate-700">
+            <Button asChild variant="ghost" size="sm" className="hidden text-slate-700 sm:inline-flex">
               <Link href="/login">Iniciar sesión</Link>
             </Button>
             <Button asChild size="sm" className="shadow-md shadow-brand-500/20">
@@ -193,7 +202,7 @@ export default function PricingPage() {
             size="lg"
             className="mt-6 bg-white text-brand-700 hover:bg-slate-100 shadow-2xl shadow-black/20"
           >
-            <a href="mailto:hola@promptive.pe?subject=Consulta plan Enterprise LexIA">
+            <a href="mailto:hola@promptive.pe?subject=Consulta plan Enterprise A-LexIA">
               <Mail className="h-4 w-4" />
               Hablar con ventas
             </a>
@@ -235,7 +244,7 @@ export default function PricingPage() {
             </span>
           </div>
           <p className="text-xs text-slate-500">
-            © {new Date().getFullYear()} LexIA. Todos los derechos reservados.
+            © {new Date().getFullYear()} A-LexIA. Todos los derechos reservados.
           </p>
         </div>
       </footer>
@@ -455,7 +464,7 @@ function TierCard({
             variant="outline"
             className="w-full border-slate-300 hover:bg-slate-50"
           >
-            <a href="mailto:hola@promptive.pe?subject=Consulta plan Enterprise LexIA">
+            <a href="mailto:hola@promptive.pe?subject=Consulta plan Enterprise A-LexIA">
               Hablar con ventas
             </a>
           </Button>

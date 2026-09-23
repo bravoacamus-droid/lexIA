@@ -16,7 +16,7 @@ import {
   ThumbsDown,
   Share2,
 } from 'lucide-react';
-import { Logo, LogoMark } from '@/components/logo';
+import { CaritaCompanero } from '@/components/marca/companero';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -69,8 +69,10 @@ export function ChatMessageView({
       transition={{ duration: 0.25 }}
       className="group flex gap-3"
     >
-      <div className="h-7 w-7 shrink-0 rounded-full bg-card border border-border flex items-center justify-center mt-0.5">
-        <LogoMark size="sm" />
+      {/* El avatar es la carita del compañero, no el logotipo: a 28 px
+          el logotipo entero es una mancha y el robot sí se reconoce. */}
+      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-card">
+        <CaritaCompanero tamano={22} />
       </div>
       <div className="flex-1 min-w-0">
         <div className="prose-lexia">

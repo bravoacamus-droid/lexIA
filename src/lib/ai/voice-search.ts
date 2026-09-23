@@ -3,7 +3,7 @@
  * llamará durante cada llamada de voz.
  *
  * Reutiliza el mismo hybrid_search (cosine + FTS español) que usa el
- * chat de LexIA, sobre la base de 371 documentos / 10,409 chunks.
+ * chat de A-LexIA, sobre la base de 371 documentos / 10,409 chunks.
  *
  * El modelo Gemini Live API decide cuándo llamarlo según el system
  * prompt. Esta función NO toca audio: solo recibe palabras clave,
@@ -389,12 +389,12 @@ export function formatResultsForLLM(
     .join('\n\n---\n\n');
 
   // Whitelist: solo estos identificadores son citables como documento
-  // primario disponible en la base normativa de LexIA.
+  // primario disponible en la base normativa de A-LexIA.
   const whitelistLines = results
     .map((r, i) => `  ${i + 1}. ${r.citation}`)
     .join('\n');
 
-  return `Encontré ${results.length} fragmento(s) relevante(s) en la base normativa de LexIA.
+  return `Encontré ${results.length} fragmento(s) relevante(s) en la base normativa de A-LexIA.
 
 ═══════════════════════════════════════════════════════
 DOCUMENTOS DISPONIBLES PARA CITAR (whitelist estricta):

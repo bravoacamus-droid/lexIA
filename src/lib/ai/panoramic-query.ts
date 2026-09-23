@@ -3,7 +3,7 @@
  * múltiples sub-búsquedas por facetas para mejorar el recall
  * temático.
  *
- * Feedback César 13/07/2026: LexIA fallaba en preguntas tipo
+ * Feedback César 13/07/2026: A-LexIA fallaba en preguntas tipo
  *   "resúmeme todo respecto a la modalidad de contratación pública
  *   eficiente"
  *   "explícame todo respecto a los impedimentos de contratación"

@@ -80,7 +80,7 @@ export async function GET(_req: Request, ctx: { params: { id: string } }) {
   const doc = buildDocx(row.title, row.result, row.completed_at);
   const buffer = await Packer.toBuffer(doc);
 
-  const nombre = `${nombreDeArchivo(`LexIA — Evaluación — ${row.title || 'evaluación'}`, 'LexIA — Evaluación')}.docx`;
+  const nombre = `${nombreDeArchivo(`A-LexIA — Evaluación — ${row.title || 'evaluación'}`, 'A-LexIA — Evaluación')}.docx`;
   return new Response(new Uint8Array(buffer), {
     headers: {
       'Content-Type':
@@ -95,7 +95,7 @@ function buildDocx(title: string, result: ResultShape, completedAt: string | nul
 
   sections.push(
     new Paragraph({
-      text: 'LexIA — Evaluación de Ofertas',
+      text: 'A-LexIA — Evaluación de Ofertas',
       heading: HeadingLevel.TITLE,
       spacing: { after: 200 },
     }),
@@ -106,7 +106,7 @@ function buildDocx(title: string, result: ResultShape, completedAt: string | nul
     new Paragraph({
       children: [
         new TextRun({
-          text: `Generado por LexIA · ${
+          text: `Generado por A-LexIA · ${
             completedAt ? new Date(completedAt).toLocaleString('es-PE') : new Date().toLocaleString('es-PE')
           }`,
           italics: true,
@@ -268,9 +268,9 @@ function buildDocx(title: string, result: ResultShape, completedAt: string | nul
   }
 
   return new Document({
-    creator: 'LexIA',
+    creator: 'A-LexIA',
     title,
-    description: 'Evaluación generada por LexIA Contrataciones',
+    description: 'Evaluación generada por A-LexIA Contrataciones',
     sections: [
       {
         properties: {},

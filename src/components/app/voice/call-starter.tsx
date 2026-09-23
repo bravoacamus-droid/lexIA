@@ -359,7 +359,7 @@ export function CallStarter({ hasConsent, disclaimerVersion, vozInicial }: Props
               onChange={(v) =>
                 setConsent((s) => ({ ...s, data_in_google_cloud: v }))
               }
-              text="Entiendo que mis datos se procesan en servidores de Google Cloud (Estados Unidos / Brasil) bajo los términos de privacidad de LexIA y Google."
+              text="Entiendo que mis datos se procesan en servidores de Google Cloud (Estados Unidos / Brasil) bajo los términos de privacidad de A-LexIA y Google."
             />
             <ConsentCheckbox
               checked={consent.no_confidential_third_party}
@@ -412,7 +412,7 @@ export function CallStarter({ hasConsent, disclaimerVersion, vozInicial }: Props
         <Card className="p-7 space-y-6">
           <div>
             <h1 className="font-semibold text-2xl tracking-tight mb-1">
-              Hablar con LexIA
+              Hablar con A-LexIA
             </h1>
             <p className="text-sm text-muted-foreground">
               Antes de iniciar, elige la voz preferida y permite el micrófono cuando te lo pida el navegador.
@@ -472,7 +472,7 @@ export function CallStarter({ hasConsent, disclaimerVersion, vozInicial }: Props
             loading={stage === 'connecting'}
           >
             <Phone className="h-4 w-4" />
-            {stage === 'connecting' ? 'Conectando…' : 'Hablar con LexIA'}
+            {stage === 'connecting' ? 'Conectando…' : 'Hablar con A-LexIA'}
           </Button>
         </Card>
       </div>
@@ -544,7 +544,7 @@ export function CallStarter({ hasConsent, disclaimerVersion, vozInicial }: Props
             )}
           </div>
           <p className="mt-5 text-sm font-semibold">
-            {agentState === 'speaking' && 'LexIA está hablando…'}
+            {agentState === 'speaking' && 'A-LexIA está hablando…'}
             {agentState === 'listening' && 'Te escucho…'}
             {agentState === 'thinking' && 'Preparando respuesta…'}
             {agentState === 'searching' && 'Consultando normativa…'}

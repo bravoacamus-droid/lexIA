@@ -2,7 +2,7 @@
  * Criterios predefinidos que cada generador aplica automáticamente.
  *
  * Estos textos se MUESTRAN al usuario en la pantalla del generador para que
- * sepa qué evaluará LexIA sin tener que escribir prompts. Es el cambio
+ * sepa qué evaluará A-LexIA sin tener que escribir prompts. Es el cambio
  * principal pedido por César en la reunión del 26/06/2026:
  *
  *   > "yo no debería cargar las fuentes normativas. Eso debería estar
@@ -12,7 +12,7 @@
  *
  * El usuario PUEDE agregar instrucciones adicionales en el campo opcional
  * "Algo específico que quieras enfatizar", pero NO está obligado a hacerlo:
- * sin texto adicional, LexIA igual aplica todos los criterios listados aquí.
+ * sin texto adicional, A-LexIA igual aplica todos los criterios listados aquí.
  *
  * Cada item de la lista debe estar redactado en lenguaje claro y accionable
  * (verbos en infinitivo o tercera persona), no en jerga jurídica oscura.
@@ -21,7 +21,7 @@
 export interface GeneratorCriteria {
   /** Encabezado del panel mostrado al usuario. */
   title: string;
-  /** Lo que LexIA evalúa/produce automáticamente. */
+  /** Lo que A-LexIA evalúa/produce automáticamente. */
   items: string[];
   /** Documentos que el usuario debe subir como contexto del caso. */
   documents_required: string[];
@@ -31,7 +31,7 @@ export interface GeneratorCriteria {
 
 export const CRITERIA_BY_SLUG: Record<string, GeneratorCriteria> = {
   consultas_observaciones: {
-    title: 'Qué evaluará LexIA automáticamente',
+    title: 'Qué evaluará A-LexIA automáticamente',
     items: [
       'Direccionamiento a marca, modelo o procedencia específica',
       'Requisitos de calificación desproporcionados o ajenos al objeto',
@@ -54,7 +54,7 @@ export const CRITERIA_BY_SLUG: Record<string, GeneratorCriteria> = {
   },
 
   pliego_absolucion: {
-    title: 'Qué hará LexIA automáticamente',
+    title: 'Qué hará A-LexIA automáticamente',
     items: [
       'Leer cada consulta/observación recibida y agruparla por tema',
       'Redactar la absolución fundamentada con sustento normativo preciso',
@@ -74,7 +74,7 @@ export const CRITERIA_BY_SLUG: Record<string, GeneratorCriteria> = {
   },
 
   apelaciones: {
-    title: 'Qué evaluará y redactará LexIA',
+    title: 'Qué evaluará y redactará A-LexIA',
     items: [
       'Identificar la causal de impugnación pertinente',
       'Verificar el plazo de 8 días hábiles desde notificación del acto',
@@ -95,7 +95,7 @@ export const CRITERIA_BY_SLUG: Record<string, GeneratorCriteria> = {
   },
 
   armado_oferta: {
-    title: 'Qué hará LexIA automáticamente',
+    title: 'Qué hará A-LexIA automáticamente',
     items: [
       'Generar todos los formatos y anexos exigidos por las Bases',
       'Producir la declaración jurada de no impedimentos (Art. 51 Ley 32069)',
@@ -117,7 +117,7 @@ export const CRITERIA_BY_SLUG: Record<string, GeneratorCriteria> = {
   },
 
   bases_estandar: {
-    title: 'Qué hará LexIA automáticamente',
+    title: 'Qué hará A-LexIA automáticamente',
     items: [
       'Cargar la plantilla oficial DGA del tipo de procedimiento elegido',
       'Rellenar Capítulo I (Generalidades) con datos de la entidad',
@@ -139,7 +139,7 @@ export const CRITERIA_BY_SLUG: Record<string, GeneratorCriteria> = {
 
   // ─── Generadores adicionales (placeholder para futuros pilotos) ──
   cambio_personal_clave: {
-    title: 'Qué hará LexIA automáticamente',
+    title: 'Qué hará A-LexIA automáticamente',
     items: [
       'Redactar la solicitud formal de sustitución de personal clave',
       'Verificar que el reemplazo cumpla con el perfil exigido',
@@ -156,7 +156,7 @@ export const CRITERIA_BY_SLUG: Record<string, GeneratorCriteria> = {
   },
 
   resolucion_contrato: {
-    title: 'Qué hará LexIA automáticamente',
+    title: 'Qué hará A-LexIA automáticamente',
     items: [
       'Redactar la carta notarial de resolución de contrato',
       'Identificar la causal aplicable (Art. 165 Reglamento)',
@@ -174,7 +174,7 @@ export const CRITERIA_BY_SLUG: Record<string, GeneratorCriteria> = {
   },
 
   descargo_penalidades: {
-    title: 'Qué hará LexIA automáticamente',
+    title: 'Qué hará A-LexIA automáticamente',
     items: [
       'Redactar el descargo formal por aplicación de penalidad por mora',
       'Verificar la fórmula aplicada por la entidad (Art. 164 Reglamento)',
@@ -192,7 +192,7 @@ export const CRITERIA_BY_SLUG: Record<string, GeneratorCriteria> = {
   },
 
   solicitud_sancion: {
-    title: 'Qué hará LexIA automáticamente',
+    title: 'Qué hará A-LexIA automáticamente',
     items: [
       'Redactar la solicitud de sanción ante el Tribunal',
       'Identificar la causal del Art. 50 Ley 32069 aplicable',
@@ -208,7 +208,7 @@ export const CRITERIA_BY_SLUG: Record<string, GeneratorCriteria> = {
   },
 
   cambio_bienes: {
-    title: 'Qué hará LexIA automáticamente',
+    title: 'Qué hará A-LexIA automáticamente',
     items: [
       'Redactar la solicitud de equivalencia técnica',
       'Comparar especificaciones del bien original vs el sustituto',
@@ -225,7 +225,7 @@ export const CRITERIA_BY_SLUG: Record<string, GeneratorCriteria> = {
   },
 
   tdr_eett: {
-    title: 'Qué hará LexIA automáticamente',
+    title: 'Qué hará A-LexIA automáticamente',
     items: [
       'Estructurar los TDR / EETT conforme al Anexo de Bases Estándar',
       'Detectar y reformular direccionamientos a marca',
@@ -243,7 +243,7 @@ export const CRITERIA_BY_SLUG: Record<string, GeneratorCriteria> = {
   },
 
   estrategia_contratacion: {
-    title: 'Qué hará LexIA automáticamente',
+    title: 'Qué hará A-LexIA automáticamente',
     items: [
       'Cargar el formato oficial xlsx de Estrategia de Contratación (DGA)',
       'Rellenar la justificación del tipo de procedimiento',

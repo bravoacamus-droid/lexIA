@@ -71,7 +71,7 @@ export async function POST(req: Request) {
               {
                 name: 'search_normativa',
                 description:
-                  'Busca en la base normativa de LexIA (Ley 32069, Reglamento, directivas, opiniones DTN, pronunciamientos, resoluciones). Devuelve los 5 fragmentos más relevantes con su cita normativa. SIEMPRE usar esta función antes de citar normativa al usuario.',
+                  'Busca en la base normativa de A-LexIA (Ley 32069, Reglamento, directivas, opiniones DTN, pronunciamientos, resoluciones). Devuelve los 5 fragmentos más relevantes con su cita normativa. SIEMPRE usar esta función antes de citar normativa al usuario.',
                 parameters: {
                   type: 'object' as unknown as Type,
                   properties: {

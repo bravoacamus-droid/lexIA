@@ -16,7 +16,7 @@ export interface DiscoveredLink {
 }
 
 const UA =
-  'Mozilla/5.0 (compatible; LexIA-Bot/1.0; +https://lexia.pe/bot)';
+  'Mozilla/5.0 (compatible; A-LexIA-Bot/1.0; +https://lexia.pe/bot)';
 
 export async function discoverLinks(opts: {
   sourceUrl: string;

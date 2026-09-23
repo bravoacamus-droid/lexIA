@@ -122,7 +122,7 @@ export function ProductMockup() {
           >
             <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-3 shadow-sm">
               <span className="text-sm text-muted-foreground flex-1">
-                Pregúntale a LexIA sobre normativa, casos o procedimientos…
+                Pregúntale a A-LexIA sobre normativa, casos o procedimientos…
               </span>
               <span className="text-[10px] font-mono text-muted-foreground border border-border rounded px-1.5 py-0.5">
                 ↵

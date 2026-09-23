@@ -2,7 +2,7 @@
  * De lo que cuenta el área usuaria, a los interruptores del formato.
  *
  * Devuelve una PROPUESTA, no la aplica. El usuario ve qué encendería
- * LexIA y por qué, y decide: aplicar un cambio de treinta y cuatro
+ * A-LexIA y por qué, y decide: aplicar un cambio de treinta y cuatro
  * interruptores sin enseñarlo antes sería peor que el formulario que
  * viene a sustituir.
  */

@@ -45,7 +45,7 @@ export interface RespuestasRequerimiento {
    * Cuadros repetidos, cada uno con su título.
    *
    * Para las características técnicas: el formato pone un cuadro por
-   * bien —"Bien N.° 01: XYZ" y debajo su tabla— y LexIA tenía uno solo.
+   * bien —"Bien N.° 01: XYZ" y debajo su tabla— y A-LexIA tenía uno solo.
    * Observación de César de agosto de 2026.
    *
    * El PRIMER cuadro sigue viviendo en `tablas`, sin título, para no

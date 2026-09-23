@@ -406,12 +406,12 @@ function SortableClause({
           {clause.mode === 'ai' && (
             <div className="space-y-2">
               <label className="text-[11px] uppercase tracking-wider font-semibold text-brand-700">
-                Información puntual (LexIA la profesionalizará)
+                Información puntual (A-LexIA la profesionalizará)
               </label>
               <Textarea
                 value={clause.ai_input}
                 onChange={(e) => onUpdate({ ai_input: e.target.value })}
-                placeholder="Escribe en formato libre: datos, fechas, montos, exigencias. LexIA usará la Ley 32069 y la base normativa para redactarlo formalmente."
+                placeholder="Escribe en formato libre: datos, fechas, montos, exigencias. A-LexIA usará la Ley 32069 y la base normativa para redactarlo formalmente."
                 rows={4}
                 className="text-sm"
               />

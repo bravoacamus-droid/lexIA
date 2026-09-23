@@ -15,7 +15,7 @@
  * Reparte, no redacta. El texto que sale es el del proyecto: se puede
  * recortar y reordenar para que encaje en el apartado, nunca inventar lo
  * que el proyecto no dice. Si un apartado no tiene correspondencia, se
- * queda vacío y el usuario lo redacta o lo pide a LexIA, que para eso
+ * queda vacío y el usuario lo redacta o lo pide a A-LexIA, que para eso
  * está el otro botón.
  *
  * Y no pisa nada por su cuenta: devuelve una propuesta por apartado, y
@@ -193,7 +193,7 @@ export function destinosDistribucion(
 }
 
 export function promptDistribucionSistema(plantilla: PlantillaRequerimiento): string {
-  return `Eres LexIA, asistente jurídico en Contrataciones del Estado peruano (Ley N° 32069 y su Reglamento, DS N° 009-2025-EF).
+  return `Eres A-LexIA, asistente jurídico en Contrataciones del Estado peruano (Ley N° 32069 y su Reglamento, DS N° 009-2025-EF).
 
 El área usuaria trae un proyecto de requerimiento redactado a su manera. Tu trabajo es REPARTIR ese contenido en los apartados del formato oficial "${plantilla.encabezado} — ${plantilla.subtitulo}". Nada más.
 

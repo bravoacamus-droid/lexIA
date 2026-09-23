@@ -71,7 +71,7 @@ export async function POST(req: Request) {
       full_name ||
       (profile as { full_name?: string } | null)?.full_name ||
       user.email?.split('@')[0] ||
-      'Cliente LexIA';
+      'Cliente A-LexIA';
 
     const customerEmail = email || user.email;
     if (!customerEmail) {

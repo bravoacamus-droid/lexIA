@@ -3,13 +3,19 @@ import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, FileCheck2, Clock, AlertCircle } from 'lucide-react';
+import { ScanSearch, Plus, FileCheck2, Clock, AlertCircle, HelpCircle } from 'lucide-react';
+import {
+  Pagina,
+  MigaDePan,
+  EncabezadoDeSeccion,
+  NotaDelCompanero,
+} from '@/components/app/seccion/piezas';
 import { formatRelative } from '@/lib/utils';
 import { RoleGateBlocked, isRoleAllowed } from '@/components/app/role-gate';
 import type { ProfileRole } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Revisor EETT / TDR' };
+export const metadata = { title: 'Evaluación de requerimiento' };
 
 export default async function RevisorTdrListPage() {
   const supabase = createClient();
@@ -30,7 +36,7 @@ export default async function RevisorTdrListPage() {
       <RoleGateBlocked
         allow={['entity', 'consultant']}
         userRole={userRole}
-        moduleName="Revisor EETT / TDR"
+        moduleName="La evaluación de requerimiento"
         reason="Auditar Términos de Referencia y Especificaciones Técnicas es facultad del área usuaria o un consultor que la asesore."
       />
     );
@@ -55,30 +61,42 @@ export default async function RevisorTdrListPage() {
   const list = (audits || []) as AuditRow[];
 
   return (
-    <div className="container max-w-5xl py-8 space-y-6">
-      <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div>
-          <h1 className="font-semibold text-3xl tracking-tight">Revisor EETT / TDR</h1>
-          <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
-            Antes de publicar, audita tu Término de Referencia o Especificación Técnica.
-            LexIA detecta direccionamiento a marca, ambigüedades, requisitos
-            desproporcionados y otros vicios con sustento normativo.
-          </p>
-        </div>
+    <Pagina className="max-w-[1100px]">
+      <MigaDePan
+        trozos={[
+          { label: 'Inicio', href: '/app' },
+          { label: 'Evaluar', href: '/evaluar' },
+          { label: 'Evaluación de requerimiento' },
+        ]}
+      />
+
+      <EncabezadoDeSeccion
+        icono={ScanSearch}
+        familia="evaluar"
+        titulo="Evaluación de requerimiento"
+        bajada="A-LexIA revisa el contenido del requerimiento de bienes, servicios, consultoría de obras y ejecución de obras, tanto para procedimientos de selección como para contratos menores: detecta direccionamiento a marca, ambigüedades, requisitos desproporcionados y otros vicios, con su sustento."
+        aside={
+          <NotaDelCompanero icono={HelpCircle} familia="evaluar" className="max-w-[300px]">
+            Súbelo antes de publicarlo en el SEACE y sabrás qué corregir y dónde está el riesgo.
+          </NotaDelCompanero>
+        }
+      />
+
+      <div className="flex justify-end">
         <Button asChild size="lg" variant="default">
           <Link href="/revisor-tdr/nuevo">
             <Plus className="h-4 w-4" />
-            Nueva auditoría
+            Evaluar un requerimiento
           </Link>
         </Button>
-      </header>
+      </div>
 
       {list.length === 0 ? (
         <Card className="p-12 text-center">
           <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 mb-4">
-            <Search className="h-5 w-5" />
+            <ScanSearch className="h-5 w-5" />
           </span>
-          <h2 className="text-xl mb-1 font-semibold">Aún no has auditado documentos</h2>
+          <h2 className="text-xl mb-1 font-semibold">Aún no has evaluado ningún requerimiento</h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
             Sube el TDR o EETT antes de publicarlo en SEACE. En minutos sabrás qué
             corregir y dónde está el riesgo.
@@ -86,7 +104,7 @@ export default async function RevisorTdrListPage() {
           <Button asChild className="mt-5">
             <Link href="/revisor-tdr/nuevo">
               <Plus className="h-4 w-4" />
-              Auditar mi documento
+              Evaluar mi requerimiento
             </Link>
           </Button>
         </Card>
@@ -121,7 +139,7 @@ export default async function RevisorTdrListPage() {
           ))}
         </div>
       )}
-    </div>
+    </Pagina>
   );
 }
 

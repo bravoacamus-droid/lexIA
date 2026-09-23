@@ -3,13 +3,19 @@ import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileSearch, Plus, FileCheck2, Clock, AlertCircle } from 'lucide-react';
+import { FileSearch, Plus, FileCheck2, Clock, AlertCircle, HelpCircle } from 'lucide-react';
+import {
+  Pagina,
+  MigaDePan,
+  EncabezadoDeSeccion,
+  NotaDelCompanero,
+} from '@/components/app/seccion/piezas';
 import { formatRelative } from '@/lib/utils';
 import { RoleGateBlocked, isRoleAllowed } from '@/components/app/role-gate';
 import type { ProfileRole } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Evaluador IA' };
+export const metadata = { title: 'Evaluación de ofertas' };
 
 export default async function EvaluatorListPage() {
   const supabase = createClient();
@@ -53,22 +59,35 @@ export default async function EvaluatorListPage() {
   }>;
 
   return (
-    <div className="container max-w-5xl py-8 space-y-6">
-      <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div>
-          <h1 className="font-semibold text-3xl tracking-tight">Evaluador IA de Ofertas</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Compara ofertas contra las Bases del proceso. Identifica observaciones
-            subsanables e incumplimientos con sustento normativo.
-          </p>
-        </div>
+    <Pagina className="max-w-[1100px]">
+      <MigaDePan
+        trozos={[
+          { label: 'Inicio', href: '/app' },
+          { label: 'Evaluar', href: '/evaluar' },
+          { label: 'Evaluación de ofertas' },
+        ]}
+      />
+
+      <EncabezadoDeSeccion
+        icono={FileSearch}
+        familia="evaluar"
+        titulo="Evaluación de ofertas"
+        bajada="Contrasta las ofertas con las bases definitivas y obtén una evaluación trazable en cada etapa: admisión, calificación y evaluación."
+        aside={
+          <NotaDelCompanero icono={HelpCircle} familia="evaluar" className="max-w-[300px]">
+            Cada decisión queda con su requisito y su sustento, lista para el acta.
+          </NotaDelCompanero>
+        }
+      />
+
+      <div className="flex justify-end">
         <Button asChild size="lg" variant="default">
           <Link href="/evaluador/nuevo">
             <Plus className="h-4 w-4" />
             Nueva evaluación
           </Link>
         </Button>
-      </header>
+      </div>
 
       {list.length === 0 ? (
         <Card className="p-12 text-center">
@@ -77,7 +96,7 @@ export default async function EvaluatorListPage() {
           </span>
           <h2 className="font-semibold text-xl mb-1">Aún no tienes evaluaciones</h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            Crea tu primera evaluación subiendo las Bases Integradas y hasta 5 ofertas. LexIA
+            Crea tu primera evaluación subiendo las Bases Integradas y hasta 5 ofertas. A-LexIA
             analizará cada requisito y entregará una matriz comparativa con sustento normativo.
           </p>
           <Button asChild className="mt-5">
@@ -114,7 +133,7 @@ export default async function EvaluatorListPage() {
           ))}
         </div>
       )}
-    </div>
+    </Pagina>
   );
 }
 

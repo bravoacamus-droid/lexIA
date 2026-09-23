@@ -52,7 +52,7 @@ const THEMES: Record<ProfileRole, RoleTheme> = {
     role: 'entity',
     label: 'Entidad pública',
     tagline:
-      'LexIA acompaña tus procedimientos de selección desde el requerimiento hasta la ejecución contractual.',
+      'A-LexIA acompaña tus procedimientos de selección desde el requerimiento hasta la ejecución contractual.',
     icon: Building2,
     tone: 'sky',
     classes: {

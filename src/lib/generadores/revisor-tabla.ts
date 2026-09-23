@@ -45,7 +45,7 @@ export function promptTablaSistema(
   plantilla: PlantillaRequerimiento,
   bloque: BloqueTabla,
 ): string {
-  return `Eres LexIA, revisor jurídico en Contrataciones del Estado peruano (Ley N° 32069 y su Reglamento, DS N° 009-2025-EF).
+  return `Eres A-LexIA, revisor jurídico en Contrataciones del Estado peruano (Ley N° 32069 y su Reglamento, DS N° 009-2025-EF).
 
 Revisas UNA tabla del documento "${plantilla.encabezado} — ${plantilla.subtitulo}": "${bloque.etiqueta}".
 

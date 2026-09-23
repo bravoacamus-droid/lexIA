@@ -36,7 +36,7 @@ export async function POST(req: Request) {
 
   const tail = [...(msgs as Array<{ role: string; content: string }>)].reverse();
   const transcript = tail
-    .map((m) => `${m.role === 'user' ? 'Usuario' : 'LexIA'}: ${m.content.slice(0, 800)}`)
+    .map((m) => `${m.role === 'user' ? 'Usuario' : 'A-LexIA'}: ${m.content.slice(0, 800)}`)
     .join('\n\n');
 
   try {

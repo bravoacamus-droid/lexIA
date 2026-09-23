@@ -82,7 +82,7 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
       subsecciones: [
         {
           // Los tres apartados del formato que no estaban. Observación
-          // de César (agosto de 2026): "en LexIA, no se consideró los
+          // de César (agosto de 2026): "en A-LexIA, no se consideró los
           // siguientes campos del modelo de formato".
           id: 'descripcion_general',
           titulo: 'Descripción general del servicio a contratar',
@@ -486,7 +486,7 @@ export const PLANTILLA_UIT_TDR: PlantillaRequerimiento = {
             { clase: 'titulo', texto: 'Prestación principal', nivel: 3 },
             {
               // El formato trae el párrafo escrito y solo deja los días.
-              // LexIA pedía redactar el plazo entero. Observación de
+              // A-LexIA pedía redactar el plazo entero. Observación de
               // César (agosto de 2026): "en la opción de Plazo de la
               // prestación principal, debe adecuarse según el modelo
               // proporcionado".

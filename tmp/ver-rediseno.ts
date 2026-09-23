@@ -6,12 +6,12 @@ import { chromium, type Browser } from 'playwright';
 import { readFile } from 'node:fs/promises';
 
 const RUTAS = [
-  ['chat', '/chat'],
-  ['voz', '/llamadas'],
-  ['buscador', '/buscador'],
-  ['biblioteca', '/biblioteca'],
-  ['requerimiento', '/generador/requerimiento-plantilla'],
-  ['generador', '/generador'],
+  ['revisor', '/revisor-tdr'],
+  ['evaluador', '/evaluador'],
+  ['revision', '/revision-oferta'],
+  ['rnp', '/rnp'],
+  ['ajustes', '/ajustes'],
+  ['encuestas', '/encuestas'],
 ] as const;
 
 async function tanda(

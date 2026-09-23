@@ -71,7 +71,7 @@ export function CommandPalette({ open, onOpenChange }: Props) {
           </CommandItem>
           <CommandItem onSelect={() => go('/chat')}>
             <MessageSquare />
-            Ir a Chat LexIA
+            Ir a Chat A-LexIA
           </CommandItem>
           <CommandItem onSelect={() => go('/biblioteca')}>
             <Library />

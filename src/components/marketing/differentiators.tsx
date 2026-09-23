@@ -46,7 +46,7 @@ export function Differentiators() {
           className="mx-auto max-w-2xl text-center mb-14"
         >
           <p className="text-[11px] uppercase tracking-[0.25em] font-semibold text-brand-600 mb-3">
-            Por qué LexIA
+            Por qué A-LexIA
           </p>
           <h2 className="font-semibold text-4xl sm:text-5xl tracking-[-0.025em] text-slate-900 text-balance">
             Tres razones que la diferencian de cualquier{' '}

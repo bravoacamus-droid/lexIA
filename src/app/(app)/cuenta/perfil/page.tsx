@@ -312,7 +312,7 @@ export default async function PerfilPage() {
         <div className="mt-4 pt-4 border-t border-border/60 flex flex-wrap items-center justify-between gap-3">
           <p className="text-[11px] text-muted-foreground">
             {tier === 'enterprise'
-              ? 'Tienes acceso completo. Gracias por confiar en LexIA.'
+              ? 'Tienes acceso completo. Gracias por confiar en A-LexIA.'
               : tier === 'pro'
                 ? 'Puedes cambiar tu plan cuando quieras.'
                 : 'Explora todas las funciones activando tu prueba o pasando a Pro.'}
@@ -343,7 +343,7 @@ export default async function PerfilPage() {
           </p>
           <h2 className="text-base font-semibold">Editar tu información</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Estos datos aparecen en tus documentos generados y ayudan a que LexIA
+            Estos datos aparecen en tus documentos generados y ayudan a que A-LexIA
             ajuste el tono de sus respuestas a tu perfil.
           </p>
         </div>

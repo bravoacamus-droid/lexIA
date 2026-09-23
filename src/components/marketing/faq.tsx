@@ -10,7 +10,7 @@ import {
 const FAQS = [
   {
     q: '¿Qué tan precisa es la inteligencia artificial?',
-    a: 'LexIA está construida sobre Retrieval-Augmented Generation (RAG): primero busca los fragmentos normativos relevantes en nuestra base, y solo entonces genera la respuesta basándose en ellos. Cada afirmación incluye citaciones verificables [1] [2] [3] que puedes clicar para ver el texto original completo. Si no hay sustento normativo suficiente, te lo dice explícitamente en lugar de inventar.',
+    a: 'A-LexIA está construida sobre Retrieval-Augmented Generation (RAG): primero busca los fragmentos normativos relevantes en nuestra base, y solo entonces genera la respuesta basándose en ellos. Cada afirmación incluye citaciones verificables [1] [2] [3] que puedes clicar para ver el texto original completo. Si no hay sustento normativo suficiente, te lo dice explícitamente en lugar de inventar.',
   },
   {
     q: '¿Mis consultas son privadas?',
@@ -21,8 +21,8 @@ const FAQS = [
     a: 'Ley N° 32069 (vigente) y TUO de la Ley 30225, su Reglamento (DS 344-2018-EF y modificatorias), Directivas vigentes del OSCE, Opiniones y Pronunciamientos del OSCE de los últimos 3 años, y una selección curada de Resoluciones del Tribunal de Contrataciones del Estado. La base se actualiza continuamente.',
   },
   {
-    q: '¿Puedo subir mis propios documentos para que LexIA los analice?',
-    a: 'Sí. En el módulo Evaluador puedes subir las Bases Integradas de un proceso y las ofertas de los postores: LexIA compara cada requisito y te entrega una matriz con observaciones, subsanables e incumplimientos, todos con sustento normativo. Los archivos se procesan de forma privada.',
+    q: '¿Puedo subir mis propios documentos para que A-LexIA los analice?',
+    a: 'Sí. En el módulo Evaluador puedes subir las Bases Integradas de un proceso y las ofertas de los postores: A-LexIA compara cada requisito y te entrega una matriz con observaciones, subsanables e incumplimientos, todos con sustento normativo. Los archivos se procesan de forma privada.',
   },
   {
     q: '¿Cuánto cuesta el servicio?',

@@ -28,7 +28,7 @@ interface ActionItem {
 const SHARED_ACTIONS: ActionItem[] = [
   {
     icon: MessageSquare,
-    title: 'Chat con LexIA',
+    title: 'Chat con A-LexIA',
     desc: 'Consulta normativa con citaciones verificables.',
     href: '/chat',
     accent: 'from-brand-500/15 to-brand-700/10',

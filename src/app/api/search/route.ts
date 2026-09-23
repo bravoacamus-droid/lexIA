@@ -14,7 +14,7 @@ const requestSchema = z.object({
    * tiene prioridad sobre `query`. Cada string se busca por separado
    * y los resultados se combinan; un documento que matchea N de las
    * queries se rankea con bonus proporcional. Inspirado en el feature
-   * de LEX Contrataciones (pero con brand LexIA).
+   * de LEX Contrataciones (pero con brand A-LexIA).
    */
   queries: z.array(z.string().min(1).max(80)).max(8).optional(),
   type: z

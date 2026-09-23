@@ -32,7 +32,7 @@ interface Props {
 }
 
 /**
- * Widget grande "Mi trabajo en LexIA" que muestra contenido específico
+ * Widget grande "Mi trabajo en A-LexIA" que muestra contenido específico
  * del rol activo. Rediseñado 30/06/2026 tras feedback del usuario que
  * dijo que los widgets anteriores eran genéricos y sin diferencia real
  * por perfil.
@@ -156,7 +156,7 @@ interface WorkSection {
 
 function getWorkSections(role: ProfileRole, data: Props['data']): WorkSection[] {
   const commonAsk: WorkSection = {
-    title: 'Preguntar a LexIA',
+    title: 'Preguntar a A-LexIA',
     desc: 'Chat con citas verificables sobre la Ley 32069.',
     href: '/chat?new=1',
     cta: 'Iniciar conversación',
@@ -165,10 +165,10 @@ function getWorkSections(role: ProfileRole, data: Props['data']): WorkSection[] 
   };
 
   const commonCall: WorkSection = {
-    title: 'Hablar con LexIA',
+    title: 'Hablar con A-LexIA',
     desc: 'Cuéntanos tu consulta en lenguaje natural y responderemos con normativa citada.',
     href: '/llamadas/nueva',
-    cta: 'Hablar con LexIA',
+    cta: 'Hablar con A-LexIA',
     icon: PhoneCall,
     count: data.voiceCallsCount,
   };

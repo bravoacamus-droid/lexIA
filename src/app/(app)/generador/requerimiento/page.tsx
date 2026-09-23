@@ -72,7 +72,7 @@ export default async function RequerimientosListPage() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
             Estructura oficial tipo SEACE con cláusulas reordenables. Pega
-            tu texto o deja que LexIA lo profesionalice con sustento
+            tu texto o deja que A-LexIA lo profesionalice con sustento
             normativo de la Ley 32069.
           </p>
         </div>
@@ -95,7 +95,7 @@ export default async function RequerimientosListPage() {
             Formatos oficiales de procedimiento de selección
           </p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Reproducen el formato completo: el texto obligatorio va tal cual y LexIA solo
+            Reproducen el formato completo: el texto obligatorio va tal cual y A-LexIA solo
             redacta lo que depende de tu contratación.
           </p>
         </div>

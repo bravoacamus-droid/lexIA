@@ -739,7 +739,7 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
       //     ejecutamos 4-6 sub-búsquedas por facetas típicas (tipos,
       //     definición, requisitos, procedimiento, excepciones, alcance)
       //     para no perder cobertura temática. Feedback César 13/07/2026:
-      //     LexIA se iba por otro lado en preguntas transversales.
+      //     A-LexIA se iba por otro lado en preguntas transversales.
       // Guardamos el TOP-1 de cada faceta para garantizar cobertura tras
       // el rerank final — sin esto, el corte a 25 por similarity global
       // eliminaba facetas enteras (test 24/07/2026: "contratos menores"

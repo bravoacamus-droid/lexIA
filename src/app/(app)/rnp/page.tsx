@@ -135,7 +135,7 @@ export default async function RnpHubPage() {
             <p className="font-medium text-foreground mb-1">
               Estos trámites se presentan ante el OECE
             </p>
-            LexIA arma los documentos con base en los formatos oficiales y los
+            A-LexIA arma los documentos con base en los formatos oficiales y los
             datos que cargues. La presentación final se realiza en la sede digital
             del OECE con el pago de la tasa correspondiente (S/ 364.00 para
             Aumento de CMC al 2025).

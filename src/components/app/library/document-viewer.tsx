@@ -368,10 +368,10 @@ export function DocumentViewer({
                   className="text-brand-700 dark:text-brand-400"
                 >
                   <MessageSquare className="h-4 w-4" />
-                  <span className="hidden sm:inline">Preguntar a LexIA</span>
+                  <span className="hidden sm:inline">Preguntar a A-LexIA</span>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Preguntar a LexIA sobre este documento</TooltipContent>
+              <TooltipContent>Preguntar a A-LexIA sobre este documento</TooltipContent>
             </Tooltip>
             {doc.source_url && (
               <Button asChild variant="ghost" size="sm">
@@ -848,9 +848,9 @@ function injectSectionAnchors(text: string, toc: TocItem[]): string {
 
 /**
  * Botones que aparecen al hover sobre un heading (Artículo X, Título Y).
- * Permiten: copiar el link permanente (ancla) y preguntar a LexIA
+ * Permiten: copiar el link permanente (ancla) y preguntar a A-LexIA
  * específicamente sobre ese artículo. Feedback de César 30/06/2026:
- * "faltan botones de copiar cita / preguntar a LexIA sobre este
+ * "faltan botones de copiar cita / preguntar a A-LexIA sobre este
  * artículo" en la vista de detalle de documento.
  */
 function HeadingActions({ id, title }: { id: string; title: string }) {
@@ -881,8 +881,8 @@ function HeadingActions({ id, title }: { id: string; title: string }) {
         type="button"
         onClick={askAbout}
         className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:text-brand-700 hover:bg-brand-50 dark:hover:text-brand-400 dark:hover:bg-brand-950/40 transition-colors"
-        aria-label="Preguntar a LexIA sobre este artículo"
-        title="Preguntar a LexIA sobre este artículo"
+        aria-label="Preguntar a A-LexIA sobre este artículo"
+        title="Preguntar a A-LexIA sobre este artículo"
       >
         <MessageSquare className="h-3.5 w-3.5" />
       </button>

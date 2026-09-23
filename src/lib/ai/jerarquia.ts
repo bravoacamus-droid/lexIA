@@ -406,7 +406,7 @@ VERIFICADO. Son casos que este equipo resolvió y comprobó contra la
 norma, y sirven de atajo: dicen la respuesta y nombran los artículos que
 la sostienen. NO son fuente por sí mismos. Si te apoyas en uno, cita el
 artículo que él cita, no el criterio: responder «los criterios validados
-de LexIA establecen…» sin nombrar la norma deja al usuario sin poder
+de A-LexIA establecen…» sin nombrar la norma deja al usuario sin poder
 comprobar nada. Y si el criterio contradijera a la norma que tienes
 delante, manda la norma y conviene decirlo.
 

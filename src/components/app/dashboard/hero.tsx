@@ -47,12 +47,12 @@ const ROLE_CTAS: Record<
   entity: [
     { icon: FileSearch, label: 'Evaluar ofertas', href: '/evaluador/nuevo', primary: true },
     { icon: ScanSearch, label: 'Auditar TDR', href: '/revisor-tdr/nuevo' },
-    { icon: MessageSquare, label: 'Preguntar a LexIA', href: '/chat?new=1' },
+    { icon: MessageSquare, label: 'Preguntar a A-LexIA', href: '/chat?new=1' },
   ],
   provider: [
     { icon: ShieldCheck, label: 'Auditar mi oferta', href: '/revision-oferta/nuevo', primary: true },
     { icon: FilePen, label: 'Generar documento', href: '/generador' },
-    { icon: MessageSquare, label: 'Preguntar a LexIA', href: '/chat?new=1' },
+    { icon: MessageSquare, label: 'Preguntar a A-LexIA', href: '/chat?new=1' },
   ],
   consultant: [
     { icon: MessageSquare, label: 'Iniciar consulta', href: '/chat?new=1', primary: true },

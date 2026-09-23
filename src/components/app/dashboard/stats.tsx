@@ -59,7 +59,7 @@ export function DashboardStats({
       icon: MessageSquare,
       label: 'Consultas al chat',
       value: chatMessages,
-      hint: 'Preguntas que hiciste a LexIA',
+      hint: 'Preguntas que hiciste a A-LexIA',
       tone: 'brand',
       href: '/chat',
       trend: chatTrend,

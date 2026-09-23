@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { LogoMark } from '@/components/brand';
 import { ArrowLeft } from 'lucide-react';
 
-export const metadata = { title: 'Legal · LexIA' };
+export const metadata = { title: 'Legal · A-LexIA' };
 
 export default function LegalLayout({
   children,
@@ -45,7 +45,7 @@ export default function LegalLayout({
               Cookies
             </Link>
           </p>
-          <p>© {new Date().getFullYear()} Promptive · LexIA Contrataciones</p>
+          <p>© {new Date().getFullYear()} Promptive · A-LexIA Contrataciones</p>
         </div>
       </footer>
     </div>

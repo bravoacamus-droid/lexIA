@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useChat } from 'ai/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Logo, LogoMark } from '@/components/logo';
+import { Companero } from '@/components/marca/companero';
 import { ChatMessageView } from '@/components/app/chat/message';
 import { ChatInput } from '@/components/app/chat/chat-input';
 import { ChunkSheet } from '@/components/app/chat/chunk-sheet';
@@ -192,7 +192,7 @@ export function ChatPanel({
           void reload();
           return;
         }
-        toast.error('LexIA no pudo generar esta respuesta', {
+        toast.error('A-LexIA no pudo generar esta respuesta', {
           description: 'Vuelve a intentarlo o reformula la pregunta.',
           duration: 6000,
         });
@@ -232,7 +232,7 @@ export function ChatPanel({
     },
     onError: async (err) => {
       console.error('Chat error', err);
-      let friendly = 'LexIA tuvo un problema generando la respuesta.';
+      let friendly = 'A-LexIA tuvo un problema generando la respuesta.';
       // Intentamos extraer detalle del último fetch para mostrarlo al usuario
       try {
         const m = String((err as Error).message || '');
@@ -242,7 +242,7 @@ export function ChatPanel({
         } else if (m.includes('unauthorized')) {
           friendly = 'Tu sesión expiró. Recarga la página.';
         } else if (m) {
-          friendly = `LexIA falló: ${m.slice(0, 200)}`;
+          friendly = `A-LexIA falló: ${m.slice(0, 200)}`;
         }
       } catch {
         /* keep default */
@@ -448,9 +448,7 @@ export function ChatPanel({
                   exit={{ opacity: 0 }}
                   className="text-center py-12"
                 >
-                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-card border border-border mb-4">
-                    <LogoMark size="lg" />
-                  </div>
+                  <Companero pose="saludo" estado="quieto" alto={120} className="mb-3" />
                   <h2 className="font-semibold text-2xl tracking-tight mb-1">
                     {title || 'Nueva conversación'}
                   </h2>
@@ -518,7 +516,7 @@ export function ChatPanel({
               }
             />
             <p className="mt-2 text-center text-[10px] text-muted-foreground">
-              LexIA puede equivocarse. Verifica siempre las citaciones con la fuente original.
+              A-LexIA puede equivocarse. Verifica siempre las citaciones con la fuente original.
             </p>
           </div>
         </div>

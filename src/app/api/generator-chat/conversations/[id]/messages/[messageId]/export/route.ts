@@ -56,7 +56,7 @@ export async function GET(
 
   const perfilLabel = GENERATOR_PERFILES[c.perfil].label;
   const buffer = await markdownToDocxBuffer(m.content, {
-    title: c.title || 'Documento generado por LexIA',
+    title: c.title || 'Documento generado por A-LexIA',
     subtitle: `Perfil: ${perfilLabel} · Generado el ${new Date().toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' })}`,
   });
 

@@ -34,7 +34,7 @@ const COMMON_RULES = `REGLAS COMUNES OBLIGATORIAS:
 // ════════════════════════════════════════════════════════
 // 1. CAMBIO DE PERSONAL CLAVE (proveedor)
 // ════════════════════════════════════════════════════════
-export const CAMBIO_PERSONAL_CLAVE_SYSTEM = `Eres LexIA. Estás asistiendo a un CONTRATISTA del Estado peruano (proveedor de obras, servicios o consultoría) a redactar la "CARTA DE SOLICITUD DE SUSTITUCIÓN DE PERSONAL CLAVE" dirigida a la Entidad contratante durante la fase de ejecución contractual, bajo la Ley N° 32069 y su Reglamento (DS N° 009-2025-EF).
+export const CAMBIO_PERSONAL_CLAVE_SYSTEM = `Eres A-LexIA. Estás asistiendo a un CONTRATISTA del Estado peruano (proveedor de obras, servicios o consultoría) a redactar la "CARTA DE SOLICITUD DE SUSTITUCIÓN DE PERSONAL CLAVE" dirigida a la Entidad contratante durante la fase de ejecución contractual, bajo la Ley N° 32069 y su Reglamento (DS N° 009-2025-EF).
 
 ═══════════════════════════════════════════════════════════════════
 MARCO NORMATIVO
@@ -159,10 +159,10 @@ ${COMMON_RULES}`;
 // ════════════════════════════════════════════════════════
 // 2. RESOLUCIÓN DE CONTRATO — 2 ETAPAS NOTARIALES
 // ════════════════════════════════════════════════════════
-export const RESOLUCION_CONTRATO_SYSTEM = `Eres LexIA. Estás asistiendo a una parte (Entidad o Contratista) a redactar una "CARTA NOTARIAL" en el procedimiento de resolución de contrato por incumplimiento de obligaciones esenciales, bajo la Ley N° 32069 y su Reglamento (DS N° 009-2025-EF).
+export const RESOLUCION_CONTRATO_SYSTEM = `Eres A-LexIA. Estás asistiendo a una parte (Entidad o Contratista) a redactar una "CARTA NOTARIAL" en el procedimiento de resolución de contrato por incumplimiento de obligaciones esenciales, bajo la Ley N° 32069 y su Reglamento (DS N° 009-2025-EF).
 
 ═══════════════════════════════════════════════════════════════════
-DOS ETAPAS — LexIA REDACTA LA QUE EL USUARIO INDIQUE
+DOS ETAPAS — A-LexIA REDACTA LA QUE EL USUARIO INDIQUE
 ═══════════════════════════════════════════════════════════════════
 
 ▸ **ETAPA 1 — CARTA NOTARIAL DE APERCIBIMIENTO**
@@ -344,7 +344,7 @@ ${COMMON_RULES}`;
 // ════════════════════════════════════════════════════════
 // 3. CAMBIO DE BIENES OFERTADOS (proveedor)
 // ════════════════════════════════════════════════════════
-export const CAMBIO_BIENES_SYSTEM = `Eres LexIA. Estás asistiendo a un CONTRATISTA del Estado peruano a redactar la "SOLICITUD DE SUSTITUCIÓN DE BIENES OFERTADOS" dirigida a la Entidad contratante, bajo la Ley N° 32069 y su Reglamento (DS N° 009-2025-EF).
+export const CAMBIO_BIENES_SYSTEM = `Eres A-LexIA. Estás asistiendo a un CONTRATISTA del Estado peruano a redactar la "SOLICITUD DE SUSTITUCIÓN DE BIENES OFERTADOS" dirigida a la Entidad contratante, bajo la Ley N° 32069 y su Reglamento (DS N° 009-2025-EF).
 
 ═══════════════════════════════════════════════════════════════════
 OBJETIVO
@@ -419,7 +419,7 @@ ${COMMON_RULES}`;
 // ════════════════════════════════════════════════════════
 // 4. DESCARGO POR PENALIDADES (proveedor)
 // ════════════════════════════════════════════════════════
-export const DESCARGO_PENALIDADES_SYSTEM = `Eres LexIA. Estás asistiendo a un CONTRATISTA del Estado peruano a redactar un escrito de "DESCARGO A LA APLICACIÓN DE PENALIDADES" dirigido a la Entidad contratante, bajo la Ley N° 32069 y su Reglamento (DS N° 009-2025-EF).
+export const DESCARGO_PENALIDADES_SYSTEM = `Eres A-LexIA. Estás asistiendo a un CONTRATISTA del Estado peruano a redactar un escrito de "DESCARGO A LA APLICACIÓN DE PENALIDADES" dirigido a la Entidad contratante, bajo la Ley N° 32069 y su Reglamento (DS N° 009-2025-EF).
 
 ═══════════════════════════════════════════════════════════════════
 OBJETIVO
@@ -515,7 +515,7 @@ ${COMMON_RULES}`;
 // ════════════════════════════════════════════════════════
 // 5. SOLICITUD DE SANCIÓN PARA INHABILITACIÓN (entidad)
 // ════════════════════════════════════════════════════════
-export const SOLICITUD_SANCION_SYSTEM = `Eres LexIA. Estás asistiendo a la ENTIDAD CONTRATANTE peruana a redactar el "ESCRITO DE SOLICITUD DE SANCIÓN" dirigido al Tribunal de Contrataciones Públicas (TCP), iniciando el procedimiento administrativo sancionador contra un proveedor que ha incurrido en infracción tipificada en la Ley N° 32069.
+export const SOLICITUD_SANCION_SYSTEM = `Eres A-LexIA. Estás asistiendo a la ENTIDAD CONTRATANTE peruana a redactar el "ESCRITO DE SOLICITUD DE SANCIÓN" dirigido al Tribunal de Contrataciones Públicas (TCP), iniciando el procedimiento administrativo sancionador contra un proveedor que ha incurrido en infracción tipificada en la Ley N° 32069.
 
 ═══════════════════════════════════════════════════════════════════
 MARCO NORMATIVO

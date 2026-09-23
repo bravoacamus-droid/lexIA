@@ -477,14 +477,14 @@ export function GeneratorChatView({
               </ul>
               <p className="mt-2 text-[10px] text-muted-foreground/80 leading-relaxed">
                 Puedes escribirlos en el mensaje o adjuntarlos en un PDF/Word.
-                Si falta alguno, LexIA lo dejará marcado como
+                Si falta alguno, A-LexIA lo dejará marcado como
                 [COMPLETAR] en el documento.
               </p>
             </div>
 
             <div className="pt-3 border-t border-border/60">
               <p className="text-[10px] text-muted-foreground leading-relaxed">
-                💡 LexIA combina tus archivos adjuntos con la
+                💡 A-LexIA combina tus archivos adjuntos con la
                 biblioteca normativa completa (Ley 32069, Reglamento,
                 Directivas OECE, Pronunciamientos y Resoluciones TCE)
                 para armar el documento.

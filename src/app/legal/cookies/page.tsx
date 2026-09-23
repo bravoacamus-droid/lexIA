@@ -7,7 +7,7 @@ export default function CookiesPage() {
       <p className="text-sm text-muted-foreground">Última actualización: 2026</p>
 
       <p>
-        LexIA Contrataciones utiliza cookies y tecnologías similares para
+        A-LexIA Contrataciones utiliza cookies y tecnologías similares para
         operar correctamente y para mejorar tu experiencia. Esta política
         explica qué cookies usamos y para qué.
       </p>

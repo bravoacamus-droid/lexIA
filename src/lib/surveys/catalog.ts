@@ -1,5 +1,5 @@
 /**
- * Catálogo de encuestas segmentadas LexIA — versión condensada y amigable.
+ * Catálogo de encuestas segmentadas A-LexIA — versión condensada y amigable.
  *
  * Las encuestas largas originales (.docx en data/encuestas) tienen 20+ preguntas
  * cada una. Aquí condensamos a ~12-13 preguntas core por perfil agrupadas en

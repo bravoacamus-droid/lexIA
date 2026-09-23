@@ -10,7 +10,7 @@
  * postor imprime, firma, sella y escanea; eso es lo que sube al SEACE y
  * lo que recibe el comité.
  *
- * Hasta ahora LexIA lo detectaba y le decía al usuario que pasara el
+ * Hasta ahora A-LexIA lo detectaba y le decía al usuario que pasara el
  * documento por un OCR externo. Para un requerimiento de veinte páginas
  * es un incordio; para una oferta de trescientas, es que no se puede
  * usar.

@@ -6,7 +6,7 @@ import {
   type NormativeDocType,
 } from '@/lib/scraping/classifier';
 
-const UA = 'Mozilla/5.0 (compatible; LexIA-Bot/1.0; +https://lexia.pe/bot)';
+const UA = 'Mozilla/5.0 (compatible; A-LexIA-Bot/1.0; +https://lexia.pe/bot)';
 
 const EMBEDDING_MODEL = 'gemini-embedding-001';
 const EMBEDDING_DIM = 1024;

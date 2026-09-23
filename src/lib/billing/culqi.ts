@@ -49,7 +49,7 @@ export async function createCulqiCustomer(args: {
     method: 'POST',
     body: {
       first_name: args.full_name.split(' ')[0] || 'Cliente',
-      last_name: args.full_name.split(' ').slice(1).join(' ') || 'LexIA',
+      last_name: args.full_name.split(' ').slice(1).join(' ') || 'A-LexIA',
       email: args.email,
       address: args.address || 'No especificado',
       address_city: args.address_city || 'Lima',

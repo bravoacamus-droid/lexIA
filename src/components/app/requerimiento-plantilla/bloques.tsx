@@ -244,7 +244,7 @@ export function ControlCampo({
   const [mejorando, setMejorando] = useState(false);
   const [propuesta, setPropuesta] = useState<string | null>(null);
   // Antes solo se ofrecía con texto escrito: en blanco no había forma
-  // de pedirle a LexIA que lo propusiera, que es lo que hace falta en
+  // de pedirle a A-LexIA que lo propusiera, que es lo que hace falta en
   // "servicios similares" o "bienes similares".
   const puedeMejorar = largo && !!onMejorar;
 
@@ -300,14 +300,14 @@ export function ControlCampo({
           ) : (
             <Sparkles className="mr-1.5 h-3.5 w-3.5" />
           )}
-          {valor.trim() ? 'Mejorar redacción' : 'Proponer con LexIA'}
+          {valor.trim() ? 'Mejorar redacción' : 'Proponer con A-LexIA'}
         </Button>
       )}
 
       {propuesta && (
         <div className="mt-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
           <p className="mb-2 text-xs font-medium text-primary">
-            Versión mejorada por LexIA — revísala antes de usarla
+            Versión mejorada por A-LexIA — revísala antes de usarla
           </p>
           <pre className="whitespace-pre-wrap text-sm leading-relaxed">{propuesta}</pre>
           <div className="mt-2 flex gap-2">
@@ -361,7 +361,7 @@ function HuecoParrafo({
   valor: string;
   onChange: (v: string) => void;
   /**
-   * Pide el texto a LexIA. Solo para los huecos de texto largo: en
+   * Pide el texto a A-LexIA. Solo para los huecos de texto largo: en
    * "servicios similares" el área usuaria quiere que se los propongan,
    * no describirlos desde cero. Petición de César del 19/08/2026.
    */
@@ -432,14 +432,14 @@ function HuecoParrafo({
           ) : (
             <Sparkles className="mr-1 h-3.5 w-3.5" />
           )}
-          {valor.trim() ? 'Mejorar con LexIA' : 'Proponer con LexIA'}
+          {valor.trim() ? 'Mejorar con A-LexIA' : 'Proponer con A-LexIA'}
         </Button>
       )}
 
       {propuesta && (
         <span className="mt-1 block rounded-lg border border-primary/30 bg-primary/5 p-2.5">
           <span className="mb-1 block text-xs font-medium text-primary">
-            Propuesta de LexIA — revísala antes de usarla
+            Propuesta de A-LexIA — revísala antes de usarla
           </span>
           <span className="block whitespace-pre-wrap text-sm leading-relaxed">{propuesta}</span>
           <span className="mt-2 flex gap-2">
@@ -870,13 +870,13 @@ export function ControlRedactado({
           onChange={(e) => onChange(e.target.value)}
           rows={bloque.extension === 'parrafo' ? 4 : 7}
           className="mt-2"
-          placeholder="Escríbelo, o descríbelo abajo y deja que LexIA lo redacte."
+          placeholder="Escríbelo, o descríbelo abajo y deja que A-LexIA lo redacte."
         />
       )}
 
       {mejorar && (
         <p className="mt-1.5 text-xs text-muted-foreground">
-          Ya hay texto: LexIA lo mejorará conservando tus datos y decisiones, no escribirá otro.
+          Ya hay texto: A-LexIA lo mejorará conservando tus datos y decisiones, no escribirá otro.
         </p>
       )}
 
@@ -888,7 +888,7 @@ export function ControlRedactado({
             placeholder={
               mejorar
                 ? 'Qué quieres que corrija o añada (opcional)…'
-                : 'Datos concretos para que LexIA redacte este apartado…'
+                : 'Datos concretos para que A-LexIA redacte este apartado…'
             }
             className="h-9 text-sm"
           />
@@ -915,7 +915,7 @@ export function ControlRedactado({
         // nadie hace.
         <div className="mt-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
           <p className="mb-2 text-xs font-medium text-primary">
-            {mejorar ? 'Versión mejorada por LexIA' : 'Propuesta de LexIA'} — revísala antes de usarla
+            {mejorar ? 'Versión mejorada por A-LexIA' : 'Propuesta de A-LexIA'} — revísala antes de usarla
           </p>
           <pre className="whitespace-pre-wrap text-sm leading-relaxed">{propuesta}</pre>
           <div className="mt-2 flex gap-2">
@@ -950,7 +950,7 @@ export function ControlRedactado({
  * técnicas: "debe permitir ingresar cuadros independientes y en cada
  * cuadro debe permitir poner un título, para poner el nombre de cada
  * bien y en el cuadro poner sus características". Su formato pone "Bien
- * N.° 01: XYZ" con su cuadro y "Bien N.° 02: ABC" con el suyo; LexIA
+ * N.° 01: XYZ" con su cuadro y "Bien N.° 02: ABC" con el suyo; A-LexIA
  * tenía un único cuadro para todos los bienes de la contratación.
  *
  * El primero no lleva título y es el de siempre: un requerimiento de un
@@ -1041,7 +1041,7 @@ export function ControlTabla({
   filas: string[][];
   onChange: (filas: string[][]) => void;
   /**
-   * Revisa la tabla con LexIA. Las tablas se llenan a mano y nadie las
+   * Revisa la tabla con A-LexIA. Las tablas se llenan a mano y nadie las
    * miraba, y ahí viven los plazos y las cifras.
    */
   onRevisar: (filas: string[][]) => Promise<RevisionTabla | null>;
@@ -1145,7 +1145,7 @@ export function ControlTabla({
             ) : (
               <Sparkles className="mr-1.5 h-3.5 w-3.5" />
             )}
-            Revisar con LexIA
+            Revisar con A-LexIA
           </Button>
         )}
       </div>
@@ -1182,7 +1182,7 @@ export function ControlTabla({
               {revision.filas && (
                 <div className="mt-2 flex flex-wrap items-center gap-2 border-t pt-2">
                   <span className="text-xs text-muted-foreground">
-                    LexIA propone la misma tabla mejor redactada, con los mismos datos.
+                    A-LexIA propone la misma tabla mejor redactada, con los mismos datos.
                   </span>
                   <Button
                     type="button"

@@ -18,7 +18,7 @@ const PREFS: Pref[] = [
   {
     label: 'Aviso cuando se actualice una norma que citaste',
     description:
-      'Te avisamos si la opinión o pronunciamiento que LexIA usó en una respuesta tuya tiene un cambio relevante.',
+      'Te avisamos si la opinión o pronunciamiento que A-LexIA usó en una respuesta tuya tiene un cambio relevante.',
     enabledByDefault: true,
   },
   {

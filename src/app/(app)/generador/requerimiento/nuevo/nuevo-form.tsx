@@ -157,7 +157,7 @@ export function NuevoRequerimientoForm() {
           Nuevo requerimiento
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Empecemos por elegir qué tipo de contratación vas a realizar. LexIA
+          Empecemos por elegir qué tipo de contratación vas a realizar. A-LexIA
           adaptará las cláusulas y la redacción al régimen correspondiente.
         </p>
       </header>
@@ -319,7 +319,7 @@ function Step1SelectorSubtipo({
             {regimenNode.label.replace(/^[IV]+\.\s*/, '')}
           </h3>
           <p className="text-sm text-muted-foreground mb-4">
-            LexIA adaptará las cláusulas del anexo (RNP, ficha técnica de Perú
+            A-LexIA adaptará las cláusulas del anexo (RNP, ficha técnica de Perú
             Compras, Gestión de Instalaciones, Diseño y Construcción, etc.) al
             subtipo elegido.
           </p>

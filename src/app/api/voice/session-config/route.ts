@@ -22,7 +22,7 @@ export const dynamic = 'force-dynamic';
  *     autenticado.
  * Mitigación:
  *   - La API key tiene restricciones de servicio (solo Gemini API).
- *   - Solo usuarios autenticados de LexIA pueden obtenerla.
+ *   - Solo usuarios autenticados de A-LexIA pueden obtenerla.
  *   - Cuota mensual por feature gate (Día 7).
  *   - Para producción a gran escala, migrar a backend proxy o
  *     ephemeral tokens cuando Gemini Live los soporte.
@@ -87,7 +87,7 @@ export async function POST(req: Request) {
           {
             name: 'search_normativa',
             description:
-              'Busca en la base normativa de LexIA. Devuelve los fragmentos más relevantes con su cita. USAR ANTES de citar cualquier norma.',
+              'Busca en la base normativa de A-LexIA. Devuelve los fragmentos más relevantes con su cita. USAR ANTES de citar cualquier norma.',
             parameters: {
               type: 'object',
               properties: {

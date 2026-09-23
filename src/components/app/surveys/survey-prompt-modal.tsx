@@ -42,7 +42,7 @@ function estaOcupado(ultimoGesto: number) {
   if (Date.now() - ultimoGesto < QUIETUD) return true;
 
   // Y tampoco encima de algo que está cargando. Escribir la necesidad,
-  // pedirle a LexIA que proponga los apartados y esperar siete segundos
+  // pedirle a A-LexIA que proponga los apartados y esperar siete segundos
   // deja el foco en un botón, no en una caja de texto: por ahí se colaba
   // la encuesta justo cuando llegaba la respuesta. Todo lo que tarda en
   // esta aplicación enseña la misma rueda, así que vale para cualquier
@@ -206,7 +206,7 @@ function Invite({
         </motion.div>
 
         <h2 className="font-semibold text-2xl sm:text-3xl tracking-[-0.02em] text-slate-900 leading-tight mb-2">
-          Ayúdanos a hacer LexIA{' '}
+          Ayúdanos a hacer A-LexIA{' '}
           <span className="bg-gradient-to-r from-brand-600 to-brand-500 bg-clip-text text-transparent">
             mejor para ti
           </span>

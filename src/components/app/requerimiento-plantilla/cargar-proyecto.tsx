@@ -214,7 +214,7 @@ export function CargarProyecto({
             Cargar un proyecto de requerimiento
           </h2>
           <p className="mt-1 max-w-xl text-xs leading-relaxed text-muted-foreground">
-            Si el área usuaria ya tiene un borrador en Word o PDF, súbelo y LexIA reparte su
+            Si el área usuaria ya tiene un borrador en Word o PDF, súbelo y A-LexIA reparte su
             contenido en los apartados del formato oficial. No inventa nada: solo coloca lo que el
             proyecto dice donde corresponde.
           </p>

@@ -1,4 +1,4 @@
-export const metadata = { title: 'Bienvenido a LexIA' };
+export const metadata = { title: 'Bienvenido a A-LexIA' };
 
 export default function OnboardingLayout({
   children,

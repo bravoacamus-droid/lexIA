@@ -8,7 +8,7 @@ export default function PrivacidadPage() {
 
       <h2>1. Quiénes somos</h2>
       <p>
-        LexIA Contrataciones es operado por Promptive (en adelante, &quot;nosotros&quot;).
+        A-LexIA Contrataciones es operado por Promptive (en adelante, &quot;nosotros&quot;).
         Esta política describe qué datos personales tratamos y cómo lo hacemos,
         conforme a la Ley N° 29733, Ley de Protección de Datos Personales del
         Perú, y su Reglamento.

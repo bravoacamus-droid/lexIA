@@ -242,7 +242,7 @@ export function construirActa({ bases, postores, sesion }: DatosActa): string {
     );
   }
   partes.push(
-    '_La oferta económica de cada postor se verifica y puntúa en esta etapa. LexIA no asigna puntaje ' +
+    '_La oferta económica de cada postor se verifica y puntúa en esta etapa. A-LexIA no asigna puntaje ' +
       'económico automáticamente: el comité consigna los montos ofertados y aplica la fórmula de las Bases._',
   );
   partes.push(
@@ -349,7 +349,7 @@ export function construirActa({ bases, postores, sesion }: DatosActa): string {
  * evaluación técnica", que es lo que describe el CONTENIDO de la etapa
  * y sirve para los avisos. Mezclarlos dejaba encabezados como
  * "RESULTADO CONSOLIDADO DE LA ETAPA DE FACTORES DE EVALUACIÓN TÉCNICA".
- * Observación de César (setiembre de 2026): "LexIA no genera el formato
+ * Observación de César (setiembre de 2026): "A-LexIA no genera el formato
  * de acuerdo a la estructura proporcionada".
  */
 const ETAPA_EN_ACTA: Record<Etapa, string> = {

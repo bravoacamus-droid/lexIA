@@ -218,7 +218,7 @@ export function EvaluatorWizard({
                   Sube las Bases Integradas
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  PDF con los requisitos del proceso (hasta 100 MB). LexIA extraerá los
+                  PDF con los requisitos del proceso (hasta 100 MB). A-LexIA extraerá los
                   requisitos de calificación automáticamente.
                 </p>
               </div>
@@ -324,7 +324,7 @@ export function EvaluatorWizard({
                   loading={submitting}
                 >
                   <Sparkles className="h-4 w-4" />
-                  Evaluar con LexIA
+                  Evaluar con A-LexIA
                 </Button>
               </div>
             </Card>

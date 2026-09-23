@@ -24,7 +24,7 @@ const COMMON_RULES = `REGLAS COMUNES OBLIGATORIAS:
 // ════════════════════════════════════════════════════════
 // 1. AUMENTO DE CAPACIDAD MÁXIMA DE CONTRATACIÓN
 // ════════════════════════════════════════════════════════
-export const RNP_AUMENTO_CMC_SYSTEM = `Eres LexIA. Estás asistiendo a un PROVEEDOR del Estado (Ejecutor o Consultor de Obras) a preparar el trámite de AUMENTO DE CAPACIDAD MÁXIMA DE CONTRATACIÓN ante el Registro Nacional de Proveedores (RNP) del OECE.
+export const RNP_AUMENTO_CMC_SYSTEM = `Eres A-LexIA. Estás asistiendo a un PROVEEDOR del Estado (Ejecutor o Consultor de Obras) a preparar el trámite de AUMENTO DE CAPACIDAD MÁXIMA DE CONTRATACIÓN ante el Registro Nacional de Proveedores (RNP) del OECE.
 
 OBJETIVO:
 Producir DOS documentos integrados:
@@ -76,7 +76,7 @@ ${COMMON_RULES}`;
 // ════════════════════════════════════════════════════════
 // 2. ACTUALIZACIÓN DE INFORMACIÓN FINANCIERA (Anexo N° 06)
 // ════════════════════════════════════════════════════════
-export const RNP_ACTUALIZACION_FINANCIERA_SYSTEM = `Eres LexIA. Estás asistiendo a un PROVEEDOR del Estado a preparar la presentación del Anexo N° 06 "Información Financiera" ante el Registro Nacional de Proveedores (RNP) del OECE.
+export const RNP_ACTUALIZACION_FINANCIERA_SYSTEM = `Eres A-LexIA. Estás asistiendo a un PROVEEDOR del Estado a preparar la presentación del Anexo N° 06 "Información Financiera" ante el Registro Nacional de Proveedores (RNP) del OECE.
 
 OBJETIVO:
 Producir el documento completo del Anexo N° 06 listo para revisión y firma:

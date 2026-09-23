@@ -56,7 +56,7 @@ export function ContinueLeftOff({ lastConversation, lastCall }: Props) {
       tone: 'brand',
       href: `/chat/${lastConversation.id}`,
       title: lastConversation.title || 'Nueva conversación',
-      subtitle: 'Retoma la conversación con LexIA',
+      subtitle: 'Retoma la conversación con A-LexIA',
       meta: relativeTime(lastConversation.updatedAt),
     });
   }

@@ -48,7 +48,7 @@ export function Processing() {
       </motion.div>
 
       <h2 className="font-semibold text-2xl tracking-tight">
-        LexIA está evaluando…
+        A-LexIA está evaluando…
       </h2>
       <p className="mt-1.5 text-sm text-muted-foreground max-w-md mx-auto text-balance">
         Esto puede tardar entre 1 y 3 minutos según el tamaño de los PDFs y la cantidad de
@@ -110,7 +110,7 @@ export function Processing() {
       </ul>
 
       <p className="mt-8 text-[11px] text-muted-foreground">
-        Si LexIA no responde en 5 minutos, refresca y verás el estado en{' '}
+        Si A-LexIA no responde en 5 minutos, refresca y verás el estado en{' '}
         <span className="font-medium text-foreground">Evaluador</span>.
       </p>
     </Card>

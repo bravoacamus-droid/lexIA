@@ -7,7 +7,7 @@
  * de gabinete inteligente" —5,6 MB— y la pantalla respondió "Fallo al
  * leer el proyecto: JSON.parse: unexpected character at line 1 column
  * 1". Ese mensaje no lo escribe la aplicación: la petición ni siquiera
- * llegó a ella. El servidor donde vive LexIA corta los envíos que pasan
+ * llegó a ella. El servidor donde vive A-LexIA corta los envíos que pasan
  * de cuatro megas y medio y contesta con una página de error, y la
  * pantalla intentaba leer esa página como si fuera la respuesta.
  *

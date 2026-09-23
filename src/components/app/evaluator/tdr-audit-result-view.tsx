@@ -312,7 +312,7 @@ export function TdrAuditResultView({ id: _id, title, result, completedAt }: Prop
             </span>
             <h3 className="font-semibold text-lg mb-1">Sin hallazgos relevantes</h3>
             <p className="text-sm text-muted-foreground">
-              LexIA no detectó vicios significativos en este documento.
+              A-LexIA no detectó vicios significativos en este documento.
             </p>
           </Card>
         )}

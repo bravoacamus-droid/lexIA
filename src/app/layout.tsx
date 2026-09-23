@@ -30,11 +30,11 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'LexIA · Inteligencia artificial en Contrataciones del Estado',
-    template: '%s · LexIA',
+    default: 'A-LexIA · Inteligencia artificial en Contrataciones del Estado',
+    template: '%s · A-LexIA',
   },
   description:
-    'LexIA es la primera inteligencia artificial especializada en Contrataciones del Estado del Perú. Fundamentada en la Ley N° 32069, su Reglamento, Opiniones del OSCE y Resoluciones del Tribunal.',
+    'A-LexIA es la primera inteligencia artificial especializada en Contrataciones del Estado del Perú. Fundamentada en la Ley N° 32069, su Reglamento, Opiniones del OSCE y Resoluciones del Tribunal.',
   keywords: [
     'Contrataciones del Estado',
     'OSCE',
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     'Ley 32069',
     'IA legal Perú',
     'Licitaciones públicas',
-    'LexIA',
+    'A-LexIA',
   ],
   authors: [{ name: 'Promptive', url: 'https://promptive.pe' }],
   metadataBase: new URL(
@@ -51,10 +51,10 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'es_PE',
-    title: 'LexIA · IA especializada en Contrataciones del Estado',
+    title: 'A-LexIA · IA especializada en Contrataciones del Estado',
     description:
       'Consulta normativa, evalúa ofertas y genera documentos con IA fundamentada en el marco legal peruano.',
-    siteName: 'LexIA',
+    siteName: 'A-LexIA',
   },
 };
 

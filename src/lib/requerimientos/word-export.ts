@@ -63,7 +63,7 @@ interface ExportInput {
 // Estilo común
 // ════════════════════════════════════════════════════════════════════
 /**
- * La tipografía es la del formato oficial, no la de LexIA.
+ * La tipografía es la del formato oficial, no la de A-LexIA.
  *
  * Observación de César (agosto de 2026): "el tipo de letra, tamaño, la
  * forma y estructura de cada uno de los requerimientos debe ser como los
@@ -71,8 +71,8 @@ interface ExportInput {
  * y los de procedimientos de selección—: Arial en todo el documento,
  * cuerpo a 10 puntos, secundarios a 9 y notas a 8, y el texto en negro.
  *
- * LexIA salía en Calibri 11 con los títulos en el azul de la marca. Un
- * requerimiento no es un documento de LexIA: lo firma el área usuaria y
+ * A-LexIA salía en Calibri 11 con los títulos en el azul de la marca. Un
+ * requerimiento no es un documento de A-LexIA: lo firma el área usuaria y
  * va al expediente de contratación, donde tiene que parecerse a los
  * demás.
  */
@@ -448,7 +448,7 @@ export async function generateRequirementDocx(input: ExportInput): Promise<Buffe
         alignment: AlignmentType.RIGHT,
         children: [
           new TextRun({
-            text: `LexIA · Requerimiento ${input.objeto} ${input.anio}`,
+            text: `A-LexIA · Requerimiento ${input.objeto} ${input.anio}`,
             font: FONT,
             size: SIZE_SMALL,
             color: '888888',
@@ -538,7 +538,7 @@ export async function generateRequirementDocx(input: ExportInput): Promise<Buffe
   }
 
   const doc = new Document({
-    creator: 'LexIA',
+    creator: 'A-LexIA',
     title: input.denominacion,
     description: `Requerimiento ${input.objeto} ${input.anio}`,
     styles: {

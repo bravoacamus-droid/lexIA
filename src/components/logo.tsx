@@ -1,21 +1,25 @@
-import Image from 'next/image';
-import Link from 'next/link';
+import { LogoAlexia, Isotipo } from '@/components/marca/logo-alexia';
 import { cn } from '@/lib/utils';
 
 /**
- * Adaptador legacy del logo — preserva la API pública (size + showWordmark + href)
- * que ya consumen ~10 archivos del codebase, pero renderiza los PNG corporativos
- * en public/brand/. Para componentes nuevos preferir `@/components/brand`.
+ * Adaptador de la marca anterior.
+ *
+ * Conserva la API que ya consumen una decena de archivos —login,
+ * cabecera pública, pie, avatar del chat— pero sirve los activos nuevos
+ * de `public/marca/`. Así el cambio de marca llega a todos a la vez; lo
+ * nuevo debería importar directamente `@/components/marca/logo-alexia`.
  */
 interface LogoProps {
   href?: string | null;
   className?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
-  /** true → logo compuesto (con tagline) · false → logo mark (sin tagline) */
+  /** true → logotipo con el lema · false → solo el isotipo. */
   showWordmark?: boolean;
+  /** Sobre fondo oscuro, la tipografía azul marino no se lee. */
+  tono?: 'claro' | 'oscuro';
 }
 
-const HEIGHTS: Record<NonNullable<LogoProps['size']>, number> = {
+const ALTOS: Record<NonNullable<LogoProps['size']>, number> = {
   sm: 22,
   md: 32,
   lg: 48,
@@ -27,48 +31,46 @@ export function Logo({
   className,
   size = 'md',
   showWordmark = true,
+  tono = 'claro',
 }: LogoProps) {
-  const h = HEIGHTS[size];
-  const src = showWordmark ? '/brand/logo-full.png' : '/brand/logo-mark.png';
-  const ratio = showWordmark ? 2 : 3.137;
-  const w = Math.round(h * ratio);
-
-  const img = (
-    <Image
-      src={src}
-      alt="LexIA Contrataciones"
-      width={w}
-      height={h}
-      className={cn('h-auto select-none', className)}
-      priority={size === 'xl'}
+  const alto = ALTOS[size];
+  if (!showWordmark) {
+    return <Isotipo alto={alto} className={cn('select-none', className)} />;
+  }
+  return (
+    <LogoAlexia
+      href={href}
+      alto={alto}
+      tono={tono}
+      conLema={size === 'lg' || size === 'xl'}
+      className={className}
+      prioridad={size === 'xl'}
     />
   );
-
-  if (href) {
-    return (
-      <Link href={href} className="inline-flex items-center">
-        {img}
-      </Link>
-    );
-  }
-  return img;
 }
 
+/**
+ * El logotipo sin el lema —isotipo + «A-LexIA CONTRATACIONES»—, que es
+ * lo que esta pieza servía antes y lo que esperan las cabeceras y los
+ * pies que la usan. Para el isotipo suelto está `Logo showWordmark={false}`
+ * o, mejor, `Isotipo` de `@/components/marca/logo-alexia`.
+ */
 export function LogoMark({
   size = 'md',
   className,
+  tono = 'claro',
 }: {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
+  tono?: 'claro' | 'oscuro';
 }) {
-  const h = HEIGHTS[size];
   return (
-    <Image
-      src="/brand/logo-mark.png"
-      alt="LexIA"
-      width={Math.round(h * 3.137)}
-      height={h}
-      className={cn('h-auto select-none', className)}
+    <LogoAlexia
+      href={null}
+      alto={ALTOS[size]}
+      tono={tono}
+      conLema={false}
+      className={cn('select-none', className)}
     />
   );
 }

@@ -30,7 +30,7 @@ export default function StyleguidePage() {
       <div className="max-w-5xl mx-auto px-8 py-12 space-y-16">
         <header className="space-y-3">
           <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-            LexIA v2 · Design system
+            A-LexIA v2 · Design system
           </p>
           <h1 className="font-serif text-5xl tracking-tight">
             Styleguide interno
@@ -115,7 +115,7 @@ export default function StyleguidePage() {
                 Instrument Serif · Títulos editoriales decorativos
               </p>
               <p className="font-serif text-5xl tracking-tight">
-                LexIA Contrataciones
+                A-LexIA Contrataciones
               </p>
             </div>
             <div className="pt-6 border-t border-border">
@@ -205,7 +205,7 @@ export default function StyleguidePage() {
         </Section>
 
         <footer className="pt-12 border-t border-border text-xs text-muted-foreground">
-          LexIA v2 · Etapa 1 de la reconstrucción · Ruta interna /dev/styleguide
+          A-LexIA v2 · Etapa 1 de la reconstrucción · Ruta interna /dev/styleguide
         </footer>
       </div>
     </div>

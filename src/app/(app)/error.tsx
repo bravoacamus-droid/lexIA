@@ -30,7 +30,7 @@ export default function ErrorAplicacion({
   useEffect(() => {
     // Queda en la consola del navegador y en los registros del servidor,
     // que es de donde se saca el diagnóstico.
-    console.error('[LexIA] error no controlado:', error);
+    console.error('[A-LexIA] error no controlado:', error);
   }, [error]);
 
   return (

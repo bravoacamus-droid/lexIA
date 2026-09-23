@@ -42,7 +42,7 @@ export interface BloqueFijo {
    * El texto es una enumeración: cada renglón, una viñeta.
    *
    * Observación de César (agosto de 2026) sobre los requisitos del
-   * proveedor: "debe ser adecuado conforme al texto modelo (en LexIA no
+   * proveedor: "debe ser adecuado conforme al texto modelo (en A-LexIA no
    * está ordenado), está todo el texto junto". Son siete requisitos y
    * salían como un párrafo corrido.
    *
@@ -199,7 +199,7 @@ export interface BloqueRedactado {
    * Nace de dos observaciones de César que parecían opuestas: en
    * agosto, que las condiciones de la garantía «ya están establecidas
    * por lo que no hay necesidad de redactar» —de ahí que fueran texto
-   * fijo—; en setiembre, que LexIA debe «adecuar el texto
+   * fijo—; en setiembre, que A-LexIA debe «adecuar el texto
    * predeterminado de alcance y condiciones al caso concreto». Con
    * esto se cumplen las dos: el texto está desde el principio y
    * además se puede ajustar.
@@ -273,7 +273,7 @@ export interface BloqueTabla {
    * cuadro debe permitir poner un título, para poner el nombre de cada
    * bien y en el cuadro poner sus características". Su formato lo hace
    * así —"Bien N.° 01: XYZ" con su cuadro, "Bien N.° 02: ABC" con el
-   * suyo— y LexIA tenía un único cuadro para todos los bienes.
+   * suyo— y A-LexIA tenía un único cuadro para todos los bienes.
    *
    * `etiquetaTitulo` es lo que se le pide al usuario en cada uno: "Bien
    * N.° 01", "Ítem", "Servicio"…
@@ -286,7 +286,7 @@ export interface BloqueTabla {
    * una opción adicional para insertar cuadro en caso el área usuaria lo
    * amerite, el cuadro de redacción actual no debe eliminarse". Su
    * formato trae ahí un cuadro —"Aspecto a precisar | Descripción"— y
-   * LexIA solo tenía el campo de texto.
+   * A-LexIA solo tenía el campo de texto.
    *
    * Un cuadro opcional normal deja escrito "No aplica: envase" cuando
    * queda vacío, y aquí eso sobra: el apartado ya está resuelto con el
@@ -297,7 +297,7 @@ export interface BloqueTabla {
    * Filas que el formato ya trae escritas y el usuario solo completa.
    *
    * Observación de César (agosto de 2026) sobre el plazo de entrega:
-   * "adicional a lo que ya está establecido en LexIA, debe agregar los
+   * "adicional a lo que ya está establecido en A-LexIA, debe agregar los
    * cuadros según el sistema de entrega". Esos cuadros no están vacíos
    * en el formato: para llave en mano trae tres filas —entrega de los
    * bienes, instalación, puesta en funcionamiento—, cada una con su

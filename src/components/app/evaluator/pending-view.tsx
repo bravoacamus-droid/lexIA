@@ -74,7 +74,7 @@ export function EvaluationPendingView({ id, title, status, backHref = '/evaluado
                 Tu PDF está escaneado
               </h1>
               <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                LexIA no puede leer imágenes todavía. Necesitas pasar el PDF
+                A-LexIA no puede leer imágenes todavía. Necesitas pasar el PDF
                 por OCR antes de subirlo. Es rápido y gratis:
               </p>
             </div>
@@ -134,7 +134,7 @@ export function EvaluationPendingView({ id, title, status, backHref = '/evaluado
             </div>
 
             <div className="rounded-lg bg-brand-50 border border-brand-200/40 p-3 mb-5 text-[11px] text-brand-900/80">
-              <strong>Próximamente</strong>: LexIA incluirá OCR automático
+              <strong>Próximamente</strong>: A-LexIA incluirá OCR automático
               integrado para que no tengas que hacer este paso manualmente.
             </div>
 

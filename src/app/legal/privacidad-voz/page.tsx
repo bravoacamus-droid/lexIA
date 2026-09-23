@@ -18,7 +18,7 @@ export default function PrivacidadVozPage() {
 
       <h2>1. Qué es esta funcionalidad</h2>
       <p>
-        Llamadas con el Abogado Virtual es una funcionalidad de LexIA
+        Llamadas con el Abogado Virtual es una funcionalidad de A-LexIA
         Contrataciones que permite al usuario sostener una conversación de voz
         en tiempo real con una inteligencia artificial especializada en
         contratación pública peruana bajo la Ley N° 32069. Esta conversación
@@ -53,7 +53,7 @@ export default function PrivacidadVozPage() {
         <li>
           <strong>Entiendo que mis datos se procesan en servidores de
           Google Cloud</strong> (Estados Unidos / Brasil) bajo los términos
-          de privacidad de LexIA y Google.
+          de privacidad de A-LexIA y Google.
         </li>
         <li>
           <strong>Acepto no compartir información confidencial de terceros</strong>,
@@ -95,7 +95,7 @@ export default function PrivacidadVozPage() {
       <h2>5. Quién procesa tu información</h2>
       <ul>
         <li>
-          <strong>LexIA (Promptive)</strong>: opera la aplicación, almacena la
+          <strong>A-LexIA (Promptive)</strong>: opera la aplicación, almacena la
           transcripción y el audio en infraestructura Supabase con tu cuenta
           asociada.
         </li>
@@ -149,7 +149,7 @@ export default function PrivacidadVozPage() {
         llamada (Art. 18 Ley 29733).
       </p>
       <p>
-        Si cancelas tu cuenta de LexIA, todas tus llamadas (audio + transcripción
+        Si cancelas tu cuenta de A-LexIA, todas tus llamadas (audio + transcripción
         + métricas) se eliminan automáticamente como parte del proceso de cierre
         de cuenta.
       </p>

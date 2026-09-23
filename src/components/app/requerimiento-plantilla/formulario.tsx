@@ -390,7 +390,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
    * entrevista dice tanto lo que corresponde como lo que no, y si solo
    * encendiera dejaría puesto lo que el usuario ya había marcado antes
    * de contar su necesidad. Lo que no venga en el objeto se queda como
-   * estaba —lo que LexIA no supo decidir no se toca.
+   * estaba —lo que A-LexIA no supo decidir no se toca.
    */
   const aplicarCondiciones = (condiciones: Record<string, boolean>) => {
     setR((p) => ({ ...p, condiciones: { ...p.condiciones, ...condiciones } }));
@@ -424,7 +424,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
   };
 
   /**
-   * Pide a LexIA el texto de un apartado.
+   * Pide a A-LexIA el texto de un apartado.
    *
    * Cuando el apartado ya tiene texto, se envia: el modelo lo mejora en
    * vez de escribir otro. Antes no se enviaba nunca y el boton
@@ -447,7 +447,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
       });
       const j = await res.json();
       if (!res.ok) {
-        toast.error('LexIA no pudo redactar este apartado', {
+        toast.error('A-LexIA no pudo redactar este apartado', {
           description: j?.detail ?? j?.error ?? `HTTP ${res.status}`,
         });
         return null;
@@ -468,7 +468,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
   }
 
   /**
-   * Pide a LexIA que revise una tabla.
+   * Pide a A-LexIA que revise una tabla.
    *
    * Se manda lo que hay en pantalla, no lo guardado: si no, revisaría la
    * versión de hace unos segundos y las observaciones no cuadrarían con
@@ -483,7 +483,7 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
       });
       const j = await res.json();
       if (!res.ok) {
-        toast.error('LexIA no pudo revisar la tabla', {
+        toast.error('A-LexIA no pudo revisar la tabla', {
           description: j?.detail ?? j?.error ?? `HTTP ${res.status}`,
         });
         return null;

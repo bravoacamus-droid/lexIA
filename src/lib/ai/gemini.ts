@@ -49,7 +49,7 @@ export const GENERATOR_MODEL_ID = 'gemini-3.6-flash';
  * muy sensibles con vocabulario gubernamental/contrataciones porque
  * los asocian con corrupción, sobornos, etc.
  *
- * Como LexIA es un asistente jurídico para funcionarios y proveedores
+ * Como A-LexIA es un asistente jurídico para funcionarios y proveedores
  * del Estado peruano, TODO el contenido es legítimo — nunca
  * pediremos redactar contenido dañino. Ajustamos a BLOCK_NONE
  * (bloquea solo casos evidentes: instrucciones de armas, abuso, etc.),

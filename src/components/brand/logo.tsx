@@ -1,37 +1,25 @@
-import Image from 'next/image';
-import { cn } from '@/lib/utils';
-
-interface LogoProps {
-  className?: string;
-  /** Altura en px. El ancho se calcula manteniendo el ratio del PNG. */
-  height?: number;
-  /** Texto alt para accesibilidad. */
-  alt?: string;
-  /** Si es priority, Next.js precarga el asset (úsalo en hero/login). */
-  priority?: boolean;
-}
+import { LogoAlexia } from '@/components/marca/logo-alexia';
 
 /**
- * Logo compuesto de LexIA (isotipo + wordmark + tagline).
- * Usar en espacios grandes: hero del landing, página de login, splashes,
- * dialogs principales. Para header/sidebar/footer usa <LogoMark />.
+ * Adaptador de la marca anterior.
+ *
+ * Conserva la API que ya consumen una decena de archivos —login,
+ * cabecera pública, pie, avatar del chat— pero sirve los activos nuevos
+ * de `public/marca/`. Así el cambio de marca llega a todos a la vez; lo
+ * nuevo debería importar directamente `@/components/marca/logo-alexia`.
  */
-export function Logo({
-  className,
-  height = 96,
-  alt = 'LexIA Contrataciones — La IA a la vanguardia de las contrataciones',
-  priority = false,
-}: LogoProps) {
-  // Ratio nativo del PNG: 1600×800 = 2:1
-  const width = Math.round(height * 2);
+interface LogoProps {
+  className?: string;
+  /** Altura en píxeles. El ancho se calcula solo. */
+  height?: number;
+  alt?: string;
+  priority?: boolean;
+  /** Sobre fondo oscuro se usa la versión de letras blancas. */
+  tono?: 'claro' | 'oscuro';
+}
+
+export function Logo({ className, height = 96, priority = false, tono = 'claro' }: LogoProps) {
   return (
-    <Image
-      src="/brand/logo-full.png"
-      alt={alt}
-      width={width}
-      height={height}
-      priority={priority}
-      className={cn('h-auto select-none', className)}
-    />
+    <LogoAlexia href={null} alto={height} tono={tono} conLema className={className} prioridad={priority} />
   );
 }

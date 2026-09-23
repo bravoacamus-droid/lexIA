@@ -205,7 +205,7 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
               extension: 'varios_parrafos',
             },
             {
-              // El formato trae aquí un cuadro y LexIA solo el texto.
+              // El formato trae aquí un cuadro y A-LexIA solo el texto.
               // Observación de César de agosto: el cuadro se añade "en
               // caso el área usuaria lo amerite" y el campo de
               // redacción no se elimina.
@@ -271,7 +271,7 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
           id: 'garantia_comercial',
           titulo: 'Garantía comercial',
           // El formato ya trae escritos el alcance y las condiciones, y
-          // del período solo deja un hueco. LexIA pedía redactarlo todo.
+          // del período solo deja un hueco. A-LexIA pedía redactarlo todo.
           //
           // Observación de César (agosto de 2026): "en la garantía
           // comercial (alcance de la garantía, condiciones de la
@@ -488,7 +488,7 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
             // Los cuadros que el formato abre según el sistema de
             // entrega elegido. Observación de César (agosto de 2026):
             // "en el plazo de entrega, adicional a lo que ya está
-            // establecido en LexIA, debe agregar los cuadros según el
+            // establecido en A-LexIA, debe agregar los cuadros según el
             // sistema de entrega".
             //
             // Vienen con las filas y el inicio del cómputo que trae el
@@ -607,7 +607,7 @@ export const PLANTILLA_UIT_EETT: PlantillaRequerimiento = {
           id: 'lugar_entrega',
           titulo: 'Lugar de entrega de los bienes',
           // El formato lo separa en prestación principal y accesoria, y
-          // trae el párrafo escrito con un solo hueco. LexIA tenía un
+          // trae el párrafo escrito con un solo hueco. A-LexIA tenía un
           // campo suelto. Observación de César (agosto de 2026): "el
           // lugar de entrega (prestación principal y accesoria) debe ser
           // adecuada según modelo".

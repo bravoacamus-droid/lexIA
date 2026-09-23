@@ -17,7 +17,7 @@ export function LoginCard() {
         <div className="flex flex-col items-center text-center mb-7">
           <Logo height={88} priority className="mb-5" />
           <h1 className="font-semibold text-3xl tracking-tight text-slate-900">
-            Bienvenido a LexIA
+            Bienvenido a A-LexIA
           </h1>
           <p className="mt-1.5 text-sm text-slate-600 text-balance">
             La IA especializada en Contrataciones del Estado.

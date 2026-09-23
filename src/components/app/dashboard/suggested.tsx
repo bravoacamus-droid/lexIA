@@ -48,7 +48,7 @@ export function DashboardSuggested({ role }: Props) {
       <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
         {role
           ? `Ideas típicas para tu perfil ${theme?.label.toLowerCase()}:`
-          : 'Ideas para empezar a explorar la potencia de LexIA:'}
+          : 'Ideas para empezar a explorar la potencia de A-LexIA:'}
       </p>
 
       <ul className="space-y-1">

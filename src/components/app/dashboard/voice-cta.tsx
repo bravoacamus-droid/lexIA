@@ -6,15 +6,15 @@ import { Mic, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 /**
- * Card destacada de "Habla con LexIA BETA" — feedback César 02/07/2026
+ * Card destacada de "Habla con A-LexIA BETA" — feedback César 02/07/2026
  * inspirada en la referencia del cliente (mockup con card violeta/brand
  * + badge BETA + CTA con ícono de micrófono).
  *
  * Se muestra en el dashboard como CTA promocional del asistente de voz
  * para que el usuario descubra la feature. Layout compacto con:
- * - Título "Habla con LexIA" + badge BETA
+ * - Título "Habla con A-LexIA" + badge BETA
  * - Descripción corta (una línea)
- * - Botón "Hablar con LexIA" con ícono Mic
+ * - Botón "Hablar con A-LexIA" con ícono Mic
  */
 export function VoiceCTA() {
   return (
@@ -43,7 +43,7 @@ export function VoiceCTA() {
       <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-lg font-semibold tracking-tight">Habla con LexIA</h3>
+            <h3 className="text-lg font-semibold tracking-tight">Habla con A-LexIA</h3>
             <span className="inline-flex items-center rounded-full bg-brand-600 text-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-sm">
               Beta
             </span>
@@ -57,7 +57,7 @@ export function VoiceCTA() {
         <Button asChild size="lg" variant="glow" className="shrink-0">
           <Link href="/llamadas/nueva">
             <Mic className="h-4 w-4" />
-            Hablar con LexIA
+            Hablar con A-LexIA
           </Link>
         </Button>
       </div>
