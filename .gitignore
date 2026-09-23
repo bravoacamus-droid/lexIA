@@ -83,3 +83,11 @@ data/oece-ingesta.err.log
 data/oece-ingesta.lock
 data/oece-ingesta.state.jsonl
 data/resumenes.lock
+
+# banco de pruebas local — scripts de un solo uso, capturas y datos sueltos.
+# Nunca va al repo: `tsconfig.json` incluye `**/*.ts`, así que lo que caiga
+# aquí lo typechequea `next build`. El 23/09/2026 se publicaron cinco
+# scripts de Playwright y el despliegue de producción murió con
+# «Cannot find module 'playwright'» — playwright no es dependencia del
+# proyecto, solo está en esta máquina.
+tmp/
