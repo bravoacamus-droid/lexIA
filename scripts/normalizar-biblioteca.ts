@@ -149,7 +149,7 @@ export function detectarTipo(titulo: string, tipoActual: string): string {
   // TUPA — César lo reportó el 01/08/2026: "en las opiniones aún
   // encontramos TUPAS del OECE". El mismo documento estaba además
   // duplicado bajo pronunciamiento.
-  if (/TUPA/i.test(t)) return 'tupa';
+  if (/\bTUPA\b/i.test(t)) return 'tupa';
   if (/^lineamiento/i.test(t) || /^\d+\.\s*lineamientos/i.test(t)) return 'lineamiento';
   if (/^directiva/i.test(t)) return 'directiva';
   if (/^disposiciones\s+que\s+regulan/i.test(t)) return 'directiva';

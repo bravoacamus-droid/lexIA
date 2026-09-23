@@ -91,6 +91,15 @@ async function probarEnumeracion() {
     tope: peticion.cantidad,
     fragmentos_por_documento: 2,
   });
+  /** Lo que devuelve `buscar_frase`; el mismo trato que le da la ruta del chat. */
+  interface Fragmento {
+    chunk_id: string;
+    document_id: string;
+    content: string;
+    doc_title: string;
+    doc_type: string;
+    doc_number: string | null;
+  }
   const filas = (data ?? []) as Array<Fragmento & { hay_mas: boolean }>;
   const documentos = new Set(filas.map((f) => f.document_id)).size;
 

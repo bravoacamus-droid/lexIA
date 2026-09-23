@@ -114,6 +114,17 @@ export function clasificarParte(numero: string | null, titulo?: string | null): 
 
   if (!crudo) return armar('norma', 'Texto de la norma');
 
+  // El nombre que ya dice lo que es. Las piezas que se ingestan desde su
+  // URL oficial se rotulan así de entrada, y no tiene sentido hacerlas
+  // pasar por los rodeos que hacen falta con un nombre de archivo.
+  if (/^texto\b/.test(n)) {
+    if (/modificaci[oó]n|modificad/.test(n)) {
+      const cual = n.match(/primera|segunda|tercera|cuarta/);
+      return armar('modificatoria', cual ? `Texto con la ${cual[0]} modificación` : 'Texto modificado');
+    }
+    return armar('norma', crudo);
+  }
+
   // ── Anexos ──
   if (/^anexo|(^|[\s_-])anexo[\s_-]?\d/.test(n)) {
     const num = n.match(/anexo[\s_-]?(\d+)/);

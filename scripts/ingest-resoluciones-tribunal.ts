@@ -408,7 +408,7 @@ async function main() {
     // 27 de 50 documentos se volvían a descargar y embeber para fallar
     // recién al insertar, gastando cuota de embeddings al pepe.
     const mNum = texto.match(/0*(\d{1,5})\s*-+\s*((?:19|20)\d{2})/);
-    const mSala = texto.match(/S(\d)/i);
+    const mSala = texto.match(/\bS(\d)\b/i);
     if (mNum) {
       enBD.add(`${mNum[1]}-${mNum[2]}-${mSala ? 'S' + mSala[1] : 's?'}`);
       // Sin sala también, por si el censo la trae y la BD no (o al revés).

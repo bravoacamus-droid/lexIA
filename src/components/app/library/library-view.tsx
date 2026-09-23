@@ -8,7 +8,11 @@ import { TagSearchInput } from '@/components/app/library/tag-search-input';
 import { LawSelectorCard, type LawFilter } from '@/components/app/law-selector';
 import { FoldersPanel } from '@/components/app/library/folders-panel';
 import { MigaDePan } from '@/components/app/seccion/piezas';
-import { agruparEnActos, TIPOS_CON_PARTES } from '@/lib/normativa/actos';
+import {
+  agruparEnActos,
+  TIPOS_CON_PARTES,
+  type ActoNormativo,
+} from '@/lib/normativa/actos';
 import { TarjetaDeActo } from '@/components/app/library/tarjeta-de-acto';
 import { DocumentCard } from '@/components/app/library/document-card';
 import { SaveToFolderDialog } from '@/components/app/library/save-to-folder';
@@ -179,9 +183,14 @@ function EntidadFilter({
 /** Agrupa documentos por año conservando el orden recibido. */
 function agruparPorAnio(
   docs: BrowseDoc[],
-): Array<{ anio: string; documentos: BrowseDoc[] }> {
-  const out: Array<{ anio: string; documentos: BrowseDoc[] }> = [];
-  for (const d of docs) {
+): Array<{ anio: string; actos: Array<ActoNormativo<BrowseDoc>> }> {
+  const out: Array<{ anio: string; actos: Array<ActoNormativo<BrowseDoc>> }> = [];
+  // Primero se arma el acto y después se reparte por año. Al revés, una
+  // norma cuyas piezas tienen fechas distintas —o alguna sin fecha— se
+  // parte en dos tarjetas, una bajo cada encabezado, y vuelve a parecer
+  // un duplicado.
+  for (const acto of agruparEnActos(docs)) {
+    const d = acto.principal;
     // Se agrupa por metadata.anio —el año DEL DOCUMENTO, tomado de su
     // numeración— y no por el año de la fecha.
     //
@@ -197,10 +206,11 @@ function agruparPorAnio(
     // Se conserva la lectura del string 'YYYY-MM-DD' como respaldo para
     // los tipos sin metadata.anio, sin pasar por Date() para no depender
     // de la zona horaria (ver formatDate en utils.ts).
-    const anio = d.metadata?.anio || (d.date ? d.date.slice(0, 4) : 'Sin año');
+    const anio =
+      d.metadata?.anio || (acto.fecha ? acto.fecha.slice(0, 4) : 'Sin año');
     const ultimo = out[out.length - 1];
-    if (ultimo && ultimo.anio === anio) ultimo.documentos.push(d);
-    else out.push({ anio, documentos: [d] });
+    if (ultimo && ultimo.anio === anio) ultimo.actos.push(acto);
+    else out.push({ anio, actos: [acto] });
   }
   return out;
 }
@@ -1042,20 +1052,19 @@ function BrowseList({
           endpoint ya entrega ordenado por fecha descendente, así que
           basta con insertar el encabezado al cambiar de año. */}
       <div className="space-y-3">
-        {agruparPorAnio(docs).map(({ anio, documentos }) => (
+        {agruparPorAnio(docs).map(({ anio, actos }) => (
           <section key={anio} className="space-y-3">
             <div className="flex items-center gap-2 pt-2">
               <h3 className="text-sm font-bold tracking-tight">{anio}</h3>
               <span className="text-[11px] text-muted-foreground">
-                {agruparEnActos(documentos).length}{' '}
-                {agruparEnActos(documentos).length === 1 ? 'documento' : 'documentos'}
+                {actos.length} {actos.length === 1 ? 'documento' : 'documentos'}
               </span>
               <div className="flex-1 h-px bg-border" />
             </div>
             {/* Un acto con varias piezas se pinta una sola vez; uno
                 con una sola pieza, como la tarjeta de siempre. Así la
                 lista no tiene dos aspectos distintos sin motivo. */}
-            {agruparEnActos(documentos).map((acto) =>
+            {actos.map((acto) =>
               acto.partes.length > 1 ? (
                 <TarjetaDeActo
                   key={acto.clave}
