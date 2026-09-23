@@ -39,9 +39,8 @@ import {
   type FichaRequisito,
   type ResultadoPostor,
 } from '../src/lib/evaluacion/etapas';
-import { markdownToDocxBuffer } from '../src/lib/docx-from-markdown';
 import { extraerTextoDocumento } from '../src/lib/ai/texto-documento';
-import { construirActa } from '../src/lib/evaluacion/acta';
+import { actaADocx, construirActa } from '../src/lib/evaluacion/acta';
 import {
   criteriosParaEtapa,
   evaluarEtapa,
@@ -350,10 +349,9 @@ async function probarReal() {
 
   // El acta se entrega en Word: hay que comprobar que sobrevive a la
   // conversión, porque una tabla mal cerrada se pierde ahí y no antes.
-  const docx = await markdownToDocxBuffer(acta, {
-    title: 'Acta de Evaluación de Ofertas',
-    subtitle: bases.procedimiento.denominacion ?? '',
-  });
+  // Por el mismo camino que la descarga: el acta se compone desde sus
+  // piezas con el formato del modelo, no desde el Markdown.
+  const docx = await actaADocx({ bases, postores });
   const releido = await extraerTextoDocumento(
     new File([new Uint8Array(docx)], 'acta.docx', {
       type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

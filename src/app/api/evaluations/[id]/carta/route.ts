@@ -13,8 +13,7 @@
  */
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { markdownToDocxBuffer } from '@/lib/docx-from-markdown';
-import { construirCartaSubsanacion, tieneQueSubsanar } from '@/lib/evaluacion/carta';
+import { cartaADocx, tieneQueSubsanar } from '@/lib/evaluacion/carta';
 import { nombreDeArchivo, cabeceraDescarga } from '@/lib/descargas/nombre-archivo';
 import type { LecturaBases } from '@/lib/evaluacion/motor';
 import type { ResultadoPostor } from '@/lib/evaluacion/etapas';
@@ -78,12 +77,10 @@ export async function GET(req: Request, ctx: { params: { id: string } }) {
     );
   }
 
-  const carta = construirCartaSubsanacion({ bases: guardado.bases, postor });
-  const denominacion = guardado.bases.procedimiento?.denominacion ?? fila.title ?? 'Procedimiento';
-  const buffer = await markdownToDocxBuffer(carta, {
-    title: 'Carta de subsanación',
-    subtitle: `${postor.postor} — ${denominacion}`,
-  });
+  // Con la forma de las cartas de César, compuesta desde sus piezas: ver
+  // `documentos/word.ts`. Antes salía de un Markdown con el sello de
+  // A-LexIA encima.
+  const buffer = await cartaADocx({ bases: guardado.bases, postor });
 
   const nombre = `${nombreDeArchivo(`Carta de subsanación — ${postor.postor}`, 'Carta de subsanación')}.docx`;
   return new NextResponse(new Uint8Array(buffer), {

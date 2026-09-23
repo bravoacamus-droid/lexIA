@@ -1,15 +1,16 @@
 /**
  * Descargar el acta de evaluación en Word.
  *
- * El acta se arma al evaluar y se guarda con el resultado; aquí solo se
- * convierte a Word y se entrega. Se rehace desde los datos guardados en
- * vez de guardar el .docx: si mañana cambia una tabla del modelo, las
- * actas viejas salen con el modelo nuevo sin migrar nada.
+ * Se rehace desde los datos guardados en vez de guardar el .docx: si
+ * mañana cambia una tabla del modelo, las actas viejas salen con el
+ * modelo nuevo sin migrar nada. Y se compone desde sus piezas, con el
+ * formato del modelo de César (`documentos/word.ts`), no desde el
+ * Markdown guardado: con él se perdían las celdas combinadas, los anexos
+ * apaisados y el cuadro de firmas.
  */
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { markdownToDocxBuffer } from '@/lib/docx-from-markdown';
-import { construirActa } from '@/lib/evaluacion/acta';
+import { actaADocx } from '@/lib/evaluacion/acta';
 import { nombreDeArchivo, cabeceraDescarga } from '@/lib/descargas/nombre-archivo';
 import type { LecturaBases } from '@/lib/evaluacion/motor';
 import type { ResultadoPostor } from '@/lib/evaluacion/etapas';
@@ -33,7 +34,7 @@ export async function GET(_req: Request, ctx: { params: { id: string } }) {
   const fila = data as {
     user_id: string;
     title: string | null;
-    result: { acta?: string; bases?: LecturaBases; postores?: ResultadoPostor[] } | null;
+    result: { bases?: LecturaBases; postores?: ResultadoPostor[] } | null;
   };
   if (fila.user_id !== user.id) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
@@ -45,14 +46,8 @@ export async function GET(_req: Request, ctx: { params: { id: string } }) {
     );
   }
 
-  const acta =
-    construirActa({ bases: guardado.bases, postores: guardado.postores }) || guardado.acta || '';
-
   const denominacion = guardado.bases.procedimiento?.denominacion ?? fila.title ?? 'Procedimiento';
-  const buffer = await markdownToDocxBuffer(acta, {
-    title: 'Acta de Evaluación de Ofertas',
-    subtitle: denominacion,
-  });
+  const buffer = await actaADocx({ bases: guardado.bases, postores: guardado.postores });
 
   const nombre = `${nombreDeArchivo(`Acta de evaluación — ${denominacion}`, 'Acta de evaluación')}.docx`;
   return new NextResponse(new Uint8Array(buffer), {

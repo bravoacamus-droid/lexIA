@@ -29,10 +29,16 @@
  * No inventa el número de la carta, ni la fecha, ni quién firma: eso lo
  * pone la Entidad. Van como huecos, igual que en el acta.
  */
-import { NOMBRE_ETAPA, type Etapa, type ResultadoPostor } from './etapas';
+import { NOMBRE_ETAPA, type ResultadoPostor } from './etapas';
 import type { LecturaBases } from './motor';
+import { loObservado, tieneQueSubsanar } from './observados';
+import type { Pieza } from '../documentos/piezas';
+import { piezasAMarkdown } from '../documentos/markdown';
+import { FORMATO_CARTA, piezasADocx } from '../documentos/word';
 
 const HUECO = '[●]';
+
+export { tieneQueSubsanar };
 
 /** Quién firma la carta, según quién conduzca el procedimiento. */
 export type FirmanteCarta =
@@ -56,76 +62,16 @@ export interface DatosCarta {
 }
 
 /**
- * Lo que hay que subsanar, etapa por etapa.
+ * La carta, pieza a pieza, con la forma de las cartas de César.
  *
- * Cada requisito observado da UNA fila, con dos cosas distintas: qué se
- * le encontró y qué tiene que presentar. Venían por separado —la ficha
- * dice lo primero y `subsanaciones` lo segundo— y listarlas sueltas
- * repetía el mismo defecto dos veces con otras palabras, que en una
- * carta que se notifica queda como si fueran dos observaciones.
+ * Se miró su «CARTA DE MODIFICACIÓN DE CONTRATO»: el número en negrita,
+ * la ciudad y la fecha a la derecha, el destinatario con su nombre en
+ * negrita y «Presente.-», ASUNTO y REFERENCIA, «De mi consideración:»,
+ * los apartados numerados en negrita, «Atentamente,» y la firma centrada
+ * bajo su línea. Lo que la Entidad completa va en rojo, como en el
+ * modelo.
  */
-interface Observado {
-  etapa: Etapa;
-  requisito: string;
-  hallazgo: string;
-  quePresentar: string;
-}
-
-/** Palabras con las que decidir si dos textos hablan de lo mismo. */
-function significativas(t: string): Set<string> {
-  return new Set(
-    t
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .match(/[a-z]{5,}/g) ?? [],
-  );
-}
-
-function loObservado(p: ResultadoPostor): Observado[] {
-  const fuera: Observado[] = [];
-  for (const e of p.etapas) {
-    if (e.omitida) continue;
-    const sueltas = [...(e.subsanaciones ?? [])];
-
-    for (const f of e.fichas) {
-      if (f.resultado !== 'subsanable') continue;
-      // De las subsanaciones pendientes, la que más palabras comparte
-      // con este requisito es la que le corresponde.
-      const clave = significativas(`${f.requisito} ${f.hallazgo ?? ''}`);
-      let mejor = -1;
-      let mejorPuntos = 0;
-      sueltas.forEach((s, i) => {
-        const puntos = [...significativas(s)].filter((w) => clave.has(w)).length;
-        if (puntos > mejorPuntos) {
-          mejorPuntos = puntos;
-          mejor = i;
-        }
-      });
-      const quePresentar = mejorPuntos >= 2 ? sueltas.splice(mejor, 1)[0] : '';
-      fuera.push({
-        etapa: e.etapa,
-        requisito: f.requisito,
-        hallazgo: (f.hallazgo ?? '').trim(),
-        quePresentar: quePresentar.trim(),
-      });
-    }
-
-    // Lo que se pidió sin quedar atado a una ficha se lista igual: es
-    // preferible una fila de más que dejar de pedir algo.
-    for (const s of sueltas) {
-      fuera.push({ etapa: e.etapa, requisito: 'Subsanación requerida', hallazgo: '', quePresentar: s.trim() });
-    }
-  }
-  return fuera;
-}
-
-/** ¿Hay algo que notificar? Si no, no se genera carta. */
-export function tieneQueSubsanar(p: ResultadoPostor): boolean {
-  return loObservado(p).length > 0;
-}
-
-export function construirCartaSubsanacion({ bases, postor, emision }: DatosCarta): string {
+export function piezasDeLaCarta({ bases, postor, emision }: DatosCarta): Pieza[] {
   const pendientes = loObservado(postor);
   const proc = bases.procedimiento ?? ({} as LecturaBases['procedimiento']);
   const firmante = emision?.firmante ?? 'presidente del comité de selección';
@@ -133,71 +79,90 @@ export function construirCartaSubsanacion({ bases, postor, emision }: DatosCarta
     emision?.medio ??
     'la Plataforma Digital para las Contrataciones Públicas (Pladicop), conforme al numeral 78.1 del artículo 78 del Reglamento';
 
-  const p: string[] = [];
-  p.push(`# CARTA N.° ${emision?.numeroCarta ?? `${HUECO}-[AÑO]-[SIGLAS]`}`, '');
-  p.push(`${emision?.ciudad ?? HUECO}, ${emision?.fecha ?? HUECO}`, '');
+  const piezas: Pieza[] = [];
+  const parrafo = (texto: string, alineacion?: 'derecha' | 'izquierda', pegado?: boolean) =>
+    piezas.push({ clase: 'parrafo', texto, alineacion, pegado });
+  let n = 0;
+  const apartado = (texto: string) =>
+    piezas.push({ clase: 'titulo', nivel: 1, numero: `${++n}.`, texto });
 
-  p.push('Señores');
-  p.push(`**${postor.postor}**`);
-  p.push('Presente.-', '');
+  parrafo(`**CARTA N.° ${emision?.numeroCarta ?? `${HUECO}-[AÑO]-[SIGLAS]`}**`, 'izquierda');
+  parrafo(`${emision?.ciudad ?? '[Ciudad]'}, ${emision?.fecha ?? '[día] de [mes] de [año]'}`, 'derecha');
 
-  p.push(`**Asunto:** Requerimiento de subsanación de la oferta`);
-  p.push(
-    `**Referencia:** ${proc.numero ?? HUECO} — ${proc.denominacion ?? HUECO}`,
-    '',
-  );
-  p.push('De mi consideración:', '');
+  parrafo('Señores:', 'izquierda', true);
+  parrafo(`**${postor.postor}**`, 'izquierda', true);
+  parrafo('**Presente.-**', 'izquierda');
 
-  p.push(
+  piezas.push({ clase: 'campo', etiqueta: 'ASUNTO', valor: 'Requerimiento de subsanación de la oferta' });
+  piezas.push({
+    clase: 'campo',
+    etiqueta: 'REFERENCIA',
+    valor: `${proc.numero ?? '[Tipo y N.° de procedimiento]'} — ${proc.denominacion ?? HUECO}`,
+  });
+  parrafo('De mi consideración:', 'izquierda');
+
+  parrafo(
     `Me dirijo a usted en mi calidad de ${firmante} del procedimiento de selección de la referencia, ` +
       'para comunicarle que, de la revisión de la oferta presentada por su representada, se han advertido ' +
       'las omisiones o defectos que se detallan a continuación, los cuales resultan subsanables conforme ' +
       'al numeral 78.1 del artículo 78 del Reglamento de la Ley N.° 32069, por no alterar el contenido ' +
       'esencial de la oferta.',
-    '',
   );
 
-  p.push('## OBJETO DE LA SUBSANACIÓN', '');
-  p.push('| N.° | Etapa | Requisito observado | Qué se advirtió | Qué debe presentar |');
-  p.push('| --- | --- | --- | --- | --- |');
-  pendientes.forEach((o, i) => {
-    const limpio = (t: string) => (t || HUECO).replace(/\|/g, '\\|').replace(/\n+/g, ' ');
-    p.push(
-      `| ${i + 1} | ${NOMBRE_ETAPA[o.etapa]} | ${limpio(o.requisito)} | ${limpio(o.hallazgo)} | ${limpio(o.quePresentar)} |`,
-    );
+  apartado('Objeto de la subsanación');
+  piezas.push({
+    clase: 'tabla',
+    columnas: ['N.°', 'Etapa', 'Requisito observado', 'Qué se advirtió', 'Qué debe presentar'],
+    conContenido: pendientes.length,
+    filas: pendientes.map((o, i) => [
+      String(i + 1),
+      NOMBRE_ETAPA[o.etapa],
+      o.requisito || HUECO,
+      o.hallazgo || HUECO,
+      o.quePresentar || HUECO,
+    ]),
   });
-  p.push('');
 
-  p.push('## PLAZO', '');
-  p.push(
+  apartado('Plazo');
+  parrafo(
     'Su representada cuenta con un plazo de **dos (2) días hábiles**, contados desde el día siguiente de ' +
       'la notificación de la presente carta, para efectuar la subsanación. Dentro de dicho plazo puede ' +
       'solicitar una **ampliación de dos (2) días hábiles adicionales**; la solicitud se resuelve en un plazo ' +
       'no mayor de dos (2) días hábiles de recibida y, de no hacerlo, se considera autorizada. Durante ' +
       'ese período la oferta continúa vigente para todo efecto, a condición de la efectiva subsanación ' +
       '(numeral 78.4 del artículo 78 del Reglamento).',
-    '',
   );
 
-  p.push('## MEDIO DE SUBSANACIÓN', '');
-  p.push(
+  apartado('Medio de subsanación');
+  parrafo(
     `La subsanación se presenta a través de ${medio}. La subsanación es preclusiva a cada etapa: lo que ` +
       'no se subsane dentro del plazo y por el medio señalados no puede presentarse después.',
-    '',
   );
 
-  p.push('## CONSECUENCIA DE NO SUBSANAR', '');
-  p.push(
+  apartado('Consecuencia de no subsanar');
+  parrafo(
     'De no efectuarse la subsanación dentro del plazo otorgado, la oferta será tenida por no admitida o ' +
       'descalificada, según la etapa en que se encuentre, dejándose constancia de ello en el acta ' +
       'correspondiente.',
-    '',
   );
 
-  p.push('Atentamente,', '');
-  p.push(`${emision?.nombreFirmante ?? HUECO}`);
-  p.push(`${firmante.charAt(0).toUpperCase()}${firmante.slice(1)}`);
-  p.push(`${proc.entidad ?? HUECO}`);
+  parrafo('Sin otro particular, hago propicia la oportunidad para expresarle los sentimientos de mi especial consideración.');
+  parrafo('Atentamente,', 'izquierda');
+  piezas.push({
+    clase: 'firma',
+    nombre: emision?.nombreFirmante ?? '[Nombres y apellidos]',
+    cargo: `${firmante.charAt(0).toUpperCase()}${firmante.slice(1)}`,
+    entidad: proc.entidad ?? '[Nombre de la Entidad]',
+  });
+  return piezas;
+}
 
-  return p.join('\n');
+/** La carta en Markdown, para leerla o guardarla. */
+export function construirCartaSubsanacion(datos: DatosCarta): string {
+  return piezasAMarkdown(piezasDeLaCarta(datos));
+}
+
+/** La carta en Word, con el formato de las cartas de César. */
+export function cartaADocx(datos: DatosCarta): Promise<Buffer> {
+  return piezasADocx(piezasDeLaCarta(datos), FORMATO_CARTA);
 }

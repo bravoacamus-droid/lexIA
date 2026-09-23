@@ -26,7 +26,7 @@ import {
   type RespuestasRequerimiento,
 } from '../src/lib/generadores/ensamblador';
 import { obtenerPlantilla } from '../src/lib/generadores/plantillas';
-import { markdownToDocxBuffer } from '../src/lib/docx-from-markdown';
+import { requerimientoADocx } from '../src/lib/generadores/documento';
 
 let fallos = 0;
 const comprobar = (que: string, ok: boolean) => {
@@ -43,15 +43,16 @@ const OBJETIVOS = [
   'Reducir el riesgo operativo en el manejo de valores.',
 ];
 
-function documento(marcador?: MarcadorLista) {
+function ensamblado(marcador?: MarcadorLista) {
   const r: RespuestasRequerimiento = {
     ...respuestasVacias(),
     campos: { denominacion: 'Servicio de procesamiento de efectivo' },
     redacciones: { objetivos_especificos: OBJETIVOS.join('\n') },
     marcadores: marcador ? { objetivos_especificos: marcador } : {},
   };
-  return ensamblarRequerimiento(plantilla!, r, {}).markdown;
+  return ensamblarRequerimiento(plantilla!, r, {});
 }
+const documento = (marcador?: MarcadorLista) => ensamblado(marcador).markdown;
 
 // ── 1. Las tres formas ────────────────────────────────────────────────
 console.log('── Cómo sale cada marca ──');
@@ -126,7 +127,7 @@ console.log('\n── El Word ──');
 void (async () => {
   for (const m of ['vineta', 'literal', 'numero'] as const) {
     try {
-      const buffer = await markdownToDocxBuffer(documento(m), { title: 'Requerimiento' });
+      const buffer = await requerimientoADocx(ensamblado(m).piezas, plantilla!);
       comprobar(`se exporta con ${m}`, buffer.length > 5000);
     } catch (e) {
       comprobar(`la exportación con ${m} falló: ${(e as Error).message}`, false);

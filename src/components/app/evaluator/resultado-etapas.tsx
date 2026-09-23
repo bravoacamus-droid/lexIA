@@ -25,6 +25,7 @@ import {
   ChevronDown,
   Download,
   FileText,
+  Mail,
   Trophy,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -40,6 +41,7 @@ import {
   type ResultadoPostor,
 } from '@/lib/evaluacion/etapas';
 import type { LecturaBases } from '@/lib/evaluacion/motor';
+import { tieneQueSubsanar } from '@/lib/evaluacion/observados';
 
 export interface ResultadoEtapas {
   bases: LecturaBases;
@@ -253,6 +255,11 @@ export function ResultadoEtapasView({
 }) {
   const { bases, postores } = resultado;
   const ganadores = postores.filter((p) => p.prelacion === 1);
+  // A quién hay que notificarle una subsanación. La carta existía en el
+  // servidor desde setiembre, pero ningún botón llevaba a ella: la
+  // petición de César —«debe haber una opción que genere una carta»—
+  // estaba hecha y era inalcanzable.
+  const observados = postores.filter(tieneQueSubsanar);
 
   return (
     <div className="space-y-6">
@@ -266,12 +273,26 @@ export function ResultadoEtapasView({
               {[bases.procedimiento.entidad, bases.procedimiento.numero].filter(Boolean).join(' · ')}
             </p>
           </div>
-          <Button asChild variant="outline">
-            <a href={`/api/evaluations/${id}/acta`} download>
-              <Download className="mr-2 h-4 w-4" />
-              Descargar acta en Word
-            </a>
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button asChild variant="outline">
+              <a href={`/api/evaluations/${id}/acta`} download>
+                <Download className="mr-2 h-4 w-4" />
+                Descargar acta en Word
+              </a>
+            </Button>
+            {observados.map((p) => (
+              <Button key={p.postor} asChild variant="outline">
+                <a
+                  href={`/api/evaluations/${id}/carta?postor=${encodeURIComponent(p.postor)}`}
+                  download
+                  title={`Carta que notifica a ${p.postor} lo que debe subsanar`}
+                >
+                  <Mail className="mr-2 h-4 w-4" />
+                  {observados.length === 1 ? 'Carta de subsanación' : `Carta de subsanación · ${p.postor}`}
+                </a>
+              </Button>
+            ))}
+          </div>
         </div>
 
         {resultado.transcritas && resultado.transcritas.length > 0 && (

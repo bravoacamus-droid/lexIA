@@ -33,7 +33,7 @@ import {
   montoDe,
   type RespuestasRequerimiento,
 } from '../src/lib/generadores/ensamblador';
-import { markdownToDocxBuffer } from '../src/lib/docx-from-markdown';
+import { requerimientoADocx } from '../src/lib/generadores/documento';
 import {
   limpiarRedaccion,
   redaccionUtil,
@@ -213,7 +213,7 @@ async function main() {
 
     let bytes = 0;
     try {
-      const buf = await markdownToDocxBuffer(doc.markdown, { title: p.encabezado, subtitle: p.subtitulo });
+      const buf = await requerimientoADocx(doc.piezas, p);
       bytes = buf.length;
       if (bytes < 5000) problema(`el .docx salió sospechosamente pequeño: ${bytes} bytes`);
     } catch (e) {
@@ -662,7 +662,7 @@ async function main() {
         console.log(`   ${ok ? '✅' : '❌'} ${que}`);
       }
       try {
-        const buffer = await markdownToDocxBuffer(doc.markdown, { title: 'Requerimiento' });
+        const buffer = await requerimientoADocx(doc.piezas, p);
         const ok = buffer.length > 5000;
         if (!ok) problema('el Word con un hueco de varias líneas salió vacío');
         console.log(`   ${ok ? '✅' : '❌'} el Word se genera igual`);

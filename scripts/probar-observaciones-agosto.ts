@@ -23,7 +23,7 @@ import {
   normalizarRespuestas,
   respuestasVacias,
 } from '../src/lib/generadores/ensamblador';
-import { markdownToDocxBuffer } from '../src/lib/docx-from-markdown';
+import { requerimientoADocx } from '../src/lib/generadores/documento';
 import { condicionesPorApartado } from '../src/lib/generadores/indice';
 import { destinosDistribucion } from '../src/lib/generadores/distribuidor';
 import type { Bloque, Seccion } from '../src/lib/generadores/plantilla-tipos';
@@ -52,10 +52,7 @@ async function tipografia() {
   const r = normalizarRespuestas(respuestasVacias(), 'Servicio de prueba');
   r.campos.finalidad = 'Garantizar la continuidad del servicio institucional.';
   const doc = ensamblarRequerimiento(plantilla, r, { cuantia: 20_000 });
-  const buffer = await markdownToDocxBuffer(doc.markdown, {
-    title: 'TÉRMINOS DE REFERENCIA',
-    subtitle: plantilla.subtitulo,
-  });
+  const buffer = await requerimientoADocx(doc.piezas, plantilla);
 
   const zip = await JSZip.loadAsync(buffer);
   const estilos = await zip.file('word/styles.xml')!.async('string');

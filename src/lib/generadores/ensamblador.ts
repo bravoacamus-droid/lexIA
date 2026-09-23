@@ -36,7 +36,8 @@ import {
   elementosDeLista,
   textoAPiezas,
   type Pieza,
-} from './piezas';
+} from '../documentos/piezas';
+import { aRomano } from '../documentos/numeracion';
 import { z } from 'zod';
 
 export interface RespuestasRequerimiento {
@@ -996,22 +997,7 @@ export function serieDeLetras(): () => string {
  * documento, la pantalla y el índice—. Cuando cada uno lo decidía por su
  * cuenta, lo que se veía y lo que se exportaba podían no coincidir.
  */
-/** 4 → «IV». Los anexos de menores a 8 UIT numeran así sus apartados. */
-export function aRomano(n: number): string {
-  const tabla: Array<[number, string]> = [
-    [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'],
-    [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
-  ];
-  let resto = n;
-  let romano = '';
-  for (const [valor, letras] of tabla) {
-    while (resto >= valor) {
-      romano += letras;
-      resto -= valor;
-    }
-  }
-  return romano;
-}
+export { aRomano } from '../documentos/numeracion';
 
 /**
  * El numeral tal como se imprime en el formato de César.

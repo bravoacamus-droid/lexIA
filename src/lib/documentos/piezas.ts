@@ -1,28 +1,26 @@
 /**
- * El requerimiento como estructura, no como texto.
+ * Los documentos como estructura, no como texto.
  *
  * POR QUÉ
  *
- * Las dieciséis plantillas están descritas con todo su detalle —qué es
- * un cuadro, cuál se repite por bien, cuál trae filas ya escritas, qué
- * es una nota que hay que retirar antes de remitir el expediente— y el
- * ensamblador lo convertía todo en un `string` de Markdown. El Word se
- * reconstruía de ahí, así que la única forma que llegaba a Word era la
- * que el Markdown sabe expresar: una tabla es una tabla y ya, sin
- * anchos, sin celdas combinadas y sin saber si era el cuadro de
- * características del Bien N.° 02 o una advertencia normativa.
+ * El requerimiento, el acta de evaluación y la carta de subsanación se
+ * armaban como un `string` de Markdown y el Word se reconstruía de ahí.
+ * Lo único que llegaba a Word era lo que el Markdown sabe expresar: una
+ * tabla es una tabla y ya, sin anchos, sin celdas combinadas, sin saber
+ * si era el cuadro de características del Bien N.° 02, la matriz de
+ * trazabilidad de una subsanación o una advertencia que se retira antes
+ * de firmar.
  *
  * Es exactamente lo que César viene señalando: «los formatos que están
  * en el Software aún no están de acuerdo a la estructura alcanzada».
  *
- * Estas piezas son lo que el ensamblador emite **además** del Markdown.
- * El Markdown sigue haciendo falta —la vista previa en pantalla y la
- * descarga en `.md` viven de él—, pero el Word ya no sale de ahí: sale
- * de aquí, igual que el pliego de consultas sale de sus tramos.
+ * Quien arma un documento emite estas piezas; `word.ts` las compone con
+ * las medidas de los modelos de César, y `markdown.ts` saca de ellas el
+ * texto para la vista previa y la copia guardada. Una sola fuente: el
+ * Markdown y el Word no pueden decir cosas distintas.
  *
  * Cada pieza guarda lo que hace falta para componer la página, no para
  * pintarla: el nivel de un título y su numeral, no su tamaño de letra.
- * Quien decide cómo se ve es `documento.ts`.
  */
 
 /** Con qué se marca cada elemento de una lista. Igual que en la plantilla. */
@@ -50,6 +48,16 @@ export interface PiezaTitulo {
 export interface PiezaParrafo {
   clase: 'parrafo';
   texto: string;
+  /**
+   * Justificado si no se dice otra cosa. La fecha de una carta va a la
+   * derecha y el título de un anexo, centrado.
+   */
+  alineacion?: 'derecha' | 'centro' | 'izquierda';
+  /**
+   * Sin espacio detrás. El membrete de una carta —«Señores:», el nombre,
+   * «Presente.-»— va en renglones seguidos, no en párrafos sueltos.
+   */
+  pegado?: boolean;
 }
 
 /**
@@ -113,6 +121,68 @@ export interface PiezaDatos {
   filas: Array<{ etiqueta: string; valor: string; pendiente?: boolean }>;
 }
 
+/** Una celda de un cuadro con forma propia. */
+export interface CeldaCuadro {
+  texto: string;
+  /** Etiqueta o cabecera: fondo gris azulado y negrita, como en el modelo. */
+  gris?: boolean;
+  /**
+   * El dato de una ficha de cabecera: el fondo crema (EEECE1) con el que
+   * el modelo del acta distingue «[Nombre o razón social del postor]» de
+   * su etiqueta.
+   */
+  crema?: boolean;
+  negrita?: boolean;
+  /** Cuántas columnas ocupa. */
+  columnas?: number;
+}
+
+/**
+ * Un cuadro que no es «cabecera y filas».
+ *
+ * El acta de César tiene cuadros que empiezan como ficha —«Nombre o razón
+ * social del postor | [●]»— y siguen como tabla —«N.º | Aspecto |
+ * Registro»—, con celdas que ocupan dos columnas. Una `PiezaTabla` no
+ * puede decir eso.
+ */
+export interface PiezaCuadro {
+  clase: 'cuadro';
+  /**
+   * Letra propia, en medios puntos. Los anexos del acta, con una columna
+   * por requisito, van en Arial 7 en el modelo.
+   */
+  tamano?: number;
+  /** Proporciones de las columnas; se reparten sobre el ancho disponible. */
+  proporciones: number[];
+  filas: CeldaCuadro[][];
+}
+
+/**
+ * El cuadro de firmas con que cierra un acta: una fila en blanco para
+ * firmar y debajo el nombre y el cargo de cada uno.
+ */
+export interface PiezaFirmas {
+  clase: 'firmas';
+  personas: Array<{ nombre?: string; cargo?: string }>;
+}
+
+/** La firma de una carta: la línea, el nombre, el cargo y la entidad. */
+export interface PiezaFirma {
+  clase: 'firma';
+  nombre: string;
+  cargo?: string;
+  entidad?: string;
+}
+
+/**
+ * A partir de aquí, otra hoja: los anexos del acta van apaisados, como en
+ * el modelo, porque llevan una columna por requisito.
+ */
+export interface PiezaSeccion {
+  clase: 'seccion';
+  orientacion: 'horizontal' | 'vertical';
+}
+
 /** Un hueco que el área usuaria todavía no ha resuelto. */
 export interface PiezaPendiente {
   clase: 'pendiente';
@@ -127,6 +197,10 @@ export type Pieza =
   | PiezaLista
   | PiezaTabla
   | PiezaDatos
+  | PiezaCuadro
+  | PiezaFirmas
+  | PiezaFirma
+  | PiezaSeccion
   | PiezaPendiente;
 
 /**

@@ -33,7 +33,7 @@ import {
 import { inventarioRevisable } from '../src/lib/generadores/revisor';
 import { destinosDistribucion } from '../src/lib/generadores/distribuidor';
 import { obtenerPlantilla } from '../src/lib/generadores/plantillas';
-import { markdownToDocxBuffer } from '../src/lib/docx-from-markdown';
+import { requerimientoADocx } from '../src/lib/generadores/documento';
 
 let fallos = 0;
 const comprobar = (que: string, ok: boolean) => {
@@ -255,10 +255,7 @@ comprobar('y sabe que ya tiene texto', enReparto?.ocupado === true);
 console.log('\n── El Word ──');
 void (async () => {
   try {
-    const buffer = await markdownToDocxBuffer(docMovido.markdown, {
-      title: 'Requerimiento',
-      subtitle: plantilla.subtitulo,
-    });
+    const buffer = await requerimientoADocx(docMovido.piezas, plantilla);
     comprobar('se exporta con el orden nuevo y el apartado propio dentro', buffer.length > 5000);
   } catch (e) {
     comprobar(`la exportación a Word falló: ${(e as Error).message}`, false);

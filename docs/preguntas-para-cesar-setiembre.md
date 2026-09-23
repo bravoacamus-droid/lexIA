@@ -179,11 +179,49 @@ Hemos seguido el modelo, que es al que remitías. Si prefieres «2, 3 y
 
 ---
 
+## 9 · El acta de evaluación y la carta de subsanación
+
+Las dos salen ahora con la forma de tus modelos: el acta como tu «Acta
+de Evaluación - OK», apartado por apartado y con sus párrafos, y la carta
+con el estilo de tus cartas (número, fecha a la derecha, destinatario,
+asunto, referencia y firma). El acta trae además los **Anexos N.° 01,
+02 y 03** en hoja apaisada: una fila por postor y una columna por
+requisito, que es la comparación que pediste. Los anexos 04 a 06 (los
+económicos) no se generan, porque necesitan los montos que el comité
+escribe a mano.
+
+La carta ya se puede descargar desde la pantalla del resultado: el botón
+«Carta de subsanación» aparece al lado del acta cuando algún postor
+tiene algo que subsanar. Antes la carta existía pero no había botón para
+llegar a ella.
+
+Tres cosas en las que nos apartamos de tu modelo, para que decidas:
+
+- **SEACE o Pladicop.** Tu acta dice que la subsanación se notifica y se
+  presenta por el SEACE. El numeral 78.1 del Reglamento, tal como quedó
+  con el Decreto Supremo N.° 001-2026-EF, dice que «se realiza a través
+  de la Pladicop». Pusimos Pladicop, que es lo que dice también la
+  carta. El párrafo de «Detalle de los postores» lo dejamos con tus
+  palabras («a través del SEACE»). ¿Lo unificamos?
+- **El orden de prelación.** A-LexIA ordena por el puntaje técnico,
+  porque el económico lo asigna el comité. El acta lo dice así («Orden
+  de prelación según puntaje técnico») y deja en blanco el puntaje total.
+  ¿Te parece bien, o prefieres que el acta no proponga ningún orden hasta
+  tener el puntaje económico?
+- **La sangría de los títulos.** Tu acta cuelga los títulos «I.», «II.»…
+  a 0,75 cm; con veinte apartados, los romanos largos («XVII.») no caben
+  y el título se descuadra. Los pusimos a 1,25 cm para que todos alineen.
+
+---
+
 ## Lo que ya está listo para que pruebes
 
 **El rediseño completo.** Marca A-LexIA, el compañero con sus efectos, el
 menú por verbos (Consultar · Generar · Evaluar), y todas las pantallas
 rehechas en escritorio y en móvil, con tema claro y oscuro.
+
+**El acta y la carta.** Evalúa unas ofertas y descarga las dos: deberían
+verse como tus modelos.
 
 **El Word del requerimiento.** Descarga cualquiera de tus requerimientos
 y compáralo con tu formato: debería verse igual. Si algo no cuadra

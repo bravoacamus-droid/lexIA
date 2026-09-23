@@ -22,7 +22,7 @@ import {
   type RespuestasRequerimiento,
 } from '../src/lib/generadores/ensamblador';
 import type { Seccion, Bloque } from '../src/lib/generadores/plantilla-tipos';
-import { markdownToDocxBuffer } from '../src/lib/docx-from-markdown';
+import { requerimientoADocx } from '../src/lib/generadores/documento';
 
 const SALIDA = join('tmp', 'requerimiento-muestra');
 
@@ -120,10 +120,7 @@ async function main() {
   mkdirSync(SALIDA, { recursive: true });
   writeFileSync(join(SALIDA, 'requerimiento.md'), doc.markdown, 'utf8');
 
-  const buffer = await markdownToDocxBuffer(doc.markdown, {
-    title: PLANTILLA_BIENES_GENERAL.encabezado,
-    subtitle: PLANTILLA_BIENES_GENERAL.subtitulo,
-  });
+  const buffer = await requerimientoADocx(doc.piezas, PLANTILLA_BIENES_GENERAL);
   writeFileSync(join(SALIDA, 'requerimiento.docx'), buffer);
 
   console.log(`Markdown: ${doc.markdown.length.toLocaleString('es-PE')} caracteres`);
