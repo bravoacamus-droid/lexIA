@@ -13,6 +13,7 @@ import {
   Scale,
   FileSearch,
   MessageSquare,
+  Library,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,12 @@ import { TypeFilter } from '@/components/app/library/type-filter';
 import { LawSelectorCard, type LawFilter } from '@/components/app/law-selector';
 import { DocumentCard } from '@/components/app/library/document-card';
 import { SearchLottieLoader } from '@/components/app/search/search-lottie-loader';
+import {
+  Pagina,
+  MigaDePan,
+  EncabezadoDeSeccion,
+  NotaDelCompanero,
+} from '@/components/app/seccion/piezas';
 import { getRoleTheme } from '@/lib/navigation/role-theme';
 import { toast } from 'sonner';
 import type { NormativeDocType } from '@/lib/supabase/types';
@@ -143,53 +150,32 @@ export function SmartSearchView({ role }: Props) {
   const hasSearch = tags.length > 0;
 
   return (
-    <div className="container max-w-5xl py-8 space-y-6">
-      {/* Hero del buscador */}
-      <motion.section
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className={`relative overflow-hidden rounded-2xl border ${
-          theme?.classes.softBorder || 'border-brand-500/20'
-        } ${
-          theme?.classes.gradient || 'bg-gradient-to-br from-brand-50/40 to-transparent'
-        } p-6 sm:p-8`}
-      >
-        <div
-          className="absolute inset-0 opacity-[0.03] pointer-events-none"
-          style={{
-            backgroundImage:
-              'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)',
-            backgroundSize: '32px 32px',
-          }}
-          aria-hidden
-        />
-        <div className="relative flex items-start gap-4">
-          {/* Ícono cuadrado del hero — feedback César 01/07/2026:
-              "veo un badge blanco vacío al costado del título".
-              Causa: el theme.classes.solidBg con opacidad/tonalidad muy
-              tenue no destacaba sobre el gradient del hero. Fijamos el
-              color al brand-600 (azul LexIA) + gradient para que se vea
-              siempre nítido independiente del rol activo. Añadimos
-              ring interno para reforzar el borde. */}
-          <div className="hidden sm:inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-lg ring-1 ring-inset ring-white/20">
-            <SearchCode className="h-7 w-7 text-white" strokeWidth={2} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-brand-500 text-white px-3 py-0.5 text-[11px] font-semibold uppercase tracking-wider mb-2">
-              <Zap className="h-3 w-3" />
-              Motor de búsqueda con IA
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight leading-tight">
-              Buscador inteligente de normativa
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1 leading-relaxed max-w-xl">
-              Combina varios términos como <strong>chips</strong> y encuentra pronunciamientos, opiniones,
-              resoluciones y directivas vigentes. Los resultados se rankean por cuántos términos coinciden.
-            </p>
-          </div>
-        </div>
-      </motion.section>
+    <Pagina className="max-w-[1200px]">
+      <MigaDePan
+        trozos={[
+          { label: 'Inicio', href: '/app' },
+          { label: 'Consultar', href: '/consultar' },
+          { label: 'Búsqueda avanzada' },
+        ]}
+      />
+
+      <EncabezadoDeSeccion
+        icono={SearchCode}
+        familia="consultar"
+        titulo="Búsqueda avanzada"
+        bajada={
+          <>
+            Encuentra normativa y criterios aplicables a tu contratación.
+            <br className="hidden sm:block" /> Busca por palabras o frases y afina los resultados
+            por fuente y régimen.
+          </>
+        }
+        aside={
+          <NotaDelCompanero icono={Library} familia="consultar" className="max-w-[330px]">
+            Accede a leyes, reglamentos, opiniones, resoluciones y más, en un solo lugar.
+          </NotaDelCompanero>
+        }
+      />
 
       {/* Selector de Régimen Normativo — apartado independiente, prominente.
           Feedback César 01/07/2026: sacado del panel de filtros expandible
@@ -267,6 +253,27 @@ export function SmartSearchView({ role }: Props) {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Búsquedas sugeridas — un toque y se busca. El mockup las pone
+          en una tira bajo los filtros, antes de los ejemplos largos. */}
+      {!hasSearch && (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 shadow-soft">
+          <span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold">
+            <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+            Búsquedas sugeridas:
+          </span>
+          {RAPIDAS.map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setTags([r])}
+              className="rounded-full border border-border bg-secondary/50 px-3 py-1.5 text-[12px] font-medium transition-colors hover:border-consultar-300 hover:bg-consultar-50 hover:text-consultar-700 dark:hover:border-consultar-700 dark:hover:bg-consultar-900/30 dark:hover:text-consultar-300"
+            >
+              {r}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Estado inicial: sugerencias por rol */}
       {!hasSearch && (
@@ -424,7 +431,7 @@ export function SmartSearchView({ role }: Props) {
           )}
         </section>
       )}
-    </div>
+    </Pagina>
   );
 }
 
@@ -551,6 +558,15 @@ function getSuggestionsByRole(role: ProfileRole | null): Suggestion[] {
     },
   ];
 }
+
+/** Los términos que más se buscan — los del mockup de César. */
+const RAPIDAS = [
+  'ampliación de plazo',
+  'experiencia del postor',
+  'penalidad por mora',
+  'adicional de obra',
+  'subsanación de ofertas',
+];
 
 function countByType(results: SearchResult[]): Array<[string, number]> {
   const map = new Map<string, number>();

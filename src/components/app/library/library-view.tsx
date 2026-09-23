@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, BookmarkCheck, Inbox, Folder, BookOpen, Scale, TrendingUp, Bot, Star, Clock } from 'lucide-react';
+import { Sparkles, X, BookmarkCheck, Inbox, Folder, BookOpen, Scale, TrendingUp, Bot, Star, Clock, BookMarked } from 'lucide-react';
 import { TypeFilter } from '@/components/app/library/type-filter';
 import { TagSearchInput } from '@/components/app/library/tag-search-input';
 import { LawSelectorCard, type LawFilter } from '@/components/app/law-selector';
 import { FoldersPanel } from '@/components/app/library/folders-panel';
+import { MigaDePan } from '@/components/app/seccion/piezas';
 import { DocumentCard } from '@/components/app/library/document-card';
 import { SaveToFolderDialog } from '@/components/app/library/save-to-folder';
 import type { NormativeDocType } from '@/lib/supabase/types';
@@ -552,6 +553,12 @@ export function LibraryView({
     if (anioDesde) p.set('desde', String(anioDesde));
     if (anioHasta) p.set('hasta', String(anioHasta));
     if (debounced) p.set('q', debounced);
+    // El filtro rápido también va en la URL. Sin él, entrar por
+    // «Mi espacio › Guardados» duraba un instante: al montar, este
+    // efecto reescribía la dirección sin el parámetro, el filtro
+    // sobrevivía pero el menú dejaba de saber dónde estabas.
+    if (quickFilter === 'favorites') p.set('guardados', '1');
+    if (quickFilter === 'recent') p.set('recientes', '1');
     const qs = p.toString();
     return qs ? `/biblioteca?${qs}` : '/biblioteca';
   })();
@@ -573,19 +580,30 @@ export function LibraryView({
        (1280px) a full width con padding responsivo — aprovecha todo el
        ancho del main del app-shell. */
     <div className="w-full max-w-none px-4 sm:px-6 lg:px-10 xl:px-14 py-8 space-y-6">
-      <header className="space-y-1">
-        <div className="flex items-center gap-2">
-          <h1 className="font-semibold text-3xl tracking-tight">
-            Biblioteca jurídica inteligente
-          </h1>
-          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-            <Sparkles className="h-3 w-3" />
-            IA activa
-          </span>
+      <MigaDePan trozos={[{ label: 'Inicio', href: '/app' }, { label: 'Biblioteca' }]} />
+
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start">
+        <span className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-emerald-100 bg-emerald-50 sm:inline-flex dark:border-emerald-900/60 dark:bg-emerald-950/40">
+          <BookMarked
+            className="h-7 w-7 text-emerald-600 dark:text-emerald-400"
+            strokeWidth={1.8}
+          />
+        </span>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-3xl font-bold tracking-tight sm:text-[2.2rem]">
+              Biblioteca jurídica inteligente
+            </h1>
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-950/40 dark:text-emerald-400">
+              <Sparkles className="h-3 w-3" />
+              Base actualizada
+            </span>
+          </div>
+          <p className="mt-1.5 max-w-2xl text-pretty text-[15px] leading-relaxed text-muted-foreground">
+            El conocimiento que sustenta las consultas, evaluaciones y documentos generados por
+            A-LexIA.
+          </p>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Tu base documental especializada en Contrataciones del Estado peruano.
-        </p>
       </header>
 
       {/* Stats hero — 4 métricas de la biblioteca */}

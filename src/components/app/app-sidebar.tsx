@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ChevronDown, X } from 'lucide-react';
 import { Isotipo, MarcaLateral } from '@/components/marca/logo-alexia';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,13 @@ import { useUiStore } from '@/lib/stores/ui';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { AppUser, ResumenDePlan } from '@/components/app/app-shell';
-import { getMenuFor, colorClasses, type MenuItem, type MenuSection } from '@/lib/navigation/menu-by-role';
+import {
+  getMenuFor,
+  colorClasses,
+  MENU_SECTIONS,
+  type MenuItem,
+  type MenuSection,
+} from '@/lib/navigation/menu-by-role';
 import { TarjetaDePlan } from '@/components/app/tarjeta-de-plan';
 import { SelloDelEstado } from '@/components/app/sello-del-estado';
 
@@ -24,6 +30,11 @@ interface Props {
 
 export function AppSidebar({ user, plan, mobileOpen, onMobileClose }: Props) {
   const pathname = usePathname();
+  // Dos entradas apuntan a /biblioteca y solo las distingue el
+  // parámetro (`?guardados=1`). Sin mirarlo, las dos se encendían a
+  // la vez y no se sabía dónde se estaba.
+  const parametros = useSearchParams();
+  const donde: Donde = { ruta: pathname, parametros };
   const storedCollapsed = useUiStore((s) => s.sidebarCollapsed);
   const toggle = useUiStore((s) => s.toggleSidebar);
   const [mounted, setMounted] = useState(false);
@@ -48,7 +59,7 @@ export function AppSidebar({ user, plan, mobileOpen, onMobileClose }: Props) {
       <BarraDeEscritorio
         collapsed={collapsed}
         onToggle={toggle}
-        pathname={pathname}
+        donde={donde}
         sections={sections}
         plan={plan}
       />
@@ -84,7 +95,7 @@ export function AppSidebar({ user, plan, mobileOpen, onMobileClose }: Props) {
               </div>
               <CuerpoDeLaBarra
                 collapsed={false}
-                pathname={pathname}
+                donde={donde}
                 sections={sections}
                 plan={plan}
               />
@@ -99,13 +110,13 @@ export function AppSidebar({ user, plan, mobileOpen, onMobileClose }: Props) {
 function BarraDeEscritorio({
   collapsed,
   onToggle,
-  pathname,
+  donde,
   sections,
   plan,
 }: {
   collapsed: boolean;
   onToggle: () => void;
-  pathname: string | null;
+  donde: Donde;
   sections: MenuSection[];
   plan: ResumenDePlan | null;
 }) {
@@ -148,7 +159,7 @@ function BarraDeEscritorio({
       </div>
       <CuerpoDeLaBarra
         collapsed={collapsed}
-        pathname={pathname}
+        donde={donde}
         sections={sections}
         plan={plan}
         onToggle={onToggle}
@@ -159,13 +170,13 @@ function BarraDeEscritorio({
 
 function CuerpoDeLaBarra({
   collapsed,
-  pathname,
+  donde,
   sections,
   plan,
   onToggle,
 }: {
   collapsed: boolean;
-  pathname: string | null;
+  donde: Donde;
   sections: MenuSection[];
   plan: ResumenDePlan | null;
   onToggle?: () => void;
@@ -190,7 +201,7 @@ function CuerpoDeLaBarra({
                 <EntradaDelMenu
                   key={`${section.label}-${item.href}`}
                   item={item}
-                  pathname={pathname}
+                  donde={donde}
                   collapsed={collapsed}
                 />
               ))}
@@ -254,17 +265,17 @@ function CuerpoDeLaBarra({
  */
 function EntradaDelMenu({
   item,
-  pathname,
+  donde,
   collapsed,
 }: {
   item: MenuItem;
-  pathname: string | null;
+  donde: Donde;
   collapsed: boolean;
 }) {
   const hijos = item.hijos || [];
   const tieneHijos = hijos.length > 0;
-  const activo = esActiva(item.href, pathname);
-  const hijoActivo = hijos.some((h) => esActiva(h.href, pathname));
+  const activo = esActiva(item.href, donde);
+  const hijoActivo = hijos.some((h) => esActiva(h.href, donde));
   const [abierto, setAbierto] = useState(hijoActivo);
 
   // Al navegar a un hijo, el padre se abre solo.
@@ -356,23 +367,26 @@ function EntradaDelMenu({
             >
               <div className="ml-[22px] mt-0.5 space-y-0.5 border-l border-white/10 pl-2.5">
                 {hijos.map((h) => {
-                  const act = esActiva(h.href, pathname);
+                  const act = esActiva(h.href, donde);
                   return (
                     <li key={h.href}>
                       <Link
                         href={h.href}
                         className={cn(
-                          'flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] transition-colors',
+                          'flex items-start gap-2 rounded-md px-2 py-1.5 text-[13px] leading-snug transition-colors',
                           act
                             ? 'bg-white/10 font-medium text-white'
                             : 'text-white/60 hover:bg-white/5 hover:text-white',
                         )}
                       >
-                        <h.icon className="h-3.5 w-3.5 shrink-0" strokeWidth={1.9} />
-                        <span className="truncate">{h.label}</span>
+                        <h.icon className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={1.9} />
+                        {/* Sin `truncate`: «Documentos de ejecución
+                            contractual» no cabe en una línea y cortado
+                            no se entiende. Cae a dos, como en el mockup. */}
+                        <span className="min-w-0 flex-1">{h.label}</span>
                         {act && (
                           <span
-                            className={cn('ml-auto h-1.5 w-1.5 rounded-full', colores.dot)}
+                            className={cn('mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full', colores.dot)}
                           />
                         )}
                       </Link>
@@ -388,14 +402,59 @@ function EntradaDelMenu({
   );
 }
 
+/** Dónde está la persona: la ruta y los parámetros de la URL. */
+interface Donde {
+  ruta: string | null;
+  parametros: ReturnType<typeof useSearchParams>;
+}
+
+/** Todas las entradas del menú, padres e hijos, en una sola lista. */
+function todasLasEntradas(): MenuItem[] {
+  const fuera: MenuItem[] = [];
+  for (const seccion of MENU_SECTIONS) {
+    for (const item of seccion.items) {
+      fuera.push(item, ...(item.hijos || []));
+    }
+  }
+  return fuera;
+}
+
+/** ¿La URL cae dentro de esta entrada? Sin decidir todavía si es la mejor. */
+function encaja(href: string, donde: Donde): boolean {
+  const { ruta: actual, parametros } = donde;
+  if (!actual) return false;
+  const [ruta, consulta] = href.split('?');
+
+  const mismaRuta =
+    ruta === '/app' ? actual === '/app' : actual === ruta || actual.startsWith(`${ruta}/`);
+  if (!mismaRuta) return false;
+
+  if (!consulta) return true;
+  const pedidos = new URLSearchParams(consulta);
+  for (const [clave, valor] of pedidos.entries()) {
+    if (parametros?.get(clave) !== valor) return false;
+  }
+  return true;
+}
+
+/** Cuán específica es una entrada: gana la ruta más larga y, a igualdad, la que exige parámetros. */
+function precision(href: string): number {
+  const [ruta, consulta] = href.split('?');
+  return ruta.length * 10 + (consulta ? new URLSearchParams(consulta).size : 0);
+}
+
 /**
- * Qué cuenta como "estoy aquí". `/app` es exacta porque cualquier ruta
- * empieza por ella; el resto admite subrutas para que `/chat/abc` marque
- * el chat. Las que llevan parámetro se comparan sin él.
+ * Qué cuenta como «estoy aquí».
+ *
+ * No basta con que la URL caiga dentro de la entrada: varias entradas
+ * pueden contenerla a la vez. `/generador/requerimiento-plantilla` cae
+ * dentro de `/generador`, y `/biblioteca?guardados=1` cae dentro de
+ * `/biblioteca`; sin desempate se encendían las dos y no se sabía dónde
+ * se estaba. Gana **la más específica**: la de ruta más larga y, a
+ * igualdad de ruta, la que además exige parámetros.
  */
-function esActiva(href: string, pathname: string | null): boolean {
-  if (!pathname) return false;
-  const ruta = href.split('?')[0];
-  if (ruta === '/app') return pathname === '/app';
-  return pathname === ruta || pathname.startsWith(`${ruta}/`);
+function esActiva(href: string, donde: Donde): boolean {
+  if (!encaja(href, donde)) return false;
+  const mia = precision(href);
+  return !todasLasEntradas().some((otra) => encaja(otra.href, donde) && precision(otra.href) > mia);
 }

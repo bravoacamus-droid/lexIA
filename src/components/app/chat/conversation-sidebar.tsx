@@ -34,6 +34,7 @@ import {
 import { cn, groupDateLabel, truncate } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useConversations, type ConvoMini } from '@/lib/stores/conversations';
+import { Isotipo } from '@/components/marca/logo-alexia';
 
 interface Props {
   initialConversations: ConvoMini[];
@@ -149,9 +150,20 @@ export function ConversationSidebar({ initialConversations }: Props) {
 
   return (
     <>
-      <aside className="hidden md:flex w-72 shrink-0 flex-col border-r border-border bg-secondary/20">
-        {/* Header */}
-        <div className="p-3 space-y-2 border-b border-border">
+      <aside className="hidden w-72 shrink-0 flex-col border-r border-border bg-secondary/20 md:flex">
+        {/* Cabecera — el mockup nombra la herramienta aquí, no en la
+            barra superior, porque la superior es la misma en todas las
+            pantallas. */}
+        <div className="flex items-center gap-2.5 border-b border-border px-3 py-3.5">
+          <Isotipo alto={26} />
+          <div className="min-w-0">
+            <p className="truncate text-[14px] font-bold tracking-tight">Chat con A-LexIA</p>
+            <p className="text-[10.5px] leading-tight text-muted-foreground">
+              IA especializada en contrataciones públicas
+            </p>
+          </div>
+        </div>
+        <div className="space-y-2 border-b border-border p-3">
           <Button onClick={createNew} loading={busy} className="w-full justify-start">
             <MessageSquarePlus className="h-4 w-4" />
             Nueva conversación
@@ -161,7 +173,7 @@ export function ConversationSidebar({ initialConversations }: Props) {
             <Input
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              placeholder="Buscar..."
+              placeholder="Buscar conversaciones…"
               className="pl-8 h-8 text-xs"
             />
           </div>

@@ -172,3 +172,36 @@ export function isDemoAllowedEmail(email: string): boolean {
   if (allowed.length === 0) return true;
   return allowed.includes(email.trim().toLowerCase());
 }
+
+/**
+ * Pasa un texto en mayúsculas a frase normal, respetando las siglas.
+ *
+ * Los quince formatos oficiales llevan su título tal como lo publica el
+ * OECE —«SERVICIOS DE MANTENIMIENTO VIAL»— y ese texto se reproduce
+ * literal en el documento, así que no se toca. Pero en pantalla, una
+ * rejilla de quince títulos en mayúsculas grita y se lee peor: aquí se
+ * bajan solo para mostrarlos.
+ */
+const SIGLAS = new Set([
+  'UIT', 'TDR', 'EETT', 'OECE', 'SEACE', 'RNP', 'IGV', 'TUPA', 'DEC', 'AGA',
+  'PCIV', 'MYPE', 'MYPES', 'CMC', 'TCE', 'DS', 'IA', 'Y/O',
+]);
+
+export function enOracion(texto: string): string {
+  if (!texto) return texto;
+  // Si no viene en mayúsculas, ya está como su autor quiso.
+  if (texto !== texto.toUpperCase()) return texto;
+
+  const bajado = texto
+    .split(' ')
+    .map((palabra) => {
+      const limpio = palabra.replace(/[^\wÁÉÍÓÚÑ/]/gi, '');
+      if (SIGLAS.has(limpio)) return palabra;
+      // Un número con su unidad («8») se deja igual.
+      if (/^\d+$/.test(limpio)) return palabra;
+      return palabra.toLowerCase();
+    })
+    .join(' ');
+
+  return bajado.charAt(0).toUpperCase() + bajado.slice(1);
+}

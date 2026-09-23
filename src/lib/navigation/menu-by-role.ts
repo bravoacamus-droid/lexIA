@@ -196,7 +196,7 @@ export const MENU_SECTIONS: MenuSection[] = [
         corto: 'Generar',
         hijos: [
           {
-            label: 'Requerimiento',
+            label: 'Requerimientos',
             href: '/generador/requerimiento-plantilla',
             icon: ClipboardList,
             description:
@@ -205,7 +205,7 @@ export const MENU_SECTIONS: MenuSection[] = [
             color: 'generar',
           },
           {
-            label: 'Documentos administrativos',
+            label: 'Documentos de ejecución contractual',
             href: '/generador',
             icon: FileSignature,
             description:

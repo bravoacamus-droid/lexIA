@@ -8,6 +8,7 @@ export const metadata = { title: 'Generador — Chat' };
 
 interface Props {
   params: { id: string };
+  searchParams: { q?: string };
 }
 
 interface DbMessage {
@@ -28,7 +29,7 @@ interface DbFile {
   expires_at: string | null;
 }
 
-export default async function GeneratorChatPage({ params }: Props) {
+export default async function GeneratorChatPage({ params, searchParams }: Props) {
   const supabase = createClient();
   const {
     data: { user },
@@ -70,6 +71,7 @@ export default async function GeneratorChatPage({ params }: Props) {
       perfil={c.perfil}
       initialMessages={(messages || []) as DbMessage[]}
       initialFiles={(files || []) as DbFile[]}
+      consultaInicial={searchParams.q || null}
     />
   );
 }

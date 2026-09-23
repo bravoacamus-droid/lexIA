@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import type { ProfileRole } from '@/lib/auth/session';
+import { enOracion } from '@/lib/utils';
 import {
   Pagina,
   MigaDePan,
@@ -96,7 +97,7 @@ export default async function GenerarPage() {
     }>).map((r) => ({
       id: `req-${r.id}`,
       titulo: r.denominacion?.trim() || 'Requerimiento sin denominación',
-      subtitulo: nombreDePlantilla.get(r.plantilla_id) || 'Requerimiento',
+      subtitulo: enOracion(nombreDePlantilla.get(r.plantilla_id) || 'Requerimiento'),
       href: `/generador/requerimiento-plantilla/${r.id}`,
       familia: 'requerimiento' as const,
       actualizado: r.updated_at,

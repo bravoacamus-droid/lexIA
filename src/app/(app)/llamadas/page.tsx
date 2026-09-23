@@ -3,14 +3,22 @@ import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Phone, PhoneCall, Star, Clock, BookOpen, Crown } from 'lucide-react';
+import { Phone, Mic, Star, Clock, BookOpen, Crown, ShieldCheck } from 'lucide-react';
 import { formatRelative } from '@/lib/utils';
 import { checkFeatureGate } from '@/lib/billing/feature-gate';
 import { getCurrentUserWithRole } from '@/lib/auth/session';
 import { getTier } from '@/lib/billing/tiers';
+import { Companero } from '@/components/marca/companero';
+import { PortadaDeVoz } from '@/components/app/voice/portada-de-voz';
+import {
+  Pagina,
+  MigaDePan,
+  EncabezadoDeSeccion,
+  NotaDelCompanero,
+} from '@/components/app/seccion/piezas';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Hablar con LexIA' };
+export const metadata = { title: 'Habla con A-LexIA' };
 
 export default async function LlamadasPage() {
   const supabase = createClient();
@@ -54,58 +62,61 @@ export default async function LlamadasPage() {
     : 0;
 
   return (
-    <div className="container max-w-4xl py-6 space-y-5">
-      <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Badge variant="outline" className="text-[10px]">
-              <Crown className="h-3 w-3" />
-              Plan {tier.label}
-            </Badge>
-            <Badge variant="secondary" className="text-[10px]">
-              INNOVACIÓN LEGAL
-            </Badge>
-          </div>
-          <h1 className="font-semibold text-3xl tracking-tight">
-            Hablar con LexIA
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground max-w-xl">
-            Conversa por voz con LexIA y obtén respuestas inmediatas con sustento
-            normativo citado al artículo. Como hablar con un abogado, pero 24/7.
-          </p>
-        </div>
-        {tierIncluyeVoz ? (
-          <Button asChild size="lg" variant="glow">
-            <Link href="/llamadas/nueva">
-              <PhoneCall className="h-4 w-4" />
-              Iniciar llamada
-            </Link>
-          </Button>
-        ) : (
-          <Button asChild size="lg" variant="outline">
-            <Link href="/pricing">
-              <Crown className="h-4 w-4" />
-              Actualizar a Pro
-            </Link>
-          </Button>
-        )}
-      </header>
+    <Pagina className="max-w-[1200px]">
+      <MigaDePan
+        trozos={[
+          { label: 'Inicio', href: '/app' },
+          { label: 'Consultar', href: '/consultar' },
+          { label: 'Habla con A-LexIA' },
+        ]}
+      />
 
-      {/* Cuota */}
+      <EncabezadoDeSeccion
+        icono={Mic}
+        familia="consultar"
+        titulo="Habla con A-LexIA"
+        bajada="Realiza tu consulta por voz y recibe una respuesta clara, con sustento normativo."
+        aside={
+          <div className="flex items-end justify-end gap-3">
+            <div className="hidden flex-col items-end gap-2 sm:flex">
+              <p className="max-w-[175px] text-right font-serif text-[15px] italic leading-snug text-consultar-600 dark:text-consultar-400">
+                Tu voz también encuentra respuestas
+              </p>
+              <NotaDelCompanero
+                icono={ShieldCheck}
+                familia="consultar"
+                className="max-w-[215px]"
+              >
+                Misma confianza, ahora también por voz.
+              </NotaDelCompanero>
+            </div>
+            <Companero
+              pose="senala"
+              estado="hablando"
+              alto={128}
+              className="hidden xl:inline-flex"
+            />
+          </div>
+        }
+      />
+
+      <PortadaDeVoz disponible={tierIncluyeVoz} />
+
+      {/* La cuota de minutos — es el dato que decide si se puede llamar. */}
       {tierIncluyeVoz ? (
-        <Card className="p-5 bg-brand-50/40 dark:bg-brand-950/30 border-brand-500/30">
-          <div className="flex items-center justify-between gap-3 mb-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-brand-700 dark:text-brand-400">
-              Cuota mensual
+        <Card className="border-consultar-500/30 bg-consultar-50/50 p-4 dark:bg-consultar-900/20">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-consultar-700 dark:text-consultar-400">
+              Cuota mensual · Plan {tier.label}
             </p>
-            <p className="text-xs text-muted-foreground font-mono">
+            <p className="font-mono text-xs text-muted-foreground">
               {cuotaUsada} de {isFinite(cuotaTotal) ? cuotaTotal : '∞'} min
             </p>
           </div>
           {isFinite(cuotaTotal) && (
-            <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
               <div
-                className="h-full bg-gradient-to-r from-brand-500 to-brand-400 transition-all"
+                className="h-full bg-gradient-to-r from-consultar-500 to-consultar-400 transition-all"
                 style={{ width: `${cuotaPercent}%` }}
               />
             </div>
@@ -117,54 +128,41 @@ export default async function LlamadasPage() {
           </p>
         </Card>
       ) : (
-        <Card className="p-5 bg-amber-50/40 dark:bg-amber-950/30 border-amber-500/30">
+        <Card className="border-amber-500/30 bg-amber-50/40 p-4 dark:bg-amber-950/30">
           <div className="flex items-start gap-3">
-            <Crown className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+            <Crown className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
             <div className="min-w-0">
-              <p className="font-semibold text-sm text-amber-900 dark:text-amber-100">
-                Hablar con LexIA no está disponible en tu plan {tier.label}
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                Hablar con A-LexIA no está disponible en tu plan {tier.label}
               </p>
-              <p className="text-xs text-amber-900/80 dark:text-amber-100/80 mt-1 leading-relaxed">
+              <p className="mt-1 text-xs leading-relaxed text-amber-900/80 dark:text-amber-100/80">
                 Actualiza a <strong>Pro</strong> para incluir 30 minutos al mes, o a{' '}
                 <strong>Enterprise</strong> para 120 minutos al mes.
               </p>
-              <Button asChild size="sm" variant="outline" className="mt-3">
-                <Link href="/pricing">Ver planes</Link>
-              </Button>
             </div>
           </div>
         </Card>
       )}
 
-      {/* Historial */}
-      {callList.length === 0 ? (
-        <Card className="p-12 text-center">
-          <span className="inline-flex h-14 w-14 items-center justify-center rounded-xl bg-brand-100 dark:bg-brand-950 text-brand-700 dark:text-brand-400 mb-4">
-            <Phone className="h-6 w-6" />
-          </span>
-          <h2 className="font-semibold text-xl mb-1">Aún no tienes llamadas</h2>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            Tu primera conversación por voz con LexIA. Antes de iniciarla, debes
-            aceptar el aviso de privacidad (solo la primera vez).
-          </p>
-          <Button asChild className="mt-5" variant="glow">
-            <Link href="/llamadas/nueva">
-              <PhoneCall className="h-4 w-4" />
-              Iniciar mi primera llamada
-            </Link>
-          </Button>
-        </Card>
-      ) : (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
-            Historial
+      {callList.length > 0 && (
+        <section className="space-y-2">
+          <p className="px-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Tus consultas por voz
           </p>
           {callList.map((c) => (
             <CallCard key={c.id} call={c} />
           ))}
-        </div>
+        </section>
       )}
-    </div>
+
+      <div className="flex items-start gap-3 rounded-2xl border border-consultar-100 bg-consultar-50/60 px-4 py-3.5 dark:border-consultar-900/60 dark:bg-consultar-900/20">
+        <ShieldCheck className="mt-0.5 h-4.5 w-4.5 shrink-0 text-consultar-600 dark:text-consultar-400" />
+        <p className="text-[13px] leading-relaxed text-foreground/85">
+          <span className="font-semibold">Tu consulta se procesa de forma segura. </span>
+          A-LexIA puede cometer errores. Verifica la información relevante en las fuentes citadas.
+        </p>
+      </div>
+    </Pagina>
   );
 }
 

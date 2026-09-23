@@ -33,6 +33,12 @@ import { cn } from '@/lib/utils';
 interface Props {
   hasConsent: boolean;
   disclaimerVersion: string;
+  /**
+   * La voz ya elegida en la pantalla anterior. El mockup pone el
+   * selector junto al botón del micrófono, así que lo que se escoge
+   * allí tiene que llegar hasta aquí y no volver a preguntarse.
+   */
+  vozInicial?: string;
 }
 
 type Stage = 'consent' | 'setup' | 'connecting' | 'active' | 'ending';
@@ -52,7 +58,7 @@ const VOICES = [
   { id: 'Charon', label: 'Charon (masculina, grave)' },
 ] as const;
 
-export function CallStarter({ hasConsent, disclaimerVersion }: Props) {
+export function CallStarter({ hasConsent, disclaimerVersion, vozInicial }: Props) {
   const router = useRouter();
   const [stage, setStage] = useState<Stage>(hasConsent ? 'setup' : 'consent');
   const [consent, setConsent] = useState<ConsentState>({
@@ -62,7 +68,9 @@ export function CallStarter({ hasConsent, disclaimerVersion }: Props) {
     no_confidential_third_party: false,
   });
   const [savingConsent, setSavingConsent] = useState(false);
-  const [voiceId, setVoiceId] = useState<string>('Aoede');
+  const [voiceId, setVoiceId] = useState<string>(
+    VOICES.some((v) => v.id === vozInicial) ? (vozInicial as string) : 'Aoede',
+  );
   // Filtro de ley aplicable a esta llamada (null = ambas). Se envía al
   // crear la llamada y queda persistido en voice_calls.law_filter.
   const [lawFilter, setLawFilter] = useState<LawFilter>(null);

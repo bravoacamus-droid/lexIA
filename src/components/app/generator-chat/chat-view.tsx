@@ -58,6 +58,12 @@ interface Props {
   perfil: GeneratorPerfil;
   initialMessages: DbMessage[];
   initialFiles: DbFile[];
+  /**
+   * El caso que la persona escribió en la pantalla anterior. Llega por
+   * la URL y se envía solo al abrir, para que describir el caso y
+   * entrar sean un único gesto y no haya que volver a teclearlo.
+   */
+  consultaInicial?: string | null;
 }
 
 export function GeneratorChatView({
@@ -66,12 +72,14 @@ export function GeneratorChatView({
   perfil,
   initialMessages,
   initialFiles,
+  consultaInicial,
 }: Props) {
   const perfilMeta = GENERATOR_PERFILES[perfil];
   const [files, setFiles] = useState<DbFile[]>(initialFiles);
   const [uploading, setUploading] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
 
   const seedMessages = initialMessages.map((m) => ({
     id: m.id,
@@ -135,6 +143,22 @@ export function GeneratorChatView({
   });
 
   // Auto-scroll al fondo
+  // El caso que venía en la URL se envía una sola vez y solo si la
+  // conversación está en blanco: si ya tiene mensajes, es que se está
+  // reabriendo y volver a mandarlo duplicaría la consulta.
+  const yaEnviado = useRef(false);
+  useEffect(() => {
+    if (yaEnviado.current) return;
+    if (!consultaInicial || initialMessages.length > 0) return;
+    yaEnviado.current = true;
+    setInput(consultaInicial);
+    const t = setTimeout(() => {
+      formRef.current?.requestSubmit();
+    }, 60);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [consultaInicial]);
+
   useEffect(() => {
     if (!scrollRef.current) return;
     scrollRef.current.scrollTo({
@@ -320,6 +344,7 @@ export function GeneratorChatView({
                 </div>
               )}
               <form
+                ref={formRef}
                 onSubmit={handleSubmit}
                 className="flex items-end gap-2"
               >

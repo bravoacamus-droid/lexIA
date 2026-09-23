@@ -5,7 +5,11 @@ import { DISCLAIMER_VERSION } from '@/lib/ai/voice-config';
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Iniciar llamada con el Abogado Virtual' };
 
-export default async function NuevaLlamadaPage() {
+export default async function NuevaLlamadaPage({
+  searchParams,
+}: {
+  searchParams: { voz?: string };
+}) {
   const supabase = createClient();
   const {
     data: { user },
@@ -26,6 +30,7 @@ export default async function NuevaLlamadaPage() {
     <CallStarter
       hasConsent={!!consent}
       disclaimerVersion={DISCLAIMER_VERSION}
+      vozInicial={searchParams.voz}
     />
   );
 }

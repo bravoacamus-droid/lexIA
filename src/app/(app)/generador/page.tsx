@@ -1,17 +1,23 @@
 import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
-import { Plus, Sparkles } from 'lucide-react';
+import { FileSignature, Bot } from 'lucide-react';
 import {
   GENERATOR_PERFILES,
   PERFILES_POR_ROL,
   type GeneratorPerfil,
   type GeneratorUserRole,
 } from '@/lib/ai/generator-perfiles';
-import { GeneratorPerfilPicker } from '@/components/app/generator-chat/perfil-picker';
+import { ArranqueDelGenerador } from '@/components/app/generator-chat/arranque';
 import { GeneratorHistoryTabs } from '@/components/app/generator-chat/history-tabs';
+import {
+  Pagina,
+  MigaDePan,
+  EncabezadoDeSeccion,
+  NotaDelCompanero,
+} from '@/components/app/seccion/piezas';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Generador de Documentos' };
+export const metadata = { title: 'Documentos de ejecución contractual' };
 
 export default async function GeneradorListPage() {
   const supabase = createClient();
@@ -62,47 +68,40 @@ export default async function GeneradorListPage() {
   const convosValidas = convos.filter((c) => GENERATOR_PERFILES[c.perfil]);
 
   return (
-    <div className="container max-w-5xl py-8 space-y-6">
-      <header>
-        <div className="inline-flex items-center gap-2 mb-2 text-xs font-medium text-brand-700 dark:text-brand-400">
-          <Sparkles className="h-3.5 w-3.5" />
-          <span>Nuevo · Chat conversacional + adjuntos + perfiles</span>
-        </div>
-        <h1 className="font-semibold text-3xl tracking-tight">
-          Generador de Documentos con IA
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
-          Redacta memorandos, informes, resoluciones, descargos, TDR y más.
-          Elige el perfil que firma, adjunta tus fuentes (PDF o Word) y
-          describe qué necesitas. LexIA combina la normativa cargada + tus
-          documentos y arma el borrador que puedes descargar a Word.
-        </p>
-      </header>
+    <Pagina className="max-w-[1200px]">
+      <MigaDePan
+        trozos={[
+          { label: 'Inicio', href: '/app' },
+          { label: 'Generar', href: '/generar' },
+          { label: 'Documentos de ejecución contractual' },
+        ]}
+      />
 
-      {/* Selector de perfil para arrancar nueva conversación */}
-      <Card className="p-6">
-        <div className="flex items-center gap-2 mb-3">
-          <Plus className="h-4 w-4 text-brand-600" />
-          <h2 className="font-semibold">Nuevo documento — elige un perfil</h2>
-        </div>
-        <p className="text-xs text-muted-foreground mb-4">
-          El perfil define el tono, la estructura y el sustento jurídico
-          del documento que se generará.
-        </p>
-        <GeneratorPerfilPicker allowed={allowed} />
-      </Card>
+      <EncabezadoDeSeccion
+        icono={FileSignature}
+        familia="generar"
+        titulo="Documentos de ejecución contractual"
+        bajada="Cuéntale a A-LexIA tu caso. Analizará lo que le des, identificará la normativa aplicable y te guiará para proyectar el documento que necesitas."
+        aside={
+          <NotaDelCompanero icono={Bot} familia="generar" className="max-w-[330px]">
+            A-LexIA analiza tu caso, pide solo lo necesario y te da un resultado con su sustento
+            citado.
+          </NotaDelCompanero>
+        }
+      />
+
+      <ArranqueDelGenerador allowed={allowed} />
 
       {/* Historial clasificado en pestañas por perfil */}
       <GeneratorHistoryTabs convos={convosValidas} />
 
       {convosValidas.length === 0 && (
-        <Card className="p-8 text-center bg-brand-50/40 dark:bg-brand-950/20 border-dashed">
+        <Card className="border-dashed bg-generar-50/40 p-8 text-center dark:bg-generar-900/15">
           <p className="text-sm text-muted-foreground">
-            Aún no tienes documentos generados. Elige un perfil arriba
-            para empezar.
+            Aún no tienes documentos generados. Describe tu caso arriba para empezar.
           </p>
         </Card>
       )}
-    </div>
+    </Pagina>
   );
 }
