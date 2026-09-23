@@ -64,6 +64,45 @@ const config: Config = {
           900: '#02335F',
           950: '#021D40',
         },
+        // Las tres familias de acción — mockups de César (setiembre 2026).
+        // La portada, la barra lateral y cada centro de sección se pintan
+        // con estas tres y no con el azul de marca a secas: consultar es
+        // azul, generar es verde, evaluar es violeta. Vive aquí y no en
+        // clases sueltas para que los tres sitios no se separen.
+        consultar: {
+          50: '#EAF4FE',
+          100: '#C5E2FC',
+          400: '#3FA2F6',
+          500: '#0583F2',
+          600: '#0470D1',
+          700: '#035DAE',
+          900: '#02335F',
+        },
+        generar: {
+          50: '#E7F8F0',
+          100: '#C2EEDC',
+          400: '#34C88A',
+          500: '#0FA968',
+          600: '#0B8C56',
+          700: '#087045',
+          900: '#044027',
+        },
+        evaluar: {
+          50: '#F1ECFE',
+          100: '#DCD0FC',
+          400: '#9B7BF5',
+          500: '#7A4FEE',
+          600: '#6438D6',
+          700: '#5029AE',
+          900: '#2C1663',
+        },
+        // El azul profundo de la barra lateral y de las bandas de pie.
+        noche: {
+          700: '#062B5C',
+          800: '#04244E',
+          900: '#031C3D',
+          950: '#02142C',
+        },
         // Semantic
         success: 'hsl(var(--success))',
         warning: 'hsl(var(--warning))',
@@ -128,6 +167,36 @@ const config: Config = {
           '0%, 100%': { backgroundPosition: '0% 50%' },
           '50%': { backgroundPosition: '100% 50%' },
         },
+        'companero-levita': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+        'companero-rebote': {
+          '0%, 100%': { transform: 'translateY(0) scale(1)' },
+          '30%': { transform: 'translateY(-18px) scale(1.03)' },
+          '55%': { transform: 'translateY(0) scale(0.98)' },
+          '75%': { transform: 'translateY(-6px) scale(1.01)' },
+        },
+        'companero-respira': {
+          '0%, 100%': { opacity: '0.55', transform: 'translate(-50%, -50%) scale(1)' },
+          '50%': { opacity: '0.95', transform: 'translate(-50%, -50%) scale(1.12)' },
+        },
+        'companero-orbita': {
+          '0%': { transform: 'translateY(-50%) rotate(0deg)' },
+          '100%': { transform: 'translateY(-50%) rotate(360deg)' },
+        },
+        'companero-onda': {
+          '0%': { opacity: '0.8', transform: 'translate(-50%, -50%) scale(0.55)' },
+          '100%': { opacity: '0', transform: 'translate(-50%, -50%) scale(1.5)' },
+        },
+        'companero-onda-inversa': {
+          '0%': { opacity: '0', transform: 'translate(-50%, -50%) scale(1.5)' },
+          '100%': { opacity: '0.8', transform: 'translate(-50%, -50%) scale(0.55)' },
+        },
+        'companero-destello': {
+          '0%, 100%': { opacity: '0', transform: 'scale(0.4) rotate(0deg)' },
+          '45%': { opacity: '1', transform: 'scale(1) rotate(80deg)' },
+        },
         'nav-progress': {
           '0%': { transform: 'scaleX(0)', opacity: '1' },
           '30%': { transform: 'scaleX(0.4)', opacity: '1' },
@@ -144,9 +213,17 @@ const config: Config = {
         'cursor-blink': 'cursor-blink 0.9s infinite',
         'shimmer': 'shimmer 2s linear infinite',
         'gradient-shift': 'gradient-shift 8s ease infinite',
+        'companero-levita': 'companero-levita 5s ease-in-out infinite',
+        'companero-rebote': 'companero-rebote 1.6s ease-in-out infinite',
+        'companero-respira': 'companero-respira 4.5s ease-in-out infinite',
+        'companero-orbita': 'companero-orbita 6s linear infinite',
+        'companero-onda': 'companero-onda 1.65s ease-out infinite',
+        'companero-onda-inversa': 'companero-onda-inversa 1.65s ease-in infinite',
+        'companero-destello': 'companero-destello 2.4s ease-in-out infinite',
         'nav-progress': 'nav-progress 8s cubic-bezier(0.1, 0.9, 0.3, 1) forwards',
       },
       backgroundImage: {
+        'gradient-radial': 'radial-gradient(circle at center, var(--tw-gradient-stops))',
         'grid-light': "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='none' stroke='rgb(15 23 42 / 0.06)'%3E%3Cpath d='M0 .5H31.5V32'/%3E%3C/svg%3E\")",
         'grid-dark': "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='none' stroke='rgb(255 255 255 / 0.05)'%3E%3Cpath d='M0 .5H31.5V32'/%3E%3C/svg%3E\")",
       },

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { AppSidebar } from '@/components/app/app-sidebar';
 import { AppTopbar } from '@/components/app/app-topbar';
+import { BarraInferiorMovil } from '@/components/app/barra-inferior-movil';
 import { CommandPalette } from '@/components/app/command-palette';
 import { NavProgress } from '@/components/app/nav-progress';
 import { useUiStore } from '@/lib/stores/ui';
@@ -17,12 +18,26 @@ export interface AppUser {
   is_admin: boolean;
 }
 
+/**
+ * Lo que la barra lateral necesita saber del plan. Se calcula en el
+ * layout (servidor) y baja como propiedad: la barra es un componente de
+ * cliente y no puede consultar la base.
+ */
+export interface ResumenDePlan {
+  etiqueta: string;
+  /** La cuota más cerca de agotarse. `null` si el plan no tiene límites. */
+  medidor: { usado: number; tope: number; unidad: string } | null;
+  /** Fecha de renovación ya formateada, o `null` si no aplica. */
+  renovacion: string | null;
+}
+
 interface Props {
   user: AppUser;
+  plan: ResumenDePlan | null;
   children: React.ReactNode;
 }
 
-export function AppShell({ user, children }: Props) {
+export function AppShell({ user, plan, children }: Props) {
   const sidebarCollapsed = useUiStore((s) => s.sidebarCollapsed);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -43,39 +58,41 @@ export function AppShell({ user, children }: Props) {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  // En desktop el margen depende del estado colapsado (solo después de mount para evitar
-  // hydration mismatch con el valor persistido en localStorage).
-  // En mobile no aplica margen porque el sidebar es un drawer overlay.
-  const desktopMargin = mounted && sidebarCollapsed ? '64px' : '264px';
+  // En escritorio el margen depende de si la barra está plegada (solo
+  // después de montar, para no chocar con el valor guardado en
+  // localStorage). En móvil no hay margen: la barra es un cajón.
+  const margenDeEscritorio = mounted && sidebarCollapsed ? '64px' : '264px';
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="flex min-h-screen bg-background">
       <NavProgress />
       <AppSidebar
         user={user}
+        plan={plan}
         mobileOpen={mobileSidebarOpen}
         onMobileClose={() => setMobileSidebarOpen(false)}
       />
       <div
-        className="flex-1 flex flex-col min-w-0 transition-[margin] duration-200 md:[margin-left:var(--desktop-margin)]"
-        style={{ ['--desktop-margin' as never]: desktopMargin }}
+        className="flex min-w-0 flex-1 flex-col transition-[margin] duration-200 md:[margin-left:var(--margen-escritorio)]"
+        style={{ ['--margen-escritorio' as never]: margenDeEscritorio }}
       >
         <AppTopbar
           user={user}
           onOpenPalette={() => setPaletteOpen(true)}
           onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
         />
-        {/* IMPORTANTE (bug reportado por César 08/07/2026):
-            Antes teníamos `overflow-x-hidden` para contener elementos
-            anchos que provocaban scroll horizontal. Pero cualquier
-            `overflow` (incluido `overflow-x`) rompe `position: sticky`
-            de TODOS los descendientes — por eso el TOC "Contenido" de
-            la biblioteca no quedaba pegado al hacer scroll.
-            Reemplazamos por `overflow-x-clip`: recorta el desborde
-            horizontal SIN crear un contexto de scroll, así los sticky
-            de hijos siguen funcionando. */}
-        <main className="flex-1 min-w-0 overflow-x-clip">{children}</main>
+        {/* IMPORTANTE (fallo reportado por César el 08/07/2026):
+            antes había `overflow-x-hidden` para contener elementos anchos
+            que provocaban desplazamiento horizontal. Pero cualquier
+            `overflow` —`overflow-x` incluido— rompe el `position: sticky`
+            de TODOS los descendientes, y por eso el índice «Contenido»
+            de la biblioteca no se quedaba pegado al desplazar.
+            `overflow-x-clip` recorta el desborde SIN crear un contexto de
+            desplazamiento, así que los `sticky` de dentro siguen vivos.
+            El `pb-16 md:pb-0` deja sitio a la barra inferior del móvil. */}
+        <main className="min-w-0 flex-1 overflow-x-clip pb-16 md:pb-0">{children}</main>
       </div>
+      <BarraInferiorMovil role={user.profile_role} />
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
     </div>
   );

@@ -334,7 +334,13 @@ export function LibraryView({
   // Filtro rápido: 'favorites' = solo docs guardados por el usuario;
   // 'recent' = últimos 30 días indexados en la base. null = sin filtro.
   // Feedback César 01/07/2026 (ref UI cliente): agregar toggles visibles.
-  const [quickFilter, setQuickFilter] = useState<'favorites' | 'recent' | null>(null);
+  // `?guardados=1` abre la biblioteca directamente en lo guardado: es
+  // la puerta que usa «Mi espacio › Guardados» en la barra lateral, y
+  // hacía falta que el filtro se pudiera pedir desde la URL y no solo
+  // con un clic dentro de la página.
+  const [quickFilter, setQuickFilter] = useState<'favorites' | 'recent' | null>(
+    urlParams.get('guardados') ? 'favorites' : urlParams.get('recientes') ? 'recent' : null,
+  );
   /** Corte del filtro "Recientes": hoy menos 30 días, en YYYY-MM-DD. */
   const fechaCorteRecientes = () =>
     new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10);

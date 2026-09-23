@@ -1,77 +1,42 @@
+import Link from 'next/link';
+import { Library, FolderKanban, ArrowRight, Clock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
-import { DashboardHero } from '@/components/app/dashboard/hero';
-import { DashboardStats } from '@/components/app/dashboard/stats';
+import { PortadaHero } from '@/components/app/dashboard/portada-hero';
+import { TarjetasDeVerbo } from '@/components/app/dashboard/tarjetas-de-verbo';
 import { DashboardActivity } from '@/components/app/dashboard/activity';
-import { DashboardSuggested } from '@/components/app/dashboard/suggested';
-import { ContinueLeftOff } from '@/components/app/dashboard/continue-left-off';
-import { RoleWidget } from '@/components/app/dashboard/role-widget';
 import { RecentLibrary } from '@/components/app/dashboard/recent-library';
 import { TrialBanner } from '@/components/app/dashboard/trial-banner';
-import { VoiceCTA } from '@/components/app/dashboard/voice-cta';
+import { Pagina, BandaDeConfianza } from '@/components/app/seccion/piezas';
 import type { ProfileRole, SubscriptionRow } from '@/lib/auth/session';
 import type { NormativeDocType } from '@/lib/supabase/types';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Inicio' };
 
-export default async function DashboardPage() {
+/**
+ * La portada, rehecha sobre la opción 2 de los mockups de setiembre.
+ *
+ * La anterior era un tablero de mandos: nueve widgets, contadores,
+ * sparklines y tres listas. Esta pregunta una sola cosa —«¿qué necesitas
+ * hacer hoy?»— y ofrece tres caminos. Lo que había en los widgets no se
+ * perdió: «continuar donde lo dejaste» vive ahora en Generar, las
+ * consultas recientes y las sugerencias en Consultar, y el trabajo por
+ * perfil lo resuelve el propio menú, que ya filtra por rol.
+ */
+export default async function PortadaPage() {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
   if (!user) return null;
 
-  // Ventana de 7 días para sparklines/trends
-  const now = new Date();
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-  // Cargar todos los stats + perfil + subscription en paralelo
-  const [
-    profileRes,
-    subscriptionRes,
-    chatCountRes,
-    savedCountRes,
-    foldersCountRes,
-    normativeCountRes,
-    recentConvosRes,
-    recentEvalsRes,
-    recentDocsRes,
-    lastCallRes,
-    lastConvoRes,
-    recentChatMsgsRes,
-    recentSavedRes,
-    recentCallsRes,
-    recentNormativeRes,
-    evaluationsCountRes,
-    generatedDocsCountRes,
-    voiceCallsCountRes,
-  ] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select('full_name, profile_role')
-      .eq('id', user.id)
-      .maybeSingle(),
+  const [perfil, suscripcion, convos, evals, docs, normativaReciente] = await Promise.all([
+    supabase.from('profiles').select('full_name, profile_role').eq('id', user.id).maybeSingle(),
     supabase
       .from('subscriptions')
       .select('id, user_id, tier, status, trial_ends_at, current_period_end')
       .eq('user_id', user.id)
       .maybeSingle(),
-    supabase
-      .from('chat_messages')
-      .select('id', { count: 'exact', head: true })
-      .eq('role', 'user'),
-    supabase
-      .from('user_saved_documents')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id),
-    supabase
-      .from('user_folders')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id),
-    supabase
-      .from('normative_documents')
-      .select('id', { count: 'exact', head: true }),
     supabase
       .from('chat_conversations')
       .select('id, title, updated_at')
@@ -90,106 +55,35 @@ export default async function DashboardPage() {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(3),
-    // Última llamada de voz completada
-    supabase
-      .from('voice_calls')
-      .select('id, voice_id, duration_seconds, summary, ended_at')
-      .eq('user_id', user.id)
-      .eq('status', 'completed')
-      .order('ended_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    // Última conversación con mensajes
-    supabase
-      .from('chat_conversations')
-      .select('id, title, updated_at')
-      .eq('user_id', user.id)
-      .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    // Chat messages últimos 7 días (para sparkline)
-    supabase
-      .from('chat_messages')
-      .select('created_at')
-      .eq('role', 'user')
-      .gte('created_at', sevenDaysAgo.toISOString()),
-    // Documentos guardados últimos 7 días
-    supabase
-      .from('user_saved_documents')
-      .select('created_at')
-      .eq('user_id', user.id)
-      .gte('created_at', sevenDaysAgo.toISOString()),
-    // Llamadas últimos 7 días
-    supabase
-      .from('voice_calls')
-      .select('started_at')
-      .eq('user_id', user.id)
-      .gte('started_at', sevenDaysAgo.toISOString()),
-    // Docs normativos recientes con resumen IA (para RecentLibrary)
     supabase
       .from('normative_documents')
       .select('id, type, number, title, date, ai_summary')
       .not('ai_summary', 'is', null)
       .order('date', { ascending: false, nullsFirst: false })
       .limit(4),
-    // Total de evaluaciones del usuario
-    supabase
-      .from('evaluations')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id),
-    // Total de documentos generados del usuario
-    supabase
-      .from('generated_documents')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id),
-    // Total de llamadas del usuario
-    supabase
-      .from('voice_calls')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('status', 'completed'),
   ]);
 
-  const fullName = profileRes.data?.full_name || user.email?.split('@')[0] || 'invitado';
-  const role = (profileRes.data?.profile_role as ProfileRole | null) || null;
-  const subscription = (subscriptionRes.data as SubscriptionRow | null) || null;
+  const nombre =
+    (perfil.data?.full_name || '').trim().split(/\s+/)[0] ||
+    user.email?.split('@')[0] ||
+    'de nuevo';
+  const rol = (perfil.data?.profile_role as ProfileRole | null) || null;
 
-  // Trends 7 días → arrays de 7 elementos con conteo por día
-  function daysTrend(rows: Array<{ created_at?: string; started_at?: string }> | null): number[] {
-    const buckets = new Array(7).fill(0);
-    if (!rows) return buckets;
-    for (const r of rows) {
-      const ts = r.created_at || r.started_at;
-      if (!ts) continue;
-      const daysAgo = Math.floor((now.getTime() - new Date(ts).getTime()) / (24 * 60 * 60 * 1000));
-      if (daysAgo >= 0 && daysAgo < 7) {
-        // buckets[6] = hoy, buckets[0] = hace 6 días
-        buckets[6 - daysAgo]++;
-      }
-    }
-    return buckets;
-  }
-
-  const chatTrend = daysTrend((recentChatMsgsRes.data as Array<{ created_at: string }>) || []);
-  const savedTrend = daysTrend((recentSavedRes.data as Array<{ created_at: string }>) || []);
-  const voiceTrend = daysTrend((recentCallsRes.data as Array<{ started_at: string }>) || []);
-
-  // Mezclar actividades y ordenar por fecha
-  const activity = [
-    ...(recentConvosRes.data || []).map((c) => ({
+  const actividad = [
+    ...(convos.data || []).map((c) => ({
       type: 'chat' as const,
       id: c.id,
       title: c.title || 'Nueva conversación',
       timestamp: c.updated_at,
     })),
-    ...(recentEvalsRes.data || []).map((e) => ({
+    ...(evals.data || []).map((e) => ({
       type: 'evaluation' as const,
       id: e.id,
       title: e.title || 'Evaluación',
       status: e.status,
       timestamp: e.created_at,
     })),
-    ...(recentDocsRes.data || []).map((d) => ({
+    ...(docs.data || []).map((d) => ({
       type: 'document' as const,
       id: d.id,
       title: d.title || 'Documento generado',
@@ -197,70 +91,39 @@ export default async function DashboardPage() {
       timestamp: d.created_at,
     })),
   ]
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    .slice(0, 8);
+    .sort((a, b) => +new Date(b.timestamp) - +new Date(a.timestamp))
+    .slice(0, 3);
 
   return (
-    <div className="container max-w-7xl py-8 sm:py-10 space-y-10">
-      <DashboardHero fullName={fullName} role={role} />
+    <Pagina className="space-y-5">
+      <PortadaHero nombre={nombre} />
 
-      <TrialBanner subscription={subscription} />
+      <TrialBanner subscription={(suscripcion.data as SubscriptionRow | null) || null} />
 
-      <DashboardStats
-        chatMessages={chatCountRes.count || 0}
-        savedDocs={savedCountRes.count || 0}
-        folders={foldersCountRes.count || 0}
-        normativeTotal={normativeCountRes.count || 0}
-        chatTrend={chatTrend}
-        savedTrend={savedTrend}
-        voiceTrend={voiceTrend}
-      />
+      <TarjetasDeVerbo role={rol} />
 
-      {/* Card promocional "Habla con LexIA BETA" (ref UI cliente 02/07/2026).
-          Se coloca temprano en el dashboard para dar visibilidad a la
-          feature de voz que los usuarios suelen no descubrir. */}
-      <VoiceCTA />
+      {/* `items-start`: las tres columnas miden lo suyo. Si se estiran
+          para igualarse, las dos tarjetas de la izquierda se quedan con
+          medio panel vacío debajo del texto. */}
+      <div className="grid items-start gap-4 lg:grid-cols-3">
+        <TarjetaSecundaria
+          href="/biblioteca"
+          icono={Library}
+          titulo="Biblioteca normativa"
+          descripcion="Accede a la Ley N.° 32069, su reglamento, opiniones, pronunciamientos, resoluciones, bases estándar, guías y más."
+        />
+        <TarjetaSecundaria
+          href="/generar"
+          icono={FolderKanban}
+          titulo="Mis borradores"
+          descripcion="Retoma tus requerimientos y documentos administrativos donde los dejaste y sigue su avance."
+        />
+        <DashboardActivity items={actividad} />
+      </div>
 
-      <ContinueLeftOff
-        lastConversation={
-          lastConvoRes.data
-            ? {
-                id: (lastConvoRes.data as { id: string }).id,
-                title: (lastConvoRes.data as { title: string | null }).title,
-                updatedAt: (lastConvoRes.data as { updated_at: string }).updated_at,
-              }
-            : null
-        }
-        lastCall={
-          lastCallRes.data
-            ? {
-                id: (lastCallRes.data as { id: string }).id,
-                voice: (lastCallRes.data as { voice_id: string }).voice_id,
-                durationSeconds: (lastCallRes.data as { duration_seconds: number | null }).duration_seconds,
-                summary: (lastCallRes.data as { summary: string | null }).summary,
-                endedAt: (lastCallRes.data as { ended_at: string }).ended_at,
-              }
-            : null
-        }
-      />
-
-      {/* Widget grande "Mi trabajo como {rol}" con acciones específicas
-          del perfil y contadores de items relacionados del usuario. */}
-      <RoleWidget
-        role={role}
-        data={{
-          generatedDocsCount: generatedDocsCountRes.count || 0,
-          savedDocsCount: savedCountRes.count || 0,
-          evaluationsCount: evaluationsCountRes.count || 0,
-          voiceCallsCount: voiceCallsCountRes.count || 0,
-        }}
-      />
-
-      {/* Normativa reciente del OECE con resumen IA. Es la carta de
-          presentación real de la utilidad de LexIA. */}
       <RecentLibrary
         docs={
-          ((recentNormativeRes.data as Array<{
+          ((normativaReciente.data as Array<{
             id: string;
             type: NormativeDocType;
             number: string | null;
@@ -282,13 +145,44 @@ export default async function DashboardPage() {
         }
       />
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <DashboardActivity items={activity} />
-        </div>
-        <DashboardSuggested role={role} />
-      </div>
+      <BandaDeConfianza
+        texto="IA especializada con respaldo normativo en contratación pública: todas las respuestas, análisis y documentos de A-LexIA se sustentan en la Ley N.° 32069, su reglamento y otras fuentes oficiales."
+        lemas={['Más precisión', 'Menos tiempo', 'Mejores decisiones']}
+      />
+    </Pagina>
+  );
+}
 
-    </div>
+function TarjetaSecundaria({
+  href,
+  icono: Icono,
+  titulo,
+  descripcion,
+}: {
+  href: string;
+  icono: typeof Library;
+  titulo: string;
+  descripcion: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-glow dark:hover:border-brand-800"
+    >
+      <div className="flex items-start gap-3.5">
+        <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-950/50">
+          <Icono className="h-5 w-5 text-brand-600 dark:text-brand-400" strokeWidth={1.9} />
+        </span>
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-2 text-[17px] font-bold tracking-tight">
+            {titulo}
+            <ArrowRight className="h-4 w-4 text-brand-500 transition-transform group-hover:translate-x-0.5" />
+          </h2>
+          <p className="mt-1.5 text-pretty text-[13px] leading-relaxed text-muted-foreground">
+            {descripcion}
+          </p>
+        </div>
+      </div>
+    </Link>
   );
 }

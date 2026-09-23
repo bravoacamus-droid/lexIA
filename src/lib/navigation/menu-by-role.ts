@@ -1,40 +1,60 @@
 import {
-  LayoutDashboard,
+  Home,
+  Search,
   MessageSquare,
-  Library,
-  FileSearch,
-  FilePen,
-  HardHat,
-  Briefcase,
-  ShieldCheck,
-  ScanSearch,
-  ClipboardList,
-  PhoneCall,
+  Mic,
   SearchCode,
+  FilePlus2,
+  ClipboardList,
+  FileSignature,
+  ClipboardCheck,
+  ScanSearch,
+  FileSearch,
+  ShieldCheck,
+  Library,
+  Bookmark,
+  HardHat,
+  MessagesSquare,
+  Settings,
   type LucideIcon,
 } from 'lucide-react';
 import type { ProfileRole } from '@/lib/auth/session';
 
 /**
- * Matriz única de navegación módulo × rol.
+ * Matriz única de navegación — el único sitio donde se decide qué ve cada
+ * perfil. La consultan la barra lateral, la paleta de comandos y los
+ * centros de sección, para que no puedan divergir.
  *
- * Cada perfil ve un conjunto diferenciado en la sidebar. Esto es el single
- * source of truth — sidebar, topbar, command-palette y dashboards consultan
- * esta lista para no divergir.
+ * ## El cambio de setiembre de 2026
  *
- * Si `roles` está vacío o ausente, el item es visible para TODOS los roles.
+ * Hasta ahora el menú se ordenaba por **quién eres** (Entidad pública,
+ * Proveedor, Consultor) y dentro de cada bloque aparecían herramientas
+ * sueltas. Los mockups de César lo reordenan por **qué vas a hacer**:
+ * tres verbos —Consultar, Generar, Evaluar— y debajo de cada uno las
+ * herramientas que sirven para eso. El perfil sigue filtrando, pero ya
+ * no es el encabezado: un consultor y un funcionario de entidad ven el
+ * mismo "Evaluar", solo que con distintos hijos dentro.
  *
- * Para crecer en próximas etapas: cuando se construyan nuevos generadores
- * (Etapas 6-9 del plan), agregar aquí su entrada y se mostrará automáticamente.
+ * Regla que no se rompe: **aquí no entra ninguna ruta que no exista**.
+ * En agosto el módulo de requerimiento estuvo construido y sin entrada
+ * en el menú, y en setiembre el menú del proveedor prometía acciones que
+ * no existían. Las dos cosas se reportaron. Si una pantalla del mockup
+ * todavía no está construida, no se le pone entrada.
  */
-/**
- * Familia visual del item — se usa para el color del ícono en la
- * sidebar y para el badge en cards asociadas. Feedback de César
- * 30/06/2026: el sistema se veía monocromático (todo azul brand),
- * "no se usan los demás colores de la marca". Cada sección funcional
- * ahora tiene su color propio manteniendo la paleta Tailwind existente.
- */
-export type MenuColor = 'brand' | 'emerald' | 'rose' | 'amber' | 'violet' | 'sky' | 'teal' | 'slate';
+
+/** La familia de acción a la que pertenece el item — de ahí sale su color. */
+export type MenuColor =
+  | 'consultar'
+  | 'generar'
+  | 'evaluar'
+  | 'brand'
+  | 'emerald'
+  | 'rose'
+  | 'amber'
+  | 'violet'
+  | 'sky'
+  | 'teal'
+  | 'slate';
 
 export interface MenuItem {
   label: string;
@@ -43,21 +63,37 @@ export interface MenuItem {
   description?: string;
   /** Si está vacío, visible para todos los perfiles. */
   roles?: ProfileRole[];
-  /** Marca acento brand (el botón de Chat se destaca como CTA primario). */
-  accent?: boolean;
   /** Próximamente — se muestra grisáceo y no navegable. */
   comingSoon?: boolean;
-  /** Color visual del ícono (aplicado a bg del cuadrado y color del svg). */
+  /** Color visual del ícono. */
   color?: MenuColor;
+  /** Submenú desplegable. Si todos los hijos quedan fuera por rol, el padre desaparece. */
+  hijos?: MenuItem[];
+  /** Rótulo corto para la barra inferior del móvil. */
+  corto?: string;
 }
 
 /**
- * Utility: dado un MenuColor devuelve las clases Tailwind para bg del
- * cuadrado del icono y color del icono en sí. Se usa desde el
- * Sidebar y desde componentes que necesiten replicar el look.
+ * Clases Tailwind del cuadrado del ícono para cada familia. Se usa desde
+ * la barra lateral y desde cualquier tarjeta que quiera repetir el look.
  */
 export function colorClasses(c: MenuColor | undefined): { bg: string; fg: string; dot: string } {
   const palette: Record<MenuColor, { bg: string; fg: string; dot: string }> = {
+    consultar: {
+      bg: 'bg-consultar-500/15 dark:bg-consultar-500/20',
+      fg: 'text-consultar-400',
+      dot: 'bg-consultar-500',
+    },
+    generar: {
+      bg: 'bg-generar-500/15 dark:bg-generar-500/20',
+      fg: 'text-generar-400',
+      dot: 'bg-generar-500',
+    },
+    evaluar: {
+      bg: 'bg-evaluar-500/15 dark:bg-evaluar-500/20',
+      fg: 'text-evaluar-400',
+      dot: 'bg-evaluar-500',
+    },
     brand: {
       bg: 'bg-brand-50 dark:bg-brand-950/50',
       fg: 'text-brand-600 dark:text-brand-400',
@@ -103,222 +139,211 @@ export function colorClasses(c: MenuColor | undefined): { bg: string; fg: string
 }
 
 export interface MenuSection {
+  /** Cadena vacía = bloque principal, sin encabezado. */
   label: string;
   items: MenuItem[];
 }
 
 export const MENU_SECTIONS: MenuSection[] = [
   {
-    label: 'Principal',
+    label: '',
     items: [
       {
         label: 'Inicio',
         href: '/app',
-        icon: LayoutDashboard,
-        description: 'Resumen de tu actividad reciente.',
+        icon: Home,
+        description: 'Tu resumen y el punto de partida de cualquier contratación.',
         color: 'slate',
+        corto: 'Inicio',
       },
       {
-        label: 'Chat LexIA',
-        href: '/chat',
-        icon: MessageSquare,
-        description: 'Asistente normativo con citas verificables.',
-        accent: true,
-        color: 'brand',
+        label: 'Consultar',
+        href: '/consultar',
+        icon: Search,
+        description: 'Resuelve tus dudas o encuentra normativa de contratación pública.',
+        color: 'consultar',
+        corto: 'Consultar',
+        hijos: [
+          {
+            label: 'Chat con A-LexIA',
+            href: '/chat',
+            icon: MessageSquare,
+            description: 'Pregunta por escrito y recibe la respuesta con su sustento citado.',
+            color: 'consultar',
+          },
+          {
+            label: 'Habla con A-LexIA',
+            href: '/llamadas',
+            icon: Mic,
+            description: 'Consulta por voz, como si llamaras a un especialista.',
+            color: 'consultar',
+          },
+          {
+            label: 'Búsqueda avanzada',
+            href: '/buscador',
+            icon: SearchCode,
+            description: 'Combina hasta ocho términos y encuentra jurisprudencia al párrafo.',
+            color: 'consultar',
+          },
+        ],
       },
       {
-        label: 'Buscador inteligente',
-        href: '/buscador',
-        icon: SearchCode,
-        description:
-          'Combina hasta 8 términos y encuentra jurisprudencia con resaltado por colores.',
-        color: 'teal',
-        accent: true,
+        label: 'Generar',
+        href: '/generar',
+        icon: FilePlus2,
+        description: 'Crea requerimientos y documentos para todas las etapas de la contratación.',
+        color: 'generar',
+        corto: 'Generar',
+        hijos: [
+          {
+            label: 'Requerimiento',
+            href: '/generador/requerimiento-plantilla',
+            icon: ClipboardList,
+            description:
+              'Arma el requerimiento sobre los quince formatos oficiales: el texto obligatorio va tal cual y A-LexIA redacta lo que depende de tu contratación.',
+            roles: ['entity', 'consultant'],
+            color: 'generar',
+          },
+          {
+            label: 'Documentos administrativos',
+            href: '/generador',
+            icon: FileSignature,
+            description:
+              'Informes, requerimientos de área usuaria, consultas, observaciones, apelaciones y descargos.',
+            color: 'generar',
+          },
+        ],
       },
       {
-        label: 'Biblioteca',
+        label: 'Evaluar',
+        href: '/evaluar',
+        icon: ClipboardCheck,
+        description: 'Analiza bases, requerimientos y ofertas de manera objetiva.',
+        color: 'evaluar',
+        corto: 'Evaluar',
+        hijos: [
+          {
+            label: 'Evaluación de requerimiento',
+            href: '/revisor-tdr',
+            icon: ScanSearch,
+            description: 'Audita el TDR o las EETT antes de publicarlos: vicios y direccionamiento.',
+            roles: ['entity', 'consultant'],
+            color: 'evaluar',
+          },
+          {
+            label: 'Evaluación de ofertas',
+            href: '/evaluador',
+            icon: FileSearch,
+            description: 'Compara las bases con cada oferta y dictamina requisito por requisito.',
+            roles: ['entity', 'consultant'],
+            color: 'evaluar',
+          },
+          {
+            label: 'Revisión de mi oferta',
+            href: '/revision-oferta',
+            icon: ShieldCheck,
+            description: 'Audita tu propia oferta antes de presentarla.',
+            roles: ['provider'],
+            color: 'evaluar',
+          },
+        ],
+      },
+      {
+        label: 'Biblioteca normativa',
         href: '/biblioteca',
         icon: Library,
-        description: 'Ley 32069, Reglamento, opiniones y jurisprudencia.',
-        color: 'emerald',
-      },
-      {
-        label: 'Asistente de Voz',
-        href: '/llamadas',
-        icon: PhoneCall,
         description:
-          'Conversa por voz con LexIA y obtén respuestas con sustento normativo citado al artículo.',
-        accent: true,
-        color: 'rose',
+          'Ley N.° 32069, su reglamento, opiniones, pronunciamientos, resoluciones del Tribunal, bases estándar y guías.',
+        color: 'emerald',
+        corto: 'Biblioteca',
       },
     ],
   },
   {
-    label: 'Entidad pública',
+    label: 'Mi espacio',
     items: [
       {
-        label: 'Evaluador de ofertas',
-        href: '/evaluador',
-        icon: FileSearch,
-        description: 'Compara Bases con ofertas y dictamina por requisito.',
-        roles: ['entity'],
-        color: 'sky',
-      },
-      {
-        label: 'Revisor EETT / TDR',
-        href: '/revisor-tdr',
-        icon: ScanSearch,
-        description: 'Audita tu TDR antes de publicarlo: detecta vicios y direccionamiento.',
-        roles: ['entity'],
-        color: 'teal',
-      },
-      {
-        label: 'Generador',
-        href: '/generador',
-        icon: FilePen,
-        description: 'TDR, Estrategia de Contratación, Pliego de Absolución.',
-        roles: ['entity'],
+        // Las carpetas de la biblioteca ya existen; esto es la puerta
+        // directa. No se pone "Mis contrataciones" ni "Historial" del
+        // mockup porque esas pantallas todavía no están construidas y
+        // un menú que promete lo que no hay ya se reportó una vez.
+        label: 'Guardados',
+        href: '/biblioteca?guardados=1',
+        icon: Bookmark,
+        description: 'Las normas, resoluciones y opiniones que marcaste.',
         color: 'amber',
-      },
-      {
-        // Entrada propia y no un enlace dentro del Generador: hasta el
-        // 17/08/2026 el módulo de requerimiento no figuraba en ningún
-        // menú y solo se podía volver a él desde dentro de sí mismo, así
-        // que en la práctica era inalcanzable. César lo reportó al no
-        // encontrarlo y terminar usando el chat, que produce otra
-        // estructura.
-        label: 'Requerimiento',
-        href: '/generador/requerimiento-plantilla',
-        icon: ClipboardList,
-        description:
-          'Arma el requerimiento sobre los 15 formatos oficiales: el texto obligatorio va tal cual y LexIA redacta lo que depende de tu contratación.',
-        roles: ['entity'],
-        color: 'emerald',
-      },
-    ],
-  },
-  {
-    label: 'Proveedor',
-    items: [
-      {
-        label: 'Generador',
-        href: '/generador',
-        icon: FilePen,
-        description: 'Consultas, Observaciones, Apelaciones, Ampliación de Plazo.',
-        roles: ['provider'],
-        color: 'amber',
-      },
-      {
-        label: 'Revisión de oferta',
-        href: '/revision-oferta',
-        icon: ShieldCheck,
-        description: 'Audita tu propia oferta antes de presentarla.',
-        roles: ['provider'],
-        color: 'sky',
       },
       {
         label: 'Trámites RNP',
         href: '/rnp',
         icon: HardHat,
-        description: 'Aumento de CMC, actualización financiera, requisitos del trámite.',
+        description: 'Aumento de capacidad máxima de contratación, actualización financiera y requisitos.',
         roles: ['provider'],
         color: 'teal',
       },
     ],
   },
   {
-    label: 'Consultor',
+    label: 'A-LexIA',
     items: [
       {
-        // Duplicado a propósito en las dos secciones: el mismo destino,
-        // pero cada rol lo ve bajo un encabezado que le corresponde. Una
-        // sola entrada obligaría al consultor a buscarlo dentro de
-        // "Entidad pública".
-        label: 'Requerimiento',
-        href: '/generador/requerimiento-plantilla',
-        icon: ClipboardList,
-        description:
-          'Arma el requerimiento sobre los 15 formatos oficiales, para la entidad a la que asesoras.',
-        roles: ['consultant'],
-        color: 'emerald',
-      },
-      {
-        // El consultor es el ÚNICO rol con los siete perfiles emisores
-        // habilitados —los seis de la entidad y el del postor, porque
-        // asesora a los dos lados—, y aun así no tenía por dónde entrar
-        // al generador: `PERFILES_POR_ROL.consultant` los permitía todos
-        // y el menú no lo llevaba a ninguna parte. Es el mismo fallo que
-        // César reportó en agosto con el módulo de requerimiento:
-        // construido, permitido y inalcanzable.
-        label: 'Generador',
-        href: '/generador',
-        icon: FilePen,
-        description:
-          'Documentos de los siete perfiles emisores: área usuaria, DEC, legal, titular, AGA, defensa ante fiscalización y postor.',
-        roles: ['consultant'],
-        color: 'amber',
-      },
-      {
-        // El mismo evaluador que usa la entidad. El consultor evalúa
-        // ofertas para la entidad a la que asesora, así que la
-        // herramienta es la misma y solo cambia a cuenta de quién se
-        // hace. Observación de César (setiembre de 2026): "el evaluador
-        // de ofertas debe estar como consultor también".
-        label: 'Evaluador de ofertas',
-        href: '/evaluador',
-        icon: FileSearch,
-        description: 'Compara Bases con ofertas y dictamina por requisito, para la entidad a la que asesoras.',
-        roles: ['consultant'],
-        color: 'sky',
-      },
-      {
-        label: 'Casos de estudio',
-        href: '/casos',
-        icon: Briefcase,
-        description: 'Análisis avanzado y modelos de litigio.',
-        roles: ['consultant'],
-        comingSoon: true,
-        color: 'violet',
-      },
-    ],
-  },
-  {
-    label: 'Comunidad',
-    items: [
-      {
-        label: 'Encuestas',
+        label: 'Tu opinión',
         href: '/encuestas',
-        icon: ClipboardList,
-        description:
-          'Comparte tu experiencia y obtén créditos extra para usar la plataforma.',
+        icon: MessagesSquare,
+        description: 'Cuéntanos tu experiencia y gana créditos para seguir usando la plataforma.',
         color: 'violet',
+      },
+      {
+        label: 'Ajustes',
+        href: '/ajustes',
+        icon: Settings,
+        description: 'Tu cuenta, tu perfil y tus preferencias.',
+        color: 'slate',
       },
     ],
   },
 ];
 
-/**
- * Devuelve los items visibles para un rol dado, manteniendo la estructura por
- * secciones. Las secciones que queden vacías se filtran.
- */
-export function getMenuFor(role: ProfileRole | null): MenuSection[] {
-  return MENU_SECTIONS
-    .map((section) => ({
-      label: section.label,
-      items: section.items.filter((item) => {
-        if (!item.roles || item.roles.length === 0) return true;
-        if (!role) return false;
-        return item.roles.includes(role);
-      }),
-    }))
-    .filter((s) => s.items.length > 0);
+/** ¿Este item le corresponde a este perfil? */
+function visiblePara(item: MenuItem, role: ProfileRole | null): boolean {
+  if (!item.roles || item.roles.length === 0) return true;
+  if (!role) return false;
+  return item.roles.includes(role);
 }
 
 /**
- * Versión lineal (sin secciones) — útil para command-palette y otras búsquedas.
+ * Devuelve los items visibles para un rol, manteniendo la estructura por
+ * secciones y podando en dos niveles: un padre cuyos hijos se fueron
+ * todos desaparece con ellos, porque llevaría a un centro de sección
+ * vacío.
  */
+export function getMenuFor(role: ProfileRole | null): MenuSection[] {
+  return MENU_SECTIONS.map((section) => ({
+    label: section.label,
+    items: section.items
+      .filter((item) => visiblePara(item, role))
+      .map((item) => {
+        if (!item.hijos) return item;
+        const hijos = item.hijos.filter((h) => visiblePara(h, role));
+        return { ...item, hijos };
+      })
+      .filter((item) => !item.hijos || item.hijos.length > 0),
+  })).filter((s) => s.items.length > 0);
+}
+
+/** Versión lineal, padres e hijos — para la paleta de comandos y búsquedas. */
 export function getFlatMenuFor(role: ProfileRole | null): MenuItem[] {
-  return getMenuFor(role).flatMap((s) => s.items);
+  return getMenuFor(role).flatMap((s) => s.items.flatMap((i) => [i, ...(i.hijos || [])]));
+}
+
+/** Los hijos de un verbo, ya filtrados — lo que pinta cada centro de sección. */
+export function hijosDe(href: string, role: ProfileRole | null): MenuItem[] {
+  for (const s of getMenuFor(role)) {
+    for (const i of s.items) {
+      if (i.href === href) return i.hijos || [];
+    }
+  }
+  return [];
 }
 
 export const ROLE_LABELS: Record<ProfileRole, string> = {
