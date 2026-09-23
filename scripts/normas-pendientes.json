@@ -1,27 +1,173 @@
 [
   {
-    "url": "https://cdn.www.gob.pe/uploads/document/file/8209539/6861651-directiva0007_2025ef5401.pdf?v=1749770135",
+    "url": "https://cdn.www.gob.pe/uploads/document/file/7947023/6682412-directiva-de-disposiciones-aplicables-para-el-acceso-y-registro-de-informacion-en-el-sistema-electronico-de-contrataciones-del-estado-seace.pdf?v=1745203485",
+    "fuente": "https://www.gob.pe/institucion/oece/normas-legales/6682412-007-2025-oece-cd",
     "tipo": "directiva",
-    "acto": "Directiva Nº 0007-2025-EF54.01 - Programación multianual de bienes, servicios y obras",
-    "pieza": "Texto de la norma",
-    "entidad": "DGA",
-    "fecha": "2025-06-12",
-    "nota": "Faltaba en la biblioteca. La señaló César el 23/09/2026 con esta URL."
+    "acto": "Directiva N.° 007-2025-OECE-CD",
+    "pieza": "Texto de la Directiva N.° 007-2025-OECE-CD",
+    "entidad": "OECE",
+    "nota": "Texto consolidado que publica hoy la página oficial: Directiva de Disposiciones aplicables para el acceso y registro de información en el Siste"
   },
   {
-    "url": "https://cdn.www.gob.pe/uploads/document/file/10253458/8332797-mod_lineamientos-con-modf-opp-actfff.pdf?v=1783188761",
-    "tipo": "lineamiento",
-    "acto": "2. Lineamientos para el cumplimiento - Adq. Computadoras",
-    "pieza": "Texto con la primera modificación",
-    "entidad": "PERU_COMPRAS",
-    "nota": "Modificación aprobada por Resolución Jefatural N.° 000083-2026-PERÚ COMPRAS-JEFATURA (05/07/2026). Faltaba en la biblioteca."
+    "url": "https://cdn.www.gob.pe/uploads/document/file/7946960/6682380-directiva-de-procedimientos-y-tramites-ante-el-registro-nacional-de-proveedores.pdf?v=1745192527",
+    "fuente": "https://www.gob.pe/institucion/oece/normas-legales/6682380-001-2025-oece-cd",
+    "tipo": "directiva",
+    "acto": "Directiva N° 001-2025-OECECD - Trámites ante el RNP",
+    "pieza": "Texto de la Directiva N° 001-2025-OECECD",
+    "entidad": "OECE",
+    "nota": "Texto consolidado que publica hoy la página oficial: Directiva de procedimientos y trámites ante el Registro Nacional de ProveedoresPDF723.2 KB"
   },
   {
-    "url": "https://cdn.www.gob.pe/uploads/document/file/9906532/8079266-lneamientos-cco-rd-039-2025-abril-2026.pdf?v=1777928891",
-    "tipo": "lineamiento",
-    "acto": "1. Lineamientos para el cumplimiento - Adq. útiles de Oficina y Materiales de Limpieza",
-    "pieza": "Texto vigente a abril de 2026",
-    "entidad": "PERU_COMPRAS",
-    "nota": "Versión consolidada que publica Perú Compras tras la segunda modificación."
+    "url": "https://cdn.www.gob.pe/uploads/document/file/9421616/7719040-directiva-n-001-2026-oece-cd-directiva-sobre-la-ficha-unica-del-proveedor-fup.pdf?v=1770735141",
+    "fuente": "https://www.gob.pe/institucion/oece/normas-legales/7719040-001-2026-oece-cd",
+    "tipo": "directiva",
+    "acto": "Directiva N° 001-2026-OECE-CD - Ficha Única de Proveedor",
+    "pieza": "Texto de la Directiva N° 001-2026-OECE-CD",
+    "entidad": "OECE",
+    "nota": "Texto consolidado que publica hoy la página oficial: Directiva N° 001-2026-OECE-CD, Directiva sobre la Ficha Única del Proveedor - FUPPDF462.1 "
+  },
+  {
+    "url": "https://cdn.www.gob.pe/uploads/document/file/7946980/6682391-directiva-de-junta-de-prevencion-y-resolucion-de-disputas.pdf?v=1745195358",
+    "fuente": "https://www.gob.pe/institucion/oece/normas-legales/6682391-002-2025-oece-cd",
+    "tipo": "directiva",
+    "acto": "Directiva N° 002-2025-OECECD - Junta de prevención y Disputas",
+    "pieza": "Texto de la Directiva N° 002-2025-OECECD",
+    "entidad": "OECE",
+    "nota": "Texto consolidado que publica hoy la página oficial: Directiva de Junta de Prevención y Resolución de DisputasPDF431.7 KB Descargar"
+  },
+  {
+    "url": "https://cdn.www.gob.pe/uploads/document/file/7946986/6682396-directiva-de-disposiciones-para-la-presentacion-de-la-solicitud-de-elevacion-de-cuestionamientos-emision-del-pronunciamiento-e-integracion-definitiva-de-las-bases.pdf?v=1745196368",
+    "fuente": "https://www.gob.pe/institucion/oece/normas-legales/6682396-003-2025-oece-cd",
+    "tipo": "directiva",
+    "acto": "Directiva N° 003-2025-OECECD - Elevación de bases",
+    "pieza": "Texto de la Directiva N° 003-2025-OECECD",
+    "entidad": "OECE",
+    "nota": "Texto consolidado que publica hoy la página oficial: Directiva de disposiciones para la presentación de la solicitud de elevación de cuestionam"
+  },
+  {
+    "url": "https://cdn.www.gob.pe/uploads/document/file/10398236/8440896-directiva-n-004-2025-oece-cd-directiva-del-registro-de-instituciones-arbitrales-y-centros-de-administracion-de-juntas-de-prevencion-y-resolucion-de-disputas-regaju-version-2.pdf?v=1785860661",
+    "fuente": "https://www.gob.pe/institucion/oece/normas-legales/8440896-004-2025-oece-cd-v-2",
+    "tipo": "directiva",
+    "acto": "Directiva N° 004-2025-OECECD - Registro de Instituciones Arbitrales",
+    "pieza": "Texto de la Directiva N° 004-2025-OECECD",
+    "entidad": "OECE",
+    "nota": "Texto consolidado que publica hoy la página oficial: Directiva N° 004-2025-OECE/CD - Directiva del “Registro de Instituciones Arbitrales y Cent"
+  },
+  {
+    "url": "https://cdn.www.gob.pe/uploads/document/file/7947008/6682409-directiva-de-asistencia-tecnica-y-orientacion-brindada-por-el-oece-a-solicitud-de-las-entidades-contratantes.pdf?v=1745201720",
+    "fuente": "https://www.gob.pe/institucion/oece/normas-legales/6682409-005-2025-oece-cd",
+    "tipo": "directiva",
+    "acto": "Directiva N° 005-2025-OECECD - Asistencia técnica por el OECE",
+    "pieza": "Texto de la Directiva N° 005-2025-OECECD",
+    "entidad": "OECE",
+    "nota": "Texto consolidado que publica hoy la página oficial: Directiva de Asistencia técnica y orientación brindada por el OECE, a solicitud de las Ent"
+  },
+  {
+    "url": "https://cdn.www.gob.pe/uploads/document/file/7947021/6682410-directiva-de-acciones-de-supervision-a-pedido-de-parte-y-de-oficio.pdf?v=1745202564",
+    "fuente": "https://www.gob.pe/institucion/oece/normas-legales/6682410-006-2025-oece-cd",
+    "tipo": "directiva",
+    "acto": "Directiva N° 006-2025-OECECD - Supervisión de Oficio del OECE",
+    "pieza": "Texto de la Directiva N° 006-2025-OECECD",
+    "entidad": "OECE",
+    "nota": "Texto consolidado que publica hoy la página oficial: Directiva de Acciones de supervisión a pedido de parte y de oficioPDF297.4 KB Descargar"
+  },
+  {
+    "url": "https://cdn.www.gob.pe/uploads/document/file/7947096/6682466-directiva-de-tabla-de-gastos-arbitrales-aplicables-a-los-arbitrajes-ad-hoc-en-materia-de-contrataciones-publicas.pdf?v=1745212056",
+    "fuente": "https://www.gob.pe/institucion/oece/normas-legales/6682466-008-2025-oece-cd",
+    "tipo": "directiva",
+    "acto": "Directiva N° 008-2025-OECE-CD - Tabla de Gastos Arbitrales",
+    "pieza": "Texto de la Directiva N° 008-2025-OECE-CD",
+    "entidad": "OECE",
+    "nota": "Texto consolidado que publica hoy la página oficial: Directiva de Tabla de Gastos Arbitrales aplicables a los arbitrajes ad hoc en materia de c"
+  },
+  {
+    "url": "https://cdn.www.gob.pe/uploads/document/file/7947102/6682472-directiva-de-servicios-arbitrales-de-recusacion-y-designacion-residual-de-arbitros-en-el-marco-de-procesos-arbitrales-organizados-y-administrados-bajo-el-sistema-nacional-de-arbitraje.pdf?v=1745212618",
+    "fuente": "https://www.gob.pe/institucion/oece/normas-legales/6682472-009-2025-oece-cd",
+    "tipo": "directiva",
+    "acto": "Directiva N° 009-2025-OECE-CD - Servicios Arbitrales y Recusación de Árbitros",
+    "pieza": "Texto de la Directiva N° 009-2025-OECE-CD",
+    "entidad": "OECE",
+    "nota": "Texto consolidado que publica hoy la página oficial: Directiva de Servicios Arbitrales de Recusación y Designación Residual de Árbitros en el m"
+  },
+  {
+    "url": "https://cdn.www.gob.pe/uploads/document/file/8192973/6850994-directiva-n-010-2025-oece-cd.pdf?v=1749568787",
+    "fuente": "https://www.gob.pe/institucion/oece/normas-legales/6850994-010-2025-oece-cd",
+    "tipo": "directiva",
+    "acto": "Directiva N° 010-2025-OECE-CD - Bases Estándar de Procedimientos Especiales",
+    "pieza": "Texto de la Directiva N° 010-2025-OECE-CD",
+    "entidad": "OECE",
+    "nota": "Texto consolidado que publica hoy la página oficial: Directiva N°010-2025-OECE-CD PDF333.4 KB Descargar"
+  },
+  {
+    "url": "https://cdn.www.gob.pe/uploads/document/file/10398481/8440994-directiva-n-011-2025-oece-cd-directiva-de-supervision-de-instituciones-arbitrales-y-centros-de-administracion-de-juntas-de-prevencion-y-resolucion-de-disputas-version-2.pdf?v=1785861347",
+    "fuente": "https://www.gob.pe/institucion/oece/normas-legales/8440994-011-2025-oece-cd-v-2",
+    "tipo": "directiva",
+    "acto": "Directiva N° 011-2025-OECE-CD -Supervisión de Instituciones Arbitrales",
+    "pieza": "Texto de la Directiva N° 011-2025-OECE-CD",
+    "entidad": "OECE",
+    "nota": "Texto consolidado que publica hoy la página oficial: Directiva N° 011-2025-OECE-CD, “Directiva de Supervisión de Instituciones Arbitrales y Cen"
+  },
+  {
+    "url": "https://cdn.www.gob.pe/uploads/document/file/10400640/8442463-directiva-n-012-2025-oece-cd-directiva-del-procedimiento-administrativo-sancionador-de-instituciones-arbitrales-y-centros-de-administracion-de-juntas-de-prevencion-y-resolucion-de-disputas-version-2.pdf?v=1785875967",
+    "fuente": "https://www.gob.pe/institucion/oece/normas-legales/8442463-012-2025-oece-cd-v-2",
+    "tipo": "directiva",
+    "acto": "Directiva N° 012-2025-OECE-CD - Procedimiento Sancionador Arbitrales",
+    "pieza": "Texto de la Directiva N° 012-2025-OECE-CD",
+    "entidad": "OECE",
+    "nota": "Texto consolidado que publica hoy la página oficial: Directiva N° 012-2025-OECE-CD, “Directiva del Procedimiento Administrativo Sancionador de "
+  },
+  {
+    "url": "https://cdn.www.gob.pe/uploads/document/file/8787682/7262796-directiva-para-el-pago-de-la-sancion-de-multa-impuesta-por-el-oece.pdf?v=1759786403",
+    "fuente": "https://www.gob.pe/institucion/oece/normas-legales/7262796-013-2025-oece-cd",
+    "tipo": "directiva",
+    "acto": "Directiva N° 013-2025-OECE-CD - Pago de Sanción de Multas",
+    "pieza": "Texto de la Directiva N° 013-2025-OECE-CD",
+    "entidad": "OECE",
+    "nota": "Texto consolidado que publica hoy la página oficial: Directiva para el pago de la sanción de multa impuesta por el OECEPDF563.8 KB Descargar"
+  },
+  {
+    "url": "https://cdn.www.gob.pe/uploads/document/file/8787757/7262842-directiva-del-programa-de-vigilancia-ciudadana-en-las-contrataciones-publicas.pdf?v=1759786817",
+    "fuente": "https://www.gob.pe/institucion/oece/normas-legales/7262842-014-2025-oece-cd",
+    "tipo": "directiva",
+    "acto": "Directiva N° 014-2025-OECE-CD - Programa de Vigilancia Ciudadana",
+    "pieza": "Texto de la Directiva N° 014-2025-OECE-CD",
+    "entidad": "OECE",
+    "nota": "Texto consolidado que publica hoy la página oficial: Directiva del programa de vigilancia ciudadana en las contrataciones públicasPDF443.8 KB D"
+  },
+  {
+    "url": "https://cdn.www.gob.pe/uploads/document/file/8787831/7262874-directiva-sobre-el-uso-de-la-casilla-electronica-en-los-actos-y-actuaciones-administrativas-de-los-procedimientos-administrativos-sancionadores-a-cargo-del-tcp.pdf?v=1759787208",
+    "fuente": "https://www.gob.pe/institucion/oece/normas-legales/7262874-015-2025-oece-cd",
+    "tipo": "directiva",
+    "acto": "Directiva N° 015-2025-OECE-CD - Uso de Casilla Electrónica Sancionadores",
+    "pieza": "Texto de la Directiva N° 015-2025-OECE-CD",
+    "entidad": "OECE",
+    "nota": "Texto consolidado que publica hoy la página oficial: Directiva sobre el uso de la casilla electrónica en los actos y actuaciones administrativa"
+  },
+  {
+    "url": "https://cdn.www.gob.pe/uploads/document/file/8816696/7281157-directiva-n-016-2025-oece-cd-directiva-para-la-retencion-de-multas-impagas.pdf?v=1760368303",
+    "fuente": "https://www.gob.pe/institucion/oece/normas-legales/7281157-016-2025-oece-cd",
+    "tipo": "directiva",
+    "acto": "Directiva N° 016-2025-OECE-CD - Retención de Multas Impagas",
+    "pieza": "Texto de la Directiva N° 016-2025-OECE-CD",
+    "entidad": "OECE",
+    "nota": "Texto consolidado que publica hoy la página oficial: Directiva N° 016-2025-OECE-CD, Directiva para la retención de multas impagas PDF598.7 KB D"
+  },
+  {
+    "url": "https://cdn.www.gob.pe/uploads/document/file/8817067/7281401-directiva-n-017-2025-oece-cd-directiva-de-disposiciones-sobre-el-uso-del-cuaderno-de-incidencias.pdf?v=1760370311",
+    "fuente": "https://www.gob.pe/institucion/oece/normas-legales/7281401-017-2025-oece-cd",
+    "tipo": "directiva",
+    "acto": "Directiva N° 017-2025-OECE-CD - Cuaderrno de Insidencias",
+    "pieza": "Texto de la Directiva N° 017-2025-OECE-CD",
+    "entidad": "OECE",
+    "nota": "Texto consolidado que publica hoy la página oficial: Directiva N° 017-2025-OECE-CD, Directiva de disposiciones sobre el uso del Cuaderno de Inc"
+  },
+  {
+    "url": "https://cdn.www.gob.pe/uploads/document/file/9102570/7472600-directiva-n-018-2025-oece-cd-directiva-del-registro-de-las-valorizaciones-de-obra-a-traves-del-seace.pdf?v=1764862357",
+    "fuente": "https://www.gob.pe/institucion/oece/normas-legales/7472600-018-2025-oece-cd",
+    "tipo": "directiva",
+    "acto": "Directiva N° 018-2025-OECE-CD - Registro de Valorizaciones",
+    "pieza": "Texto de la Directiva N° 018-2025-OECE-CD",
+    "entidad": "OECE",
+    "nota": "Texto consolidado que publica hoy la página oficial: Directiva N° 018-2025-OECE-CD, Directiva del registro de las valorizaciones de obra a trav"
   }
 ]

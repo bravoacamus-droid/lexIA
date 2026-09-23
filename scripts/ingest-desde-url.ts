@@ -173,10 +173,21 @@ async function ingestar(n: NormaPendiente): Promise<string> {
     embedding: vectores[i] as never,
     metadata: { source: n.pieza, heading: t.heading } as never,
   }));
-  const { error: errTrozos } = await supabase
-    .from('normative_chunks')
-    .insert(filas as never);
-  if (errTrozos) return `no se pudieron guardar los trozos: ${errTrozos.message.slice(0, 140)}`;
+  // De 25 en 25: una directiva larga son setenta trozos con su vector de
+  // 1024 dimensiones cada uno, y en una sola sentencia Postgres corta por
+  // tiempo de espera y deja el documento sin nada.
+  const POR_TANDA = 25;
+  for (let i = 0; i < filas.length; i += POR_TANDA) {
+    const { error: errTrozos } = await supabase
+      .from('normative_chunks')
+      .insert(filas.slice(i, i + POR_TANDA) as never);
+    if (errTrozos) {
+      // Sin trozos el documento no se busca ni se cita: mejor no dejarlo.
+      await supabase.from('normative_chunks').delete().eq('document_id', (doc as { id: string }).id);
+      await supabase.from('normative_documents').delete().eq('id', (doc as { id: string }).id);
+      return `no se pudieron guardar los trozos: ${errTrozos.message.slice(0, 120)}`;
+    }
+  }
 
   return `ingestada · ${paginas} pág · ${trozos.length} trozos`;
 }
