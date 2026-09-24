@@ -404,17 +404,17 @@ export const GENERATOR_QUICK_ACTIONS: Record<
     {
       label: 'Autorización de suspensión de plazo',
       prompt:
-        'Redacta la autorización de suspensión de plazo (Art. 107.5 del Reglamento) para el contrato que te describa, invocando la causal de caso fortuito o fuerza mayor sustentada.',
+        'Redacta la autorización de suspensión del plazo de ejecución (artículo 107 del Reglamento) para el contrato que te describa: el evento no atribuible a las partes que interrumpe la ejecución o, si la causa es imputable a la Entidad, la autorización previa del numeral 107.5.',
     },
     {
       label: 'Aprobación de ampliación de plazo',
       prompt:
-        'Redacta la resolución que aprueba la ampliación de plazo del contrato que te describa. Sustenta en el art. 198 del Reglamento y en la causal específica invocada.',
+        'Redacta la resolución que se pronuncia sobre la ampliación de plazo del contrato que te describa. Sustenta en el artículo 142 del Reglamento (bienes y servicios) o en los artículos 198 a 200 (obras y consultorías de obra), y en la causal específica invocada.',
     },
     {
       label: 'Resolución de contrato por incumplimiento',
       prompt:
-        'Redacta la resolución del contrato por incumplimiento del contratista (Art. 123 del Reglamento). Motiva el incumplimiento, la intimación previa y la decisión.',
+        'Redacta la resolución del contrato por incumplimiento del contratista (literal b) del numeral 68.1 del artículo 68 de la Ley y artículo 122 del Reglamento). Motiva el incumplimiento, el requerimiento previo bajo apercibimiento y la decisión.',
     },
     {
       label: 'Acta de modificación de orden/contrato menor',

@@ -304,6 +304,81 @@ monto», y las «otras penalidades» anunciadas sin su cuadro.
   observado en un procedimiento real, y dinos qué encontró y qué se le
   escapó. Es la mejor forma de afinar la revisión.
 
+## 13 · El generador de documentos administrativos
+
+Está en Generar › Documentos de ejecución contractual, como lo
+describiste en «Generador de documentos administrativos». Se elige
+quién emite el documento, se cuenta el caso (o se elige una de las
+doce actuaciones; lo recomendado es «Analizar mi caso») y se adjuntan
+los documentos que se tengan. A partir de ahí:
+
+- **Expediente contractual único**, con tus doce carpetas. Cada
+  documento dice qué es, de dónde vino y en qué estado está (original,
+  generado por LexIA, revisado, firmado, presentado, incorporado). Lo
+  que genera LexIA nunca cuenta como oficial: para usarlo de antecedente
+  se pide la versión firmada, con número y fecha.
+- **Ficha del contrato** que se arma sola con lo que dicen los
+  documentos («Datos identificados automáticamente»), editable solo si
+  hay un error. Si dos documentos dicen cosas distintas del mismo dato,
+  lo muestra como contradicción.
+- **Matriz de requisitos** por actuación, tipo de contrato y perfil, en
+  tres niveles (indispensable, según el caso, complementario), cada uno
+  con su por qué y su artículo, comprobados contra el texto de la Ley y
+  el Reglamento. Una reducción de servicios no pide cuaderno de obra; una
+  ampliación de obra sí.
+- **Una pregunta decisiva a la vez**, solo si puede cambiar la figura,
+  la procedencia, el documento o la competencia. Si respondes que no hay
+  prueba de un hecho, no te la vuelve a pedir: lo trata como declarado.
+- **Suficiencia** calculada sobre los requisitos aplicables, **dos
+  semáforos** (procedencia e información) y los **tres niveles de
+  salida** (diagnóstico preliminar, borrador condicionado, documento
+  para revisión final).
+- **Cálculos que no hace el modelo**: días hábiles con feriados,
+  oportunidad de la solicitud de ampliación, vencimiento del plazo de la
+  Entidad (y la aprobación por falta de pronunciamiento), porcentajes de
+  adicionales y reducciones con el órgano competente según el tramo,
+  penalidad por mora con su fórmula y tope, plazo del apercibimiento.
+- **El documento del perfil** (informe técnico, informe de la DEC,
+  informe legal, resolución, carta, acta, adenda, descargo) en Word, y la
+  **ficha de control LexIA** aparte. Antes de descargar, una **auditoría
+  automática**: RUC, número de contrato, fechas y montos contra los
+  documentos, artículos contra la norma, régimen, competencia y
+  coherencia. Si encuentra un error, no deja bajar el documento
+  definitivo.
+- **Continuar con otro perfil** sobre el mismo expediente: el Área
+  Usuaria termina, se pasa a la DEC y se reutiliza todo.
+
+La conversación del generador anterior sigue disponible como «Redacción
+libre por conversación», con todas las conversaciones que había.
+
+- **El proveedor** ve los perfiles **Contratista** (solicitudes de
+  ampliación, apercibimiento y resolución por falta de pago, descargos
+  de penalidad, requerimiento de pago, liquidación) y **Supervisor**,
+  porque el supervisor de obra es un contratista de consultoría. ¿Está
+  bien así?
+- **Contratos del régimen anterior.** Tus cartas notariales de Ayacucho
+  son de un contrato de 2024: se rigen por el TUO de la Ley N.° 30225 y
+  el D.S. N.° 344-2018-EF. A-LexIA lo detecta por la fecha de
+  convocatoria, pero la biblioteca no tiene ese articulado, así que deja
+  los artículos por precisar en vez de inventarlos. ¿Cargamos la Ley
+  N.° 30225 y su Reglamento a la biblioteca?
+- **Reconocimiento de obligaciones sin contrato.** Si la prestación se
+  ejecutó sin contrato o fuera de él, no es un pago contractual y la
+  norma que lo regula no está en la biblioteca. ¿Qué norma quieres que
+  se cite y la cargamos?
+- **Los plazos de la liquidación** del numeral 215.6 están en un cuadro
+  que el PDF de Editora Perú aplana. Por eso no los calculamos: se citan
+  para verificarlos. ¿Nos confirmas cómo se lee el cuadro (presentación,
+  pronunciamiento y respuesta, en consultoría de obra y en obra)?
+- **Los informes y resoluciones** siguen la forma común (A, DE, ASUNTO,
+  REFERENCIA, FECHA; apartados en romanos; VISTOS, CONSIDERANDO y SE
+  RESUELVE). De cartas nos diste modelos; de informe y resolución no.
+  Si tienes uno de cada, los copiamos con sus medidas.
+- **El informe del Área Usuaria para la DEC.** Lo tratamos como
+  «necesario según el caso» para la DEC (puede adelantar un borrador
+  condicionado mientras llega) e «indispensable» para la AGA y el
+  Titular, que no deciden sin él. ¿Coincide con tu práctica?
+
 ---
 
 ## Lo que ya está listo para que pruebes

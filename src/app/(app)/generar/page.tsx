@@ -162,8 +162,8 @@ export default async function GenerarPage() {
           familia="generar"
           acabado="suave"
           titulo="Documentos de ejecución contractual"
-          descripcion="Elabora documentos administrativos, técnicos y técnico-legales para sustentar actuaciones durante la ejecución del contrato."
-          llamada="Crear documento"
+          descripcion="Cuenta tu caso y adjunta lo que tengas: A-LexIA identifica la figura, pide solo lo indispensable y proyecta el documento del perfil que lo emite, con su ficha de control."
+          llamada="Analizar mi caso"
           className="border-amber-200/80 dark:border-amber-900/50"
           pastillas={[
             { icono: Clock, texto: 'Ampliaciones' },
