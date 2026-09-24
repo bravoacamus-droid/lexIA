@@ -235,6 +235,35 @@ responde con el Acuerdo N.° 003-2025/TCP y su criterio textual.
   perfeccionamiento del contrato—. Lo dejamos con su número correcto y
   sin tocar el texto oficial.
 
+## 11 · La versión mejorada del requerimiento
+
+En Evaluar › Evaluación de requerimientos, después de la auditoría hay
+un botón **«Generar versión mejorada»**. A-LexIA comprueba cada
+observación contra la biblioteca —bases estándar, Ley y Reglamento
+primero— y le pone un veredicto: **se corrige**, **lo decide el área
+usuaria** (el texto va con un hueco en rojo, por ejemplo los años de
+experiencia) o **no procede**. Lo que no procede no se toca y se dice
+por qué: en la prueba, la auditoría marcó como «crítico» exigir quince
+años de experiencia del postor, y las bases estándar dicen literalmente
+«durante los quince años anteriores». Esa corrección habría empeorado el
+requerimiento.
+
+Se entregan dos Word:
+
+- **Tu propio documento con control de cambios**, si lo subiste en Word:
+  lo borrado tachado, lo añadido subrayado y un comentario al margen con
+  el sustento de cada cambio. El formato, las tablas y los logos quedan
+  como estaban; se aceptan o rechazan en Word.
+- **El cuadro de cambios «Dice / Debe decir»**, con el sustento, las
+  decisiones que corresponden al área usuaria y las observaciones que no
+  proceden. Si subiste un PDF, es lo que recibes: sobre un PDF no se
+  pueden marcar cambios.
+
+Cada cambio se puede dejar fuera con un interruptor antes de descargar.
+
+- **¿Te sirve el «Dice / Debe decir»** como forma del cuadro, o prefieres
+  otra columna u otro orden?
+
 ---
 
 ## Lo que ya está listo para que pruebes

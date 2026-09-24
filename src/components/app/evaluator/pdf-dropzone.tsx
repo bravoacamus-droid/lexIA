@@ -21,6 +21,11 @@ interface Props {
   onChange: (file: UploadedFile | null) => void;
   label?: string;
   accept?: string;
+  /**
+   * Varios tipos a la vez, por mime y extensión. El requerimiento se
+   * puede evaluar en PDF o en Word; las bases y las ofertas, solo en PDF.
+   */
+  tipos?: Record<string, string[]>;
   compact?: boolean;
   maxSize?: number;
 }
@@ -100,7 +105,15 @@ async function uploadWithProgress(
     xhr.open('POST', url);
     xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
     xhr.setRequestHeader('x-upsert', 'false');
-    xhr.setRequestHeader('Content-Type', file.type || 'application/pdf');
+    // Si el navegador no dice el tipo, se deduce de la extensión: el
+    // bucket rechaza lo que no reconoce.
+    xhr.setRequestHeader(
+      'Content-Type',
+      file.type ||
+        (/\.docx$/i.test(file.name)
+          ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+          : 'application/pdf'),
+    );
     xhr.send(file);
 
     // Expose abort para cancelar desde fuera (no usado por ahora)
@@ -114,6 +127,7 @@ export function PdfDropzone({
   onChange,
   label = 'Arrastra el PDF o haz click',
   accept = 'application/pdf',
+  tipos,
   compact = false,
   maxSize = 100 * 1024 * 1024,
 }: Props) {
@@ -177,7 +191,7 @@ export function PdfDropzone({
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { [accept]: ['.pdf'] },
+    accept: tipos ?? { [accept]: ['.pdf'] },
     multiple: false,
     disabled: uploading || !!value,
   });
@@ -290,7 +304,8 @@ export function PdfDropzone({
           </span>
           <p className="font-medium text-sm">{label}</p>
           <p className="mt-1 text-[11px] text-muted-foreground">
-            Formato PDF · máximo {formatBytes(maxSize)}
+            Formato {tipos && Object.values(tipos).flat().includes('.docx') ? 'PDF o Word (.docx)' : 'PDF'} · máximo{' '}
+            {formatBytes(maxSize)}
           </p>
         </>
       )}

@@ -155,6 +155,15 @@ export interface PiezaCuadro {
   /** Proporciones de las columnas; se reparten sobre el ancho disponible. */
   proporciones: number[];
   filas: CeldaCuadro[][];
+  /**
+   * Las filas pueden seguir en la página siguiente. En la ficha del acta
+   * no —una fila es un dato y no se parte—, pero en un cuadro de textos
+   * largos, como el «Dice / Debe decir», una fila que no cabe entera en
+   * lo que queda de hoja saltaba a la siguiente y dejaba media en blanco.
+   */
+  partible?: boolean;
+  /** La primera fila, la de los rótulos, se repite arriba de cada hoja. */
+  repetirCabecera?: boolean;
 }
 
 /**

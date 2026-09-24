@@ -109,8 +109,18 @@ const PATRONES: Array<[ClaseDeCita, RegExp]> = [
   ['resolucion', /\bResoluci[óo]n\s+N\.?\s*°?\s*(\d{3,4}-\d{4}[A-ZÑ/.\-]{0,20})/gi],
 ];
 
-/** «artículo 46.3 de la Ley», «numeral 72.3 del artículo 72 del Reglamento». */
-const ARTICULO = /\b(?:art[íi]culo|numeral)\s+(\d{1,3})(?:\.\d{1,2})*/gi;
+/**
+ * «artículo 46.3 de la Ley», «numeral 72.3 del artículo 72 del Reglamento».
+ *
+ * No cuenta la remisión al propio documento —«numeral 6.2 del
+ * requerimiento», «numeral 3.1 de las bases»—: eso no es una norma y no
+ * tiene que estar en ningún sustento. La versión mejorada del
+ * requerimiento la marcaba como cita sin respaldo. El `(?![\d.])` impide
+ * que, al fallar la exclusión, la expresión retroceda a «numeral 6» y lo
+ * cuente igual.
+ */
+const ARTICULO =
+  /\b(?:art[íi]culo|numeral)\s+(\d{1,3})(?:\.\d{1,2})*(?![\d.])(?!\s+(?:del?|de\s+l[oa]s?)\s+(?:presente|propi[oa]|requerimiento|t[ée]rminos\s+de\s+referencia|especificaciones\s+t[ée]cnicas|TDR|EETT|bases|pliego|contrato|documento)\b)/gi;
 
 /** «009-2025-EF.» y «009-2025-EF» son el mismo número. */
 function sinPuntuacionFinal(s: string): string {

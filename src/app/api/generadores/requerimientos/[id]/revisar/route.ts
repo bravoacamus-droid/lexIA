@@ -3,6 +3,7 @@ import { generateText } from 'ai';
 import { createClient } from '@/lib/supabase/server';
 import { chatModel, CHAT_MODEL_ID } from '@/lib/ai/gemini';
 import { embedOne } from '@/lib/ai/embeddings';
+import { conNotaDeParte, rotuladorDeParte } from '@/lib/normativa/ley-o-reglamento';
 import { recordAiUsage } from '@/lib/ai/usage-log';
 import { parseJsonLoose } from '@/lib/ai/json-suelto';
 import { obtenerPlantilla } from '@/lib/generadores/plantillas';
@@ -46,6 +47,8 @@ async function sustentoNormativo(consultas: string[]): Promise<string> {
           filter_type: null,
         });
         return (data ?? []) as Array<{
+          chunk_id: string;
+          document_id: string;
           content: string;
           doc_title: string;
           doc_type: string;
@@ -61,17 +64,23 @@ async function sustentoNormativo(consultas: string[]): Promise<string> {
     }),
   );
 
+  const elegidas: (typeof resultados)[number] = [];
   for (const filas of resultados) {
     for (const f of filas) {
       const clave = `${f.doc_title}|${f.content.slice(0, 120)}`;
-      if (vistos.has(clave)) continue;
+      if (vistos.has(clave) || elegidas.length >= 14) continue;
       vistos.add(clave);
-      const etiqueta = `${f.doc_type}${f.doc_number ? ' ' + f.doc_number : ''}`;
-      trozos.push(`[${trozos.length + 1}] ${etiqueta} — ${f.doc_title}\n${f.content.slice(0, 1200)}`);
-      if (trozos.length >= 14) return trozos.join('\n\n---\n\n');
+      elegidas.push(f);
     }
   }
-  return trozos.join('\n\n---\n\n');
+  // La Ley y el Reglamento son un mismo documento: se dice de cuál es
+  // cada fragmento para que el numeral se atribuya bien.
+  const parte = await rotuladorDeParte(supabase, elegidas);
+  for (const f of elegidas) {
+    const etiqueta = `${f.doc_type}${f.doc_number ? ' ' + f.doc_number : ''}`;
+    trozos.push(`[${trozos.length + 1}] ${etiqueta} — ${f.doc_title}${parte(f.chunk_id)}\n${f.content.slice(0, 1200)}`);
+  }
+  return conNotaDeParte(trozos.join('\n\n---\n\n'));
 }
 
 /**

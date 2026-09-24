@@ -80,6 +80,17 @@ interface Caso {
 
 const CASOS: Caso[] = [
   {
+    nombre: 'la remisión al propio documento no es una cita normativa',
+    texto:
+      'Existe una contradicción en el numeral 6.2 del requerimiento con lo señalado en el numeral 3.1 de las bases y en el numeral 4.2 de los términos de referencia.',
+    esperado: [],
+  },
+  {
+    nombre: 'pero un numeral de la norma sí se sigue comprobando',
+    texto: 'Conforme al numeral 88.4 del artículo 88 de la Ley, y según el numeral 6.2 del requerimiento…',
+    esperado: ['numeral 88.4'],
+  },
+  {
     nombre: 'el régimen derogado se marca, venga de donde venga',
     texto: 'Conforme al artículo 2 de la Ley de Contrataciones del Estado, la Entidad…',
     esperado: ['Ley de Contrataciones del Estado', 'artículo 2'],

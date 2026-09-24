@@ -18,6 +18,8 @@ import {
   TDR_AUDIT_SUMMARY_PROMPT,
 } from '@/lib/ai/evaluator-prompts';
 import { parseJsonLoose } from '@/lib/ai/json-suelto';
+import { textoDelWord } from '@/lib/evaluacion/mejora/control-de-cambios';
+import { origenDe } from '@/lib/evaluacion/mejora/fuente';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutos para todo el pipeline
@@ -114,9 +116,14 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
   if (mode === 'tdr_audit') {
     try {
       const tdrBlob = await downloadFromStorage(admin, ev.bases_file_path);
-      // extractPdfText lanza PdfHasNoTextError automáticamente si detecta
-      // que el PDF es escaneado (sin texto). Lo capturamos abajo.
-      const fullTdrText = (await extractPdfText(tdrBlob)).text;
+      // El requerimiento puede venir en Word: es lo que permite entregar
+      // la versión mejorada con control de cambios sobre su documento. Se
+      // lee con el mismo lector de párrafos que después marca los cambios.
+      // Del PDF, extractPdfText lanza PdfHasNoTextError si es un escaneo.
+      const fullTdrText =
+        origenDe(ev.bases_file_path) === 'docx'
+          ? await textoDelWord(Buffer.from(tdrBlob))
+          : (await extractPdfText(tdrBlob)).text;
 
       // Cap a 60k chars para no saturar al LLM
       const tdrText = fullTdrText.length > 60_000

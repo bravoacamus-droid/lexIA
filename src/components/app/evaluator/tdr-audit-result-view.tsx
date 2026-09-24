@@ -23,6 +23,9 @@ import { RelativeTime } from '@/components/ui/relative-time';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { numerarHallazgos } from '@/lib/evaluacion/mejora/orden';
+import type { Mejora, MejoraDelRequerimiento } from '@/lib/evaluacion/mejora/tipos';
+import { InsigniaVeredicto, MejoraDelHallazgo, PanelVersionMejorada } from './version-mejorada';
 
 type Severity = 'critico' | 'alto' | 'medio' | 'bajo';
 
@@ -44,6 +47,8 @@ interface TdrAuditResult {
   stats: { criticos: number; altos: number; medios: number; bajos: number };
   hallazgos: Finding[];
   resumen_ejecutivo: string;
+  /** La versión mejorada, cuando ya se generó. */
+  mejora?: MejoraDelRequerimiento;
 }
 
 interface Props {
@@ -51,6 +56,8 @@ interface Props {
   title: string;
   result: TdrAuditResult;
   completedAt: string | null;
+  /** Word o PDF: del Word se entrega el documento con control de cambios. */
+  origen: 'docx' | 'pdf';
 }
 
 const SEVERITY_META: Record<
@@ -99,9 +106,33 @@ const CATEGORY_LABEL: Record<string, string> = {
   otro: 'Otro',
 };
 
-export function TdrAuditResultView({ id: _id, title, result, completedAt }: Props) {
+export function TdrAuditResultView({ id, title, result, completedAt, origen }: Props) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const { stats } = result;
+  const [mejora, setMejora] = useState<MejoraDelRequerimiento | null>(result.mejora ?? null);
+  const mejoraDe = (hid: string) => mejora?.mejoras.find((m) => m.hallazgoId === hid);
+  const cambiarMejora = (m: Mejora) =>
+    setMejora((prev) =>
+      prev ? { ...prev, mejoras: prev.mejoras.map((x) => (x.hallazgoId === m.hallazgoId ? m : x)) } : prev,
+    );
+  // Un solo número por observación, el mismo del cuadro de cambios y del
+  // comentario al margen del Word.
+  const numeroDe = new Map(numerarHallazgos(result.hallazgos).map((x) => [x.hallazgo.id, x.numero]));
+  // Una vez comprobados contra la norma, lo que no procede deja de
+  // contar: el veredicto y las cifras se hacen con lo que sí procede. Si
+  // no, la pantalla seguiría diciendo «corregir antes de publicar» por
+  // una exigencia que resulta ser la de las bases estándar.
+  const descartados = new Set(
+    (mejora?.mejoras ?? []).filter((m) => m.veredicto === 'descartar').map((m) => m.hallazgoId),
+  );
+  const vigentes = result.hallazgos.filter((h) => !descartados.has(h.id));
+  const stats = mejora
+    ? {
+        criticos: vigentes.filter((h) => h.severidad === 'critico').length,
+        altos: vigentes.filter((h) => h.severidad === 'alto').length,
+        medios: vigentes.filter((h) => h.severidad === 'medio').length,
+        bajos: vigentes.filter((h) => h.severidad === 'bajo').length,
+      }
+    : result.stats;
   const total = stats.criticos + stats.altos + stats.medios + stats.bajos;
 
   const veredicto =
@@ -168,8 +199,20 @@ export function TdrAuditResultView({ id: _id, title, result, completedAt }: Prop
                 {veredicto.label}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {total} hallazgo{total === 1 ? '' : 's'} detectado{total === 1 ? '' : 's'} en
-                este documento.
+                {mejora ? (
+                  <>
+                    {total} {total === 1 ? 'observación procede' : 'observaciones proceden'} tras
+                    comprobarlas contra la norma
+                    {descartados.size > 0 &&
+                      ` · ${descartados.size} de las ${result.hallazgos.length} detectadas no ${descartados.size === 1 ? 'procede' : 'proceden'}`}
+                    .
+                  </>
+                ) : (
+                  <>
+                    {total} hallazgo{total === 1 ? '' : 's'} detectado{total === 1 ? '' : 's'} en
+                    este documento.
+                  </>
+                )}
               </p>
             </div>
           </div>
@@ -204,7 +247,31 @@ export function TdrAuditResultView({ id: _id, title, result, completedAt }: Prop
           <p className="text-[15px] leading-relaxed text-foreground/95">
             {result.resumen_ejecutivo}
           </p>
+          {descartados.size > 0 && (
+            <p className="mt-3 border-t border-brand-200/50 pt-3 text-[13px] leading-relaxed text-foreground/80 dark:border-brand-900/50">
+              Este diagnóstico es el de la auditoría inicial. Al comprobarlas contra la normativa,{' '}
+              {descartados.size === 1 ? 'la observación' : 'las observaciones'} N.°{' '}
+              {[...descartados]
+                .map((d) => numeroDe.get(d))
+                .sort((a, b) => (a ?? 0) - (b ?? 0))
+                .join(', ')}{' '}
+              no {descartados.size === 1 ? 'procede' : 'proceden'}: el requerimiento puede mantener
+              ese texto. El motivo está en cada una.
+            </p>
+          )}
         </Card>
+
+        <PanelVersionMejorada
+          id={id}
+          origen={origen}
+          hallazgos={result.hallazgos.length}
+          mejora={mejora}
+          onMejora={(m) => {
+            setMejora(m);
+            // Se abren los hallazgos para que se vea lo que concluyó.
+            setExpanded(Object.fromEntries(result.hallazgos.map((h) => [h.id, true])));
+          }}
+        />
 
         {/* Hallazgos por severidad */}
         {grouped.map(({ sev, items }) => {
@@ -217,8 +284,9 @@ export function TdrAuditResultView({ id: _id, title, result, completedAt }: Prop
                 {meta.label} · {items.length}
               </h2>
 
-              {items.map((h, idx) => {
+              {items.map((h) => {
                 const isOpen = expanded[h.id] ?? false;
+                const m = mejoraDe(h.id);
                 return (
                   <Card key={h.id} className={cn('overflow-hidden border-l-4', meta.ring)}>
                     <button
@@ -231,8 +299,9 @@ export function TdrAuditResultView({ id: _id, title, result, completedAt }: Prop
                             {CATEGORY_LABEL[h.categoria] || h.categoria}
                           </Badge>
                           <span className="text-[11px] text-muted-foreground">
-                            #{idx + 1}
+                            Observación N.° {numeroDe.get(h.id)}
                           </span>
+                          {m && <InsigniaVeredicto veredicto={m.veredicto} />}
                         </div>
                         <h3 className="font-semibold text-base leading-snug">{h.titulo}</h3>
                         {h.ubicacion && (
@@ -272,21 +341,28 @@ export function TdrAuditResultView({ id: _id, title, result, completedAt }: Prop
                           </p>
                         </div>
 
-                        <div>
-                          <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1 flex items-center gap-1">
-                            <Lightbulb className="h-3 w-3" />
-                            Cómo corregirlo
-                          </p>
-                          <p className="text-[13px] leading-relaxed text-foreground/90">
-                            {h.recomendacion}
-                          </p>
-                        </div>
+                        {/* Con la versión mejorada, lo que manda es lo comprobado:
+                            la recomendación del auditor puede ser justo lo
+                            que la norma no respalda. */}
+                        {!m && (
+                          <div>
+                            <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1 flex items-center gap-1">
+                              <Lightbulb className="h-3 w-3" />
+                              Cómo corregirlo
+                            </p>
+                            <p className="text-[13px] leading-relaxed text-foreground/90">
+                              {h.recomendacion}
+                            </p>
+                          </div>
+                        )}
 
-                        {h.fundamento_normativo && h.fundamento_normativo.length > 0 && (
+                        {m && <MejoraDelHallazgo id={id} mejora={m} origen={origen} onCambio={cambiarMejora} />}
+
+                        {!m && h.fundamento_normativo && h.fundamento_normativo.length > 0 && (
                           <div>
                             <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
                               <BookOpen className="h-3 w-3" />
-                              Fundamento normativo
+                              Normas que invoca · se comprueban al generar la versión mejorada
                             </p>
                             <div className="flex flex-wrap gap-1.5">
                               {h.fundamento_normativo.map((f, i) => (

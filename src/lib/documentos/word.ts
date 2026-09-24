@@ -412,10 +412,11 @@ class Compositor {
       textos,
       c.tamano ?? this.f.tamanoTabla,
     );
-    const filas = c.filas.map((fila) => {
+    const filas = c.filas.map((fila, i) => {
       let col = 0;
       return new TableRow({
-        cantSplit: true,
+        cantSplit: !c.partible,
+        tableHeader: Boolean(c.repetirCabecera) && i === 0,
         children: fila.map((celda: CeldaCuadro) => {
           const n = Math.max(1, celda.columnas ?? 1);
           const suAncho = anchos.slice(col, col + n).reduce((a, b) => a + b, 0);
@@ -777,8 +778,10 @@ export async function piezasADocx(piezas: Pieza[], formato: Formato): Promise<Bu
     else hojas[hojas.length - 1].piezas.push(p);
   }
 
+  // Una hoja sin nada no se emite: si el documento empieza apaisado, la
+  // primera vertical quedaría en blanco. Solo se conserva si es la única.
   const sections = hojas
-    .filter((h, i) => i === 0 || h.piezas.length > 0)
+    .filter((h) => h.piezas.length > 0 || hojas.length === 1)
     .map((h) => {
       const pagina = h.horizontal
         ? { ancho: formato.pagina.alto, alto: formato.pagina.ancho }

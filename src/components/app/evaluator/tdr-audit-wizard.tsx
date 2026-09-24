@@ -147,8 +147,10 @@ export function TdrAuditWizard() {
                 Sube el TDR / EETT a auditar
               </h2>
               <p className="text-sm text-muted-foreground">
-                PDF con el documento ya redactado (hasta 100 MB). A-LexIA lo va a auditar
-                completo, sección por sección, detectando vicios potenciales.
+                El documento ya redactado, en Word o PDF (hasta 100 MB). A-LexIA lo audita
+                completo y después te propone una versión mejorada. Súbelo en{' '}
+                <strong className="text-foreground">Word</strong> si quieres recibirla con
+                control de cambios sobre tu propio documento.
               </p>
             </div>
 
@@ -156,6 +158,10 @@ export function TdrAuditWizard() {
               folder="tdr-audit"
               value={tdr}
               onChange={setTdr}
+              tipos={{
+                'application/pdf': ['.pdf'],
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+              }}
               label="Arrastra el TDR/EETT o haz click para subir"
             />
 

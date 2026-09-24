@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { TdrAuditResultView } from '@/components/app/evaluator/tdr-audit-result-view';
 import { EvaluationPendingView } from '@/components/app/evaluator/pending-view';
+import { origenDe } from '@/lib/evaluacion/mejora/fuente';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,7 @@ export default async function RevisorTdrDetailPage({ params }: Props) {
 
   const { data } = await supabase
     .from('evaluations')
-    .select('id, title, status, result, mode, created_at, completed_at, user_id')
+    .select('id, title, status, result, mode, created_at, completed_at, user_id, bases_file_path')
     .eq('id', params.id)
     .maybeSingle();
 
@@ -32,6 +33,7 @@ export default async function RevisorTdrDetailPage({ params }: Props) {
     created_at: string;
     completed_at: string | null;
     user_id: string;
+    bases_file_path: string;
   };
   if (au.user_id !== user.id) notFound();
 
@@ -53,6 +55,7 @@ export default async function RevisorTdrDetailPage({ params }: Props) {
       title={au.title}
       result={au.result as never}
       completedAt={au.completed_at}
+      origen={origenDe(au.bases_file_path ?? '')}
     />
   );
 }

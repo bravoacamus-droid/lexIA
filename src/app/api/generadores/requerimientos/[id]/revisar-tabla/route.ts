@@ -4,6 +4,7 @@ import { generateText } from 'ai';
 import { createClient } from '@/lib/supabase/server';
 import { chatModel, CHAT_MODEL_ID } from '@/lib/ai/gemini';
 import { embedOne } from '@/lib/ai/embeddings';
+import { conNotaDeParte, rotuladorDeParte } from '@/lib/normativa/ley-o-reglamento';
 import { recordAiUsage } from '@/lib/ai/usage-log';
 import { parseJsonLoose } from '@/lib/ai/json-suelto';
 import { obtenerPlantilla } from '@/lib/generadores/plantillas';
@@ -50,17 +51,23 @@ async function sustentoNormativo(consulta: string): Promise<string> {
       filter_type: null,
     });
     const filas = (data ?? []) as Array<{
+      chunk_id: string;
+      document_id: string;
       content: string;
       doc_title: string;
       doc_type: string;
       doc_number: string | null;
     }>;
-    return filas
-      .map(
-        (f, i) =>
-          `[${i + 1}] ${f.doc_type}${f.doc_number ? ' ' + f.doc_number : ''} — ${f.doc_title}\n${f.content.slice(0, 1000)}`,
-      )
-      .join('\n\n---\n\n');
+    // Ley y Reglamento en un mismo documento: ver `ley-o-reglamento.ts`.
+    const parte = await rotuladorDeParte(supabase, filas);
+    return conNotaDeParte(
+      filas
+        .map(
+          (f, i) =>
+            `[${i + 1}] ${f.doc_type}${f.doc_number ? ' ' + f.doc_number : ''} — ${f.doc_title}${parte(f.chunk_id)}\n${f.content.slice(0, 1000)}`,
+        )
+        .join('\n\n---\n\n'),
+    );
   } catch (e) {
     // Sin sustento se revisa igual, pero sin citar norma: el prompt lo
     // prohíbe.

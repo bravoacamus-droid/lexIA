@@ -8,6 +8,7 @@
  */
 import { createClient } from '@/lib/supabase/server';
 import { embedOne } from '@/lib/ai/embeddings';
+import { conNotaDeParte, rotuladorDeParte } from '@/lib/normativa/ley-o-reglamento';
 
 export async function sustentoNormativo(consulta: string): Promise<string> {
   try {
@@ -20,18 +21,24 @@ export async function sustentoNormativo(consulta: string): Promise<string> {
       filter_type: null,
     });
     const filas = (data ?? []) as Array<{
+      chunk_id: string;
+      document_id: string;
       content: string;
       doc_title: string;
       doc_type: string;
       doc_number: string | null;
     }>;
     if (filas.length === 0) return '';
-    return filas
+    // La Ley y el Reglamento viven en un mismo documento: sin decir de
+    // cuál es cada fragmento, el modelo atribuye numerales del
+    // Reglamento a la Ley. Ver `ley-o-reglamento.ts`.
+    const parte = await rotuladorDeParte(supabase, filas);
+    return conNotaDeParte(filas
       .map((f, i) => {
         const etiqueta = `${f.doc_type}${f.doc_number ? ' ' + f.doc_number : ''}`;
-        return `[${i + 1}] ${etiqueta} — ${f.doc_title}\n${f.content.slice(0, 1200)}`;
+        return `[${i + 1}] ${etiqueta} — ${f.doc_title}${parte(f.chunk_id)}\n${f.content.slice(0, 1200)}`;
       })
-      .join('\n\n---\n\n');
+      .join('\n\n---\n\n'));
   } catch (e) {
     // Sin sustento se redacta igual: el prompt ya prohíbe citar norma que
     // no venga respaldada, así que la salida sale sin citas en vez de con
