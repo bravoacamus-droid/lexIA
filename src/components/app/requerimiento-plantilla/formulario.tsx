@@ -384,17 +384,40 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
     marcarSucio();
   };
 
+
   /**
-   * Aplica de una vez lo que decidió la entrevista.
+   * Coloca lo que devolvió «Generar requerimiento».
    *
-   * A diferencia de `aplicarLote`, este apaga además de encender: la
-   * entrevista dice tanto lo que corresponde como lo que no, y si solo
-   * encendiera dejaría puesto lo que el usuario ya había marcado antes
-   * de contar su necesidad. Lo que no venga en el objeto se queda como
-   * estaba —lo que A-LexIA no supo decidir no se toca.
+   * Los interruptores se aplican tal cual —encender y apagar—; los textos
+   * y los cuadros, solo donde siga en blanco. Se generó sobre lo que había
+   * en pantalla, pero la generación tarda un par de minutos y en ese rato
+   * alguien puede haber escrito: lo suyo manda.
    */
-  const aplicarCondiciones = (condiciones: Record<string, boolean>) => {
-    setR((p) => ({ ...p, condiciones: { ...p.condiciones, ...condiciones } }));
+  const aplicarGeneracion = (
+    condicionesNuevas: Record<string, boolean>,
+    cambios: Array<{ destino: DestinoRespuesta; bloqueId: string; texto: string; filas?: string[][] }>,
+  ) => {
+    setR((p) => {
+      const campos = { ...p.campos };
+      const redacciones = { ...p.redacciones };
+      const tablas = { ...p.tablas };
+      const vacio = (t?: string) => !(t ?? '').trim();
+      for (const c of cambios) {
+        if (c.destino === 'campos' && vacio(campos[c.bloqueId])) campos[c.bloqueId] = c.texto;
+        else if (c.destino === 'redacciones' && vacio(redacciones[c.bloqueId])) redacciones[c.bloqueId] = c.texto;
+        else if (c.destino === 'tablas' && c.filas?.length) {
+          const previas = (tablas[c.bloqueId] ?? []).filter((f) => f.some((x) => x.trim()));
+          if (previas.length === 0) tablas[c.bloqueId] = c.filas;
+        }
+      }
+      return {
+        ...p,
+        campos,
+        redacciones,
+        tablas,
+        condiciones: { ...p.condiciones, ...condicionesNuevas },
+      };
+    });
     marcarSucio();
   };
 
@@ -1002,8 +1025,9 @@ export function FormularioRequerimiento({ id, plantilla, inicial, estadoInicial 
 
           <Entrevista
             id={id}
-            onAplicar={aplicarCondiciones}
-            onRedactar={(cambios) => aplicarLote(cambios, [])}
+            respuestas={r}
+            onGenerado={aplicarGeneracion}
+            onCondicion={setCondicion}
           />
 
           <CargarProyecto id={id} onAplicar={aplicarLote} />

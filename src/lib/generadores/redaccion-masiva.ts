@@ -29,6 +29,7 @@ import {
   bloqueVisible,
   type RespuestasRequerimiento,
   seccionVisible,
+  textoRedactado,
 } from './ensamblador';
 import {
   consultaNormativa,
@@ -97,7 +98,12 @@ export function apartadosPorRedactar(
     for (const b of s.bloques) {
       if (!bloqueVisible(b, respuestas)) continue;
       if (b.clase === 'redactado') {
-        if (vacio(respuestas.redacciones[b.id])) salida.push({ bloque: b, destino: 'redacciones' });
+        // El que trae texto del formato no está en blanco: sale con ese
+        // texto. Se tomaba por vacío y el modelo reescribía la redacción
+        // de César —el procedimiento de penalidades, con sus «cinco (05)
+        // días hábiles»— y dejaba huecos «[Pendiente: número]» donde el
+        // formato ya ponía la cifra.
+        if (!textoRedactado(b, respuestas)) salida.push({ bloque: b, destino: 'redacciones' });
       } else if (b.clase === 'campo') {
         const c = b as BloqueCampo;
         if (c.tipo === 'texto_largo' && vacio(respuestas.campos[c.id])) {
@@ -119,6 +125,25 @@ export function apartadosPorRedactar(
     recorrerSeccion(apartado.seccion);
   }
   return salida;
+}
+
+/**
+ * Si el modelo contestó que el apartado no corresponde, su motivo.
+ *
+ * El redactor tiene instrucción de decirlo así —«No corresponde
+ * establecer … para esta contratación, porque …»— en vez de rellenar un
+ * apartado «de corresponder» con exigencias genéricas. En el botón de un
+ * apartado suelto eso lo lee la persona y decide. En una generación
+ * entera no: ese párrafo acababa impreso en el Word, apartado tras
+ * apartado, explicando por qué no debía estar. Lo que corresponde es
+ * apagarlo y decir por qué.
+ */
+export function motivoNoCorresponde(texto: string): string | null {
+  const t = texto.trim();
+  if (!/^(?:no corresponde|no aplica|no resulta aplicable|no se requiere)\b/i.test(t)) return null;
+  // La primera frase basta como motivo.
+  const frase = t.split(/(?<=[.;])\s/)[0] ?? t;
+  return frase.length > 280 ? `${frase.slice(0, 277)}…` : frase;
 }
 
 export interface TextoRedactado {

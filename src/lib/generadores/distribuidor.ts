@@ -205,6 +205,7 @@ REGLAS QUE NO PUEDES ROMPER:
 - Que un dato aparezca en el proyecto no significa que encaje en un apartado. Antes de colocarlo, comprueba que sea LO QUE ESE APARTADO PIDE: una meta presupuestal no es una actividad del Plan Operativo Institucional, un correo no es un domicilio, un importe estimado no es la cuantía exigida como experiencia. Si es de otra cosa, va a "sin_ubicar".
 - "alta" solo cuando el proyecto lo dice explícitamente para ese apartado. Si has tenido que interpretar a qué apartado pertenece, es "media"; si has encajado un dato aproximado, es "baja".
 - No repartas la misma frase en dos apartados salvo que de verdad corresponda a los dos.
+- En un CUADRO, llena las celdas que el proyecto diga y deja vacías ("") las que no. Si el proyecto dice "6 operarios de limpieza", la fila lleva el cargo y la cantidad aunque no diga la profesión ni la experiencia: una fila a medias es un dato; ninguna fila es un dato perdido. Lo que no inventas son las celdas vacías.
 - Los títulos del proyecto no mandan: lo que manda es qué pide cada apartado del formato. Un párrafo titulado "Alcances" puede pertenecer a "Actividades" o a "Características técnicas" según lo que diga.
 - Lo del proyecto que no corresponda a ningún apartado va en "sin_ubicar", resumido en una línea cada cosa. No lo descartes en silencio.
 - En "condiciones" pon los identificadores de las secciones "de corresponder" que el proyecto dé a entender que aplican, y solo esas.
@@ -316,6 +317,15 @@ function filasDe(valor: unknown, columnas: string[]): string[][] {
     } else {
       const t = celda(f);
       if (!t) continue;
+      // Una fila escrita como texto con barras —«1 | Servicio de
+      // limpieza | 12 meses»— es una fila, no una celda. Se colaba entera
+      // en la segunda columna y el cuadro del Word salía con la fila
+      // metida en una casilla.
+      if (t.includes('|')) {
+        const partes = t.split('|').map((x) => x.trim());
+        filas.push(Array.from({ length: ancho }, (_, i) => partes[i] ?? ''));
+        continue;
+      }
       // Texto suelto: a la primera columna que no sea un ordinal, que es
       // donde va el contenido en los cuadros del formato.
       const destinoCelda = /^n\.?[°º]?$/i.test(columnas[0] ?? '') && ancho > 1 ? 1 : 0;

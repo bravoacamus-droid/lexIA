@@ -214,7 +214,7 @@ async function main() {
         { apartado_id: 'antecedentes', texto: 'Texto de antecedentes.', confianza: 'inventada' },
       ],
       sin_ubicar: ['Anexos telefónicos', '  ', 'Presupuesto interno'],
-      condiciones: ['prevé_visita', 'condicion_que_no_existe'],
+      condiciones: ['preve_visita', 'condicion_que_no_existe'],
     },
     destinos,
     condiciones,
@@ -230,7 +230,7 @@ async function main() {
     limpio.asignaciones.find((a) => a.apartado_id === 'antecedentes')?.confianza === 'media',
   );
   comprobar('descarta la condición inexistente', !limpio.condiciones.includes('condicion_que_no_existe'));
-  comprobar('enciende la condición del apartado asignado', limpio.condiciones.includes('prevé_visita'));
+  comprobar('enciende la condición del apartado asignado', limpio.condiciones.includes('preve_visita'));
   comprobar('limpia las líneas vacías de sin_ubicar', limpio.sin_ubicar.length === 2);
   comprobar(
     'ordena como el formulario',
@@ -323,7 +323,7 @@ async function main() {
   );
   comprobar(
     'y enciende la sección de la visita, que estaba apagada',
-    reparto.condiciones.includes('prevé_visita'),
+    reparto.condiciones.includes('preve_visita'),
   );
   comprobar(
     'lleva la experiencia a su apartado, no a otro',

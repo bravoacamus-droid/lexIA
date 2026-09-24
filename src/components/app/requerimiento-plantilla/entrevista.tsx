@@ -1,196 +1,150 @@
 'use client';
 
 /**
- * "Cuéntame qué necesitas" y A-LexIA decide qué apartados corresponden.
+ * «Cuéntame qué necesitas» y A-LexIA genera el requerimiento.
  *
- * César, trasladando a sus colegas: la estructura les parece correcta
- * "pero llenar uno a uno es un poco tedioso y genera mayor tiempo". En
- * Bienes en General hay treinta y cuatro interruptores que decidir antes
- * de escribir una línea.
+ * César, 23/09/2026: «no vienen generando como lo esperado, no sé cómo
+ * podemos mejorar a fin de que su generación sea sencilla». Antes eran
+ * dos botones —«Proponer apartados» y «Redactar lo que esté en blanco»—
+ * con un «Aplicar» entre medias que, si no se pulsaba, dejaba redactar
+ * también lo que la propuesta había descartado. Ahora es uno: decide los
+ * apartados, lleva los datos del relato a sus campos y cuadros, y
+ * redacta lo que queda en blanco. Ver `generadores/generacion.ts`.
  *
- * PROPONE, NO APLICA. Se enseña qué encendería y por qué —una frase por
- * apartado, referida a este caso— y el usuario aplica o no. Cambiar
- * treinta y cuatro interruptores sin enseñarlos antes sería peor que el
- * formulario que viene a sustituir.
+ * Después enseña qué hizo, y todo se puede deshacer desde aquí:
  *
- * Y con el mismo relato, el segundo paso: escribir el borrador de los
- * apartados encendidos que estén en blanco —treinta y nueve cajas
- * vacías en Bienes en General—, sin tocar lo que ya escribió nadie.
+ *   · lo que apagó, con su motivo y un botón para volver a encenderlo;
+ *   · lo que no pudo decidir —encendido, como pidió César, y sin
+ *     redactar—, con la pregunta al lado y los dos botones para
+ *     resolverlo;
+ *   · cuántos datos y textos puso.
  *
- * Lo que A-LexIA no sabe se queda como está, y lleva al lado la pregunta
- * que lo resolvería —no en una lista aparte al final, que decía lo
- * mismo con otras palabras—. Apagar de más cuesta un clic; encender de
- * más mete en el documento una exigencia que nadie pidió.
+ * No toca nada de lo que ya estaba escrito.
  */
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Sparkles, Loader2, Check, X, CircleHelp, ChevronDown, PenLine } from 'lucide-react';
+import {
+  Sparkles,
+  Loader2,
+  CircleHelp,
+  ChevronDown,
+  Check,
+  X,
+  RotateCcw,
+  FileCheck2,
+} from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
+import type { DestinoRespuesta, RespuestasRequerimiento } from '@/lib/generadores/ensamblador';
 
-interface Decision {
+interface Apartado {
   id: string;
   titulo: string;
-  estado: 'corresponde' | 'no_corresponde' | 'no_se_sabe';
   razon: string;
+}
+
+interface Resumen {
+  apagados: Apartado[];
+  encendidos: Apartado[];
+  porDecidir: Apartado[];
+  datos: number;
+  redactados: number;
+  fallidos: number;
+  sinUbicar: string[];
+}
+
+export interface CambioDeGeneracion {
+  destino: DestinoRespuesta;
+  bloqueId: string;
+  texto: string;
+  filas?: string[][];
 }
 
 export function Entrevista({
   id,
-  onAplicar,
-  onRedactar,
+  respuestas,
+  onGenerado,
+  onCondicion,
 }: {
   id: string;
-  /** Enciende y apaga de una vez; el formulario decide cómo guardarlo. */
-  onAplicar: (condiciones: Record<string, boolean>) => void;
-  /** Los borradores, cada uno a su caja. */
-  onRedactar: (
-    cambios: Array<{ destino: 'redacciones' | 'campos'; bloqueId: string; texto: string }>,
-  ) => void;
+  /** Lo que tiene el formulario, guardado o no: se genera sobre esto. */
+  respuestas: RespuestasRequerimiento;
+  /** Coloca de una vez los interruptores y los textos. */
+  onGenerado: (condiciones: Record<string, boolean>, cambios: CambioDeGeneracion[]) => void;
+  /** Enciende o apaga un apartado desde el resumen. */
+  onCondicion: (id: string, valor: boolean) => void;
 }) {
   const [relato, setRelato] = useState('');
-  const [pensando, setPensando] = useState(false);
-  const [decisiones, setDecisiones] = useState<Decision[] | null>(null);
-  const [abierto, setAbierto] = useState(false);
-  const [descartados, setDescartados] = useState<Set<string>>(new Set());
-  const [redactando, setRedactando] = useState(false);
-  /**
-   * Los interruptores tal como quedaron al aplicar.
-   *
-   * Se le mandan al servidor junto al relato porque el formulario aún no
-   * los ha guardado: sin esto, "redactar lo que falte" trabajaría sobre
-   * el estado anterior y dejaría en blanco justo los apartados que se
-   * acaban de encender.
-   */
-  const [aplicadas, setAplicadas] = useState<Record<string, boolean> | null>(null);
+  const [generando, setGenerando] = useState(false);
+  const [resumen, setResumen] = useState<Resumen | null>(null);
+  /** Lo que el usuario ya resolvió desde el resumen, para quitarlo de la lista. */
+  const [resueltos, setResueltos] = useState<Record<string, boolean>>({});
 
-  async function preguntar() {
+  async function generar(confirmados?: string[]) {
     if (relato.trim().length < 20) {
       toast.error('Cuéntame un poco más', {
-        description: 'Con dos o tres líneas sobre qué se contrata y para qué, basta.',
+        description: 'Con dos o tres líneas sobre qué se contrata, para qué, dónde y por cuánto tiempo, basta.',
       });
       return;
     }
-    setPensando(true);
+    setGenerando(true);
+    // Al volver a generar con lo confirmado, lo que el usuario ya resolvió
+    // se conserva: no tiene que contestarlo otra vez.
+    if (!confirmados) {
+      setResumen(null);
+      setResueltos({});
+    }
+    const aviso = toast.loading('Generando el requerimiento…', {
+      description: 'Decido los apartados, coloco tus datos y redacto lo que falta. Tarda uno o dos minutos.',
+    });
     try {
-      const res = await fetch(`/api/generadores/requerimientos/${id}/entrevista`, {
+      const res = await fetch(`/api/generadores/requerimientos/${id}/generar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ relato }),
+        body: JSON.stringify({
+          relato,
+          respuestas,
+          confirmados,
+          descartados: confirmados
+            ? Object.entries(resueltos)
+                .filter(([, v]) => !v)
+                .map(([k]) => k)
+            : undefined,
+        }),
       });
       const j = await res.json();
       if (!res.ok) {
-        toast.error('A-LexIA no pudo leer la necesidad', {
-          description: j?.detail ?? j?.error ?? `HTTP ${res.status}`,
-        });
-        return;
-      }
-      setDecisiones(j.decisiones ?? []);
-      setDescartados(new Set());
-      setAbierto(true);
-    } catch (e) {
-      toast.error('A-LexIA no pudo leer la necesidad', { description: (e as Error).message });
-    } finally {
-      setPensando(false);
-    }
-  }
-
-  const corresponden = (decisiones ?? []).filter((d) => d.estado === 'corresponde');
-  const noCorresponden = (decisiones ?? []).filter((d) => d.estado === 'no_corresponde');
-  const dudas = (decisiones ?? []).filter((d) => d.estado === 'no_se_sabe');
-
-  function aplicar() {
-    const condiciones: Record<string, boolean> = {};
-    for (const d of corresponden) if (!descartados.has(d.id)) condiciones[d.id] = true;
-    for (const d of noCorresponden) if (!descartados.has(d.id)) condiciones[d.id] = false;
-    onAplicar(condiciones);
-    setAplicadas(condiciones);
-    toast.success('Apartados ajustados', {
-      description:
-        dudas.length > 0
-          ? `${Object.keys(condiciones).length} decididos. Los ${dudas.length} sin decidir se quedan como estaban: revísalos.`
-          : `${Object.keys(condiciones).length} apartados decididos.`,
-    });
-    setDecisiones(null);
-    setAbierto(false);
-  }
-
-  /**
-   * La otra mitad: los textos.
-   *
-   * Solo toca lo que está EN BLANCO y dentro de un apartado encendido.
-   * Lo que ya escribió el área usuaria es suyo; para mejorarlo está el
-   * botón de cada apartado, que sí le manda su texto al modelo.
-   */
-  async function redactarEnBlanco() {
-    if (relato.trim().length < 20) {
-      toast.error('Cuéntame un poco más', {
-        description: 'El borrador sale de lo que cuentes aquí arriba.',
-      });
-      return;
-    }
-    setRedactando(true);
-    const aviso = toast.loading('Redactando los apartados en blanco…', {
-      description: 'Puede tardar un minuto. No se toca nada de lo que ya escribiste.',
-    });
-    try {
-      const res = await fetch(`/api/generadores/requerimientos/${id}/redactar-todo`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ relato, condiciones: aplicadas ?? undefined }),
-      });
-      const j = await res.json();
-      if (!res.ok) {
-        toast.error('No se pudo redactar', {
+        toast.error('No se pudo generar', {
           id: aviso,
           description: j?.detail ?? j?.error ?? `HTTP ${res.status}`,
         });
         return;
       }
-      const textos = (j.textos ?? []) as Array<{
-        bloque_id: string;
-        destino: 'redacciones' | 'campos';
-        texto: string;
-      }>;
-      if (textos.length === 0) {
-        toast.info('No quedaba nada en blanco', {
-          id: aviso,
-          description: 'Todos los apartados encendidos ya tienen texto.',
-        });
-        return;
-      }
-      onRedactar(
-        textos.map((t) => ({ destino: t.destino, bloqueId: t.bloque_id, texto: t.texto })),
-      );
-      const fallidos = (j.fallidos ?? []).length as number;
-      toast.success(`${textos.length} apartados redactados`, {
+      onGenerado(j.condiciones ?? {}, j.cambios ?? []);
+      setResumen(j.resumen);
+      toast.success('Requerimiento generado', {
         id: aviso,
-        description:
-          (fallidos > 0 ? `${fallidos} no salieron y siguen en blanco. ` : '') +
-          'Son borradores: léelos en su sitio antes de exportar.' +
-          (j.recortado ? ' Quedaron más pendientes; vuelve a pulsar para seguir.' : ''),
+        description: 'Revisa el resumen: lo que queda por completar está marcado en el índice.',
       });
     } catch (e) {
-      toast.error('No se pudo redactar', { id: aviso, description: (e as Error).message });
+      toast.error('No se pudo generar', { id: aviso, description: (e as Error).message });
     } finally {
-      setRedactando(false);
+      setGenerando(false);
     }
   }
 
-  const alternar = (idCond: string) =>
-    setDescartados((s) => {
-      const n = new Set(s);
-      if (n.has(idCond)) n.delete(idCond);
-      else n.add(idCond);
-      return n;
-    });
+  const resolver = (idCond: string, valor: boolean) => {
+    onCondicion(idCond, valor);
+    setResueltos((r) => ({ ...r, [idCond]: valor }));
+  };
 
-  const grupos = [
-    { titulo: 'Corresponden', lista: corresponden, icono: Check, color: 'text-emerald-600' },
-    { titulo: 'No corresponden', lista: noCorresponden, icono: X, color: 'text-muted-foreground' },
-  ];
+  const porDecidir = (resumen?.porDecidir ?? []).filter((p) => !(p.id in resueltos));
+  const confirmadosPendientes = Object.entries(resueltos)
+    .filter(([, v]) => v)
+    .map(([k]) => k)
+    .filter((k) => !(resumen?.encendidos ?? []).some((e) => e.id === k));
+  const apagados = resumen?.apagados ?? [];
 
   return (
     <Card className="space-y-3 p-5">
@@ -199,8 +153,9 @@ export function Entrevista({
         <div>
           <h3 className="text-sm font-medium">Cuéntame qué necesitas</h3>
           <p className="text-xs text-muted-foreground">
-            En dos o tres líneas: qué se va a contratar, para qué, quién lo usa y dónde. A-LexIA
-            decide qué apartados del formato corresponden y te dice por qué.
+            Qué se va a contratar, para qué, dónde, por cuánto tiempo y con qué personal o equipos.
+            A-LexIA decide qué apartados del formato corresponden, coloca tus datos y redacta lo que
+            falta. No toca lo que ya escribiste.
           </p>
         </div>
       </div>
@@ -208,113 +163,155 @@ export function Entrevista({
       <Textarea
         value={relato}
         onChange={(e) => setRelato(e.target.value)}
-        rows={3}
-        placeholder="Necesitamos un grupo electrógeno de respaldo para la sede, porque los cortes de energía detienen la atención al público. Se instala en el patio y hay que capacitar al personal de mantenimiento."
+        rows={4}
+        placeholder="Necesitamos el servicio de limpieza de la sede central, en Jr. 28 de Julio 101, por 12 meses, con 6 operarios de lunes a sábado de 7:00 a 15:00. El contratista pone los materiales y equipos. El pago es mensual."
         className="resize-y text-sm"
       />
 
       <div className="flex items-center gap-2">
-        <Button type="button" size="sm" onClick={preguntar} disabled={pensando}>
-          {pensando ? (
+        <Button type="button" size="sm" onClick={() => generar()} disabled={generando}>
+          {generando ? (
             <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
           ) : (
             <Sparkles className="mr-1.5 h-3.5 w-3.5" />
           )}
-          {pensando ? 'Leyendo la necesidad…' : 'Proponer apartados'}
+          {generando ? 'Generando…' : 'Generar requerimiento'}
         </Button>
-        {decisiones && !abierto && (
-          <Button type="button" size="sm" variant="ghost" onClick={() => setAbierto(true)}>
-            Ver la propuesta
-          </Button>
+        {generando && (
+          <span className="text-xs text-muted-foreground">Tarda uno o dos minutos.</span>
         )}
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={redactarEnBlanco}
-          disabled={redactando || pensando}
-        >
-          {redactando ? (
-            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <PenLine className="mr-1.5 h-3.5 w-3.5" />
-          )}
-          {redactando ? 'Redactando…' : 'Redactar lo que esté en blanco'}
-        </Button>
       </div>
 
-      {aplicadas && !abierto && (
-        <p className="rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
-          Apartados ajustados. Con el mismo relato puedo escribir el borrador de los que quedaron
-          en blanco; lo que ya redactaste no se toca.
-        </p>
-      )}
-
-      {decisiones && abierto && (
-        <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
-          <p className="text-xs text-muted-foreground">
-            {corresponden.length} corresponden · {noCorresponden.length} no corresponden ·{' '}
-            {dudas.length} sin decidir. Quita el visto a lo que no quieras aplicar.
+      {resumen && (
+        <div className="space-y-3 rounded-lg border bg-muted/30 p-3 text-xs">
+          <p className="flex items-start gap-2">
+            <FileCheck2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
+            <span>
+              Coloqué <strong>{resumen.datos}</strong> {resumen.datos === 1 ? 'dato' : 'datos'} de tu
+              relato y redacté <strong>{resumen.redactados}</strong>{' '}
+              {resumen.redactados === 1 ? 'apartado' : 'apartados'}.
+              {apagados.length > 0 && (
+                <>
+                  {' '}
+                  Apagué <strong>{apagados.length}</strong> que no corresponden.
+                </>
+              )}
+              {resumen.fallidos > 0 && (
+                <> {resumen.fallidos} no salieron: siguen en blanco.</>
+              )}{' '}
+              Son borradores: léelos en su sitio. Lo que falta está en rojo en el índice.
+            </span>
           </p>
 
-          {grupos.map(({ titulo, lista, icono: Icono, color }) =>
-            lista.length === 0 ? null : (
-              <div key={titulo} className="space-y-1">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  {titulo}
-                </p>
-                {lista.map((d) => (
-                  <button
-                    key={d.id}
-                    type="button"
-                    onClick={() => alternar(d.id)}
-                    className={cn(
-                      'flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-xs transition hover:bg-background',
-                      descartados.has(d.id) && 'opacity-40 line-through',
-                    )}
-                  >
-                    <Icono className={cn('mt-0.5 h-3.5 w-3.5 shrink-0', color)} />
-                    <span>
+          {confirmadosPendientes.length > 0 && (
+            <div className="flex items-center justify-between gap-2 rounded-md border border-emerald-200 bg-emerald-50/70 px-2 py-1.5 dark:border-emerald-900 dark:bg-emerald-950/30">
+              <span>
+                Confirmaste {confirmadosPendientes.length}{' '}
+                {confirmadosPendientes.length === 1 ? 'apartado' : 'apartados'}. ¿Los redacto?
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                className="h-7 px-2 text-[11px]"
+                disabled={generando}
+                onClick={() => generar(confirmadosPendientes)}
+              >
+                <Sparkles className="mr-1 h-3 w-3" />
+                Redactar los que confirmaste
+              </Button>
+            </div>
+          )}
+
+          {porDecidir.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="font-medium uppercase tracking-wide text-muted-foreground">
+                Decide tú si corresponden ({porDecidir.length})
+              </p>
+              <p className="text-muted-foreground">
+                Siguen encendidos y sin redactar: rellenarlos sin saberlo sería añadir exigencias que
+                nadie pidió.
+              </p>
+              {porDecidir.map((d) => (
+                <div key={d.id} className="flex items-start gap-2 rounded-md bg-background px-2 py-1.5">
+                  <CircleHelp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
+                  <span className="min-w-0 flex-1">
+                    <span className="font-medium">{d.titulo}</span>
+                    {d.razon ? <span className="text-muted-foreground"> — {d.razon}</span> : null}
+                  </span>
+                  <span className="flex shrink-0 gap-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-6 px-2 text-[11px]"
+                      onClick={() => resolver(d.id, true)}
+                    >
+                      <Check className="mr-1 h-3 w-3" />
+                      Sí
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-6 px-2 text-[11px]"
+                      onClick={() => resolver(d.id, false)}
+                    >
+                      <X className="mr-1 h-3 w-3" />
+                      No
+                    </Button>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {apagados.length > 0 && (
+            <details className="group">
+              <summary className="flex cursor-pointer items-center gap-1.5 font-medium uppercase tracking-wide text-muted-foreground">
+                <ChevronDown className="h-3.5 w-3.5 transition group-open:rotate-180" />
+                Apagados porque no corresponden ({apagados.length})
+              </summary>
+              <div className="mt-1 space-y-1">
+                {apagados.map((d) => (
+                  <div key={d.id} className="flex items-start gap-2 px-2 py-1">
+                    <X className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <span className="min-w-0 flex-1">
                       <span className="font-medium">{d.titulo}</span>
                       {d.razon ? <span className="text-muted-foreground"> — {d.razon}</span> : null}
                     </span>
-                  </button>
-                ))}
-              </div>
-            ),
-          )}
-
-          {dudas.length > 0 && (
-            <details className="group">
-              <summary className="flex cursor-pointer items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                <ChevronDown className="h-3.5 w-3.5 transition group-open:rotate-180" />
-                {dudas.length} sin decidir, con la pregunta que lo resolvería
-              </summary>
-              <div className="mt-1 space-y-1">
-                {dudas.map((d) => (
-                  <p key={d.id} className="flex items-start gap-2 px-2 text-xs">
-                    <CircleHelp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
-                    <span>
-                      <span className="font-medium">{d.titulo}</span>
-                      <span className="text-muted-foreground">
-                        {' — '}
-                        {d.razon || 'no se deduce de lo que contaste.'}
-                      </span>
-                    </span>
-                  </p>
+                    {resueltos[d.id] === true ? (
+                      <span className="shrink-0 text-emerald-700">Encendido</span>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 shrink-0 px-2 text-[11px]"
+                        onClick={() => resolver(d.id, true)}
+                      >
+                        <RotateCcw className="mr-1 h-3 w-3" />
+                        Encender
+                      </Button>
+                    )}
+                  </div>
                 ))}
               </div>
             </details>
           )}
 
-          <div className="flex gap-2 border-t pt-2">
-            <Button type="button" size="sm" onClick={aplicar}>
-              Aplicar a los apartados
-            </Button>
-            <Button type="button" size="sm" variant="ghost" onClick={() => setAbierto(false)}>
-              Ahora no
-            </Button>
-          </div>
+          {resumen.sinUbicar.length > 0 && (
+            <details className="group">
+              <summary className="flex cursor-pointer items-center gap-1.5 font-medium uppercase tracking-wide text-muted-foreground">
+                <ChevronDown className="h-3.5 w-3.5 transition group-open:rotate-180" />
+                De tu relato, sin sitio en el formato ({resumen.sinUbicar.length})
+              </summary>
+              <ul className="mt-1 list-disc space-y-0.5 pl-6 text-muted-foreground">
+                {resumen.sinUbicar.map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ul>
+            </details>
+          )}
         </div>
       )}
     </Card>
