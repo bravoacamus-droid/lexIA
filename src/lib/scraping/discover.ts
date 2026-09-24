@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio';
+import { fechaDeTexto } from './normalizar';
 
 /**
  * Visita la URL índice de una fuente y devuelve los enlaces candidatos
@@ -17,6 +18,26 @@ export interface DiscoveredLink {
 
 const UA =
   'Mozilla/5.0 (compatible; A-LexIA-Bot/1.0; +https://lexia.pe/bot)';
+
+/**
+ * Las formas en que una misma ficha de gob.pe puede estar guardada.
+ *
+ * La carga manual guardó las opiniones con la URL corta
+ * («…/informes-publicaciones/8447104») y el índice las enlaza con el
+ * nombre al final («…/8447104-opinion-n-d000084-2026-oece-dtn»); las
+ * directivas de antes del cambio de nombre viven bajo /osce/ y ahora se
+ * enlazan bajo /oece/. Es el mismo documento: se compara por todas.
+ */
+export function variantesDeFicha(url: string): string[] {
+  const m = url.match(/^https?:\/\/www\.gob\.pe\/institucion\/(?:oece|osce)\/(informes-publicaciones|normas-legales)\/(\d+)(-[^?#]*)?/i);
+  if (!m) return [url];
+  const out = new Set<string>([url]);
+  for (const inst of ['oece', 'osce']) {
+    out.add(`https://www.gob.pe/institucion/${inst}/${m[1]}/${m[2]}`);
+    if (m[3]) out.add(`https://www.gob.pe/institucion/${inst}/${m[1]}/${m[2]}${m[3]}`);
+  }
+  return [...out];
+}
 
 export async function discoverLinks(opts: {
   sourceUrl: string;
@@ -86,7 +107,7 @@ export async function resolverPdfDeFicha(
   fichaUrl: string,
   pdfSelector: string,
   timeoutMs = 20_000,
-): Promise<{ url: string; titulo: string } | null> {
+): Promise<{ url: string; titulo: string; fecha: string | null } | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   let html: string;
@@ -121,5 +142,10 @@ export async function resolverPdfDeFicha(
     .replace(/\s*-\s*(?:Normas y documentos legales|Informes y publicaciones|Compendios).*$/i, '')
     .trim()
     .slice(0, 240);
-  return { url: abs, titulo };
+  // La fecha va en la cabecera de la ficha, bajo el título:
+  // <p>22 de setiembre de 2026</p>. Se busca ahí antes que en el cuerpo,
+  // que cita otras fechas.
+  const cabecera = $('.institution-document__header').text() || $('h1, h2').first().parent().text();
+  const fecha = fechaDeTexto(cabecera) ?? fechaDeTexto(html.slice(0, 20000));
+  return { url: abs, titulo, fecha };
 }

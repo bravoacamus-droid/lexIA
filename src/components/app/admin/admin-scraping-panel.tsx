@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Loader2, Play, Globe2, AlertCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -32,7 +33,28 @@ interface Props {
   runs: RunRow[];
 }
 
+interface RunResult {
+  source: string;
+  links_found: number;
+  docs_new: number;
+  ya_estaban?: number;
+  fallidos?: number;
+  en_espera?: number;
+  omitidos?: number;
+  status: string;
+  error?: string;
+}
+
+/** El resultado dicho tal cual: una corrida con errores no es un éxito. */
+function avisar(r: RunResult) {
+  const texto = `${r.source}: ${r.docs_new} nuevos · ${r.ya_estaban ?? 0} ya estaban · ${r.fallidos ?? 0} con error · ${r.en_espera ?? 0} en espera · ${r.omitidos ?? 0} anteriores al corte`;
+  if (r.status === 'ok') toast.success(texto);
+  else if (r.status === 'con_errores' || r.status === 'partial' || r.status === 'pendiente') toast.warning(`${texto}${r.error ? ` — ${r.error}` : ''}`);
+  else toast.error(`${texto}${r.error ? ` — ${r.error}` : ''}`, { duration: 15000 });
+}
+
 export function AdminScrapingPanel({ sources }: Props) {
+  const router = useRouter();
   const [running, setRunning] = useState<string | null>(null);
   const [runningAll, setRunningAll] = useState(false);
 
@@ -42,20 +64,16 @@ export function AdminScrapingPanel({ sources }: Props) {
       const res = await fetch('/api/scraping/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ source_id, limit_per_source: 15 }),
+        body: JSON.stringify({ source_id }),
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data?.detail || data?.error || `HTTP ${res.status}`);
       }
-      const r = data.runs?.[0];
-      if (r) {
-        toast.success(
-          `${label}: ${r.docs_new}/${r.links_found} nuevos · ${r.docs_embedded} embebidos`,
-        );
-      } else {
-        toast.success(`${label}: corrida completada`);
-      }
+      const r = data.runs?.[0] as RunResult | undefined;
+      if (r) avisar(r);
+      else toast.warning(`${label}: la corrida no devolvió resultados`);
+      router.refresh();
     } catch (e) {
       toast.error(`${label}: ${(e as Error).message}`);
     } finally {
@@ -69,15 +87,12 @@ export function AdminScrapingPanel({ sources }: Props) {
       const res = await fetch('/api/scraping/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ limit_per_source: 10 }),
+        body: JSON.stringify({}),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.detail || data?.error || `HTTP ${res.status}`);
-      const total = (data.runs || []).reduce(
-        (acc: number, r: { docs_new?: number }) => acc + (r.docs_new ?? 0),
-        0,
-      );
-      toast.success(`${data.sources_processed} fuentes procesadas · ${total} docs nuevos`);
+      for (const r of (data.runs || []) as RunResult[]) avisar(r);
+      router.refresh();
     } catch (e) {
       toast.error((e as Error).message);
     } finally {

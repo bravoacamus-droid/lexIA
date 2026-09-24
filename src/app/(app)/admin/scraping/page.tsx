@@ -1,10 +1,11 @@
 import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
 import { RelativeTime } from '@/components/ui/relative-time';
-import { Badge } from '@/components/ui/badge';
 import { RoleGateBlocked } from '@/components/app/role-gate';
 import { Lock, AlertCircle } from 'lucide-react';
 import { AdminScrapingPanel } from '@/components/app/admin/admin-scraping-panel';
+import { EstadoCorrida, SaludActualizador } from '@/components/app/admin/salud-actualizador';
+import { saludDelActualizador } from '@/lib/scraping/salud';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Bot de scraping' };
@@ -32,6 +33,10 @@ interface RunRow {
   docs_new: number | null;
   docs_embedded: number | null;
   chunks_inserted: number | null;
+  docs_existentes: number | null;
+  docs_fallidos: number | null;
+  docs_en_espera: number | null;
+  docs_omitidos: number | null;
   status: string;
   error_message: string | null;
 }
@@ -70,7 +75,7 @@ export default async function AdminScrapingPage() {
     );
   }
 
-  const [{ data: sources }, { data: recentRuns }] = await Promise.all([
+  const [{ data: sources }, { data: recentRuns }, salud] = await Promise.all([
     supabase
       .from('scraping_sources')
       .select('*')
@@ -80,6 +85,7 @@ export default async function AdminScrapingPage() {
       .select('*')
       .order('started_at', { ascending: false })
       .limit(20),
+    saludDelActualizador(supabase),
   ]);
 
   const list = (sources || []) as SourceRow[];
@@ -92,11 +98,14 @@ export default async function AdminScrapingPage() {
           Bot de scraping de normativa
         </h1>
         <p className="mt-1 text-sm text-muted-foreground max-w-2xl">
-          El bot visita las URLs oficiales del OECE/OSCE/Tribunal cada semana,
-          descarga los PDFs nuevos y los embebe automáticamente en la base
-          normativa.
+          Cada día visita las colecciones oficiales del OECE en gob.pe
+          (resoluciones del Tribunal, opiniones, pronunciamientos y
+          directivas), trae lo publicado desde la fecha de corte y lo guarda
+          normalizado en la biblioteca, igual que la carga manual.
         </p>
       </header>
+
+      <SaludActualizador s={salud} />
 
       <AdminScrapingPanel sources={list} runs={runs} />
 
@@ -104,10 +113,12 @@ export default async function AdminScrapingPage() {
         <div className="flex items-start gap-2">
           <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
           <p>
-            El cron semanal corre los domingos a las 03:00 UTC (configurado en{' '}
-            <code>vercel.json</code>). Los runs manuales desde este panel
-            cuentan dentro del mismo flujo de idempotencia: solo agregan
-            documentos nuevos por <code>source_url</code>.
+            El cron corre cada día a las 08:00 UTC (03:00 en Lima), configurado en{' '}
+            <code>vercel.json</code>. Cada corrida tiene un tope de tiempo, no se
+            superpone con otra y no repite lo que ya está en la biblioteca. Lo que
+            falla se reintenta al día siguiente, a los tres días y a la semana; si
+            el mismo error se repite en cinco documentos seguidos, la corrida se
+            detiene y queda marcada como fallida.
           </p>
         </div>
       </Card>
@@ -127,20 +138,11 @@ export default async function AdminScrapingPage() {
                       {source?.label || r.source_id}
                     </p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      <RelativeTime date={r.started_at} /> · {r.links_found ?? 0} links · {r.docs_new ?? 0} nuevos · {r.chunks_inserted ?? 0} chunks
+                      <RelativeTime date={r.started_at} /> · {r.links_found ?? 0} enlaces · {r.docs_new ?? 0} nuevos · {r.docs_existentes ?? 0} ya estaban · {r.docs_fallidos ?? 0} con error · {r.docs_en_espera ?? 0} en espera · {r.docs_omitidos ?? 0} anteriores al corte · {r.chunks_inserted ?? 0} fragmentos
                     </p>
+                    {r.error_message && <p className="mt-1 text-[11.5px] text-red-700 dark:text-red-300">{r.error_message}</p>}
                   </div>
-                  <Badge
-                    variant={
-                      r.status === 'ok'
-                        ? 'success'
-                        : r.status === 'running'
-                          ? 'warning'
-                          : 'danger'
-                    }
-                  >
-                    {r.status}
-                  </Badge>
+                  <EstadoCorrida status={r.status} />
                 </Card>
               );
             })}

@@ -104,6 +104,35 @@ export const CLASSIFICATION_RULES: ClassifyRule[] = [
     textPattern: /^lineamiento[s]?\s+(n[°º.]?\s*\d|para)/i,
     label: 'Lineamiento OECE / Perú Compras',
   },
+  // El Tribunal va ANTES que la resolución genérica. Al revés, la regla
+  // genérica atrapaba «…-resolucion-n-8472-2026-tcp-s6.pdf» y diecisiete
+  // resoluciones del Tribunal traídas en setiembre de 2026 quedaron como
+  // `resolucion` directoral: fuera del filtro y de la jerarquía del
+  // Tribunal.
+  {
+    // Antes que las resoluciones: un acuerdo de Sala Plena lleva «TCE» o
+    // «TCP» en el número igual que ellas, y la regla de las resoluciones
+    // lo reclamaba —«sala plena.*tcp» estaba en su patrón de texto—. No
+    // es lo mismo: el acuerdo fija el criterio que todas las salas
+    // aplican, y la jerarquía lo pone por delante de la resolución.
+    type: 'acuerdo_sala_plena',
+    urlPattern: /acuerdo[-_]de[-_]sala[-_]plena|sala[-_]plena[-_]n/i,
+    textPattern: /^acuerdo\s+de\s+sala\s+plena/i,
+    label: 'Acuerdo de Sala Plena',
+  },
+  {
+    type: 'resolucion_tce',
+    // TCE y TCP: el Tribunal de Contrataciones del Estado pasó a
+    // llamarse Tribunal de Contrataciones Públicas con la Ley N° 32069,
+    // y sus resoluciones se nombran ahora «…-2026-TCP-S4». Con la regla
+    // mirando solo «tce», las veintiocho que se trajeron el 06/09/2026
+    // entraron como `resolucion` genérica en vez de `resolucion_tce`,
+    // que es lo que la jerarquía y los filtros esperan.
+    urlPattern: /resoluciones[-_]tc[ep]|\d+[-_]\d{4}[-_]tc[ep][-_]s\d|resolucion[-_]n[-_°º]?\s?\d+.*tc[ep]/i,
+    textPattern: /^resoluci[oó]n\s+n[°º.]?\s*\d+.*tc[ep]/i,
+    label: 'Resolución TCE',
+  },
+
   {
     type: 'resolucion',
     urlPattern:
@@ -133,30 +162,6 @@ export const CLASSIFICATION_RULES: ClassifyRule[] = [
     textPattern: /^opini[oó]n\s+n/i,
     label: 'Opinión DTN',
   },
-  {
-    // Antes que las resoluciones: un acuerdo de Sala Plena lleva «TCE» o
-    // «TCP» en el número igual que ellas, y la regla de las resoluciones
-    // lo reclamaba —«sala plena.*tcp» estaba en su patrón de texto—. No
-    // es lo mismo: el acuerdo fija el criterio que todas las salas
-    // aplican, y la jerarquía lo pone por delante de la resolución.
-    type: 'acuerdo_sala_plena',
-    urlPattern: /acuerdo[-_]de[-_]sala[-_]plena|sala[-_]plena[-_]n/i,
-    textPattern: /^acuerdo\s+de\s+sala\s+plena/i,
-    label: 'Acuerdo de Sala Plena',
-  },
-  {
-    type: 'resolucion_tce',
-    // TCE y TCP: el Tribunal de Contrataciones del Estado pasó a
-    // llamarse Tribunal de Contrataciones Públicas con la Ley N° 32069,
-    // y sus resoluciones se nombran ahora «…-2026-TCP-S4». Con la regla
-    // mirando solo «tce», las veintiocho que se trajeron el 06/09/2026
-    // entraron como `resolucion` genérica en vez de `resolucion_tce`,
-    // que es lo que la jerarquía y los filtros esperan.
-    urlPattern: /resoluciones[-_]tc[ep]|\d+[-_]\d{4}[-_]tc[ep][-_]s\d|resolucion[-_]n[-_°º]?\s?\d+.*tc[ep]/i,
-    textPattern: /^resoluci[oó]n\s+n[°º.]?\s*\d+.*tc[ep]/i,
-    label: 'Resolución TCE',
-  },
-
   // Marcos normativos (poco frecuentes en scraping, casi siempre en upload manual)
   {
     type: 'ley',

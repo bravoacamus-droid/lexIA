@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { extractText, getDocumentProxy } from 'unpdf';
 import { createClient } from '@supabase/supabase-js';
 import { chunkText } from '@/lib/ingestion/chunker';
@@ -5,13 +6,15 @@ import {
   classifyByPattern,
   type NormativeDocType,
 } from '@/lib/scraping/classifier';
+import { limpiarTexto, normalizarDocumento } from '@/lib/scraping/normalizar';
+import { variantesDeFicha } from '@/lib/scraping/discover';
 
 const UA = 'Mozilla/5.0 (compatible; A-LexIA-Bot/1.0; +https://lexia.pe/bot)';
 
 const EMBEDDING_MODEL = 'gemini-embedding-001';
 const EMBEDDING_DIM = 1024;
 
-interface IngestResult {
+export interface IngestResult {
   inserted: boolean;
   reason?: string;
   chunkCount?: number;
@@ -20,19 +23,32 @@ interface IngestResult {
   finalType?: NormativeDocType;
   /** Si el classifier reclasificó respecto del docType de la fuente. */
   reclassified?: boolean;
+  /** Ya estaba en la biblioteca: no es un fallo y no se reintenta. */
+  yaExiste?: boolean;
+  /** El texto se obtuvo leyendo el escaneo con Gemini. */
+  viaOcr?: boolean;
 }
 
 /**
  * Descarga un PDF desde una URL, lo extrae, lo chunkea, lo embebe con
- * Gemini y persiste todo en normative_documents + normative_chunks.
+ * Gemini y persiste todo en normative_documents + normative_chunks, con
+ * los mismos datos que la carga manual (ver normalizar.ts): número,
+ * título, fecha, régimen, entidad, año y correlativo.
  *
- * Es idempotente: si la URL ya existe en normative_documents.source_url
- * el documento se considera ya ingestado y se saltea (returning inserted=false).
+ * Es idempotente: si la URL (del PDF o de su ficha) o, en resoluciones,
+ * su número ya están en la biblioteca, se saltea sin descargar.
  */
 export async function ingestPdfFromUrl(opts: {
   url: string;
   docType: string;
   linkText?: string;
+  /** La ficha de gob.pe de la que salió el PDF, si la hay. */
+  fichaUrl?: string;
+  /** Título y fecha que muestra la ficha. */
+  fichaTitulo?: string | null;
+  fichaFecha?: string | null;
+  /** Leer con Gemini un escaneo sin texto. Lo decide quien llama: cuesta. */
+  permitirOcr?: boolean;
   supabaseUrl: string;
   serviceKey: string;
   geminiKey: string;
@@ -46,24 +62,36 @@ export async function ingestPdfFromUrl(opts: {
   // "directiva" pero el link es un manual SEACE), lo sobreescribimos.
   const classified = classifyByPattern({
     url: opts.url,
-    linkText: opts.linkText,
+    linkText: opts.fichaTitulo ?? opts.linkText,
     defaultType: opts.docType as NormativeDocType,
   });
   const finalType = classified.type;
 
-  // 1. Idempotencia: ¿ya está esta URL en BD?
-  const { data: existing } = await supabase
+  // 1. Idempotencia: por la URL del PDF, por la de la ficha y por el
+  // número normalizado. Antes de descargar nada.
+  const urls = [opts.url, ...(opts.fichaUrl ? variantesDeFicha(opts.fichaUrl) : [])];
+  const { data: porUrl, error: errUrl } = await supabase.from('normative_documents').select('id').in('source_url', urls).limit(1);
+  if (errUrl) return { inserted: false, reason: `consulta de existencia: ${errUrl.message.slice(0, 120)}` };
+  if ((porUrl ?? []).length > 0) {
+    return { inserted: false, reason: 'ya existe', yaExiste: true, finalType, reclassified: classified.reclassified };
+  }
+  const previo = normalizarDocumento({
+    tipo: finalType,
+    tituloFicha: opts.fichaTitulo,
+    fechaFicha: opts.fichaFecha,
+    textoEnlace: opts.linkText,
+    url: opts.url,
+    fichaUrl: opts.fichaUrl,
+    texto: '',
+  });
+  const { data: porNumero } = await supabase
     .from('normative_documents')
     .select('id')
-    .eq('source_url', opts.url)
-    .maybeSingle();
-  if (existing) {
-    return {
-      inserted: false,
-      reason: 'ya existe (source_url)',
-      finalType,
-      reclassified: classified.reclassified,
-    };
+    .eq('type', finalType)
+    .eq('number', previo.number)
+    .limit(1);
+  if ((porNumero ?? []).length > 0) {
+    return { inserted: false, reason: 'ya existe (número)', yaExiste: true, finalType, reclassified: classified.reclassified };
   }
 
   // 2. Descargar PDF
@@ -79,7 +107,7 @@ export async function ingestPdfFromUrl(opts: {
       return { inserted: false, reason: `HTTP ${res.status}` };
     }
     const ct = res.headers.get('content-type') || '';
-    if (!ct.includes('pdf') && !opts.url.toLowerCase().endsWith('.pdf')) {
+    if (!ct.includes('pdf') && !opts.url.toLowerCase().split('?')[0].endsWith('.pdf')) {
       return { inserted: false, reason: `content-type no PDF: ${ct}` };
     }
     buffer = Buffer.from(await res.arrayBuffer());
@@ -93,22 +121,20 @@ export async function ingestPdfFromUrl(opts: {
     return { inserted: false, reason: `PDF muy pequeño (${buffer.byteLength}b)` };
   }
 
-  // 3. Extraer texto
+  // 3. Extraer texto. Una copia: pdf.js se queda con el búfer que recibe
+  // y el OCR necesita el original.
   let text: string;
   let pages: number;
+  let viaOcr = false;
   try {
-    const data = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
-    const pdf = await getDocumentProxy(data);
+    const pdf = await getDocumentProxy(new Uint8Array(Buffer.from(buffer)));
     const result = await extractText(pdf, { mergePages: true });
     // Ojo con esta línea: durante meses fue `.replace(/ /g, '')`, que
-    // borra TODOS los espacios. Nunca se notó porque el rastreador no
-    // llegó a ejecutarse —sus fuentes apuntaban a un portal que ya no
-    // existía—, y salió a la luz el 06/09/2026 al arreglarlas: la
-    // primera resolución ingerida se guardó como
-    // «TribunaldeContratacionesPúblicasResolución…», 41.843 caracteres
-    // sin un solo espacio, en un único fragmento. Lo que hace falta es
-    // unificar los blancos, no eliminarlos.
-    text = String(result.text)
+    // borra TODOS los espacios. Salió a la luz el 06/09/2026: la primera
+    // resolución ingerida se guardó como «TribunaldeContratacionesPúblicas
+    // Resolución…», sin un solo espacio. Se unifican los blancos, no se
+    // eliminan.
+    text = limpiarTexto(String(result.text))
       .replace(/\u00a0/g, ' ')
       .replace(/[ \t]+/g, ' ')
       .trim();
@@ -117,8 +143,27 @@ export async function ingestPdfFromUrl(opts: {
     return { inserted: false, reason: `extract: ${(e as Error).message.slice(0, 120)}` };
   }
   if (text.length < 400) {
-    return { inserted: false, reason: `texto insuficiente (${text.length}c, escaneo?)` };
+    if (!opts.permitirOcr) return { inserted: false, reason: `texto insuficiente (${text.length}c, escaneo)` };
+    try {
+      const { transcribirPdfEscaneado } = await import('@/lib/ai/ocr-pdf');
+      const t = await transcribirPdfEscaneado(buffer, { nombre: opts.fichaTitulo ?? 'documento.pdf' });
+      const limpio = limpiarTexto(t.texto).trim();
+      if (t.tramosFallidos > 0 || limpio.length < 400) {
+        return { inserted: false, reason: `escaneo: el OCR no dio texto suficiente (${limpio.length}c)` };
+      }
+      text = limpio;
+      viaOcr = true;
+    } catch (e) {
+      return { inserted: false, reason: `ocr: ${(e as Error).message.slice(0, 120)}` };
+    }
   }
+
+  // 3b. ¿Ya hay un documento del mismo tipo con este mismo texto? Atrapa
+  // lo que se subió a mano sin URL (el Código de Ética se volvió a traer
+  // así el 24/09/2026). La función solo mira los tipos pequeños.
+  const md5 = createHash('md5').update(text, 'utf8').digest('hex');
+  const { data: igual } = await supabase.rpc('documento_con_el_mismo_texto', { p_type: finalType, p_md5: md5 });
+  if (igual) return { inserted: false, reason: 'ya existe (mismo texto)', yaExiste: true, finalType };
 
   // 4. Chunking
   const chunks = chunkText(text);
@@ -126,30 +171,44 @@ export async function ingestPdfFromUrl(opts: {
     return { inserted: false, reason: 'chunker no produjo chunks' };
   }
 
-  // 5. Inferir number + title del linkText / URL
-  const number = inferNumberFromText(opts.linkText || '') || basenameFromUrl(opts.url);
-  const title = (opts.linkText || basenameFromUrl(opts.url)).slice(0, 240);
+  // 5. Los datos de la biblioteca, con las reglas de la carga manual.
+  const norma = normalizarDocumento({
+    tipo: finalType,
+    tituloFicha: opts.fichaTitulo,
+    fechaFicha: opts.fichaFecha,
+    textoEnlace: opts.linkText,
+    url: opts.url,
+    fichaUrl: opts.fichaUrl,
+    texto: text,
+    paginas: pages,
+  });
 
   // 6. Insertar documento (usando el tipo reclasificado, no el de la fuente)
   const { data: inserted, error: insErr } = await supabase
     .from('normative_documents')
     .insert({
       type: finalType,
-      number,
-      title,
-      source_url: opts.url,
+      number: norma.number,
+      title: norma.title,
+      date: norma.date,
+      applicable_law: norma.applicable_law,
+      source_url: opts.fichaUrl ?? opts.url,
       raw_text: text,
       metadata: {
-        pages,
+        ...norma.metadata,
         ingested_by: 'scraping_bot',
         source_doc_type: opts.docType,
         classifier_matched: classified.matchedRule,
         reclassified: classified.reclassified,
+        pdf_url: opts.url,
+        texto_via_ocr: viaOcr || undefined,
       },
     } as never)
     .select('id')
     .single();
   if (insErr || !inserted) {
+    // Otra corrida lo insertó entre la comprobación y aquí: no es un fallo.
+    if (insErr?.code === '23505') return { inserted: false, reason: 'ya existe (número)', yaExiste: true, finalType };
     return {
       inserted: false,
       reason: `insert doc: ${insErr?.message?.slice(0, 120)}`,
@@ -178,18 +237,24 @@ export async function ingestPdfFromUrl(opts: {
     chunk_index: c.index,
     content: c.content,
     embedding: embeddings[i] as never,
-    metadata: { source: number, heading: c.heading } as never,
+    metadata: { source: norma.number, heading: c.heading } as never,
   }));
-  // De cincuenta en cincuenta, no todos de golpe: dos resoluciones del
-  // Tribunal —la 8010 y la 8012 de 2026, de más de cuarenta fragmentos
-  // con su vector cada uno— agotaban el tiempo de la sentencia y se
-  // quedaban a medias, dejando el documento registrado y sin contenido,
-  // es decir invisible para el chat pero contado como ya ingerido.
+  // De diez en diez, no todos de golpe: dos resoluciones del Tribunal
+  // —la 8010 y la 8012 de 2026, de más de cuarenta fragmentos con su
+  // vector cada uno— agotaban el tiempo de la sentencia y se quedaban a
+  // medias, dejando el documento registrado y sin contenido, es decir
+  // invisible para el chat pero contado como ya ingerido.
   const TANDA = 10;
   for (let i = 0; i < rows.length; i += TANDA) {
-    const { error: chunkErr } = await supabase
-      .from('normative_chunks')
-      .insert(rows.slice(i, i + TANDA) as never);
+    // Con reintentos: bajo carga (otra ingesta escribiendo, el índice
+    // vectorial reorganizándose) un lote puede pasarse del tiempo de la
+    // sentencia y entrar al segundo intento (pasó el 24/09/2026).
+    let chunkErr: { message: string } | null = null;
+    for (let intento = 0; intento < 3; intento++) {
+      ({ error: chunkErr } = await supabase.from('normative_chunks').insert(rows.slice(i, i + TANDA) as never));
+      if (!chunkErr) break;
+      await new Promise((r) => setTimeout(r, 2000 * (intento + 1)));
+    }
     if (chunkErr) {
       // Si falla a media escritura se retira el documento entero: así el
       // siguiente intento vuelve a empezar en vez de darlo por hecho.
@@ -207,6 +272,7 @@ export async function ingestPdfFromUrl(opts: {
     documentId: (inserted as { id: string }).id,
     finalType,
     reclassified: classified.reclassified,
+    viaOcr,
   };
 }
 
@@ -235,22 +301,4 @@ async function embedBatch(texts: string[], apiKey: string): Promise<number[][]> 
     for (const e of json.embeddings) out.push(e.values);
   }
   return out;
-}
-
-function inferNumberFromText(s: string): string | null {
-  if (!s) return null;
-  // Patrones típicos: "Pronunciamiento N° 295-2026", "Opinión 023-2024/DTN", etc.
-  const m = s.match(/(?:n[°º.]?\s*|n\.?\s*)?(\d+[\s\-./]\d{4}(?:[\s\-./][A-Z0-9-]+)?)/i);
-  if (m) return m[1].replace(/\s+/g, '');
-  return null;
-}
-
-function basenameFromUrl(u: string): string {
-  try {
-    const { pathname } = new URL(u);
-    const last = pathname.split('/').filter(Boolean).pop() || u;
-    return decodeURIComponent(last);
-  } catch {
-    return u;
-  }
 }

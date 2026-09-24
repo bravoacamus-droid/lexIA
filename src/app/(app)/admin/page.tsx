@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ROLE_LABELS } from '@/lib/navigation/menu-by-role';
 import type { ProfileRole } from '@/lib/auth/session';
+import { saludDelActualizador } from '@/lib/scraping/salud';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Panel administrador' };
@@ -62,6 +63,9 @@ export default async function AdminPage() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } },
   );
+
+  // Si el actualizador de la biblioteca falla, se ve desde aquí.
+  const salud = await saludDelActualizador(admin);
 
   // Métricas globales (todo en paralelo)
   const [
@@ -428,6 +432,17 @@ export default async function AdminPage() {
             <h3 className="font-semibold text-base mb-1">Bot de scraping</h3>
             <p className="text-xs text-muted-foreground">
               Monitorea las fuentes oficiales y ejecuta corridas manuales.
+            </p>
+            <p
+              className={
+                salud.nivel === 'ok'
+                  ? 'mt-2 text-[11.5px] font-semibold text-emerald-700 dark:text-emerald-400'
+                  : salud.nivel === 'atencion'
+                    ? 'mt-2 text-[11.5px] font-semibold text-amber-700 dark:text-amber-400'
+                    : 'mt-2 text-[11.5px] font-semibold text-red-700 dark:text-red-400'
+              }
+            >
+              {salud.nivel === 'ok' ? '● Funciona correctamente' : `● ${salud.avisos[0] ?? 'Necesita atención'}`}
             </p>
           </Link>
           <Link

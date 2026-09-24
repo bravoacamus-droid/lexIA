@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/scraping/run",
-      "schedule": "0 3 * * 0"
+      "schedule": "0 8 * * *"
     },
     {
       "path": "/api/billing/trial-sweep",
