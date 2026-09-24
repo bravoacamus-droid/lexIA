@@ -150,9 +150,13 @@ export function GeneratorChatView({
   useEffect(() => {
     if (yaEnviado.current) return;
     if (!consultaInicial || initialMessages.length > 0) return;
-    yaEnviado.current = true;
     setInput(consultaInicial);
+    // Se marca como enviado cuando se envía, no antes. Con el doble
+    // montaje de React, la primera pasada marcaba «enviado», la limpieza
+    // cancelaba el envío y la segunda ya no lo intentaba: el caso escrito
+    // en «Analizar mi caso» se quedaba en la caja sin mandarse.
     const t = setTimeout(() => {
+      yaEnviado.current = true;
       formRef.current?.requestSubmit();
     }, 60);
     return () => clearTimeout(t);

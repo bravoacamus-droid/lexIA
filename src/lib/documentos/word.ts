@@ -137,6 +137,24 @@ export const FORMATO_CARTA: Formato = {
   pegarTitulos: true,
 };
 
+/**
+ * Lo que redacta el chat generador —informes, cartas, términos de
+ * referencia, resoluciones—. No tiene un modelo único de César, así que
+ * toma las medidas comunes a los suyos: A4, 2,5 cm arriba y abajo y 3 a
+ * los lados como sus cartas, Arial 10, títulos con sangría francesa y
+ * los huecos que deja el modelo —«[Nombre del funcionario]»— en rojo.
+ */
+export const FORMATO_DOCUMENTO: Formato = {
+  pagina: A4,
+  margenes: { arriba: 1417, abajo: 1417, izquierda: 1701, derecha: 1701 },
+  tamano: 20,
+  tamanoTabla: 18,
+  sangrias: [0, 567, 1134, 1701],
+  maqueta: 'normal',
+  huecosEnRojo: true,
+  pegarTitulos: true,
+};
+
 // ── Constantes de la casa ────────────────────────────────────────────
 
 const FUENTE = 'Arial';
@@ -231,7 +249,12 @@ class Compositor {
         if (!parte) continue;
         if (/^\[PENDIENTE:[^\]]*\]$/.test(parte)) {
           salida.push(nuevo(parte, { ...estilo, bold: true, highlight: HighlightColor.YELLOW }));
-        } else if (this.f.huecosEnRojo && /^\[[^\]\n]{1,200}\]$/.test(parte)) {
+        } else if (
+          this.f.huecosEnRojo &&
+          /^\[[^\]\n]{1,200}\]$/.test(parte) &&
+          // Un corchete con solo números es una referencia, no un hueco.
+          !/^\[[\d\s,;.-]*\]$/.test(parte)
+        ) {
           salida.push(nuevo(parte, { ...estilo, color: ROJO, highlight: HighlightColor.LIGHT_GRAY }));
         } else {
           salida.push(nuevo(parte, estilo));

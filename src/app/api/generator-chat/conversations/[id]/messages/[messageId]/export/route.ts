@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { nombreDeArchivo, cabeceraDescarga } from '@/lib/descargas/nombre-archivo';
 import { createClient } from '@/lib/supabase/server';
-import { markdownToDocxBuffer } from '@/lib/docx-from-markdown';
+import { markdownAPiezas } from '@/lib/documentos/desde-markdown';
+import { FORMATO_DOCUMENTO, piezasADocx } from '@/lib/documentos/word';
 import { GENERATOR_PERFILES } from '@/lib/ai/generator-perfiles';
 
 export const runtime = 'nodejs';
@@ -11,6 +12,10 @@ export const dynamic = 'force-dynamic';
  * GET /api/generator-chat/conversations/[id]/messages/[messageId]/export
  *
  * Descarga el contenido markdown de un mensaje del assistant como .docx
+ *
+ * Se compone con el mismo `documentos/word.ts` que el requerimiento, el
+ * acta y las cartas, y ya no lleva el «Generado con A-LexIA» ni el
+ * «Perfil: …» encima: el documento lo firma quien lo usa.
  */
 export async function GET(
   _req: Request,
@@ -54,11 +59,7 @@ export async function GET(
     );
   }
 
-  const perfilLabel = GENERATOR_PERFILES[c.perfil].label;
-  const buffer = await markdownToDocxBuffer(m.content, {
-    title: c.title || 'Documento generado por A-LexIA',
-    subtitle: `Perfil: ${perfilLabel} · Generado el ${new Date().toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' })}`,
-  });
+  const buffer = await piezasADocx(markdownAPiezas(m.content), FORMATO_DOCUMENTO);
 
   const filename = `${nombreDeArchivo(c.title || 'documento', 'documento', 60)}.docx`;
 
