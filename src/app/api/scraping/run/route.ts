@@ -26,6 +26,13 @@ const SCHEMA = z.object({
  * no se reintenta sola.
  */
 const LIMITE_MS = 230_000;
+/**
+ * El cron corre una vez al día. Si en este lapso ya hubo una corrida,
+ * la llamada del cron se descarta: Vercel puede entregar el mismo
+ * disparo dos veces, y una llamada repetida con la clave no debe
+ * convertirse en una segunda pasada que gaste recursos.
+ */
+const UNA_VEZ_AL_DIA_MS = 20 * 60 * 60 * 1000;
 const CORRIDA_COLGADA_MS = 10 * 60 * 1000;
 const MAX_INTENTOS = 3;
 /** Escaneos que se leen con Gemini por corrida, entre todas las fuentes. */
@@ -138,6 +145,22 @@ async function handleRun(req: Request, body: unknown): Promise<NextResponse> {
     } as never)
     .eq('status', 'running')
     .lt('started_at', new Date(Date.now() - CORRIDA_COLGADA_MS).toISOString());
+
+  if (authz.via === 'cron') {
+    const { data: reciente, error: errReciente } = await admin
+      .from('scraping_runs')
+      .select('started_at')
+      .neq('status', 'prueba_invalida')
+      .gte('started_at', new Date(Date.now() - UNA_VEZ_AL_DIA_MS).toISOString())
+      .order('started_at', { ascending: false })
+      .limit(1);
+    if (errReciente) console.error('[scraping] no se pudo revisar la última corrida:', errReciente.message);
+    if ((reciente ?? []).length > 0) {
+      const ultima = (reciente as Array<{ started_at: string }>)[0].started_at;
+      console.warn('[scraping] el cron ya corrió hoy; se omite', { ultima });
+      return NextResponse.json({ omitida: true, motivo: 'ya_corrio_hoy', ultima });
+    }
+  }
 
   // Candado: dos corridas a la vez (la del cron y una manual) procesan
   // los mismos enlaces y duplican trabajo.
