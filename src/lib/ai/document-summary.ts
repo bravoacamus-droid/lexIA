@@ -121,6 +121,32 @@ export const SUMMARY_QUESTIONS_BY_TYPE: Record<
       hint: 'Cambios concretos que la Entidad debe implementar en las Bases integradas.',
     },
   ],
+  // Un acuerdo de Sala Plena no resuelve un caso: fija el criterio con
+  // que todas las salas resolverán los que vengan. Por eso no se le
+  // pregunta por hechos ni por partes, sino por la duda que zanja y
+  // desde cuándo.
+  acuerdo_sala_plena: [
+    {
+      key: 'materia',
+      label: '¿Qué duda de interpretación resuelve el Acuerdo?',
+      hint: 'El problema que motivó el acuerdo: qué aplicaban las salas de forma distinta (2-3 oraciones).',
+    },
+    {
+      key: 'normativa_aplicada',
+      label: '¿Qué normas interpreta?',
+      hint: 'Ley, Reglamento y artículos cuya aplicación uniformiza el acuerdo.',
+    },
+    {
+      key: 'criterio',
+      label: '¿Qué criterio adopta la Sala Plena?',
+      hint: 'El acuerdo en sus propios términos, sin parafrasearlo más de lo necesario.',
+    },
+    {
+      key: 'alcance',
+      label: '¿Desde cuándo y a qué casos se aplica?',
+      hint: 'Publicación en El Peruano, vigencia y régimen al que pertenece (Ley N° 30225 o Ley N° 32069).',
+    },
+  ],
   resolucion_tce: [
     {
       key: 'sumilla',
@@ -497,7 +523,7 @@ export function normalizeSummaryQuestions(
  * ambos formatos de `ai_summary`:
  *
  *   - v1: usa `de_que_trata` directamente.
- *   - v2 (opinion/pronunciamiento/resolucion_tce/directiva): usa la
+ *   - v2 (opinion/pronunciamiento/resolucion_tce/acuerdo_sala_plena/directiva): usa la
  *     PRIMERA respuesta del array `questions` (que por convención es la
  *     más panorámica — sumilla/asunto/cuestionamientos/de_que_trata).
  *

@@ -269,7 +269,9 @@ export function DocumentViewer({
    * El resumen no se borra: sigue alimentando la ficha de la biblioteca
    * y las respuestas del chat. Lo que se quita es el panel.
    */
-  const conPanelDeResumen = !['opinion', 'pronunciamiento', 'resolucion_tce'].includes(
+  // El acuerdo de Sala Plena viene tan estructurado como la resolución
+  // —antecedentes, análisis, acuerdo—, así que corre la misma suerte.
+  const conPanelDeResumen = !['opinion', 'pronunciamiento', 'resolucion_tce', 'acuerdo_sala_plena'].includes(
     doc.type as string,
   );
 

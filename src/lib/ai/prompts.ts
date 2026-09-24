@@ -328,6 +328,7 @@ function formatDocLabel(c: ChatSource): string {
     opinion: 'Opinión',
     pronunciamiento: 'Pronunciamiento',
     resolucion_tce: 'Resolución TCE',
+    acuerdo_sala_plena: 'Acuerdo de Sala Plena',
   };
   const t = typeLabel[c.doc_type] || c.doc_type;
   const num = c.doc_number ? ` ${c.doc_number}` : '';

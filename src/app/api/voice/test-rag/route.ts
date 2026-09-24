@@ -83,7 +83,7 @@ export async function POST(req: Request) {
                     filter_type: {
                       type: 'string' as unknown as Type,
                       description:
-                        'Opcional: filtrar por tipo (ley, reglamento, directiva, opinion, pronunciamiento, resolucion, resolucion_tce, lineamiento).',
+                        'Opcional: filtrar por tipo (ley, reglamento, directiva, opinion, pronunciamiento, resolucion, resolucion_tce, acuerdo_sala_plena, lineamiento).',
                       nullable: true,
                     },
                   },

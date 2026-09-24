@@ -212,6 +212,29 @@ Tres cosas en las que nos apartamos de tu modelo, para que decidas:
   a 0,75 cm; con veinte apartados, los romanos largos («XVII.») no caben
   y el título se descuadra. Los pusimos a 1,25 cm para que todos alineen.
 
+## 10 · Los acuerdos de Sala Plena
+
+Ya están en la biblioteca, con su propio filtro: **40 acuerdos**, del
+001-2016/TCE al 003-2025/TCP, más el 006-2012/TC, que el Tribunal sigue
+citando. Los de 2004 a 2015 no entraron: interpretan la Ley N.° 26850 y
+el Decreto Legislativo N.° 1017, y en la jerarquía un acuerdo va delante
+de las resoluciones, así que uno de 2005 le quitaría el sitio a la
+jurisprudencia vigente. El chat los busca aparte y los cita cuando
+vienen al caso: preguntando por la firma escaneada en la apelación,
+responde con el Acuerdo N.° 003-2025/TCP y su criterio textual.
+
+- **El Acuerdo N.° 001-2026/TCP.** Las resoluciones de 2026 lo citan por
+  la multa mínima de una UIT a las mypes («publicado el 6 de marzo de
+  2026»), pero gob.pe no lo tiene en su lista de acuerdos y no lo
+  encontramos en ninguna otra fuente. ¿Nos pasas el enlace o el PDF? Se
+  añade con un solo comando.
+- **Una errata que verás.** El texto que publicó El Peruano del Acuerdo
+  N.° 007-2021/TCE (impedimentos por competencia territorial) dice
+  «N.° 006-2021/TCE» en su encabezado. Es el 007: así lo registra gob.pe
+  y así lo citan las resoluciones —el 006-2021 es el del
+  perfeccionamiento del contrato—. Lo dejamos con su número correcto y
+  sin tocar el texto oficial.
+
 ---
 
 ## Lo que ya está listo para que pruebes

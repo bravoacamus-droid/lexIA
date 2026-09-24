@@ -98,7 +98,7 @@ export async function POST(req: Request) {
                 filter_type: {
                   type: 'string',
                   description:
-                    'Opcional: ley, reglamento, directiva, opinion, pronunciamiento, resolucion, resolucion_tce, lineamiento',
+                    'Opcional: ley, reglamento, directiva, opinion, pronunciamiento, resolucion, resolucion_tce, acuerdo_sala_plena, lineamiento',
                   nullable: true,
                 },
               },

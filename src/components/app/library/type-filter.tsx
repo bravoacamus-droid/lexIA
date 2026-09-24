@@ -19,6 +19,7 @@ const ORDER: NormativeDocType[] = [
   'opinion',
   'pronunciamiento',
   'resolucion',
+  'acuerdo_sala_plena',
   'resolucion_tce',
   // Operativos / informativos al final
   'tupa',

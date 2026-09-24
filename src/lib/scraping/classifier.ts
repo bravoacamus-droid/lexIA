@@ -21,6 +21,7 @@ export type NormativeDocType =
   | 'opinion'
   | 'pronunciamiento'
   | 'resolucion_tce'
+  | 'acuerdo_sala_plena'
   | 'manual_seace'
   | 'tupa'
   | 'comunicado'
@@ -133,6 +134,17 @@ export const CLASSIFICATION_RULES: ClassifyRule[] = [
     label: 'Opinión DTN',
   },
   {
+    // Antes que las resoluciones: un acuerdo de Sala Plena lleva «TCE» o
+    // «TCP» en el número igual que ellas, y la regla de las resoluciones
+    // lo reclamaba —«sala plena.*tcp» estaba en su patrón de texto—. No
+    // es lo mismo: el acuerdo fija el criterio que todas las salas
+    // aplican, y la jerarquía lo pone por delante de la resolución.
+    type: 'acuerdo_sala_plena',
+    urlPattern: /acuerdo[-_]de[-_]sala[-_]plena|sala[-_]plena[-_]n/i,
+    textPattern: /^acuerdo\s+de\s+sala\s+plena/i,
+    label: 'Acuerdo de Sala Plena',
+  },
+  {
     type: 'resolucion_tce',
     // TCE y TCP: el Tribunal de Contrataciones del Estado pasó a
     // llamarse Tribunal de Contrataciones Públicas con la Ley N° 32069,
@@ -141,7 +153,7 @@ export const CLASSIFICATION_RULES: ClassifyRule[] = [
     // entraron como `resolucion` genérica en vez de `resolucion_tce`,
     // que es lo que la jerarquía y los filtros esperan.
     urlPattern: /resoluciones[-_]tc[ep]|\d+[-_]\d{4}[-_]tc[ep][-_]s\d|resolucion[-_]n[-_°º]?\s?\d+.*tc[ep]/i,
-    textPattern: /^resoluci[oó]n\s+n[°º.]?\s*\d+.*tc[ep]|sala\s+plena.*tc[ep]/i,
+    textPattern: /^resoluci[oó]n\s+n[°º.]?\s*\d+.*tc[ep]/i,
     label: 'Resolución TCE',
   },
 

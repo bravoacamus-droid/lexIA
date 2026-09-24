@@ -145,6 +145,10 @@ function rerankChunks(
  */
 const MARGEN_CAPA_1 = 0.05;
 
+/** Cuánto puede quedar un acuerdo de Sala Plena por debajo del mejor
+ *  resultado general para entrar (ver la búsqueda de acuerdos). */
+const MARGEN_SALA_PLENA = 0.05;
+
 function descartarLosQueNoVienenAlCaso(
   filas: HybridSearchRow[],
   tipo: string,
@@ -909,6 +913,9 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
         ley: 0,
         reglamento: 1,
         directiva: 2,
+        // El acuerdo de Sala Plena fija el criterio que aplican todas las
+        // salas: va delante de las resoluciones que lo aplican.
+        acuerdo_sala_plena: 3,
         opinion: 3,
         pronunciamiento: 4,
         resolucion: 5,
@@ -1001,6 +1008,53 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
       if (norma.length > 0) {
         sources = [...norma, ...sources];
         console.log('[chat] capa_1_anadida', { fragmentos: norma.length });
+      }
+
+      /**
+       * Los acuerdos de Sala Plena se buscan aparte, y entran solo si
+       * vienen al caso.
+       *
+       * Son cuarenta frente a treinta y siete mil resoluciones, y cada
+       * resolución que aplica un acuerdo lo cita: en la búsqueda general
+       * el acuerdo queda sepultado bajo las resoluciones que lo repiten.
+       * Preguntando por la firma escaneada en la apelación, el Acuerdo
+       * N° 003-2025/TCP —que es exactamente eso— no salía entre los
+       * veinte primeros.
+       *
+       * No se hace como con la capa 1, que filtra contra el mejor de su
+       * propio tipo: eso siempre deja pasar uno, venga o no a cuento. Se
+       * compara con el mejor resultado de la búsqueda general. Medido el
+       * 23/09/2026 sobre diez preguntas: cuando el acuerdo es el que
+       * responde queda a 0,036 o menos del mejor resultado; cuando no
+       * tiene que ver, a 0,139 o más.
+       */
+      const mejorGeneral = Math.max(0, ...(chunks as HybridSearchRow[]).map((c) => c.similarity));
+      const { data: deSalaPlena, error: errSalaPlena } = await supabase.rpc('hybrid_search', {
+        query_text: lastUser.content,
+        query_embedding: searchEmbedding,
+        match_count: 2,
+        filter_type: 'acuerdo_sala_plena',
+        filter_law: lawFilter,
+      });
+      if (errSalaPlena) {
+        console.error('[chat] búsqueda de acuerdos de Sala Plena falló:', errSalaPlena.message);
+      } else {
+        const presentes = new Set(sources.map((s) => s.chunk_id));
+        const acuerdos = ((deSalaPlena ?? []) as HybridSearchRow[])
+          .filter((c) => c.similarity >= mejorGeneral - MARGEN_SALA_PLENA && !presentes.has(c.chunk_id))
+          .map((c) => ({
+            chunk_id: c.chunk_id,
+            doc_id: c.document_id,
+            doc_title: c.doc_title,
+            doc_type: c.doc_type,
+            doc_number: c.doc_number,
+            snippet: c.content,
+          }));
+        if (acuerdos.length > 0) {
+          // Detrás de la norma y delante de las resoluciones que lo aplican.
+          sources = [...sources.slice(0, norma.length), ...acuerdos, ...sources.slice(norma.length)];
+          console.log('[chat] sala_plena_anadida', { fragmentos: acuerdos.length });
+        }
       }
 
       /**

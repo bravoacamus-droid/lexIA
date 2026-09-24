@@ -107,6 +107,13 @@ export const DOC_TYPE_META: Record<
     bg: 'bg-fuchsia-100 dark:bg-fuchsia-950',
     tagColor: '#C026D3',
   },
+  // Agregado en migración 0065
+  acuerdo_sala_plena: {
+    label: 'Acuerdo de Sala Plena',
+    color: 'text-purple-700 dark:text-purple-300',
+    bg: 'bg-purple-100 dark:bg-purple-950',
+    tagColor: '#7E22CE',
+  },
   // Tipos agregados en migración 0019
   manual_seace: {
     label: 'Manual SEACE',

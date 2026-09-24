@@ -25,6 +25,7 @@ const requestSchema = z.object({
       'opinion',
       'pronunciamiento',
       'resolucion_tce',
+      'acuerdo_sala_plena',
       'manual_seace',
       'tupa',
       'comunicado',
@@ -121,7 +122,7 @@ export async function POST(req: Request) {
   // Jurisprudencia: se lista de lo más reciente a lo más antiguo. El
   // resto conserva el correlativo ascendente acordado con César.
   const esJurisprudencia =
-    type === 'resolucion_tce' || type === 'pronunciamiento';
+    type === 'resolucion_tce' || type === 'pronunciamiento' || type === 'acuerdo_sala_plena';
 
   if (!trimmed && !isMultiTag) {
     const base = supabase

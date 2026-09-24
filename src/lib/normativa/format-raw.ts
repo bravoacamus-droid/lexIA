@@ -629,11 +629,26 @@ export function formatNormativaText(
   );
 
   // 2) Insertar salto ANTES de "ROMANO. SECCION" (I. FINALIDAD, IV. BASE LEGAL, etc.)
+  //
+  // «ACUERDO» va solo aquí, detrás de un romano: es el apartado que
+  // decide en los acuerdos de Sala Plena («III. ACUERDO»), y suelto no
+  // sirve de señal porque «ACUERDO DE SALA PLENA» sale en mayúsculas por
+  // todo el texto.
   text = text.replace(
     new RegExp(
-      `([^\\n])\\s+([IVXLCDM]{1,5}\\.[  ]*(?:${SECCION_NAMES}|${DIRECTIVA_SECCIONES}))\\b`,
+      `([^\\n])\\s+([IVXLCDM]{1,5}\\.[  ]*(?:${SECCION_NAMES}|${DIRECTIVA_SECCIONES}|ACUERDOS?))\\b`,
       'g',
     ),
+    '$1\n\n## $2\n',
+  );
+
+  // 2-bis) Los votos que acompañan a un acuerdo de Sala Plena o a una
+  // resolución del Tribunal: «VOTO EN DISCORDIA DE LOS VOCALES…»,
+  // «VOTO SINGULAR DEL VOCAL…». Traen su propio «I. ANÁLISIS»; sin este
+  // rótulo el índice mostraba dos «ANÁLISIS» sin decir que el segundo
+  // es de los vocales que discreparon.
+  text = text.replace(
+    /([^\n])\s+(VOTO\s+(?:EN\s+DISCORDIA(?:\s+PARCIAL)?|SINGULAR))\b/g,
     '$1\n\n## $2\n',
   );
 

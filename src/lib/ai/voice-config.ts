@@ -302,7 +302,7 @@ export const VOICE_TOOLS = [
             filter_type: {
               type: 'string',
               description:
-                'Opcional: filtrar por tipo de documento. Valores: ley, reglamento, directiva, lineamiento, opinion, pronunciamiento, resolucion, resolucion_tce, codigo_etica.',
+                'Opcional: filtrar por tipo de documento. Valores: ley, reglamento, directiva, lineamiento, opinion, pronunciamiento, resolucion, resolucion_tce, acuerdo_sala_plena, codigo_etica.',
               nullable: true,
             },
           },

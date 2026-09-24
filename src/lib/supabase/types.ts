@@ -27,7 +27,10 @@ export type NormativeDocType =
   | 'directiva_entidad'
   // Agregado en migración 0059 — casos ya resueltos y comprobados
   // contra la norma, para que dejen de deducirse y se puedan buscar.
-  | 'criterio_validado';
+  | 'criterio_validado'
+  // Agregado en migración 0065 — acuerdos de Sala Plena del Tribunal,
+  // que fijan el criterio que aplican todas sus salas.
+  | 'acuerdo_sala_plena';
 
 export interface Profile {
   id: string;
