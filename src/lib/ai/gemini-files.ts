@@ -82,8 +82,10 @@ export async function uploadFileToGemini(
   // Paso 2: subir bytes
   const uploadRes = await fetch(uploadUrl, {
     method: 'POST',
+    // Sin Content-Length a mano: fetch lo calcula del búfer. Puesto a
+    // mano, undici lo rechazaba («invalid content-length header») al subir
+    // un escaneo de 15 MB (Pronunciamiento N° 585-2025, 24/09/2026).
     headers: {
-      'Content-Length': String(numBytes),
       'X-Goog-Upload-Offset': '0',
       'X-Goog-Upload-Command': 'upload, finalize',
     },
