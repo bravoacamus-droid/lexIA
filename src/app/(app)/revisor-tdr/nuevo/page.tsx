@@ -43,12 +43,12 @@ export default async function NuevoRevisorTdrPage() {
               ¿Cómo funciona el revisor?
             </p>
             <p className="text-foreground/80 leading-relaxed">
-              Sube el PDF de tu <strong>TDR</strong> (servicios/consultorías) o{' '}
-              <strong>EETT</strong> (bienes/obras). A-LexIA va a auditar todo el documento
-              buscando vicios: 🔴 direccionamiento a marca, 🟠 personal desproporcionado,
-              🟡 ambigüedades, plazos insustentables, equipamiento restrictivo y más.
-              Cada hallazgo viene con cita literal del texto, sustento normativo y
-              recomendación concreta de corrección.
+              Sube tu <strong>TDR</strong> (servicios/consultorías) o{' '}
+              <strong>EETT</strong> (bienes/obras) en Word o PDF. A-LexIA audita todo el
+              documento buscando vicios: direccionamiento a marca, personal desproporcionado,
+              ambigüedades, plazos insustentables, equipamiento restrictivo y más. Después
+              comprueba cada hallazgo contra la normativa y te propone una versión mejorada;
+              si lo subiste en Word, con control de cambios sobre tu propio documento.
             </p>
           </div>
         </div>

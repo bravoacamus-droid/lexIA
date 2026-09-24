@@ -45,7 +45,7 @@ export default async function PortadaPage() {
       .limit(5),
     supabase
       .from('evaluations')
-      .select('id, title, status, created_at')
+      .select('id, title, status, created_at, mode')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(3),
@@ -81,6 +81,7 @@ export default async function PortadaPage() {
       id: e.id,
       title: e.title || 'Evaluación',
       status: e.status,
+      mode: e.mode as string | null,
       timestamp: e.created_at,
     })),
     ...(docs.data || []).map((d) => ({

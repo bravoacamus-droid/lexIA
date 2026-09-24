@@ -20,6 +20,10 @@ import {
 import { parseJsonLoose } from '@/lib/ai/json-suelto';
 import { textoDelWord } from '@/lib/evaluacion/mejora/control-de-cambios';
 import { origenDe } from '@/lib/evaluacion/mejora/fuente';
+import { evaluarBases } from '@/lib/evaluacion/bases/evaluar';
+import { leerBases } from '@/lib/evaluacion/bases/leer';
+import { buscadorDeSustento } from '@/lib/evaluacion/mejora/sustento';
+import { GENERATOR_MODEL_ID } from '@/lib/ai/gemini';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutos para todo el pipeline
@@ -43,7 +47,7 @@ type EvaluationItem = {
   sustento_normativo?: Array<{ norma: string; articulo?: string }>;
 };
 
-type EvalMode = 'committee' | 'self_review' | 'tdr_audit';
+type EvalMode = 'committee' | 'self_review' | 'tdr_audit' | 'bases_audit';
 
 interface TdrFinding {
   id: string;
@@ -109,6 +113,57 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
     .from('evaluations')
     .update({ status: 'processing' } as never)
     .eq('id', ev.id);
+
+  // ════════════════════════════════════════════════════════
+  // Evaluación de bases: cotejo con la bases estándar y revisión de la
+  // sección específica. Ver `src/lib/evaluacion/bases/`.
+  // ════════════════════════════════════════════════════════
+  if (mode === 'bases_audit') {
+    const inicio = Date.now();
+    const uso = { entrada: 0, salida: 0 };
+    try {
+      const leidas = await leerBases(admin, ev.bases_file_path);
+      const resultado = await evaluarBases({
+        texto: leidas.texto,
+        origen: leidas.origen,
+        buscarSustento: buscadorDeSustento(supabase),
+        alUsar: (u) => {
+          uso.entrada += u.entrada;
+          uso.salida += u.salida;
+        },
+      });
+      await supabase
+        .from('evaluations')
+        .update({ status: 'done', result: resultado as never, completed_at: new Date().toISOString() } as never)
+        .eq('id', ev.id);
+      void recordAiUsage({
+        userId: ev.user_id,
+        feature: 'evaluation_bases_audit',
+        model: GENERATOR_MODEL_ID,
+        inputTokens: uso.entrada,
+        outputTokens: uso.salida,
+        latencyMs: Date.now() - inicio,
+        metadata: { evaluation_id: ev.id, estandar: resultado.estandar.id, hallazgos: resultado.hallazgos.length },
+      });
+      return NextResponse.json({ ok: true, mode: 'bases_audit' });
+    } catch (err) {
+      const isOcrIssue = err instanceof PdfHasNoTextError;
+      const errorMsg = isOcrIssue ? PDF_OCR_INSTRUCTIONS : (err as Error)?.message?.slice(0, 500) || 'unknown';
+      console.error('[bases-audit] error:', errorMsg);
+      await supabase
+        .from('evaluations')
+        .update({
+          status: 'failed',
+          result: {
+            error: errorMsg,
+            error_code: isOcrIssue ? 'pdf_needs_ocr' : 'bases_audit_failed',
+            failed_at: new Date().toISOString(),
+          } as never,
+        } as never)
+        .eq('id', ev.id);
+      return NextResponse.json({ error: isOcrIssue ? 'pdf_needs_ocr' : 'bases_audit_failed', detail: errorMsg }, { status: isOcrIssue ? 422 : 500 });
+    }
+  }
 
   // ════════════════════════════════════════════════════════
   // Branch tdr_audit: pipeline distinto (un solo doc, sin ofertas)

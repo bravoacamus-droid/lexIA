@@ -7,10 +7,11 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { RelativeTime } from '@/components/ui/relative-time';
+import { rutaDeEvaluacion } from '@/lib/evaluacion/rutas';
 
 type ActivityItem =
   | { type: 'chat'; id: string; title: string; timestamp: string }
-  | { type: 'evaluation'; id: string; title: string; status: string; timestamp: string }
+  | { type: 'evaluation'; id: string; title: string; status: string; timestamp: string; mode?: string | null }
   | { type: 'document'; id: string; title: string; documentType: string; timestamp: string };
 
 interface Props {
@@ -67,7 +68,7 @@ function ActivityRow({ item }: { item: ActivityItem }) {
   if (item.type === 'evaluation') {
     return (
       <Link
-        href={`/evaluador/${item.id}`}
+        href={rutaDeEvaluacion(item.mode, item.id)}
         className="group flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-secondary transition-colors"
       >
         <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400">

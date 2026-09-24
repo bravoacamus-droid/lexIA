@@ -264,6 +264,46 @@ Cada cambio se puede dejar fuera con un interruptor antes de descargar.
 - **¿Te sirve el «Dice / Debe decir»** como forma del cuadro, o prefieres
   otra columna u otro orden?
 
+## 12 · La evaluación de bases
+
+Ya está en Evaluar › Evaluación de bases, para todos los perfiles. Se
+suben las bases (PDF, como se descargan del SEACE, o Word) y A-LexIA:
+
+1. **Identifica la bases estándar** que corresponde entre las diecinueve
+   del OECE. Con tus cuatro bases integradas (bienes, servicios,
+   consultoría de obra y obras) acertó las cuatro; si alguna vez se
+   equivoca, se cambia en pantalla y se vuelve a evaluar.
+2. **Coteja la Sección General texto por texto**, porque «no debe ser
+   modificada en ningún extremo, bajo sanción de nulidad». Con tus cuatro
+   bases: cero diferencias, como debe ser; y si se cambia «tres días
+   hábiles» por «un día hábil» o se borra una frase, lo detecta.
+3. **Revisa cada capítulo de la Sección Específica** contra el mismo
+   capítulo del estándar, con sus límites entre corchetes y sus
+   instrucciones: omisiones, modificaciones indebidas, exigencias no
+   previstas, restricciones injustificadas e inconsistencias. Cada
+   hallazgo cita el texto literal de las bases; lo que no se puede citar,
+   no se reporta.
+
+Se lee de dos maneras: **qué consultar u observar** (proveedor) o **qué
+corregir antes de publicar** (quien elabora o revisa las bases). El
+proveedor puede marcar hallazgos y llevarlos a un pliego de consultas y
+observaciones, con su escrito ya en borrador por tramos. Y hay informe en
+Word.
+
+En las bases del CPA 008-2026 (mantenimiento de vehículos del MEF) salen,
+entre otros: el taller exigido «dentro de un radio urbano no mayor a 7
+km» de la sede, la licencia de funcionamiento pedida para acreditar la
+infraestructura, el plazo que «continuará ejecutándose hasta agotar el
+monto», y las «otras penalidades» anunciadas sin su cuadro.
+
+- **Las bases estándar que usamos** son las que nos pasaste (carpeta «1.
+  BASES ESTÁNDAR»). Si el OECE publica una versión nueva, la Sección
+  General cambiaría y habría que actualizarlas. ¿Sabes si hay alguna
+  modificación reciente que debamos cargar?
+- **Una prueba que te pedimos:** evalúa unas bases que tú ya hayas
+  observado en un procedimiento real, y dinos qué encontró y qué se le
+  escapó. Es la mejor forma de afinar la revisión.
+
 ---
 
 ## Lo que ya está listo para que pruebes

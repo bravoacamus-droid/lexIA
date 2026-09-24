@@ -17,6 +17,7 @@ import type { ProfileRole } from '@/lib/auth/session';
 import { Companero } from '@/components/marca/companero';
 import { RelativeTime } from '@/components/ui/relative-time';
 import { cn } from '@/lib/utils';
+import { rutaDeEvaluacion } from '@/lib/evaluacion/rutas';
 import {
   Pagina,
   MigaDePan,
@@ -68,15 +69,13 @@ const PASOS: Paso[] = [
     numero: '02',
     titulo: 'Evaluación de bases',
     descripcion:
-      'Analiza las bases administrativas o integradas e identifica inconsistencias y aspectos que requieren atención.',
+      'Revisa las bases contra la bases estándar: omisiones, modificaciones indebidas, exigencias no previstas, restricciones injustificadas e inconsistencias.',
     icono: FileText,
-    // La revisión automática de las bases no está construida; lo que sí,
-    // y es a donde lleva la nota, es formular las consultas y
-    // observaciones que salen de esa revisión.
-    href: null,
+    // Lo que sale de evaluarlas se lleva a formular desde el propio
+    // resultado. Aquí no va nota con enlace: la tarjeta entera ya es un
+    // enlace, y un enlace dentro de otro rompe la hidratación.
+    href: '/evaluar/bases',
     llamada: 'Evaluar bases',
-    nota: 'Formulación de consultas y observaciones',
-    notaHref: '/evaluar/consultas',
   },
   {
     numero: '03',
@@ -170,18 +169,12 @@ export default async function EvaluarPage() {
           </header>
           <ul className="mt-3 divide-y divide-border">
             {recientes.map((e) => {
-              const esAuditoria = e.mode === 'tdr_audit';
+              // Cada modo tiene su pantalla y su icono.
+              const Icono = e.mode === 'tdr_audit' ? ScanSearch : e.mode === 'bases_audit' ? FileText : Users;
               return (
                 <li key={e.id}>
-                  <Link
-                    href={`${esAuditoria ? '/revisor-tdr' : '/evaluador'}/${e.id}`}
-                    className="group flex items-center gap-3 py-2.5"
-                  >
-                    {esAuditoria ? (
-                      <ScanSearch className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    ) : (
-                      <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    )}
+                  <Link href={rutaDeEvaluacion(e.mode as string, e.id)} className="group flex items-center gap-3 py-2.5">
+                    <Icono className="h-4 w-4 shrink-0 text-muted-foreground" />
                     <span className="min-w-0 flex-1 truncate text-[13.5px] group-hover:text-evaluar-600 dark:group-hover:text-evaluar-400">
                       {e.title || 'Evaluación sin título'}
                     </span>

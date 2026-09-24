@@ -16,15 +16,16 @@ const createSchema = z
       .optional()
       .default([]),
     mode: z
-      .enum(['committee', 'self_review', 'tdr_audit'])
+      .enum(['committee', 'self_review', 'tdr_audit', 'bases_audit'])
       .optional()
       .default('committee'),
   })
   .refine(
-    (v) => v.mode === 'tdr_audit' || (v.offer_files && v.offer_files.length >= 1),
+    (v) =>
+      v.mode === 'tdr_audit' || v.mode === 'bases_audit' || (v.offer_files && v.offer_files.length >= 1),
     {
       message:
-        'committee y self_review requieren al menos una oferta; tdr_audit no usa ofertas.',
+        'committee y self_review requieren al menos una oferta; tdr_audit y bases_audit no usan ofertas.',
       path: ['offer_files'],
     },
   );

@@ -46,6 +46,8 @@ export default async function EvaluatorListPage() {
     .from('evaluations')
     .select('id, title, status, offer_files, created_at, completed_at')
     .eq('user_id', user.id)
+    // Solo las del comité: las demás evaluaciones tienen su propia lista.
+    .eq('mode', 'committee')
     .order('created_at', { ascending: false })
     .limit(50);
 

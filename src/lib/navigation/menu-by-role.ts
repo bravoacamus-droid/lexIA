@@ -9,6 +9,7 @@ import {
   FileSignature,
   ClipboardCheck,
   ScanSearch,
+  FileText,
   FileSearch,
   ShieldCheck,
   Library,
@@ -233,6 +234,16 @@ export const MENU_SECTIONS: MenuSection[] = [
             description:
               'Detecta restricciones a la concurrencia, exigencias injustificadas, direccionamientos, contradicciones o riesgos de nulidad.',
             roles: ['entity', 'consultant'],
+            color: 'evaluar',
+          },
+          // Para todos: el proveedor la usa antes de consultar u observar;
+          // quien evalúa, como filtro antes de publicar.
+          {
+            label: 'Evaluación de bases',
+            href: '/evaluar/bases',
+            icon: FileText,
+            description:
+              'Detecta omisiones, modificaciones indebidas, exigencias no previstas, restricciones injustificadas e inconsistencias frente a la bases estándar.',
             color: 'evaluar',
           },
           {

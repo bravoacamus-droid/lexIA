@@ -13,7 +13,11 @@ const STAGES = [
   { label: 'Redactando resumen ejecutivo', duration: 8 },
 ];
 
-export function Processing() {
+/**
+ * El progreso de una evaluación. Las etapas por defecto son las de la
+ * evaluación de ofertas; cada evaluación puede pasar las suyas.
+ */
+export function Processing({ etapas = STAGES }: { etapas?: Array<{ label: string; duration: number }> } = {}) {
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -26,7 +30,7 @@ export function Processing() {
 
   // Distribute elapsed across stages by duration
   let acc = 0;
-  const totals = STAGES.map((s) => {
+  const totals = etapas.map((s) => {
     const before = acc;
     acc += s.duration;
     return { before, after: acc };
@@ -72,7 +76,7 @@ export function Processing() {
 
       {/* Stages */}
       <ul className="mt-8 max-w-md mx-auto space-y-2 text-left">
-        {STAGES.map((s, i) => {
+        {etapas.map((s, i) => {
           const isDone = elapsed >= totals[i].after;
           const isActive = !isDone && elapsed >= totals[i].before;
           return (

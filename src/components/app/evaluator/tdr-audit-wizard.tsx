@@ -82,7 +82,14 @@ export function TdrAuditWizard() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
-          <Processing />
+          <Processing
+            etapas={[
+              { label: 'Leyendo el requerimiento', duration: 6 },
+              { label: 'Buscando direccionamiento, ambigüedades y restricciones', duration: 30 },
+              { label: 'Clasificando los hallazgos por severidad', duration: 10 },
+              { label: 'Redactando el diagnóstico', duration: 8 },
+            ]}
+          />
         </motion.div>
       )}
 
