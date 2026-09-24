@@ -157,7 +157,7 @@ export function ConversationSidebar({ initialConversations }: Props) {
         <div className="flex items-center gap-2.5 border-b border-border px-3 py-3.5">
           <Isotipo alto={26} />
           <div className="min-w-0">
-            <p className="truncate text-[14px] font-bold tracking-tight">Chat con A-LexIA</p>
+            <p className="truncate text-[14px] font-bold tracking-tight">Pregunta a A-LexIA</p>
             <p className="text-[10.5px] leading-tight text-muted-foreground">
               IA especializada en contrataciones públicas
             </p>

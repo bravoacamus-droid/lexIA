@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { ChatEmpty } from '@/components/app/chat/chat-empty';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Chat con A-LexIA' };
+export const metadata = { title: 'Pregunta a A-LexIA' };
 
 interface Props {
   searchParams: { new?: string; q?: string };

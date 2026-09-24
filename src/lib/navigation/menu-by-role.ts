@@ -160,29 +160,32 @@ export const MENU_SECTIONS: MenuSection[] = [
         label: 'Consultar',
         href: '/consultar',
         icon: Search,
-        description: 'Resuelve tus dudas o encuentra normativa de contratación pública.',
+        description:
+          'Resuelve consultas sobre la Ley N.° 32069, su Reglamento y la normativa vinculada, con el sustento de la biblioteca.',
         color: 'consultar',
         corto: 'Consultar',
         hijos: [
           {
-            label: 'Chat con A-LexIA',
+            // El nombre es el del documento de estructura de César
+            // (23/09/2026): «Pregunta a A-LexIA: consultas mediante texto».
+            label: 'Pregunta a A-LexIA',
             href: '/chat',
             icon: MessageSquare,
-            description: 'Pregunta por escrito y recibe la respuesta con su sustento citado.',
+            description: 'Consulta por escrito y recibe la respuesta con el artículo aplicable y sus fuentes.',
             color: 'consultar',
           },
           {
             label: 'Habla con A-LexIA',
             href: '/llamadas',
             icon: Mic,
-            description: 'Consulta por voz, como si llamaras a un especialista.',
+            description: 'Consulta por voz, como si hablaras con un especialista.',
             color: 'consultar',
           },
           {
             label: 'Búsqueda avanzada',
             href: '/buscador',
             icon: SearchCode,
-            description: 'Combina hasta ocho términos y encuentra jurisprudencia al párrafo.',
+            description: 'Localiza normativa y criterios con palabras clave.',
             color: 'consultar',
           },
         ],
@@ -191,7 +194,7 @@ export const MENU_SECTIONS: MenuSection[] = [
         label: 'Generar',
         href: '/generar',
         icon: FilePlus2,
-        description: 'Crea requerimientos y documentos para todas las etapas de la contratación.',
+        description: 'Elabora requerimientos y documentos de las diferentes etapas de la contratación.',
         color: 'generar',
         corto: 'Generar',
         hijos: [
@@ -200,7 +203,7 @@ export const MENU_SECTIONS: MenuSection[] = [
             href: '/generador/requerimiento-plantilla',
             icon: ClipboardList,
             description:
-              'Arma el requerimiento sobre los quince formatos oficiales: el texto obligatorio va tal cual y A-LexIA redacta lo que depende de tu contratación.',
+              'Bienes, servicios, consultoría de obras y obras, para contratos menores y procedimientos de selección, con la estructura de las bases estándar.',
             roles: ['entity', 'consultant'],
             color: 'generar',
           },
@@ -209,7 +212,7 @@ export const MENU_SECTIONS: MenuSection[] = [
             href: '/generador',
             icon: FileSignature,
             description:
-              'Informes, requerimientos de área usuaria, consultas, observaciones, apelaciones y descargos.',
+              'Ampliaciones de plazo, adicionales, reducciones, complementarios, reconocimiento de obligaciones y liquidaciones, según tu rol.',
             color: 'generar',
           },
         ],
@@ -218,7 +221,8 @@ export const MENU_SECTIONS: MenuSection[] = [
         label: 'Evaluar',
         href: '/evaluar',
         icon: ClipboardCheck,
-        description: 'Analiza bases, requerimientos y ofertas de manera objetiva.',
+        description:
+          'Analiza documentos y actuaciones para detectar incumplimientos, restricciones, contradicciones o riesgos antes de continuar.',
         color: 'evaluar',
         corto: 'Evaluar',
         hijos: [
@@ -226,7 +230,8 @@ export const MENU_SECTIONS: MenuSection[] = [
             label: 'Evaluación de requerimiento',
             href: '/revisor-tdr',
             icon: ScanSearch,
-            description: 'Audita el TDR o las EETT antes de publicarlos: vicios y direccionamiento.',
+            description:
+              'Detecta restricciones a la concurrencia, exigencias injustificadas, direccionamientos, contradicciones o riesgos de nulidad.',
             roles: ['entity', 'consultant'],
             color: 'evaluar',
           },
@@ -234,7 +239,20 @@ export const MENU_SECTIONS: MenuSection[] = [
             label: 'Evaluación de ofertas',
             href: '/evaluador',
             icon: FileSearch,
-            description: 'Compara las bases con cada oferta y dictamina requisito por requisito.',
+            description:
+              'Verifica cada oferta frente a las bases, la normativa y los criterios aplicables, y prepara el acta.',
+            roles: ['entity', 'consultant'],
+            color: 'evaluar',
+          },
+          // Dos nombres para la misma pantalla. En el documento de César es
+          // la «Absolución de consultas y observaciones», para quien evalúa;
+          // al proveedor le toca el otro lado, formularlas.
+          {
+            label: 'Absolución de consultas y observaciones',
+            href: '/evaluar/consultas',
+            icon: MessagesSquare,
+            description:
+              'Prepara absoluciones estructuradas y sustentadas, como comité, jurado, DEC u oficial de compra.',
             roles: ['entity', 'consultant'],
             color: 'evaluar',
           },
@@ -242,15 +260,15 @@ export const MENU_SECTIONS: MenuSection[] = [
             label: 'Consultas y observaciones',
             href: '/evaluar/consultas',
             icon: MessagesSquare,
-            description:
-              'Formula consultas y observaciones a las bases, o absuélvelas como comité, con la estructura del formato oficial.',
+            description: 'Formula tus consultas y observaciones a las bases con la estructura del formato oficial.',
+            roles: ['provider'],
             color: 'evaluar',
           },
           {
             label: 'Revisión de mi oferta',
             href: '/revision-oferta',
             icon: ShieldCheck,
-            description: 'Audita tu propia oferta antes de presentarla.',
+            description: 'Revisa tu oferta antes de presentarla: omisiones, inconsistencias o incumplimientos.',
             roles: ['provider'],
             color: 'evaluar',
           },
@@ -261,7 +279,7 @@ export const MENU_SECTIONS: MenuSection[] = [
         href: '/biblioteca',
         icon: Library,
         description:
-          'Ley N.° 32069, su reglamento, opiniones, pronunciamientos, resoluciones del Tribunal, bases estándar y guías.',
+          'Ley N.° 32069 y su Reglamento, TUO de la Ley N.° 27444, opiniones, pronunciamientos, resoluciones del Tribunal, directivas, bases estándar y guías.',
         color: 'emerald',
         corto: 'Biblioteca',
       },

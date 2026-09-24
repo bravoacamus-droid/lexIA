@@ -231,7 +231,7 @@ export default async function SubscriptionPage() {
   }> = [
     {
       key: 'chat_message',
-      label: 'Chat con A-LexIA',
+      label: 'Pregunta a A-LexIA',
       icon: <MessageSquare className="h-4 w-4" />,
       used: usageThisMonth.chat_message,
       limit: tierDef.quotas.chat_message,

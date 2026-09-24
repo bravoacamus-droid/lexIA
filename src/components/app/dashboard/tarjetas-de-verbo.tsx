@@ -42,7 +42,7 @@ const ICONOS: Record<string, LucideIcon> = {
 
 /** Rótulos cortos para los atajos del pie: en la tarjeta no cabe el largo. */
 const CORTOS: Record<string, string> = {
-  '/chat': 'Chat con A-LexIA',
+  '/chat': 'Pregunta a A-LexIA',
   '/llamadas': 'Consulta por voz',
   '/buscador': 'Búsqueda avanzada',
   '/generador/requerimiento-plantilla': 'Requerimientos',
