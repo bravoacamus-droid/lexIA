@@ -51,7 +51,7 @@ export function fechaISO(v: string | null | undefined): string | null {
   return null;
 }
 
-export function determinarRegimen(ficha: Ficha): Regimen {
+export function determinarRegimen(ficha: Ficha, o: { contratoMenor?: boolean } = {}): Regimen {
   const convocatoria = fechaISO(ficha.fecha_convocatoria?.valor);
   if (convocatoria) {
     const nueva = convocatoria >= VIGENCIA_LEY_32069;
@@ -63,6 +63,17 @@ export function determinarRegimen(ficha: Ficha): Regimen {
     };
   }
   const suscripcion = fechaISO(ficha.fecha_suscripcion?.valor);
+  // Un contrato menor no viene de un procedimiento convocado: no hay fecha
+  // de convocatoria que preguntar. «Los contratos menores se rigen por
+  // esta ley» (numeral 3.1 del artículo 3 de la Ley N.° 32069); suscrito
+  // con ella vigente, es de ese régimen.
+  if (o.contratoMenor && suscripcion && suscripcion >= VIGENCIA_LEY_32069)
+    return {
+      clave: 'ley_32069',
+      texto: TEXTO_REGIMEN.ley_32069,
+      base: 'numeral 3.1 del artículo 3 de la Ley N.° 32069',
+      razon: `Es un contrato menor suscrito el ${fechaLarga(suscripcion)}, con la Ley N.° 32069 vigente: los contratos menores se rigen por esa ley y no derivan de un procedimiento convocado.`,
+    };
   // Un contrato suscrito antes del 22/04/2025 viene de una convocatoria
   // anterior: no hay duda. Uno suscrito después puede venir de una
   // convocatoria de antes, y eso lo decide solo la fecha de convocatoria.

@@ -36,6 +36,7 @@ const RECURRENTE = /(respetuosamente\s+digo|me\s+presento\s+y\s+expongo|ante\s+u
 const NOMENCLATURA = /^(ENTIDAD|TIPO\b|OBJETO|CUANT[ÍI]A|NOMENCLATURA|PROCEDIMIENTO|VALOR (ESTIMADO|REFERENCIAL))/i;
 
 const letra = (i: number) => String.fromCharCode(97 + (i % 26));
+const escritoDelPostor = (perfil: string) => perfil === 'postor';
 
 /** El formato de cada perfil del Generador libre. */
 export function formatoDelChat(perfil: string, markdown: string): Formato {
@@ -66,7 +67,22 @@ export function piezasDelChat(markdown: string, perfil: string): Pieza[] {
     '\n\n',
   );
   const entrada = markdownAPiezas(separado);
-  const escrito = perfil === 'postor';
+  // Los escritos de César no llevan título arriba: empiezan por el rótulo.
+  // El modelo lo pone igual («# RECURSO DE APELACIÓN…») aunque se le pida
+  // que no; en el Word se omite si va antes del rótulo.
+  if (escritoDelPostor(perfil)) {
+    const primero = entrada[0];
+    const siguiente = entrada[1];
+    if (
+      primero?.clase === 'titulo' &&
+      primero.rol &&
+      /^(RECURSO|ESCRITO|SUBSANACI|ABSOLUCI|DESCARGO|APELACI)/i.test(primero.texto) &&
+      siguiente?.clase === 'parrafo' &&
+      ROTULO_ESCRITO.test(siguiente.texto)
+    )
+      entrada.shift();
+  }
+  const escrito = escritoDelPostor(perfil);
   const salida: Pieza[] = [];
   let enRotulo = false;
 

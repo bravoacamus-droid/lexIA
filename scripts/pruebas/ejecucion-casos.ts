@@ -148,3 +148,78 @@ Periodo: del 1 al 31 de mayo de 2026.
 2. Se deja constancia de la aplicación de otras penalidades, conforme a la tabla del numeral 6.9 de los Términos de Referencia, literal f): «Entrega tardía del reporte mensual de supervisión: S/ 80.00 por cada día de retraso. Procedimiento de verificación: informe del área usuaria».
 3. El reporte mensual debió entregarse hasta el 5 de junio de 2026 y fue ingresado por mesa de partes el 7 de junio de 2026, con un retraso de dos (02) días calendario.
 4. En los periodos anteriores se aplicaron otras penalidades por S/ 1,200.00 (Informe N.° 00211-2026-MDVE/ABA). No se aplicó penalidad por mora.`;
+
+/** Un contrato menor de bienes, como el de uniformes de las actas de César. */
+export const CONTRATO_MENOR = `CONTRATO MENOR N.° 004-2026-MDVE/GAF
+
+Contratación menor (igual o inferior a ocho UIT) de bienes, bajo la Ley N.° 32069 y su Reglamento, aprobado por Decreto Supremo N.° 009-2025-EF.
+
+Conste por el presente documento el contrato menor que celebran la MUNICIPALIDAD DISTRITAL DE VILLA ESPERANZA, con RUC N.° 20123456789, y MULTISERVICIOS KATERIN E.I.R.L., con RUC N.° 20601234567, representada por su gerente general.
+
+CLÁUSULA PRIMERA: OBJETO. Adquisición de uniformes institucionales de verano e invierno 2026 para el personal: 12 sacos, 12 pantalones y 24 blusas, conforme a las especificaciones técnicas.
+CLÁUSULA SEGUNDA: MONTO. S/ 40,000.00 (cuarenta mil con 00/100 soles), a precios unitarios: saco S/ 300.00, pantalón S/ 180.00, blusa S/ 120.00, entre otros.
+CLÁUSULA TERCERA: PLAZO. Ciento veinte (120) días calendario, del 2 de marzo al 29 de junio de 2026.
+Suscrito en Villa Esperanza el 27 de febrero de 2026.`;
+
+/** El pedido de reducción del área usuaria en el contrato menor. */
+export const MEMO_REDUCCION_MENOR = `MEMORÁNDUM N.° 00129-2026-MDVE/SGRH
+
+Villa Esperanza, 10 de abril de 2026
+
+Asunto: Reducción de prestaciones del Contrato Menor N.° 004-2026-MDVE/GAF
+
+Se comunica que una servidora beneficiaria de los uniformes cesó en su cargo el 31 de marzo de 2026 por culminación de su contrato de suplencia. En consecuencia, se solicita reducir un (01) paquete de uniforme de dama: un saco (S/ 300.00), un pantalón (S/ 180.00) y dos blusas (S/ 240.00), por un total de S/ 720.00. Las prendas no han sido confeccionadas y la reducción no afecta la finalidad de dotar de uniformes al personal vigente.`;
+
+/** El informe de Abastecimiento que sustenta la reducción del contrato menor. */
+export const INFORME_DEC_REDUCCION_MENOR = `INFORME N.° 00140-2026-MDVE/GAF/ABA
+
+Villa Esperanza, 14 de abril de 2026
+
+PARA: Jefe de la Gerencia de Administración y Finanzas
+ASUNTO: Sustento técnico de la reducción de prestaciones del Contrato Menor N.° 004-2026-MDVE/GAF
+REFERENCIA: Memorándum N.° 00129-2026-MDVE/SGRH
+
+1. El Contrato Menor N.° 004-2026-MDVE/GAF, suscrito el 27 de febrero de 2026 con MULTISERVICIOS KATERIN E.I.R.L. por S/ 40,000.00, está en ejecución y los bienes aún no se entregan.
+2. La reducción de un paquete de uniforme (un saco, un pantalón y dos blusas) asciende a S/ 720.00, el 1.80 % del monto del contrato, y el nuevo monto contractual es S/ 39,280.00.
+3. La reducción recae sobre prestaciones futuras y divisibles, no afecta la finalidad del contrato y no aumenta el monto, por lo que procede formalizarla mediante acta suscrita por ambas partes y registrarla en la Pladicop, conforme al numeral 229.1 del artículo 229 del Reglamento.
+4. Se recomienda que el Jefe de la Gerencia de Administración y Finanzas, facultado para suscribir contratos menores por la Resolución de Alcaldía N.° 015-2026-MDVE, suscriba el acta de modificación.`;
+
+/** Los informes previos a la resolución de la ampliación de plazo. */
+export const INFORME_AU_AMPLIACION = `INFORME N.° 0152-2026-MDVE/SGSG
+
+Villa Esperanza, 18 de junio de 2026
+
+PARA: Subgerencia de Logística y Control Patrimonial
+ASUNTO: Informe técnico sobre la solicitud de ampliación de plazo del Contrato N.° 015-2026-MDVE/GAF
+
+1. Esta Subgerencia confirma que el Palacio Municipal y el Centro Cultural permanecieron cerrados del 20 de mayo al 4 de junio de 2026 por trabajos de remodelación dispuestos por la Subgerencia de Infraestructura, mediante Memorándum N.° 0311-2026-MDVE/SGI del 18 de mayo de 2026.
+2. Durante ese periodo el contratista no pudo prestar el servicio de limpieza en esos locales, que representan el 60 % de las áreas del contrato. El hecho no es imputable al contratista.
+3. Técnicamente, la paralización afectó dieciséis (16) días calendario del plazo de ejecución. Se recomienda atender la solicitud de ampliación por 16 días calendario.`;
+
+export const INFORME_DEC_AMPLIACION = `INFORME N.° 0233-2026-MDVE/SGLCP
+
+Villa Esperanza, 22 de junio de 2026
+
+PARA: Gerencia de Administración y Finanzas
+ASUNTO: Evaluación de la solicitud de ampliación de plazo N.° 01 del Contrato N.° 015-2026-MDVE/GAF
+
+1. El contratista presentó su solicitud mediante Carta N.° 027-2026-SGA/GG el 15 de junio de 2026, dentro de los diez días hábiles siguientes al término del hecho (4 de junio de 2026).
+2. El área usuaria, mediante Informe N.° 0152-2026-MDVE/SGSG, confirmó la paralización no imputable al contratista del 20 de mayo al 4 de junio de 2026 y su afectación de 16 días calendario.
+3. Procede aprobar la ampliación de plazo por dieciséis (16) días calendario, con lo que el plazo vence el 25 de agosto de 2026. Los gastos generales se reconocen solo si se acreditan.
+4. Se recomienda remitir a Asesoría Jurídica y que la Gerencia de Administración y Finanzas, como autoridad de la gestión administrativa, apruebe la ampliación mediante resolución.`;
+
+export const INFORME_LEGAL_AMPLIACION = `INFORME LEGAL N.° 0098-2026-MDVE/OAJ
+
+Villa Esperanza, 24 de junio de 2026
+
+A: Gerencia de Administración y Finanzas
+ASUNTO: Opinión legal sobre la ampliación de plazo N.° 01 del Contrato N.° 015-2026-MDVE/GAF
+
+Esta Oficina de Asesoría Jurídica opina que es legalmente procedente aprobar la ampliación de plazo por dieciséis (16) días calendario solicitada por SERVICIOS GENERALES ANDINOS S.A.C., al haberse acreditado el hecho no imputable con el Informe N.° 0152-2026-MDVE/SGSG y haberse presentado la solicitud en plazo, conforme al artículo 142 del Reglamento. La aprobación corresponde a la Gerencia de Administración y Finanzas, autoridad de la gestión administrativa, por delegación conferida mediante Resolución de Alcaldía N.° 015-2026-MDVE. Se remite el proyecto de resolución.`;
+
+/** Un adicional bien planteado para el memorándum del área usuaria. */
+export const CERTIFICACION_ADICIONAL = `CERTIFICACIÓN DE CRÉDITO PRESUPUESTARIO N.° 0452-2026
+
+Villa Esperanza, 20 de junio de 2026
+
+La Oficina de Planeamiento y Presupuesto certifica la existencia de crédito presupuestario por S/ 30,000.00 (treinta mil con 00/100 soles), en la específica de gasto 2.3.2.7.11.99, para financiar la prestación adicional del servicio de limpieza y desinfección del Contrato N.° 015-2026-MDVE/GAF, por la ampliación del horario de atención del Palacio Municipal (turno tarde) del 1 de julio al 9 de agosto de 2026.`;

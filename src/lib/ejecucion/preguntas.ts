@@ -40,7 +40,6 @@ interface Regla extends PreguntaDecisiva {
 const respondida = (e: EstadoParaPreguntar, id: string) => (e.respuestas[id] ?? '').trim().length > 0;
 /** Solo se calculan otras penalidades: las preguntas de la mora sobran. */
 const soloOtras = (e: EstadoParaPreguntar) => /^\s*otras/i.test(e.respuestas.tipo_penalidad ?? '');
-const hayMonto = (e: EstadoParaPreguntar, re: RegExp) => e.montos.some((m) => re.test(m.concepto));
 
 const REGLAS: Regla[] = [
   {
@@ -122,7 +121,12 @@ const REGLAS: Regla[] = [
     texto: '¿Cuál es el monto de las prestaciones que se reducen?',
     porQue: 'La reducción no puede superar el 25 % del monto del contrato original.',
     cambia: ['procedencia', 'monto'],
-    resuelta: (e) => respondida(e, 'monto_reduccion') || hayMonto(e, /reduc/i),
+    // Si el monto está en un documento, el diagnóstico lo toma de ahí con
+    // su cita y llega como respuesta; si no, se pregunta. Antes bastaba con
+    // que la lectura viera un monto de «reducción» para no preguntarlo, y
+    // entonces no se preguntaba ni se calculaba (prueba en producción,
+    // 27/09/2026).
+    resuelta: (e) => respondida(e, 'monto_reduccion'),
   },
   // ── Complementario ──
   {
@@ -131,7 +135,7 @@ const REGLAS: Regla[] = [
     texto: '¿Cuál es el monto previsto de la contratación complementaria?',
     porQue: 'No puede superar el 30 % del monto del contrato original.',
     cambia: ['procedencia', 'monto'],
-    resuelta: (e) => respondida(e, 'monto_complementario') || hayMonto(e, /complementari/i),
+    resuelta: (e) => respondida(e, 'monto_complementario'),
   },
   // ── Suspensión ──
   {

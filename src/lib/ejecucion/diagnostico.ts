@@ -109,7 +109,8 @@ export function prepararCaso(d: {
   const { ficha, contradicciones } = reconstruirFicha(d.documentos, d.fichaUsuario);
   const respuestas = Object.fromEntries(d.respuestas.map((r) => [r.preguntaId, r.respuesta]));
   const tipo = tipoDesdeTexto(ficha.tipo_contratacion?.valor) ?? tipoDesdeTexto(respuestas.tipo_contratacion);
-  const regimen = determinarRegimen(ficha);
+  const contratoMenor = esContratoMenor(ficha, [d.pedido, ...Object.values(respuestas)]);
+  const regimen = determinarRegimen(ficha, { contratoMenor });
   const contexto: Contexto = {
     perfil: d.perfil,
     tipo,
@@ -117,7 +118,7 @@ export function prepararCaso(d: {
     supervisado: ficha.supervision?.valor ? !/^no\b|sin supervisi/i.test(ficha.supervision.valor) : null,
     regimen: regimen.clave,
     respuestas,
-    contratoMenor: esContratoMenor(ficha, [d.pedido, ...Object.values(respuestas)]),
+    contratoMenor,
   };
   const hoy = d.hoy ?? hoyISO();
   const cargados = d.documentos.filter((x) => x.origen === 'cargado' && x.lectura === 'leido');

@@ -13,7 +13,8 @@ import { documentoADocx, documentoEnMarkdown } from '../../src/lib/ejecucion/doc
 import { piezasDelApartado, piezasDelDocumento } from '../../src/lib/ejecucion/plantillas';
 import { documentoRecomendado, type Contexto } from '../../src/lib/ejecucion/matriz';
 import { apartadosDe } from '../../src/lib/ejecucion/redaccion';
-import { esContratoMenor } from '../../src/lib/ejecucion/regimen';
+import { determinarRegimen, esContratoMenor } from '../../src/lib/ejecucion/regimen';
+import { siguientePregunta } from '../../src/lib/ejecucion/preguntas';
 import { formatoDelChat, piezasDelChat } from '../../src/lib/documentos/forma-del-chat';
 import type { Perfil } from '../../src/lib/ejecucion/catalogo';
 import type { BorradorDeDocumento, Ficha } from '../../src/lib/ejecucion/tipos';
@@ -178,6 +179,28 @@ async function xmlDelWord(b: BorradorDeDocumento, perfil: Perfil): Promise<strin
   comprobar('«contratos menores» en el pedido', esContratoMenor({}, ['modificación de contratos menores en SUNARP']));
   comprobar('un concurso público no lo es', !esContratoMenor({ procedimiento: { valor: 'Concurso Público N.° 007-2026' } }));
 
+  // Prueba en producción (27/09): a un contrato menor se le preguntaba la
+  // fecha de convocatoria, que no tiene.
+  const rm = determinarRegimen({ fecha_suscripcion: { valor: '2026-02-27' } }, { contratoMenor: true });
+  comprobar('contrato menor suscrito con la Ley N.° 32069 vigente: régimen resuelto, sin convocatoria', rm.clave === 'ley_32069', rm);
+  comprobar('un contrato que no es menor sigue dependiendo de la convocatoria', determinarRegimen({ fecha_suscripcion: { valor: '2026-02-27' } }).clave === 'por_determinar');
+  // Y el monto de la reducción: si no llegó como dato del documento, se
+  // pregunta, aunque la lectura haya visto un monto de «reducción».
+  const prRed = siguientePregunta({
+    actuacion: 'reduccion',
+    perfil: 'aga',
+    tipo: 'bienes',
+    regimen: 'ley_32069',
+    ficha: {},
+    respuestas: { delegacion: 'No' },
+    clases: new Set(['delegacion']),
+    hechoIdentificado: true,
+    hechoAcreditado: true,
+    montos: [{ concepto: 'monto de la reducción', monto: 720 }],
+    hayFechaSolicitud: false,
+  });
+  comprobar('el monto de la reducción se pregunta si no llegó con su cita', prRed?.id === 'monto_reduccion', prRed);
+
   console.log('\nApartados según la actuación');
   comprobar('penalidad: antecedentes, análisis y conclusión', apartadosDe('informe_dec', 'penalidad').join('|') === 'ANTECEDENTES|ANÁLISIS|CONCLUSIÓN');
   comprobar('ampliación de plazo: sin base legal', !apartadosDe('informe_dec', 'ampliacion_plazo').includes('BASE LEGAL'));
@@ -225,6 +248,18 @@ async function xmlDelWord(b: BorradorDeDocumento, perfil: Perfil): Promise<strin
     'no se pierde ninguna fila del cuadro (el caso real del chat: «TIPO Y NÚMERO…» y cabecera «DATOS DEL PROCEDIMIENTO»)',
     nom2?.clase === 'cuadro' && nom2.filas.length === 4 && nom2.filas[1][0].texto.startsWith('TIPO Y NÚMERO'),
     esc2,
+  );
+  // Lo que devolvió el chat en producción (27/09): título arriba y el
+  // rótulo en mayúsculas.
+  const esc3 = piezasDelChat(
+    '# RECURSO DE APELACIÓN CONTRA LA EVALUACIÓN DE OFERTAS\n\n**EXPEDIENTE N.° :** [COMPLETAR]  \n**ESCRITO N.° :** 001-2026  \n**SUMILLA :** Interpongo recurso de apelación.\n\n---\n\n**SEÑORES DE LA MUNICIPALIDAD**',
+    'postor',
+  );
+  comprobar('el escrito no lleva el título que el modelo pone arriba', esc3[0]?.clase === 'rotulo', esc3);
+  comprobar('el rótulo en mayúsculas también se reconoce', esc3.filter((p) => p.clase === 'rotulo').length === 3, esc3);
+  comprobar(
+    'otro perfil conserva su título',
+    piezasDelChat('# INFORME N° 1\n\n**PARA:** x', 'dec')[0]?.clase === 'titulo',
   );
   comprobar('el escrito va en Tw Cen MT 12', formatoDelChat('postor', '').fuente === 'Tw Cen MT' && formatoDelChat('postor', '').tamano === 24);
   comprobar('el acta de la AGA, en tamaño carta', formatoDelChat('aga', '# ACTA DE MODIFICACIÓN AL CONTRATO N.° 1').pagina.ancho === 12240);
