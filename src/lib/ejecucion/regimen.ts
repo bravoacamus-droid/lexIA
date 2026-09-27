@@ -84,6 +84,16 @@ export function determinarRegimen(ficha: Ficha): Regimen {
   };
 }
 
+/**
+ * Si el contrato es un contrato menor, por lo que dicen la ficha, las
+ * respuestas o el pedido. Solo por texto: un monto bajo no basta para
+ * afirmarlo, porque un ítem de un procedimiento también puede serlo.
+ */
+export function esContratoMenor(ficha: Ficha, otros: string[] = []): boolean {
+  const textos = [ficha.procedimiento?.valor, ficha.numero_contrato?.valor, ...otros].filter(Boolean).join(' · ');
+  return /contrat(?:os?|aci[oó]n(?:es)?)\s+menor(?:es)?/i.test(textos);
+}
+
 // ── Fechas ───────────────────────────────────────────────────────────
 
 const MESES = [

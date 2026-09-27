@@ -41,7 +41,13 @@ export function piezasAMarkdown(piezas: Pieza[]): string {
         else partes.push(`${'#'.repeat(Math.min(p.nivel + 2, 6))} ${p.numero ? `${p.numero} ` : ''}${p.texto}`);
         break;
       case 'parrafo':
-        partes.push(p.texto);
+        partes.push(p.cita ? `> *${p.texto}*` : p.numero ? `${p.numero} ${p.texto}` : p.texto);
+        break;
+      case 'rotulo':
+        partes.push([`**${p.etiqueta.toUpperCase()}:** ${p.lineas[0] ?? ''}`, ...p.lineas.slice(1)].join('  \n'));
+        break;
+      case 'raya':
+        partes.push('---');
         break;
       case 'campo':
         partes.push(`**${p.etiqueta.replace(/:$/, '')}:** ${p.pendiente ? `**[PENDIENTE: ${p.etiqueta}]**` : p.valor}`);

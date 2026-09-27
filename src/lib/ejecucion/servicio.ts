@@ -198,7 +198,7 @@ export async function redactar(
       nivel,
     };
     const clase =
-      borrador.tipo === 'informe_tecnico'
+      borrador.tipo === 'informe_tecnico' || borrador.tipo === 'memorandum'
         ? 'informe_area_usuaria'
         : borrador.tipo === 'informe_dec'
           ? 'informe_dec'

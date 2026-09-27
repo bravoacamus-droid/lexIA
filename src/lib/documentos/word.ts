@@ -41,7 +41,7 @@ import {
   VerticalAlign,
   WidthType,
 } from 'docx';
-import type { CeldaCuadro, MarcaDePieza, Pieza, PiezaCuadro, PiezaTabla } from './piezas';
+import type { CeldaCuadro, MarcaDePieza, Pieza, PiezaCuadro, PiezaParrafo, PiezaTabla } from './piezas';
 
 // ── Los formatos ─────────────────────────────────────────────────────
 
@@ -76,6 +76,21 @@ export interface Formato {
    * fila de cuatro páginas pegada a otra no cabe en ninguna.
    */
   pegarTitulos: boolean;
+  /** La letra del documento. Arial si no se dice otra. */
+  fuente?: string;
+  /**
+   * La letra y el tamaño de las citas textuales. En los informes de la
+   * SUNARP, el cuerpo va en Verdana 9 y el artículo citado en Times New
+   * Roman cursiva 10.
+   */
+  fuenteCita?: string;
+  tamanoCita?: number;
+  /**
+   * La cabecera de los cuadros en azul oscuro con letra blanca, como los
+   * de los informes de penalidad y las actas de modificación de César, en
+   * vez del gris azulado de los requerimientos.
+   */
+  cabeceraOscura?: boolean;
 }
 
 const A4 = { ancho: 11906, alto: 16838 };
@@ -155,9 +170,116 @@ export const FORMATO_DOCUMENTO: Formato = {
   pegarTitulos: true,
 };
 
+/**
+ * Los documentos de la ejecución contractual, con las medidas de los
+ * modelos que César mandó el 27/09/2026 (expedientes reales de la Zona
+ * Registral N.° XIV de la SUNARP). Cada unidad escribe con su letra.
+ */
+
+/**
+ * El informe de la DEC —Abastecimiento—: Verdana 9, 2 cm a los lados,
+ * los «1.1» colgados a 1 cm, citas en Times New Roman cursiva y los
+ * cuadros en Verdana 8 con la cabecera azul oscuro.
+ */
+export const FORMATO_INFORME_DEC: Formato = {
+  pagina: A4,
+  margenes: { arriba: 1417, abajo: 1417, izquierda: 1134, derecha: 1077 },
+  tamano: 18,
+  tamanoTabla: 16,
+  sangrias: [0, 567, 1134, 1701],
+  maqueta: 'normal',
+  huecosEnRojo: true,
+  pegarTitulos: true,
+  fuente: 'Verdana',
+  fuenteCita: 'Times New Roman',
+  tamanoCita: 20,
+  cabeceraOscura: true,
+};
+
+/** El informe legal de Asesoría Jurídica: Arial 10, 3 cm a la izquierda. */
+export const FORMATO_INFORME_LEGAL: Formato = {
+  pagina: A4,
+  margenes: { arriba: 1417, abajo: 1417, izquierda: 1701, derecha: 1417 },
+  tamano: 20,
+  tamanoTabla: 18,
+  sangrias: [0, 567, 1134, 1701],
+  maqueta: 'normal',
+  huecosEnRojo: true,
+  pegarTitulos: true,
+  fuente: 'Arial',
+  fuenteCita: 'Arial',
+  tamanoCita: 19,
+  cabeceraOscura: true,
+};
+
+/** La resolución: Arial 10, 3,2 cm a la izquierda y 2,5 a la derecha. */
+export const FORMATO_RESOLUCION: Formato = {
+  ...FORMATO_INFORME_LEGAL,
+  margenes: { arriba: 1417, abajo: 1417, izquierda: 1814, derecha: 1417 },
+};
+
+/** El memorándum del área usuaria: Arial 11, 2,5 cm y 2,1 cm. */
+export const FORMATO_MEMORANDUM: Formato = {
+  pagina: A4,
+  margenes: { arriba: 1417, abajo: 1417, izquierda: 1417, derecha: 1191 },
+  tamano: 22,
+  tamanoTabla: 18,
+  sangrias: [0, 425, 850, 1275],
+  maqueta: 'normal',
+  huecosEnRojo: true,
+  pegarTitulos: true,
+  fuente: 'Arial',
+  fuenteCita: 'Arial',
+  tamanoCita: 20,
+  cabeceraOscura: true,
+};
+
+/**
+ * El acta de modificación de un contrato menor: tamaño carta, 3,75 cm
+ * arriba, 3 y 2,5 a los lados, Verdana 9; los romanos a 0,75 cm y los
+ * «1.1» a 1,75 cm.
+ */
+export const FORMATO_ACTA_MODIFICACION: Formato = {
+  pagina: CARTA,
+  margenes: { arriba: 2126, abajo: 1417, izquierda: 1701, derecha: 1417 },
+  tamano: 18,
+  tamanoTabla: 16,
+  sangrias: [0, 425, 992, 1560],
+  maqueta: 'normal',
+  huecosEnRojo: true,
+  pegarTitulos: true,
+  fuente: 'Verdana',
+  fuenteCita: 'Times New Roman',
+  tamanoCita: 20,
+  cabeceraOscura: true,
+};
+
+/**
+ * Los escritos de apelación de César: A4, 3,5 cm arriba y abajo, 3 y 2,5
+ * a los lados, Tw Cen MT 12, las citas en Times New Roman cursiva, sin
+ * número de página. El rótulo y el recurrente, corridos a 5,5 cm.
+ */
+export const FORMATO_ESCRITO: Formato = {
+  pagina: A4,
+  margenes: { arriba: 1984, abajo: 1984, izquierda: 1701, derecha: 1417 },
+  tamano: 24,
+  tamanoTabla: 22,
+  sangrias: [0, 425, 1134, 1843],
+  maqueta: 'normal',
+  huecosEnRojo: true,
+  pegarTitulos: true,
+  fuente: 'Tw Cen MT',
+  fuenteCita: 'Times New Roman',
+  tamanoCita: 24,
+};
+
 // ── Constantes de la casa ────────────────────────────────────────────
 
 const FUENTE = 'Arial';
+/** Dónde empiezan el rótulo y el recurrente de un escrito: 5,5 cm. */
+const DESPLAZADO = 3118;
+/** La cabecera de los cuadros de los informes de la SUNARP. */
+const AZUL_OSCURO = '0E2841';
 /** El gris azulado de las cabeceras y de las etiquetas. */
 const GRIS = 'D5DCE4';
 /** El crema con que el acta marca el dato de una ficha. */
@@ -183,6 +305,8 @@ const MARGEN_CELDA = { top: 40, bottom: 40, left: 108, right: 108 };
 interface Estilo {
   bold?: boolean;
   italics?: boolean;
+  underline?: Record<string, never>;
+  font?: string;
   color?: string;
   size?: number;
   highlight?: (typeof HighlightColor)[keyof typeof HighlightColor];
@@ -197,9 +321,11 @@ type Bloque = Paragraph | Table;
  */
 class Compositor {
   readonly anchoTexto: number;
+  readonly fuente: string;
 
   constructor(readonly f: Formato) {
     this.anchoTexto = f.pagina.ancho - f.margenes.izquierda - f.margenes.derecha;
+    this.fuente = f.fuente ?? FUENTE;
   }
 
   sangria(nivel: number): number {
@@ -226,19 +352,28 @@ class Compositor {
   runs(texto: string, base: Estilo = {}): TextRun[] {
     const salida: TextRun[] = [];
     const nuevo = (t: string, e: Estilo) =>
-      new TextRun({ text: t, font: FUENTE, size: this.f.tamano, ...base, ...e });
+      new TextRun({ text: t, font: this.fuente, size: this.f.tamano, ...base, ...e });
     // Primero las negritas y las cursivas, y dentro de cada trozo los
     // huecos. Al revés —como estaba— una negrita que contiene un hueco,
     // «**CARTA N.° [●]-[AÑO]**», quedaba partida y los asteriscos salían
     // impresos en la carta.
     const trozos: Array<{ texto: string; estilo: Estilo }> = [];
-    const marcas = /(\*\*[^*]+\*\*)|(\*[^*]+\*)/g;
+    // «***negrita cursiva***», «**negrita con *cursiva* dentro**» —la
+    // «**Primera Pretensión *(Principal)*:**» de los escritos de César— y
+    // «*cursiva*». Un asterisco suelto, «(*)», queda como está.
+    const marcas = /(\*\*\*[^*]+\*\*\*)|(\*\*(?:[^*]|\*[^*\s][^*]*\*)+?\*\*)|(\*[^*\s][^*]*\*)/g;
     let desde = 0;
     let m: RegExpExecArray | null;
     while ((m = marcas.exec(texto))) {
       if (m.index > desde) trozos.push({ texto: texto.slice(desde, m.index), estilo: {} });
-      if (m[1]) trozos.push({ texto: m[1].slice(2, -2), estilo: { bold: true } });
-      else trozos.push({ texto: m[2].slice(1, -1), estilo: { italics: true } });
+      if (m[1]) trozos.push({ texto: m[1].slice(3, -3), estilo: { bold: true, italics: true } });
+      else if (m[2]) {
+        for (const parte of m[2].slice(2, -2).split(/(\*[^*]+\*)/)) {
+          if (!parte) continue;
+          if (/^\*[^*]+\*$/.test(parte)) trozos.push({ texto: parte.slice(1, -1), estilo: { bold: true, italics: true } });
+          else trozos.push({ texto: parte, estilo: { bold: true } });
+        }
+      } else trozos.push({ texto: m[3].slice(1, -1), estilo: { italics: true } });
       desde = m.index + m[0].length;
     }
     if (desde < texto.length) trozos.push({ texto: texto.slice(desde), estilo: {} });
@@ -285,16 +420,109 @@ class Compositor {
     });
   }
 
-  titulo(numero: string | undefined, texto: string, nivel: number): Paragraph {
+  /**
+   * Un párrafo del cuerpo con su forma: numerado —«3.10» colgado y el
+   * texto alineado detrás—, cita textual sangrada por los dos lados, o
+   * con sangría de primera línea como los «Que, …» de una resolución.
+   */
+  parrafoDe(p: PiezaParrafo, nivel: number): Paragraph {
+    const sangria = p.desplazado ? DESPLAZADO : p.margen ? 0 : this.sangria(nivel);
+    if (p.cita) {
+      return new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
+        indent: { left: sangria + 567, right: 567 },
+        spacing: { after: 120, line: 240 },
+        children: this.runs(p.texto, {
+          italics: true,
+          font: this.f.fuenteCita ?? this.fuente,
+          size: this.f.tamanoCita ?? this.f.tamano,
+        }),
+      });
+    }
+    if (p.numero) {
+      // El numeral cuelga donde empieza el nivel anterior y el texto
+      // arranca donde el del apartado: «1.1» bajo el «I.».
+      const colgante = Math.max(567, this.colgante(nivel));
+      const izquierda = Math.max(sangria, colgante);
+      return new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
+        indent: { left: izquierda, hanging: colgante },
+        tabStops: [{ type: TabStopType.LEFT, position: izquierda }],
+        spacing: { after: 120, line: 240 },
+        children: this.runs(`${p.numero}\t${p.texto}`),
+      });
+    }
+    if (p.sangriaPrimera) {
+      return new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
+        indent: { left: sangria, firstLine: 709 },
+        spacing: { after: 120, line: 240 },
+        children: this.runs(p.texto),
+      });
+    }
+    return this.parrafo(p.texto, sangria, {}, p.alineacion ?? 'justificado', p.pegado);
+  }
+
+  /**
+   * «PARA       : **Nombre**», con el valor en una o más líneas. La
+   * etiqueta en negrita, los dos puntos en columna y las líneas que
+   * siguen alineadas con el valor.
+   */
+  rotulo(etiqueta: string, lineas: string[], desplazado = false): Paragraph[] {
+    // El rótulo de un escrito empieza a 5,5 cm y su valor a 9,5 cm.
+    const base = desplazado ? DESPLAZADO : 0;
+    const dosPuntos = base + (desplazado ? 2041 : 1985);
+    const valor = base + (desplazado ? 2268 : 2268);
+    const [primera, ...resto] = lineas.length ? lineas : [''];
+    return [
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        indent: { left: valor, hanging: valor - base },
+        tabStops: [
+          { type: TabStopType.LEFT, position: dosPuntos },
+          { type: TabStopType.LEFT, position: valor },
+        ],
+        spacing: { after: resto.length ? 0 : 120, line: 240 },
+        children: [
+          ...this.runs(desplazado ? etiqueta : etiqueta.toUpperCase(), { bold: true }),
+          ...this.runs('\t:\t'),
+          ...this.runs(primera),
+        ],
+      }),
+      ...resto.map(
+        (l, i) =>
+          new Paragraph({
+            alignment: AlignmentType.LEFT,
+            indent: { left: valor },
+            spacing: { after: i === resto.length - 1 ? 120 : 0, line: 240 },
+            children: this.runs(l),
+          }),
+      ),
+    ];
+  }
+
+  /** La raya que cierra el rótulo, de margen a margen. */
+  raya(): Paragraph {
+    return new Paragraph({
+      border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: '000000', space: 1 } },
+      spacing: { after: 240, line: 240 },
+      children: [],
+    });
+  }
+
+  titulo(numero: string | undefined, texto: string, nivel: number, subrayado = false): Paragraph {
     const izquierda = this.sangria(nivel);
     const colgante = this.colgante(nivel);
+    const estilo: Estilo = subrayado ? { bold: true, underline: {} } : { bold: true };
     return new Paragraph({
       keepNext: this.f.pegarTitulos,
       alignment: AlignmentType.LEFT,
       indent: numero ? { left: izquierda, hanging: colgante } : { left: izquierda },
       tabStops: [{ type: TabStopType.LEFT, position: izquierda }],
       spacing: { before: nivel <= 1 ? 240 : 160, after: 120, line: 240 },
-      children: this.runs(numero ? `${numero}\t${texto}` : texto, { bold: true }),
+      children: numero
+        ? [...this.runs(`${numero}\t`, { bold: true }), ...this.runs(texto, estilo)]
+        : this.runs(texto, estilo),
     });
   }
 
@@ -308,14 +536,14 @@ class Compositor {
         tabStops: [{ type: TabStopType.LEFT, position: sangria + colgante }],
         spacing: { after: 60, line: 240 },
         children: m
-          ? [new TextRun({ text: `${m}\t`, font: FUENTE, size: this.f.tamano }), ...this.runs(el)]
+          ? [new TextRun({ text: `${m}\t`, font: this.fuente, size: this.f.tamano }), ...this.runs(el)]
           : this.runs(el),
       });
     });
   }
 
-  celda(hijos: Bloque[], ancho: number, o: { gris?: boolean; crema?: boolean; columnas?: number } = {}) {
-    const fondo = o.gris ? GRIS : o.crema ? CREMA : undefined;
+  celda(hijos: Bloque[], ancho: number, o: { gris?: boolean; crema?: boolean; oscuro?: boolean; columnas?: number } = {}) {
+    const fondo = o.oscuro ? AZUL_OSCURO : o.gris ? GRIS : o.crema ? CREMA : undefined;
     return new TableCell({
       width: { size: ancho, type: WidthType.DXA },
       columnSpan: o.columnas && o.columnas > 1 ? o.columnas : undefined,
@@ -329,7 +557,7 @@ class Compositor {
   /** El texto de una celda: cada salto de línea, un párrafo. */
   textoDeCelda(
     texto: string,
-    o: { negrita?: boolean; centrado?: boolean; tamano?: number } = {},
+    o: { negrita?: boolean; centrado?: boolean; tamano?: number; blanco?: boolean } = {},
   ): Paragraph[] {
     return texto.split('\n').map(
       (l) =>
@@ -339,6 +567,7 @@ class Compositor {
           children: this.runs(l, {
             size: o.tamano ?? this.f.tamanoTabla,
             ...(o.negrita ? { bold: true } : {}),
+            ...(o.blanco ? { color: 'FFFFFF' } : {}),
           }),
         }),
     );
@@ -353,7 +582,9 @@ class Compositor {
     const cabecera = new TableRow({
       tableHeader: true,
       children: t.columnas.map((c, j) =>
-        this.celda(this.textoDeCelda(c, { negrita: true, centrado: true }), anchos[j], { gris: true }),
+        this.f.cabeceraOscura
+          ? this.celda(this.textoDeCelda(c, { negrita: true, centrado: true, blanco: true }), anchos[j], { oscuro: true })
+          : this.celda(this.textoDeCelda(c, { negrita: true, centrado: true }), anchos[j], { gris: true }),
       ),
     });
     // Un cuadro exigido sale aunque esté vacío, con una fila para
@@ -478,11 +709,15 @@ class Compositor {
    */
   firmas(personas: Array<{ nombre?: string; cargo?: string }>): Bloque[] {
     const gente = personas.length > 0 ? personas : [{}, {}, {}];
+    // De a tres, o de a dos si son dos: el acta con la Entidad y el
+    // contratista salía con una tercera columna «Nombres y apellidos» que
+    // no firmaba nadie.
+    const porFila = gente.length === 2 ? 2 : 3;
     const salida: Bloque[] = [new Paragraph({ spacing: { after: 240 }, children: [] })];
-    for (let i = 0; i < gente.length; i += 3) {
-      const grupo = gente.slice(i, i + 3);
-      while (grupo.length < 3) grupo.push({});
-      const ancho = Math.floor(this.anchoTexto / 3);
+    for (let i = 0; i < gente.length; i += porFila) {
+      const grupo = gente.slice(i, i + porFila);
+      while (grupo.length < porFila) grupo.push({});
+      const ancho = Math.floor(this.anchoTexto / porFila);
       const fila = (texto: (p: { nombre?: string; cargo?: string }) => string, gris: boolean, alta = false) =>
         new TableRow({
           height: alta ? { value: 1200, rule: HeightRule.ATLEAST } : undefined,
@@ -493,8 +728,8 @@ class Compositor {
         });
       salida.push(
         new Table({
-          width: { size: ancho * 3, type: WidthType.DXA },
-          columnWidths: [ancho, ancho, ancho],
+          width: { size: ancho * porFila, type: WidthType.DXA },
+          columnWidths: grupo.map(() => ancho),
           layout: TableLayoutType.FIXED,
           borders: BORDES_TABLA,
           rows: [
@@ -509,11 +744,11 @@ class Compositor {
     return salida;
   }
 
-  /** La firma de una carta, centrada bajo su línea. */
-  firma(nombre: string, cargo?: string, entidad?: string): Bloque[] {
+  /** La firma de una carta, centrada bajo su línea; la de un informe, a la izquierda. */
+  firma(nombre: string, cargo?: string, entidad?: string, izquierda = false): Bloque[] {
     const linea = (texto: string, estilo: Estilo, antes = 0) =>
       new Paragraph({
-        alignment: AlignmentType.CENTER,
+        alignment: izquierda ? AlignmentType.LEFT : AlignmentType.CENTER,
         keepNext: true,
         spacing: { before: antes, after: 0, line: 240 },
         children: this.runs(texto, estilo),
@@ -554,10 +789,16 @@ class Compositor {
         case 'titulo':
           if (p.rol) break;
           if (p.numero) nivel = p.nivel;
-          salida.push(this.titulo(p.numero, p.texto, p.numero ? p.nivel : nivel));
+          salida.push(this.titulo(p.numero, p.texto, p.numero ? p.nivel : nivel, p.subrayado));
           break;
         case 'parrafo':
-          salida.push(this.parrafo(p.texto, sangria(), {}, p.alineacion ?? 'justificado', p.pegado));
+          salida.push(this.parrafoDe(p, nivel));
+          break;
+        case 'rotulo':
+          salida.push(...this.rotulo(p.etiqueta, p.lineas, p.desplazado));
+          break;
+        case 'raya':
+          salida.push(this.raya());
           break;
         case 'campo':
           salida.push(
@@ -598,7 +839,7 @@ class Compositor {
           salida.push(...this.firmas(p.personas));
           break;
         case 'firma':
-          salida.push(...this.firma(p.nombre, p.cargo, p.entidad));
+          salida.push(...this.firma(p.nombre, p.cargo, p.entidad, p.alineacion === 'izquierda'));
           break;
       }
     }
@@ -814,7 +1055,7 @@ export async function piezasADocx(piezas: Pieza[], formato: Formato): Promise<Bu
   const doc = new Document({
     styles: {
       default: {
-        document: { run: { font: FUENTE, size: formato.tamano } },
+        document: { run: { font: formato.fuente ?? FUENTE, size: formato.tamano } },
       },
     },
     sections,

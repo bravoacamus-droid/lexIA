@@ -147,7 +147,9 @@ export function markdownAPiezas(markdown: string): Pieza[] {
     if (linea.startsWith('>')) {
       cerrarTodo();
       const t = linea.replace(/^>\s?/, '').trim();
-      if (t) piezas.push({ clase: 'parrafo', texto: t });
+      // La cita del modelo es una cita textual —el artículo, las bases, el
+      // acta—: va en cursiva y sangrada, como en los escritos de César.
+      if (t) piezas.push({ clase: 'parrafo', texto: t, cita: true });
       continue;
     }
 

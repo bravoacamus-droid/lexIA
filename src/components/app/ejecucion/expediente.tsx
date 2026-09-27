@@ -179,6 +179,7 @@ export function VistaDelExpediente({ inicial, permitidos }: { inicial: EstadoDel
         <ZonaResultado
           expedienteId={estado.expediente.id}
           act={act}
+          ficha={estado.ficha}
           ocupado={ocupado}
           permitidos={permitidos}
           pendienteOficial={pendienteOficial}

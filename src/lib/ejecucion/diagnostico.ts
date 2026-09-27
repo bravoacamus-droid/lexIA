@@ -38,7 +38,7 @@ import {
 } from './matriz';
 import { pedirJSON } from './modelo';
 import { datosDeterminantes, siguientePregunta, tipoDesdeTexto } from './preguntas';
-import { determinarRegimen, fechaISO, fechaLarga, hoyISO, sinArticuladoVigente } from './regimen';
+import { determinarRegimen, esContratoMenor, fechaISO, fechaLarga, hoyISO, sinArticuladoVigente } from './regimen';
 import { calcularSuficiencia, evaluarRequisitos, peor, type EvaluacionDeHecho } from './suficiencia';
 import { articulosDeLaNorma, criteriosRelacionados } from './sustento';
 import { sinContrato, sustentoDelEnriquecimiento } from './enriquecimiento';
@@ -117,6 +117,7 @@ export function prepararCaso(d: {
     supervisado: ficha.supervision?.valor ? !/^no\b|sin supervisi/i.test(ficha.supervision.valor) : null,
     regimen: regimen.clave,
     respuestas,
+    contratoMenor: esContratoMenor(ficha, [d.pedido, ...Object.values(respuestas)]),
   };
   const hoy = d.hoy ?? hoyISO();
   const cargados = d.documentos.filter((x) => x.origen === 'cargado' && x.lectura === 'leido');

@@ -397,7 +397,11 @@ También el Contrato N.° 099-2026-MDVE/GAF, el RUC 20999999999, S/ 12,345.00 y 
   comprobar('los literales sueltos del modelo se juntan en una sola lista', listas.length === 1 && listas[0].elementos.length === 3, lista);
   const datos = { borrador, perfil: 'aga' as Perfil, ficha, anio: 2026 };
   const md = documentoEnMarkdown(datos);
-  comprobar('la resolución lleva VISTOS, CONSIDERANDO y SE RESUELVE', /VISTOS:/.test(md) && /CONSIDERANDO:/.test(md) && /SE RESUELVE:/.test(md) && /Artículo 2\.-/.test(md));
+  comprobar(
+    'la resolución lleva VISTOS; CONSIDERANDO y SE RESUELVE, con ARTÍCULO N.-',
+    /VISTOS;\*\*/.test(md) && /; y,/.test(md) && /CONSIDERANDO:/.test(md) && /SE RESUELVE:/.test(md) && /ARTÍCULO 2\.-/.test(md),
+    md,
+  );
   // La autoridad no firma un proyecto sin sustento (César, 27/09/2026).
   comprobar('el proyecto de la AGA dice que no es apto para firma', /NO APTO PARA FIRMA/.test(md));
   comprobar('el de otro perfil sigue siendo «borrador condicionado»', /BORRADOR CONDICIONADO/.test(documentoEnMarkdown({ ...datos, perfil: 'dec' as Perfil })));

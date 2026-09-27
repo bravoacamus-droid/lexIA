@@ -1,28 +1,35 @@
 /**
  * El documento y la ficha de control, pieza a pieza (sección 15).
  *
- * Producto 1, el documento formal, con la forma de la administración
- * pública: el informe con su A / DE / ASUNTO / REFERENCIA / FECHA y sus
- * apartados en romanos; la resolución con VISTOS, CONSIDERANDO y SE
- * RESUELVE; la carta como las de César —número, ciudad y fecha a la
- * derecha, «Presente.-», ASUNTO y REFERENCIA, apartados numerados y la
- * firma bajo su línea—. Lo que falta va entre corchetes y sale en rojo.
+ * Producto 1, el documento formal, con la forma de los modelos de César:
+ * las piezas las arma `plantillas.ts` —el informe, el memorándum, la
+ * resolución, el acta, la carta— y aquí se componen en Word con la letra
+ * de cada unidad. Lo que falta va entre corchetes y sale en rojo.
  *
  * Producto 2, la ficha de control LexIA: lo que el revisor humano
  * necesita para confiar o no en el documento. No se incorpora al
  * expediente necesariamente.
  */
 import type { Pieza } from '@/lib/documentos/piezas';
-import { textoAPiezas } from '@/lib/documentos/piezas';
 import { aRomano } from '@/lib/documentos/numeracion';
-import { FORMATO_CARTA, FORMATO_DOCUMENTO, piezasADocx } from '@/lib/documentos/word';
+import {
+  FORMATO_ACTA_MODIFICACION,
+  FORMATO_CARTA,
+  FORMATO_DOCUMENTO,
+  FORMATO_INFORME_DEC,
+  FORMATO_INFORME_LEGAL,
+  FORMATO_MEMORANDUM,
+  FORMATO_RESOLUCION,
+  piezasADocx,
+  type Formato,
+} from '@/lib/documentos/word';
 import { piezasAMarkdown } from '@/lib/documentos/markdown';
 import { ACTUACIONES, CLASES, ESTADOS_DOCUMENTO, PERFILES, TIPOS_CONTRATACION, type Perfil } from './catalogo';
 import { fechaLarga } from './regimen';
-import { DESTINATARIO } from './redaccion';
 import { TEXTO_INFORMACION, TEXTO_NIVEL, TEXTO_PROCEDENCIA } from './suficiencia';
 import { rutaEnTexto } from './continuacion';
 import { evidenciaPorObtener, SI_NO_EXISTE } from './evidencia';
+import { piezasDelDocumento, type DatosDelDocumento } from './plantillas';
 import {
   CAMPOS_FICHA,
   TIPO_DE_HALLAZGO,
@@ -33,277 +40,34 @@ import {
   type Ficha,
 } from './tipos';
 
-/** La fecha de Lima de un instante: a las 20:00 del 23 en Lima ya es 24 en UTC. */
-function diaEnLima(iso: string): string {
-  return new Date(new Date(iso).getTime() - 5 * 3600000).toISOString().slice(0, 10);
-}
-
-const HUECO = '[●]';
-
-const ENCABEZADO: Record<string, string> = {
-  informe_tecnico: 'INFORME TÉCNICO',
-  informe_dec: 'INFORME',
-  informe_legal: 'INFORME LEGAL',
-  informe_supervisor: 'INFORME DE SUPERVISIÓN',
-  informe_diagnostico: 'INFORME DE DIAGNÓSTICO CONTRACTUAL',
-  descargo: 'DESCARGO',
-};
-
-const CARGO_DEL_PERFIL: Record<Perfil, string> = {
-  area_usuaria: '[Cargo] — Área Usuaria',
-  dec: '[Cargo] — Dependencia encargada de las contrataciones',
-  asesoria_juridica: '[Cargo] — Oficina de Asesoría Jurídica',
-  aga: 'Autoridad de la gestión administrativa',
-  titular: 'Titular de la Entidad',
-  supervisor: 'Supervisor / Inspector',
-  defensa: '[Cargo]',
-  contratista: 'Representante legal',
-};
-
-const ORDINALES = ['PRIMERA', 'SEGUNDA', 'TERCERA', 'CUARTA', 'QUINTA', 'SEXTA', 'SÉPTIMA', 'OCTAVA', 'NOVENA', 'DÉCIMA'];
-
-export interface DatosDelDocumento {
-  borrador: BorradorDeDocumento;
-  perfil: Perfil;
-  ficha: Ficha;
-  /** Cuándo se generó, para la nota del borrador. */
-  anio: number;
-}
-
-function nota(d: DatosDelDocumento): Pieza[] {
-  const b = d.borrador;
-  if (b.nivel === 'revision_final') return [];
-  // Un acto de la autoridad sin el sustento completo es un proyecto, y el
-  // Word lo dice arriba, con esas palabras: no es apto para firma.
-  if ((d.perfil === 'aga' || d.perfil === 'titular') && b.nivel === 'borrador_condicionado')
-    return [
-      {
-        clase: 'nota',
-        texto: `PROYECTO DE DECISIÓN CONDICIONADO — NO APTO PARA FIRMA. Generado el ${fechaLarga(diaEnLima(b.generadoEn))}. El expediente aún no permite recomendar su emisión: falta sustento que la autoridad necesita para decidir (ver la ficha de control y los fundamentos pendientes en los considerandos). Retire esta nota solo cuando ese sustento esté incorporado.`,
-      },
-    ];
-  return [
-    {
-      clase: 'nota',
-      texto: `${TEXTO_NIVEL[b.nivel].toUpperCase()} generado el ${fechaLarga(diaEnLima(b.generadoEn))}. No es un documento oficial ni debe usarse como sustento definitivo hasta incorporar lo que falta. Retire esta nota antes de emitirlo.`,
-    },
-  ];
-}
-
-function pendientes(b: BorradorDeDocumento): Pieza[] {
-  if (b.pendientes.length === 0) return [];
-  return [
-    {
-      clase: 'nota',
-      texto: `Datos por completar antes de emitir: ${b.pendientes.map((p, i) => `${String.fromCharCode(97 + i)}) ${p.replace(/\.$/, '')}`).join('; ')}.`,
-    },
-  ];
-}
-
-const MARCA = /^\s*(?:[a-z]\)|\d+[.)]|[-•])\s+/i;
+export { piezasDelDocumento, piezasDeParrafos, piezasDelApartado, type DatosDelDocumento } from './plantillas';
 
 /**
- * Los párrafos de un apartado, juntando los literales seguidos.
- *
- * El modelo entrega cada literal —«a) …», «b) …»— como un párrafo
- * aparte. Pasados uno por uno, cada uno era una lista de un solo
- * elemento y todos salían como «a)» (lo detectó la auditoría de
- * coherencia en la primera prueba). Juntos, son una lista.
+ * La letra y las medidas de cada documento, las de su unidad en los
+ * modelos de César: Abastecimiento en Verdana 9, Asesoría Jurídica y la
+ * resolución en Arial 10, el memorándum en Arial 11, el acta en carta.
  */
-export function piezasDeParrafos(parrafos: string[]): Pieza[] {
-  const out: Pieza[] = [];
-  let tanda: string[] = [];
-  const cerrar = () => {
-    if (tanda.length) out.push(...textoAPiezas(tanda.join('\n')));
-    tanda = [];
-  };
-  for (const p of parrafos) {
-    if (MARCA.test(p) && !p.includes('\n')) tanda.push(p);
-    else {
-      cerrar();
-      out.push(...textoAPiezas(p));
-    }
-  }
-  cerrar();
-  return out;
-}
-
-function cuerpo(secciones: BorradorDeDocumento['secciones'], numerar: (i: number) => string): Pieza[] {
-  const out: Pieza[] = [];
-  secciones.forEach((s, i) => {
-    out.push({ clase: 'titulo', nivel: 1, numero: numerar(i), texto: s.titulo.toUpperCase() });
-    out.push(...piezasDeParrafos(s.parrafos));
-  });
-  return out;
-}
-
-/**
- * A quién va un INFORME. La AGA y el Titular escriben al contratista
- * cuando mandan una carta, pero un informe suyo es interno: la auditoría
- * de coherencia lo marcó en un diagnóstico de la AGA dirigido «A:
- * Contratista» (27/09/2026).
- */
-function destinatarioDelInforme(perfil: Perfil): string {
-  if (perfil === 'aga') return 'Titular de la Entidad';
-  if (perfil === 'titular') return 'Dependencia encargada de las contrataciones (DEC)';
-  return DESTINATARIO[perfil];
-}
-
-function piezasDelInforme(d: DatosDelDocumento): Pieza[] {
-  const b = d.borrador;
-  const siglas = `${HUECO}-${d.anio}-[SIGLAS]`;
-  return [
-    { clase: 'titulo', rol: 'encabezado', nivel: 0, texto: `${ENCABEZADO[b.tipo] ?? 'INFORME'} N.° ${siglas}` },
-    ...nota(d),
-    { clase: 'campo', etiqueta: 'A', valor: `[Nombres y apellidos] — ${destinatarioDelInforme(d.perfil)}` },
-    { clase: 'campo', etiqueta: 'DE', valor: `[Nombres y apellidos] — ${CARGO_DEL_PERFIL[d.perfil]}` },
-    { clase: 'campo', etiqueta: 'ASUNTO', valor: b.asunto },
-    ...(b.referencias.length
-      ? b.referencias.length === 1
-        ? [{ clase: 'campo' as const, etiqueta: 'REFERENCIA', valor: b.referencias[0] }]
-        : [
-            { clase: 'campo' as const, etiqueta: 'REFERENCIA', valor: '' },
-            { clase: 'lista' as const, marca: 'literal' as const, elementos: b.referencias },
-          ]
-      : []),
-    { clase: 'campo', etiqueta: 'FECHA', valor: `[Ciudad], [día] de [mes] de ${d.anio}` },
-    ...cuerpo(b.secciones, (i) => `${aRomano(i + 1)}.`),
-    ...pendientes(b),
-    { clase: 'parrafo', texto: d.perfil === 'defensa' ? 'Es todo cuanto cumplo con informar.' : 'Es todo cuanto informo a usted para su conocimiento y fines pertinentes.' },
-    { clase: 'parrafo', texto: 'Atentamente,', alineacion: 'izquierda' },
-    { clase: 'firma', nombre: '[Nombres y apellidos]', cargo: CARGO_DEL_PERFIL[d.perfil], entidad: quienFirma(d) },
-  ];
-}
-
-/** Por quién se firma: la Entidad, o el contratista cuando escribe él. */
-function quienFirma(d: DatosDelDocumento): string {
-  if (d.perfil === 'contratista') return d.ficha.contratista?.valor ?? '[Contratista]';
-  if (d.perfil === 'supervisor') return '[Supervisor o inspector]';
-  return d.ficha.entidad?.valor ?? '[Entidad]';
-}
-
-function piezasDeLaResolucion(d: DatosDelDocumento): Pieza[] {
-  const b = d.borrador;
-  const quien = d.perfil === 'titular' ? 'DEL TITULAR DE LA ENTIDAD' : 'DE LA AUTORIDAD DE LA GESTIÓN ADMINISTRATIVA';
-  const piezas: Pieza[] = [
-    { clase: 'titulo', rol: 'encabezado', nivel: 0, texto: `RESOLUCIÓN ${quien} N.° ${HUECO}-${d.anio}-[SIGLAS]` },
-    { clase: 'parrafo', texto: `[Ciudad], [día] de [mes] de ${d.anio}`, alineacion: 'derecha' },
-    ...nota(d),
-    { clase: 'parrafo', texto: `**VISTOS:** ${(b.vistos ?? []).join('; ').replace(/[.;]\s*$/, '')}; y,` },
-    { clase: 'parrafo', texto: '**CONSIDERANDO:**', alineacion: 'izquierda' },
-    ...(b.considerandos ?? []).map((t): Pieza => ({ clase: 'parrafo', texto: t })),
-    { clase: 'parrafo', texto: '**SE RESUELVE:**', alineacion: 'izquierda' },
-    ...(b.resuelve ?? []).map((t, i): Pieza => ({ clase: 'parrafo', texto: `**Artículo ${i + 1}.-** ${t}` })),
-    ...pendientes(b),
-    { clase: 'parrafo', texto: 'Regístrese, comuníquese y publíquese.', alineacion: 'izquierda' },
-    { clase: 'firma', nombre: '[Nombres y apellidos]', cargo: CARGO_DEL_PERFIL[d.perfil], entidad: d.ficha.entidad?.valor ?? '[Entidad]' },
-  ];
-  return piezas;
-}
-
-function piezasDeLaCarta(d: DatosDelDocumento): Pieza[] {
-  const b = d.borrador;
-  const aLaEntidad = d.perfil === 'contratista' || d.perfil === 'supervisor';
-  const dest = b.destinatario ?? {
-    nombre: aLaEntidad ? '[Nombre del funcionario]' : '[Nombre del representante legal]',
-    cargo: aLaEntidad ? '[Cargo]' : 'Representante legal',
-    entidad: aLaEntidad ? d.ficha.entidad?.valor : d.ficha.contratista?.valor,
-  };
-  const piezas: Pieza[] = [
-    { clase: 'parrafo', texto: `**CARTA N.° ${HUECO}-${d.anio}-[SIGLAS]**`, alineacion: 'izquierda' },
-    { clase: 'parrafo', texto: `[Ciudad], [día] de [mes] de ${d.anio}`, alineacion: 'derecha' },
-    ...nota(d),
-    { clase: 'parrafo', texto: 'Señor(a):', alineacion: 'izquierda', pegado: true },
-    { clase: 'parrafo', texto: `**${dest.nombre}**`, alineacion: 'izquierda', pegado: true },
-    ...(dest.cargo ? [{ clase: 'parrafo' as const, texto: dest.cargo, alineacion: 'izquierda' as const, pegado: true }] : []),
-    { clase: 'parrafo', texto: dest.entidad ?? (aLaEntidad ? '[Entidad]' : '[Contratista]'), alineacion: 'izquierda', pegado: true },
-    { clase: 'parrafo', texto: '**Presente.-**', alineacion: 'izquierda' },
-    { clase: 'campo', etiqueta: 'ASUNTO', valor: b.asunto },
-    ...(b.referencias.length
-      ? b.referencias.length === 1
-        ? [{ clase: 'campo' as const, etiqueta: 'REFERENCIA', valor: b.referencias[0] }]
-        : [
-            { clase: 'campo' as const, etiqueta: 'REFERENCIA', valor: '' },
-            { clase: 'lista' as const, marca: 'literal' as const, elementos: b.referencias },
-          ]
-      : []),
-    { clase: 'parrafo', texto: 'De mi consideración:', alineacion: 'izquierda' },
-    ...cuerpo(b.secciones, (i) => `${i + 1}.`),
-    ...pendientes(b),
-    { clase: 'parrafo', texto: 'Sin otro particular, hago propicia la oportunidad para expresarle los sentimientos de mi especial consideración.' },
-    { clase: 'parrafo', texto: 'Atentamente,', alineacion: 'izquierda' },
-    {
-      clase: 'firma',
-      nombre: '[Nombres y apellidos]',
-      cargo: CARGO_DEL_PERFIL[d.perfil],
-      entidad: d.perfil === 'contratista' ? d.ficha.contratista?.valor ?? '[Contratista]' : d.ficha.entidad?.valor ?? '[Entidad]',
-    },
-  ];
-  return piezas;
-}
-
-function piezasDelActa(d: DatosDelDocumento): Pieza[] {
-  const b = d.borrador;
-  return [
-    { clase: 'titulo', rol: 'encabezado', nivel: 0, texto: b.titulo.toUpperCase() },
-    { clase: 'titulo', rol: 'subtitulo', nivel: 0, texto: d.ficha.numero_contrato?.valor ?? '[Contrato N.° ●]' },
-    ...nota(d),
-    ...cuerpo(b.secciones, (i) => `${aRomano(i + 1)}.`),
-    ...pendientes(b),
-    { clase: 'parrafo', texto: 'En señal de conformidad, las partes suscriben la presente acta.' },
-    {
-      clase: 'firmas',
-      personas: [
-        { nombre: '[Nombres y apellidos]', cargo: `Por ${d.ficha.entidad?.valor ?? 'la Entidad'}` },
-        { nombre: '[Nombres y apellidos]', cargo: `Por ${d.ficha.contratista?.valor ?? 'el Contratista'}` },
-      ],
-    },
-  ];
-}
-
-function piezasDeLaAdenda(d: DatosDelDocumento): Pieza[] {
-  const b = d.borrador;
-  const contrato = d.ficha.numero_contrato?.valor ?? 'Contrato N.° [●]';
-  return [
-    { clase: 'titulo', rol: 'encabezado', nivel: 0, texto: `ADENDA N.° ${HUECO} AL ${contrato.toUpperCase()}` },
-    ...nota(d),
-    {
-      clase: 'parrafo',
-      texto: `Conste por el presente documento la adenda al ${contrato}, que celebran, de una parte, **${d.ficha.entidad?.valor ?? '[Entidad]'}**, debidamente representada por [nombre y cargo del funcionario facultado], a quien en adelante se le denominará «LA ENTIDAD»; y, de la otra parte, **${d.ficha.contratista?.valor ?? '[Contratista]'}**${d.ficha.ruc_contratista?.valor ? `, con RUC N.° ${d.ficha.ruc_contratista.valor}` : ', con RUC N.° [●]'}, debidamente representada por [nombre del representante legal], a quien en adelante se le denominará «EL CONTRATISTA», en los términos y condiciones siguientes:`,
-    },
-    ...b.secciones.flatMap((s, i): Pieza[] => [
-      { clase: 'titulo', nivel: 1, texto: `CLÁUSULA ${ORDINALES[i] ?? i + 1}: ${s.titulo.toUpperCase()}` },
-      ...piezasDeParrafos(s.parrafos),
-    ]),
-    ...pendientes(b),
-    { clase: 'parrafo', texto: 'En señal de conformidad, las partes suscriben la presente adenda en [ciudad], a los [●] días del mes de [●] de ' + d.anio + '.' },
-    {
-      clase: 'firmas',
-      personas: [
-        { nombre: '[Nombres y apellidos]', cargo: 'LA ENTIDAD' },
-        { nombre: '[Nombres y apellidos]', cargo: 'EL CONTRATISTA' },
-      ],
-    },
-  ];
-}
-
-export function piezasDelDocumento(d: DatosDelDocumento): Pieza[] {
-  switch (d.borrador.tipo) {
-    case 'resolucion':
-      return piezasDeLaResolucion(d);
+function formatoDe(b: BorradorDeDocumento): Formato {
+  switch (b.tipo) {
     case 'carta':
-      return piezasDeLaCarta(d);
+      return FORMATO_CARTA;
+    case 'informe_legal':
+      return FORMATO_INFORME_LEGAL;
+    case 'resolucion':
+      return FORMATO_RESOLUCION;
+    case 'memorandum':
+      return FORMATO_MEMORANDUM;
     case 'acta':
-      return piezasDelActa(d);
+      return FORMATO_ACTA_MODIFICACION;
     case 'adenda':
-      return piezasDeLaAdenda(d);
+      return FORMATO_DOCUMENTO;
     default:
-      return piezasDelInforme(d);
+      return FORMATO_INFORME_DEC;
   }
 }
 
 export function documentoADocx(d: DatosDelDocumento): Promise<Buffer> {
-  return piezasADocx(piezasDelDocumento(d), d.borrador.tipo === 'carta' ? FORMATO_CARTA : FORMATO_DOCUMENTO);
+  return piezasADocx(piezasDelDocumento(d), formatoDe(d.borrador));
 }
 
 /** El texto del documento, para auditarlo y para enseñarlo en pantalla. */

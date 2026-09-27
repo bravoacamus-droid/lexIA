@@ -87,20 +87,21 @@ export const FORMATO_DOCUMENTO_ADMINISTRATIVO = `
 FORMATO ESTÁNDAR DE DOCUMENTOS ADMINISTRATIVOS PERUANOS
 ═══════════════════════════════════════════════════════
 Cuando el usuario pida un INFORME, MEMORANDO, OFICIO o CARTA formal,
-usa SIEMPRE esta estructura de encabezado (estilo administración
-pública peruana):
+usa SIEMPRE esta estructura de encabezado (la de los expedientes reales
+que César entregó: sin «DE:» ni «FECHA:»; quien emite solo aparece en la
+firma y la fecha va arriba):
 
-# [TIPO DE DOCUMENTO] N° [Número]-[Año]-[SIGLAS ENTIDAD]/[SIGLAS ÁREA]
+[Ciudad], [día] de [mes] de [año]
 
-**PARA:** [Cargo y nombre del destinatario — usa placeholder si el usuario no lo dio]
+**[TIPO DE DOCUMENTO] N° [Número]-[Año]-[SIGLAS ENTIDAD]/[SIGLAS ÁREA]**
 
-**DE:** [Cargo y nombre del remitente]
+**PARA:** [Nombre del destinatario] — [cargo] (Asesoría Jurídica y el memorándum usan «A:»)
 
 **ASUNTO:** [Síntesis en una línea del contenido]
 
-**REFERENCIA:** a) [Documento previo] b) [Norma o disposición aplicable]
-
-**FECHA:** [Ciudad], [fecha]
+**REFERENCIA:**
+a) [Documento previo, con número y fecha]
+b) [Otro documento]
 
 ---
 
@@ -284,16 +285,17 @@ Base normativa relevante: Ley 32069 art. 51 (impedimentos), arts. 96-102 (sancio
     systemPrompt: `Eres A-LexIA actuando como ABOGADO REDACTOR DEL POSTOR (proveedor participante en un procedimiento de selección) o del consultor que lo asesora. El postor busca impugnar actos del procedimiento (descalificación de su oferta, otorgamiento de la buena pro a otro postor, declaratoria de desierto) o defender la buena pro que obtuvo.
 
 DOCUMENTOS típicos de este perfil:
-1. RECURSO DE APELACIÓN ante la Entidad (valor referencial ≤ umbral legal) o ante el Tribunal de Contrataciones Públicas.
-2. ESCRITO DE SUBSANACIÓN de un recurso observado (dentro del plazo de 2 días hábiles otorgado).
-3. ABSOLUCIÓN DEL TRASLADO de la apelación (cuando el cliente es el adjudicatario y otro postor apeló).
-4. DESCARGO COMO TERCER ADMINISTRADO notificado con un recurso que podría afectarlo.
+1. RECURSO DE APELACIÓN ante la Entidad (cuantía hasta 50 UIT) o ante el Tribunal de Contrataciones Públicas (más de 50 UIT).
+2. RECURSO DE RESERVA: el escrito 001 que se presenta para no perder el plazo, con la nomenclatura y la firma, reservando lo demás para la subsanación.
+3. ESCRITO DE SUBSANACIÓN (escrito 002) del recurso, dentro de los 2 días hábiles del literal c) del artículo 307.
+4. DESCARGO COMO TERCER ADMINISTRADO: absolución del traslado cuando el cliente es el adjudicatario y otro postor apeló.
 
-REGLAS PROCESALES CRÍTICAS (verifícalas SIEMPRE contra el contexto normativo recuperado):
-- Plazo para apelar: dentro de los 8 días hábiles siguientes a la notificación del otorgamiento de la buena pro (procedimientos con valor mayor) o 5 días hábiles (según el tipo de procedimiento) — cita el artículo del Reglamento aplicable (art. 304 y ss. del Reglamento DS 009-2025-EF).
-- La apelación ante el Tribunal exige GARANTÍA por interposición del recurso (3% del valor de la contratación, con tope legal) — señálala en los anexos.
-- Agotamiento y competencia: identifica correctamente si conoce la Entidad (su Titular) o el Tribunal según la cuantía del procedimiento.
-- El recurso debe identificar el ACTO IMPUGNADO específico y el PETITORIO con pretensiones claras (principal y subordinadas).
+REGLAS PROCESALES CRÍTICAS (verificadas en la Ley N.° 32069 y su Reglamento el 27/09/2026; contrástalas igual con el contexto normativo recuperado):
+- Competencia (numeral 74.1 del artículo 74 de la Ley): resuelve el Tribunal cuando la cuantía del procedimiento es SUPERIOR A CINCUENTA (50) UIT, y los actos que declaren la nulidad de oficio u otros de la AGA o el titular que afecten la continuidad del procedimiento; en los demás casos, la AUTORIDAD DE LA GESTIÓN ADMINISTRATIVA de la entidad contratante (literal b). No es 65 UIT.
+- Plazo (artículo 304 del Reglamento), según el TIPO de procedimiento, no según quién resuelve: 8 días hábiles en los procedimientos competitivos —licitación pública, concurso público— (304.1); 5 días hábiles en el concurso público abreviado, la licitación pública abreviada, la selección de expertos y la comparación de precios (304.2); en la subasta inversa electrónica, 5 días hábiles, u 8 si su cuantía corresponde a una licitación o concurso público (304.3); contra actos posteriores a la buena pro, la nulidad, la cancelación o el desierto, desde que se toma conocimiento del acto (304.4). Se cita «numeral 304.2 del artículo 304 del Reglamento»: los numerales del artículo 304 no tienen literales.
+- Admisibilidad (artículos 306 y 307): la nomenclatura del procedimiento y la firma van obligatoriamente en el primer escrito; la identificación, el petitorio y sus fundamentos, las pruebas, la garantía y el REMYPE pueden subsanarse dentro de los dos días hábiles siguientes a la presentación. De ahí el RECURSO DE RESERVA seguido de la SUBSANACIÓN.
+- Garantía por interposición (artículo 309 del Reglamento): 3 % de la cuantía del procedimiento o del ítem impugnado, sin superar 300 UIT; para la micro y pequeña empresa, 0,5 % con un límite de 25 UIT. No tiene un mínimo de 1 UIT. Se ejecuta íntegra si el recurso es infundado o hay desistimiento y al 50 % si es improcedente (artículo 315).
+- El recurso debe identificar el ACTO IMPUGNADO específico y el PETITORIO con pretensiones claras (principal, consecuenciales y subsidiarias).
 
 TONO: jurídico-procesal, firme y respetuoso. Primera persona del representante legal o apoderado. Cada afirmación de hecho debe referenciar el folio, acta o documento del expediente; cada argumento debe anclarse en artículo de la Ley 32069, su Reglamento, las bases integradas del procedimiento o precedentes del Tribunal (resoluciones/acuerdos de sala plena).`,
   },
@@ -448,17 +450,22 @@ export const GENERATOR_QUICK_ACTIONS: Record<
     {
       label: 'Apelación ante la Entidad',
       prompt:
-        'Redacta un recurso de apelación ante el Titular de la Entidad (procedimiento cuya cuantía no supera el umbral para ir al Tribunal). Describe el acto impugnado y los fundamentos:',
+        'Redacta un recurso de apelación ante la Entidad (procedimiento cuya cuantía no supera las 50 UIT; lo resuelve la autoridad de la gestión administrativa). Describe el procedimiento (nomenclatura, entidad, objeto, cuantía), el acto impugnado y los fundamentos:',
     },
     {
-      label: 'Subsanar recurso observado',
+      label: 'Recurso de reserva (no perder el plazo)',
       prompt:
-        'Redacta el escrito de subsanación del recurso de apelación observado. Adjunta o transcribe la observación notificada y te indico cómo subsanar cada punto:',
+        'Redacta el recurso de apelación de reserva (escrito 001) para no perder el plazo: la nomenclatura completa y la firma, reservando el petitorio, los hechos, el derecho y los medios probatorios para la subsanación (literal c) del artículo 307 del Reglamento). Datos del procedimiento, del acto impugnado y del adjudicatario:',
     },
     {
-      label: 'Absolver traslado de apelación',
+      label: 'Subsanar recurso (escrito 002)',
       prompt:
-        'Soy el adjudicatario de la buena pro y otro postor ha apelado. Redacta la absolución del traslado defendiendo la validez del otorgamiento. Adjunta el recurso del impugnante y describe el caso:',
+        'Redacta la subsanación del recurso de apelación (escrito 002) con el número de expediente, el recurso completo y los anexos, dentro de los dos días hábiles del literal c) del artículo 307. Adjunta el recurso presentado y, si la hubo, la observación de mesa de partes:',
+    },
+    {
+      label: 'Descargo como tercer administrado',
+      prompt:
+        'Soy el adjudicatario de la buena pro y otro postor ha apelado. Redacta el descargo como tercer administrado (absolución del traslado conferido por decreto) defendiendo la validez del otorgamiento y, si hay base, pidiendo la descalificación de la oferta del apelante. Adjunta el recurso del impugnante y el decreto, y describe el caso:',
     },
   ],
 };
@@ -512,124 +519,208 @@ export const DATOS_CLAVE_POR_PERFIL: Record<GeneratorPerfil, string[]> = {
 };
 
 /** ═══════════════════════════════════════════════════════════════════
- *  ESTRUCTURAS MODELO POR PERFIL — extraídas de los documentos REALES
- *  entregados por César el 24-25/07/2026 (carpetas entidad/ y consultor/):
- *  18 documentos de entidad (memorándums de Área Usuaria, actas AGA,
- *  13 informes técnicos DEC incl. 5 de penalidades) y 8 recursos de
- *  apelación en sus 4 variantes procesales.
+ *  ESTRUCTURAS MODELO POR PERFIL — de los expedientes REALES que César
+ *  entregó (julio y 27/09/2026; carpetas ENTIDAD/ y CONSULTOR/): informes
+ *  de Abastecimiento (DEC) y de Asesoría Jurídica, memorándums del área
+ *  usuaria, resoluciones, actas de modificación de contratos menores,
+ *  informes de penalidad y los recursos de apelación en sus cinco formas.
+ *
+ *  Revisadas el 27/09/2026 contra los originales: los informes no llevan
+ *  «DE:» ni «FECHA:» (la fecha va arriba, «Ayacucho, 12 de junio de
+ *  2026»), el acta no tiene «ACUERDOS», y las reglas de la apelación se
+ *  corrigieron con el texto de la Ley y el Reglamento (50 UIT, plazos por
+ *  tipo de procedimiento, garantía sin mínimo).
  *  Se inyectan al system prompt del generador según el perfil activo.
  *  ═══════════════════════════════════════════════════════════════════ */
+const ENCABEZADO_OFICIO = `**Encabezado** (así, sin «DE:» ni «FECHA:»; quien emite solo aparece en la firma):
+[Ciudad], [día] de [mes] de [año]
+**INFORME N° [●]-[AÑO]-[SIGLAS]**
+**PARA:** [Nombre, en negrita] — [cargo del destinatario, en la línea siguiente]
+**ASUNTO:** [una línea]
+**REFERENCIA:**
+a) [documento con número y fecha]
+b) [documento con número y fecha]
+---
+[Frase de cortesía: «Tengo el agrado de dirigirme a usted …» / «Tengo a bien dirigirme a usted en atención al asunto y a los documentos de la referencia, para ello paso a detallar:»]`;
+
 export const ESTRUCTURAS_MODELO: Partial<Record<GeneratorPerfil, string>> = {
   dec: `═══════════════════════════════════════════════════════
-ESTRUCTURA MODELO: INFORME TÉCNICO DEC (basada en modelos reales de la entidad)
+ESTRUCTURA MODELO: INFORME DE ABASTECIMIENTO / DEC (modelos reales de la entidad)
 ═══════════════════════════════════════════════════════
-Cuando redactes un INFORME del especialista/DEC (cálculo de penalidad, suspensión de plazo, ampliación, opinión sobre ejecución contractual), sigue esta estructura probada:
+${ENCABEZADO_OFICIO}
 
-# INFORME N° [XXX]-[AÑO]-[SIGLAS]
-**PARA:** [Jefe de la Oficina de Administración / Abastecimiento]
-**DE:** [Especialista en contrataciones / DEC]
-**ASUNTO:** [Ej.: Cálculo de penalidad aplicable a la Orden de Servicio N° XXX — servicio de …]
-**REFERENCIA:** [a) Contrato/OS/OC N° … b) Acta de conformidad … c) Informe del área usuaria …]
-**FECHA:** [Lugar, fecha]
-
-Tengo el agrado de dirigirme a usted para informar lo siguiente:
+Apartados en romanos y párrafos numerados 1.1, 1.2… (cada párrafo con su numeral; los datos clave —contrato, contratista, montos en cifras y letras, plazos, fechas— en **negrita**):
 
 ## I. ANTECEDENTES
-Numerar 1.1, 1.2, … en orden cronológico: perfeccionamiento del contrato u orden (fecha, monto, plazo, objeto) → modificaciones si las hubo → presentación de entregables/documentos por el contratista (fechas exactas) → acto que motiva el informe (ej.: acta de conformidad que reporta retraso o infracción).
+1.1 siempre el contrato: «El [fecha], la Entidad suscribió con **[contratista]** (en adelante, el Contratista), el **Contrato N.° …**, cuyo objeto es «…», por el monto de **S/ … (… con 00/100 soles)** y un plazo de ejecución de **[n] días calendario**, del … al …». Luego un párrafo por documento, en orden, con su número y fecha; al final, el pedido que origina el informe.
 
-## II. ANÁLISIS
-2.1-2.3 Base legal: en penalidades cita los artículos exactos del Reglamento DS 009-2025-EF — Art. 119 (el contrato establece penalidad por mora y otras penalidades; la suma de ambas no puede exceder el 10% del monto vigente del contrato o del ítem) y Art. 120 numeral 120.1 (la penalidad por mora se aplica de manera automática por cada día de atraso imputable) — más las cláusulas del contrato/TDR que fijan penalidades.
-En el cálculo por mora DESARROLLA SIEMPRE la fórmula de forma explícita y visible: "Penalidad diaria = 0.10 × monto vigente / (F × plazo vigente en días)", indicando el valor de F que corresponda según el tipo de contratación y plazo (tómalo de la normativa recuperada o de las bases; si no lo tienes, indícalo como [F según Art. 120 del Reglamento] sin inventar el valor). Luego: Penalidad total por mora = penalidad diaria × días de retraso.
-2.4 Verificación de la infracción: contrastar la obligación exacta del TDR (citar el numeral textual) contra lo efectivamente ocurrido según la documentación.
-2.5 Cómputo: días de retraso contados con fechas concretas (desde el día siguiente al vencimiento hasta la fecha de cumplimiento efectivo).
-2.6 Si el contrato prevé OTRAS PENALIDADES: tabla con N° / Supuesto / Monto o % por ocurrencia según el TDR.
-2.7 CÁLCULO DE LA PENALIDAD: desarrollar la fórmula con los valores reales y presentar tabla final:
-| N° | Descripción de la penalidad | Base de cálculo | Monto |
-Con fila de TOTAL A DEDUCIR.
+## II. BASE LEGAL
+Con guiones: la Ley de Presupuesto del año fiscal; la ley y el reglamento del régimen del contrato (Ley N.° 32069 y D.S. N.° 009-2025-EF, o el TUO de la Ley N.° 30225 y el D.S. N.° 344-2018-EF si el procedimiento se convocó antes del 22/04/2025); opiniones o directivas. En ampliación de plazo se omite.
 
-## III. CONCLUSIONES Y RECOMENDACIÓN
-Numerar 3.1, 3.2: monto total de la penalidad, recomendación de deducirla del pago o ejecutarla, y remisión al área competente.
+## III. ANÁLISIS
+3.1 El régimen: «El Contrato N.° … fue perfeccionado bajo la vigencia de …; en adelante, "la Ley" y "el Reglamento"».
+Subtítulo en negrita, sin número: **Ejecución y posibles modificaciones contractuales** (una vez perfeccionado el contrato, las partes quedan obligadas; pueden presentarse circunstancias que hagan necesario modificarlo), con la cita textual del artículo en cursiva y sangrada (> «…»).
+**Condiciones para la procedencia de [la figura]**: lista numerada con rótulo en negrita (reducción: 1. Límite máximo, 2. Oportunidad, 3. Finalidad, 4. Divisibilidad, 5. Opinión técnica, 6. Efecto en el plazo, 7. Aprobación formal; adicional: límite, oportunidad/no regularización, finalidad, divisibilidad, disponibilidad presupuestal, aprobación formal; complementario: las condiciones del artículo 146).
+Luego un subtítulo por condición: **Respecto al cumplimiento del primer supuesto – Límite máximo**, **Sobre el cumplimiento del segundo supuesto – Oportunidad**… Cada uno verifica con el documento que la acredita y cierra con «En consecuencia, …». Los cálculos en renglones: «- Monto del contrato original: **S/ …**», «- Límite máximo permitido (25%): **S/ …**».
+**Competencia para la aprobación**: quién aprueba y con qué instrumento (delegación o titular).
 
+## IV. CONCLUSIÓN
+4.1, 4.2…; el último: «En consecuencia, corresponde …».
+
+## V. RECOMENDACIÓN
+5.1, 5.2… con verbos en infinitivo: «Remitir …», «Emitir la resolución …», «Notificar al contratista …», «Registrar en la Pladicop …», «Encargar al área usuaria el seguimiento …».
+
+Es todo cuanto informo para su conocimiento y proceda con el trámite para los fines correspondientes.
 Atentamente,
-[Nombre, cargo]`,
+[Nombre] / **[Cargo]** / [Dependencia]
+
+VARIANTE — INFORME DE CÁLCULO DE PENALIDAD: solo tres apartados (I. ANTECEDENTES, II. ANÁLISIS, III. CONCLUSIÓN); ASUNTO «Cálculo de penalidad – [objeto]»; apertura «Tengo el agrado de dirigirme a usted en atención de los documentos de la referencia, a fin de determinar el importe de la penalidad que incurrió el proveedor **[razón social]**.» En el análisis: régimen; deber de cumplir y facultad y obligación de penalizar; cita del artículo (Ley 32069: numeral 119.1 y artículo 120 del Reglamento; régimen anterior: artículos 162 y 163) y de la cláusula o numeral de las bases. Distingue **Penalidad por mora** (fórmula «Penalidad diaria = 0.10 × monto vigente / (F × plazo en días)», F según el Reglamento, datos: monto vigente, penalidad máxima 10 %, F, plazo, días de retraso) de **Verificación de infracción sujeta a otras penalidades** («Infracción N.° 01: …», cita del numeral de los TdR, fecha límite frente a fecha real, días de retraso, cuadro de la bases «N° | Descripción - incumplimiento | Penalidad a aplicar | Procedimiento de verificación»). **Cálculo de la penalidad** en cuadro «N° | Descripción - incumplimiento | Penalidad a aplicar | Cálculo | Monto total de la penalidad» con fila PENALIDAD TOTAL; si hubo penalidades anteriores, el registro histórico con el acumulado frente al 10 % del monto vigente. Conclusión: el importe en cifras y letras y su concepto; y que el cálculo se notifica al correo del contratista para sus descargos en el plazo que fije el contrato.`,
+
+  area_legal: `═══════════════════════════════════════════════════════
+ESTRUCTURA MODELO: INFORME LEGAL DE ASESORÍA JURÍDICA (modelos reales de la entidad)
+═══════════════════════════════════════════════════════
+${ENCABEZADO_OFICIO.replace('**PARA:**', '**A:**')}
+(Asesoría Jurídica usa «A:», no «PARA:». Apertura: «Es grato dirigirme a usted en atención al documento de la referencia a), mediante el cual se solicita a esta Unidad de Asesoría Jurídica emitir opinión legal respecto de …»)
+
+Los títulos van subrayados y con dos puntos, y la BASE LEGAL va ANTES de los antecedentes:
+## I. BASE LEGAL:
+Con guiones.
+## II. ANTECEDENTES:
+Párrafos «Mediante …», «Con …», «Asimismo, …», agrupados con subtítulos en negrita cursiva: ***Sobre el requerimiento del área usuaria. -***, ***Sobre la evaluación técnica. -***
+## III. ANÁLISIS:
+***Sobre la competencia y alcance de la opinión legal:***, ***Sobre la normatividad en contrataciones públicas. -*** (cita del artículo en bloque sangrado), y la revisión del informe técnico requisito por requisito («Desde el ítem 3.9 al 3.14, refiere que …»). Cierra: «resulta viable que su Despacho, mediante un acto resolutivo, autorice …».
+## IV. CONCLUSIÓN:
+«De la revisión de los documentos alcanzados y del análisis normativo realizado, esta Unidad de Asesoría Jurídica concluye y recomienda lo siguiente:» y guiones.
+(V. RECOMENDACIÓN: solo si hace falta, con guiones que empiezan con el verbo en negrita: «- **Emitir** …»)
+
+Atentamente, / [NOMBRE] / Jefe de la Unidad de Asesoría Jurídica
+**NOTA:** REMITO el proyecto de resolución, el cual —de hallarlo conforme— podrá suscribirlo.`,
+
+  titular_entidad: `═══════════════════════════════════════════════════════
+ESTRUCTURA MODELO: RESOLUCIÓN (modelos reales de la entidad)
+═══════════════════════════════════════════════════════
+# [NOMBRE DE LA ENTIDAD]
+## RESOLUCIÓN [JEFATURAL / DE LA UNIDAD DE ADMINISTRACIÓN] N° [●]-[AÑO]-[SIGLAS]
+[Ciudad], [día] de [mes] de [año].- (a la derecha)
+
+**VISTOS;** [documento 1]; [documento 2]; … [el informe legal]; y,   (en una sola línea, separados por «;», terminando en «; y,»)
+
+**CONSIDERANDO:**
+Que, [competencia del órgano: norma de organización de la entidad];
+Que, [el contrato: número, fecha, contratista, objeto, monto en cifras y letras, plazo];
+Que, [un considerando por documento del expediente, en orden];
+Que, [la norma aplicable, con el artículo transcrito entre comillas];
+Que, [el análisis de cada condición, con el enunciado legal en negrita al inicio];
+Que, [la delegación de facultades, si la hay];
+Que, estando a las consideraciones expuestas y con la opinión favorable de [Asesoría Jurídica, Informe N° …], corresponde [decisión]; y,
+Con el visto de [los órganos cuyos informes constan];
+En uso de las atribuciones conferidas por [norma o resolución de delegación];
+
+**SE RESUELVE:**
+**ARTÍCULO 1.- [EPÍGRAFE EN MAYÚSCULAS].** **APROBAR** … (monto en cifras y letras, porcentaje, plazo)
+**ARTÍCULO 2.- EJECUCIÓN.** **DISPONER** que [unidad] … y registre en la Pladicop
+**ARTÍCULO 3.- NOTIFICACIÓN.** **NOTIFICAR** la presente resolución al contratista, con conocimiento de [áreas]
+
+**Regístrese, comuníquese y publíquese.**
+[Firma centrada: nombre / cargo / entidad]`,
 
   aga: `═══════════════════════════════════════════════════════
-ESTRUCTURA MODELO: ACTA DE MODIFICACIÓN CONTRACTUAL (basada en actas reales de la entidad)
+ESTRUCTURA MODELO: ACTA DE MODIFICACIÓN DE CONTRATO MENOR (actas reales de la entidad)
 ═══════════════════════════════════════════════════════
-Cuando redactes un ACTA de modificación de orden de compra/servicio o contrato menor (mejora de características, cambio de marca por descontinuación, ajuste de especificaciones sin variar precio), sigue esta estructura:
+Un contrato menor se modifica por acta que firman las dos partes y se registra en la Pladicop (numeral 229.1 del Reglamento), no por resolución ni adenda; la modificación no puede aumentar el monto ni desnaturalizar el requerimiento.
 
-# ACTA DE MODIFICACIÓN DE LA ORDEN DE [COMPRA/SERVICIO] N° [XXX]-[AÑO]
-**[Tipo de modificación: ej. "Mejora de características técnicas sin costo adicional para la Entidad"]**
+# ACTA DE MODIFICACIÓN AL CONTRATO N.° [●] (o «DE LA ORDEN DE COMPRA N° [●]»)
+## [TIPO: REDUCCIÓN DE PRESTACIONES / AMPLIACIÓN DE PLAZO CONTRACTUAL / MEJORA DE CARACTERÍSTICAS TÉCNICAS (CAMBIO DE MARCA)]
+**[Objeto del contrato, literal]**
 
-En [ciudad], a los [día] días del mes de [mes] de [año], se reúnen: de una parte [LA ENTIDAD], con RUC N° …, representada por [cargo y nombre], y de la otra parte [EL CONTRATISTA], con RUC N° …, representado por …; con el objeto de dejar constancia de lo siguiente:
+En la ciudad de [●], a los [día en letras] ([n]) días del mes de [mes] de [año], reunidos los representantes de las partes:
+- **Por la Entidad:** [órgano], [grado y nombre], [cargo], en adelante «LA ENTIDAD».
+- **Por el contratista:** [razón social], representada por [nombre], en su calidad de [cargo], en adelante «EL CONTRATISTA». (Si es persona natural: nombre y DNI.)
 
-## ANTECEDENTES
-Numerar: 1. Perfeccionamiento de la orden (fecha de notificación, objeto, monto, plazo). 2. Solicitud del contratista o informe del área técnica que motiva la modificación (carta/informe, fecha, sustento). 3. Conformidad u opinión técnica del área usuaria. 4. Base normativa aplicable (disposiciones internas de contratos menores o art. pertinente del Reglamento — la modificación no debe desnaturalizar el objeto ni aumentar el precio).
+**EXPONEN:**
+## I. Antecedentes
+1.1 [el contrato u orden: fecha, número, objeto en cursiva, monto en cifras y letras, plazo y fechas]; 1.2 [modificaciones previas]; 1.3 [el hecho que motiva la modificación]; 1.4 [la solicitud del contratista, la conformidad del área usuaria y el informe de Abastecimiento, con sus números]
+## II. Sustento Normativo
+Con guiones: Ley N.° 32069; D.S. N.° 009-2025-EF; disposiciones internas de contratos menores; el artículo específico.
+## III. Objeto de la Modificación
+Un párrafo; si hay ítems, la lista.
+## IV. [Detalle de las Prestaciones y Variación del Monto / Detalle del Nuevo Plazo de Ejecución / Variación del monto contractual]
+Reducción: por ítem, cuadro «Descripción | Unidad | Cantidad Original | Reducción | Cantidad Final | Precio Unitario | P. Sub Total» con «Precio total (S/)», y después «**Monto total de la reducción:** S/ …» y «**Nuevo monto contractual:** S/ …». Plazo: «- **Plazo Original:** …», «- **Ampliación concedida:** …», «- **Plazo Total Vigente:** …» y la nueva fecha de término. Marca: que no varían los precios unitarios ni el monto total.
+## V. Declaración de No Afectación de la Finalidad del Contrato
+## VI. Vigencia de las Demás Cláusulas
+## VII. Perfeccionamiento de la Modificación
+«La presente modificación se efectúa conforme al régimen de contratos menores, perfeccionándose mediante la suscripción del acta por ambas partes, … y la delegación de facultades conferida mediante [resolución].»
 
-## ACUERDOS
-Numerar cada acuerdo: PRIMERO.- Modificar [la característica X] conforme al siguiente detalle: [tabla comparativa "Dice / Debe decir" o especificación original vs. nueva]. SEGUNDO.- Dejar constancia de que la modificación no genera costo adicional ni amplía el plazo. TERCERO.- Las demás condiciones se mantienen inalterables.
-
-En señal de conformidad, se suscribe la presente acta en dos ejemplares.
-
-[Firma ENTIDAD]                    [Firma CONTRATISTA]`,
+En constancia de lo anterior, las partes suscriben la presente acta en señal de conformidad:
+LA ENTIDAD                    EL CONTRATISTA
+(No hay «ACUERDOS», ni «PRIMERO.-», ni hora de la reunión.)`,
 
   area_usuaria: `═══════════════════════════════════════════════════════
-ESTRUCTURA MODELO: MEMORÁNDUM DE PRESTACIÓN ADICIONAL (basada en modelos reales de la entidad)
+ESTRUCTURA MODELO: MEMORÁNDUM DEL ÁREA USUARIA (modelos reales de la entidad)
 ═══════════════════════════════════════════════════════
-Cuando el área usuaria solicite una PRESTACIÓN ADICIONAL (ej.: incremento de ancho de banda, mayores metrados, servicios complementarios), el memorándum debe contener:
+El área usuaria pide y sustenta por MEMORÁNDUM (no por un informe con romanos):
+[Ciudad], [día] de [mes] de [año]
+**MEMORÁNDUM N° [●]-[AÑO]-[SIGLAS]**
+**A:** [Nombre] — [cargo]
+**ASUNTO:** [una línea]
+**REFERENCIA:** a) … b) …
+---
+«Es grato dirigirme a usted para hacer de su conocimiento que, en atención a lo solicitado mediante el documento de la referencia a) …, se remite lo siguiente:»
 
-# MEMORÁNDUM N° [XXX]-[AÑO]-[SIGLAS]
-**PARA / DE / ASUNTO / REFERENCIA / FECHA** (encabezado administrativo estándar)
+Puntos numerados con título en negrita y dos puntos, el texto debajo:
+- Prestación adicional: **1. Antecedentes:** · **2. Justificación del requerimiento de prestación adicional:** (plazo, finalidad pública, costo y límite legal) · **3. Ratificación de condiciones:** · **4. Conclusión y pedido:**
+- Otras modificaciones (los seis puntos que la DEC observa): **1. Justificación de la necesidad y finalidad pública:** · **2. Identificación del contrato a modificar:** · **3. Periodo de vigencia …:** · **4. Aceptación del plazo de implementación:** · **5. Sustento de inalterabilidad del objeto contractual:** · **6. Sustento de hechos sobrevinientes:**
+- Reducción: los datos del contrato en viñetas (contratista, monto, plazo) y en prosa el sustento: que no afecta la finalidad, que la prestación es divisible y recae sobre prestaciones futuras, la oportunidad; cierra pidiendo a Abastecimiento el informe técnico.
+Sin base legal extensa (el análisis normativo es de la DEC).
 
-1. **Antecedente contractual**: contrato u orden vigente (número, objeto, monto, plazo).
-2. **Justificación de la necesidad**: hecho técnico concreto y verificable que motiva el adicional (ej.: saturación del servicio, incremento de usuarios, problemas de latencia documentados) — nunca genérica.
-3. **Finalidad pública**: cómo el adicional garantiza la continuidad operativa o la prestación del servicio a los ciudadanos.
-4. **Alcance del adicional solicitado**: descripción precisa de la prestación (cantidad, característica, plazo), y estimación del porcentaje respecto del monto original (respetar el tope legal del Reglamento para adicionales).
-5. **Solicitud expresa**: pedir al órgano competente gestionar la aprobación del adicional conforme al procedimiento aplicable.`,
+Sin otro en particular, quedo de usted.
+Atentamente,
+[Nombre] / [Cargo] / [Dependencia]`,
 
   postor: `═══════════════════════════════════════════════════════
-ESTRUCTURA MODELO: RECURSO DE APELACIÓN (basada en recursos reales presentados al Tribunal)
+ESTRUCTURA MODELO: ESCRITOS DEL POSTOR EN LA APELACIÓN (recursos reales presentados)
 ═══════════════════════════════════════════════════════
-Para RECURSO DE APELACIÓN (y sus variantes: subsanación, absolución de traslado, descargo de tercero), sigue esta estructura procesal probada:
+El escrito no lleva título arriba («RECURSO DE APELACIÓN»): empieza por el rótulo. Primero identifica cuál de estos cinco escritos es:
+1. RECURSO DE APELACIÓN ante la Entidad (cuantía ≤ 50 UIT) — escrito 001.
+2. RECURSO DE APELACIÓN ante el Tribunal (cuantía > 50 UIT) — escrito 001.
+3. RECURSO DE RESERVA — escrito 001 que se presenta para no perder el plazo: solo la nomenclatura y la firma (literal b) del artículo 307), con el petitorio, los hechos, el derecho y los medios probatorios reservados para la subsanación (literal c) del artículo 307).
+4. SUBSANACIÓN — escrito 002, ya con número de expediente, dentro de los dos días hábiles del literal c) del artículo 307: el recurso completo, con la garantía y los anexos.
+5. DESCARGO COMO TERCER ADMINISTRADO — cuando otro postor apeló y el cliente es el adjudicatario: absuelve el traslado conferido por decreto.
 
-**Encabezado procesal** (alineado a la derecha o al inicio):
-Expediente N.° [si ya existe] / Escrito N.° [01] / Sumilla: [RECURSO DE APELACIÓN contra …]
+**Rótulo** (arriba a la derecha):
+**Expediente N.° :** [vacío en el 001 ante la Entidad; «S/N» en la reserva; «[N°]-[AÑO]-TCE» en la subsanación y el descargo]
+**Decreto N.° :** [solo en el descargo]
+**Escrito N.° :** 001-[AÑO] (002 en la subsanación)
+**Sumilla :** «Interpongo recurso de apelación contra [acto] del procedimiento de selección **[nomenclatura]**» / «**SUBSANO** recurso de apelación …» / «Absolución de traslado de recurso de apelación como **Tercer Administrado**»
 
-# SEÑOR PRESIDENTE DEL TRIBUNAL DE CONTRATACIONES PÚBLICAS
-[o "SEÑOR TITULAR DE LA ENTIDAD …" si la cuantía corresponde a la Entidad]
+**SEÑORES DE LA [ENTIDAD]** (ante la Entidad) o **SEÑOR PRESIDENTE DEL TRIBUNAL DE CONTRATACIONES PÚBLICAS**
 
-[RAZÓN SOCIAL DEL POSTOR], con RUC N.° …, debidamente representada por su [gerente general/apoderado] [nombre], identificado con DNI N.° …, según poder inscrito en la partida N.° … del Registro de Personas Jurídicas de …, con domicilio procesal en … y casilla electrónica/correo …; ante usted respetuosamente digo:
+La empresa **[RAZÓN SOCIAL]**, con RUC N.° …, debidamente representada por su Gerente General, **[NOMBRE]**, identificado con DNI N.° …, con poder inscrito en la Partida Electrónica N.° … del Registro de Personas Jurídicas de la Oficina Registral de …; señalando domicilio procesal en …, correo electrónico … y número de contacto …, a usted respetuosamente digo:   (consorcio: el representante común, con los integrantes y sus RUC; descargo: «me presento y expongo:»)
 
-Que, dentro del plazo legal previsto en el artículo [304 y ss.] del Reglamento, interpongo RECURSO DE APELACIÓN contra [acto impugnado exacto], conforme a los siguientes fundamentos:
+Que, dentro del plazo legal previsto en el numeral [304.1 / 304.2 / 304.3 / 304.4] del artículo 304 del Reglamento de la Ley General de Contrataciones Públicas, interpongo recurso de apelación contra [acto], a favor del postor **[adjudicatario]**, conforme a los fundamentos de hecho y de derecho que detallo a continuación.
 
-## NOMENCLATURA DEL PROCEDIMIENTO DE SELECCIÓN
-- **ENTIDAD CONTRATANTE:** …
-- **TIPO DE PROCEDIMIENTO:** [LP/CP/AS/SIE N° …-…]
-- **OBJETO DE LA CONTRATACIÓN:** …
-- **CUANTÍA:** S/ … [valor referencial/estimado]
+## I. NOMENCLATURA DEL PROCEDIMIENTO DE SELECCIÓN
+| ENTIDAD CONTRATANTE | … |
+| TIPO DE PROCEDIMIENTO | [tipo] N.° … |
+| OBJETO DE LA CONTRATACIÓN | … |
+| CUANTÍA | S/ … |
+## II. PETITORIO
+**Primera Pretensión *(Principal)*:** que se declare **FUNDADO** … / la **NULIDAD** … / se **REVOQUE** la buena pro …
+**Segunda Pretensión *(Consecuencial)*:** …
+(**Subsidiaria** o alternativa cuando corresponda; la del literal b) del numeral 313.1: que el Tribunal resuelva el fondo.)
+## III. FUNDAMENTOS DE HECHO
+3.1 la convocatoria (fecha, entidad «en adelante "la Entidad"», objeto, cuantía en cifras y letras); 3.2 el régimen (Ley N.° 32069 y su Reglamento); 3.3 presentación de ofertas y buena pro (adjudicatario «en adelante "el Adjudicatario"», monto); 3.4 «No obstante, …» (el vicio, citando el acta por cuadro o página y la oferta por folio); 3.5 «En desacuerdo con dicha evaluación, … presentamos el presente recurso». En la subsanación, el último hecho dice cuándo se interpuso el recurso y que se subsana dentro de los dos días hábiles.
+## IV. FUNDAMENTOS DE DERECHO
+4.1, 4.2… repiten literalmente cada pretensión (**PRIMERA PRETENSIÓN:** ***texto***) y la desarrollan en 4.1.1, 4.1.2… (bases por capítulo, numeral y literal; Ley, Reglamento, TUO de la LPAG; principios en negrita; resoluciones del Tribunal SOLO si están en el CONTEXTO) hasta «**4.1.n Conclusión de la Pretensión**». Al final: «Finalmente, cabe indicar que el petitorio se ampara en las siguientes disposiciones, normas y jurisprudencia» y **Procedencia del recurso** (competencia, plazo, legitimidad).
+## V. MEDIOS PROBATORIOS
+## VI. ANEXOS
+Vigencia de poder, DNI del representante, la garantía por interposición (no en la reserva), constancia REMYPE si aplica.
 
-## PETITORIO
-Pretensión principal: [ej.: se revoque la descalificación de mi oferta y se otorgue la buena pro]. Pretensiones subordinadas o accesorias numeradas.
+**POR LO TANTO:** solicito que [la Entidad / el Tribunal] se sirva declarar **FUNDADO** el presente recurso de apelación. (Reserva: «tener por interpuesto el presente recurso de apelación … y se disponga su tramitación conforme a ley». Descargo: «tener por absuelto el traslado en calidad de tercer administrado».)
+**PRIMER OTROSÍ DIGO:** Solicito se sirva disponer la fijación de fecha y hora para la realización de la audiencia pública … (no en la reserva)
+**SEGUNDO OTROSÍ DIGO:** Autorizo expresamente a [nombre del asesor], identificado con DNI N.° …, … a fin de que pueda participar en el presente procedimiento …
+**[Ciudad], [día] de [mes] de [año].**
+[Firma y sello del representante]
 
-## FUNDAMENTOS DE HECHO
-Numerados cronológicamente, cada uno con referencia documental (acta, folio, fecha del SEACE).
-
-## FUNDAMENTO DE DERECHO
-Por cada agravio: artículo de la Ley 32069 / Reglamento / bases integradas vulnerado + desarrollo argumental + precedentes del Tribunal si aplican.
-
-## MEDIOS PROBATORIOS
-Lista numerada de documentos que acreditan cada hecho.
-
-## ANEXOS
-1-A: RUC. 1-B: DNI del representante. 1-C: vigencia de poder. 1-D: garantía por interposición del recurso (cuando es ante el Tribunal). 1-E en adelante: pruebas.
-
-**POR LO TANTO:**
-Al Tribunal/Titular solicito admitir el presente recurso, tramitarlo conforme a ley y declararlo FUNDADO.
-
-[Lugar, fecha] — [Firma del representante legal] — [Firma de abogado con registro, si se exige]
-
-VARIANTES:
-- SUBSANACIÓN: mismo encabezado procesal + "Que, habiendo sido notificado con la observación de fecha …, cumplo con subsanar:" + respuesta punto por punto a cada observación.
-- ABSOLUCIÓN DE TRASLADO: el adjudicatario contesta los agravios del impugnante uno por uno y defiende la validez del acto; petitorio = declarar INFUNDADO el recurso y confirmar la buena pro.
-- DESCARGO DE TERCERO: interviene acreditando legítimo interés y fija posición sobre las pretensiones.`,
+DESCARGO DE TERCER ADMINISTRADO (estructura propia): I. PETITORIO (INFUNDADO el recurso y, si hay base, la DESCALIFICACIÓN de la oferta del apelante) · II. FUNDAMENTOS DE HECHO Y DE DERECHO (2.1 antecedentes; 2.2, 2.3 por pretensión, agravio por agravio, con «Conclusión:») · III. MEDIOS PROBATORIOS · IV. ANEXOS · POR LO TANTO · un solo otrosí (la autorización). Sin nomenclatura ni garantía.`,
 };

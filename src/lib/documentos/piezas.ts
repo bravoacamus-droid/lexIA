@@ -42,6 +42,11 @@ export interface PiezaTitulo {
    */
   numero?: string;
   texto: string;
+  /**
+   * Los apartados de los informes legales de César van subrayados y con
+   * dos puntos: «I. BASE LEGAL:».
+   */
+  subrayado?: boolean;
 }
 
 /** Un párrafo corrido. Puede llevar **negritas** y *cursivas*. */
@@ -58,6 +63,50 @@ export interface PiezaParrafo {
    * «Presente.-»— va en renglones seguidos, no en párrafos sueltos.
    */
   pegado?: boolean;
+  /**
+   * El numeral del párrafo —«1.1», «3.10»—, colgado a la izquierda con el
+   * texto alineado detrás, como en los informes de la SUNARP de César.
+   */
+  numero?: string;
+  /**
+   * Una cita textual —el artículo del Reglamento, lo que dijo el área
+   * usuaria—: en cursiva, con otra letra y sangrada por los dos lados.
+   */
+  cita?: boolean;
+  /** Sangría de primera línea: los «Que, …» de una resolución. */
+  sangriaPrimera?: boolean;
+  /**
+   * Al margen, aunque venga después de un apartado: el cierre de un
+   * informe —«Es todo cuanto informo…», «Atentamente,»— no se sangra con
+   * el último apartado.
+   */
+  margen?: boolean;
+  /**
+   * Corrido a la derecha: el bloque que identifica al recurrente en un
+   * escrito («La empresa …, a usted respetuosamente digo:»).
+   */
+  desplazado?: boolean;
+}
+
+/**
+ * El bloque que abre un informe o un memorándum: «PARA : …», «ASUNTO :
+ * …», «REFERENCIA : a) … b) …». La etiqueta en negrita, los dos puntos
+ * alineados en columna y el valor, de una o más líneas, detrás.
+ */
+export interface PiezaRotulo {
+  clase: 'rotulo';
+  etiqueta: string;
+  lineas: string[];
+  /**
+   * Corrido a la derecha, como el rótulo «Expediente N.° / Escrito N.° /
+   * Sumilla» de un escrito de apelación, que empieza a 5,5 cm.
+   */
+  desplazado?: boolean;
+}
+
+/** La raya que separa el rótulo del cuerpo del informe. */
+export interface PiezaRaya {
+  clase: 'raya';
 }
 
 /**
@@ -181,6 +230,11 @@ export interface PiezaFirma {
   nombre: string;
   cargo?: string;
   entidad?: string;
+  /**
+   * Centrada si no se dice otra cosa. Los informes y memorándums de César
+   * firman a la izquierda.
+   */
+  alineacion?: 'izquierda' | 'centro';
 }
 
 /**
@@ -202,6 +256,8 @@ export type Pieza =
   | PiezaTitulo
   | PiezaParrafo
   | PiezaCampo
+  | PiezaRotulo
+  | PiezaRaya
   | PiezaNota
   | PiezaLista
   | PiezaTabla

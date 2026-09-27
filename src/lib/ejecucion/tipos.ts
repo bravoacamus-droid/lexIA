@@ -255,6 +255,7 @@ export type TipoDeDocumento =
   | 'informe_legal'
   | 'informe_diagnostico'
   | 'informe_supervisor'
+  | 'memorandum'
   | 'resolucion'
   | 'carta'
   | 'acta'
@@ -284,6 +285,18 @@ export interface BorradorDeDocumento {
   firmante?: { nombre: string; cargo: string };
   pendientes: string[];
   documentoId?: string;
+  /** La actuación que se redactó: da la forma del acta y del informe de penalidad. */
+  actuacion?: Actuacion;
+  /** La frase de cortesía con que abre el informe o el memorándum. */
+  apertura?: string;
+  /** Resolución: el epígrafe de cada artículo, «APROBACIÓN DE LA PRESTACIÓN ADICIONAL». */
+  epigrafes?: string[];
+  /** Resolución: «Con el visto de…;». */
+  visto?: string;
+  /** Resolución: «En uso de las atribuciones conferidas por…;». */
+  atribuciones?: string;
+  /** Informe legal: el proyecto que remite con él, «resolución», «contrato complementario». */
+  remiteProyecto?: string;
 }
 
 export const TIPO_DE_HALLAZGO: Record<HallazgoDeAuditoria['tipo'], string> = {

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { nombreDeArchivo, cabeceraDescarga } from '@/lib/descargas/nombre-archivo';
 import { createClient } from '@/lib/supabase/server';
-import { markdownAPiezas } from '@/lib/documentos/desde-markdown';
-import { FORMATO_DOCUMENTO, piezasADocx } from '@/lib/documentos/word';
+import { formatoDelChat, piezasDelChat } from '@/lib/documentos/forma-del-chat';
+import { piezasADocx } from '@/lib/documentos/word';
 import { GENERATOR_PERFILES } from '@/lib/ai/generator-perfiles';
 
 export const runtime = 'nodejs';
@@ -59,7 +59,8 @@ export async function GET(
     );
   }
 
-  const buffer = await piezasADocx(markdownAPiezas(m.content), FORMATO_DOCUMENTO);
+  // Con la forma y la letra de la unidad que escribe (modelos de César).
+  const buffer = await piezasADocx(piezasDelChat(m.content, c.perfil), formatoDelChat(c.perfil, m.content));
 
   const filename = `${nombreDeArchivo(c.title || 'documento', 'documento', 60)}.docx`;
 

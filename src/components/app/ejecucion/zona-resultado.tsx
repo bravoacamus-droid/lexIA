@@ -5,7 +5,9 @@
  * semáforos, el documento que corresponde y lo que se puede hacer
  * después.
  */
-import { fechaHoraLima } from '@/lib/ejecucion/regimen';
+import { fechaHoraLima, hoyISO } from '@/lib/ejecucion/regimen';
+import { piezasDelDocumento } from '@/lib/ejecucion/plantillas';
+import { VistaDelDocumento } from './vista-del-documento';
 import { useState } from 'react';
 import {
   AlertTriangle,
@@ -30,7 +32,7 @@ import { cn } from '@/lib/utils';
 import { ACTUACIONES, PERFILES, type Actuacion, type Perfil } from '@/lib/ejecucion/catalogo';
 import { TEXTO_NIVEL } from '@/lib/ejecucion/suficiencia';
 import type { ActuacionDelExpediente } from '@/lib/ejecucion/estado';
-import { TIPO_DE_HALLAZGO, type BorradorDeDocumento, type CondicionEvaluada, type NivelDeSalida, type PreguntaDecisiva } from '@/lib/ejecucion/tipos';
+import { TIPO_DE_HALLAZGO, type BorradorDeDocumento, type Ficha, type CondicionEvaluada, type NivelDeSalida, type PreguntaDecisiva } from '@/lib/ejecucion/tipos';
 import { SemaforoDeInformacion, SemaforoDeProcedencia } from './semaforos';
 import { FASES_DE_LA_REDACCION, FASES_DEL_ANALISIS, Progreso } from './progreso';
 import { CajaDeDocumentos, type ArchivoSubido } from './subida';
@@ -51,8 +53,6 @@ const ICONO_COND: Record<CondicionEvaluada['estado'], { icono: typeof CheckCircl
 };
 
 const NIVELES: NivelDeSalida[] = ['diagnostico', 'borrador_condicionado', 'revision_final'];
-const ROMANOS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
-const ORDINAL = ['primera', 'segunda', 'tercera', 'cuarta', 'quinta', 'sexta', 'séptima', 'octava', 'novena', 'décima'];
 
 const EXPLICA_NIVEL: Record<NivelDeSalida, string> = {
   diagnostico: 'Con información incompleta, las limitaciones a la vista.',
@@ -63,6 +63,7 @@ const EXPLICA_NIVEL: Record<NivelDeSalida, string> = {
 export function ZonaResultado({
   expedienteId,
   act,
+  ficha,
   ocupado,
   permitidos,
   pendienteOficial,
@@ -75,6 +76,7 @@ export function ZonaResultado({
 }: {
   expedienteId: string;
   act: ActuacionDelExpediente;
+  ficha: Ficha;
   ocupado: Ocupacion;
   permitidos: Perfil[];
   pendienteOficial: { documentoId: string; nombre: string; perfil: Perfil } | null;
@@ -350,6 +352,8 @@ export function ZonaResultado({
       {b && ocupado !== 'redactando' && (
         <DocumentoGenerado
           b={b}
+          perfil={act.perfil}
+          ficha={ficha}
           auditoria={act.auditoria}
           bloqueado={bloqueado}
           base={base}
@@ -472,28 +476,10 @@ function OtroPerfil({ actual, permitidos, excluir, ocupado, alElegir }: { actual
   );
 }
 
-/** Un texto del documento, con **negritas** y los huecos en rojo. */
-function Texto({ t }: { t: string }) {
-  const trozos = t.split(/(\*\*[^*]+\*\*|\[[^\]\n]{1,80}\])/g);
-  return (
-    <>
-      {trozos.map((x, i) =>
-        x.startsWith('**') ? (
-          <strong key={i}>{x.slice(2, -2)}</strong>
-        ) : x.startsWith('[') && x.endsWith(']') ? (
-          <span key={i} className="rounded bg-red-50 px-0.5 font-medium text-red-600 dark:bg-red-950/40 dark:text-red-400">
-            {x}
-          </span>
-        ) : (
-          <span key={i}>{x}</span>
-        ),
-      )}
-    </>
-  );
-}
-
 function DocumentoGenerado({
   b,
+  perfil,
+  ficha,
   auditoria,
   bloqueado,
   base,
@@ -502,6 +488,8 @@ function DocumentoGenerado({
   alAuditar,
 }: {
   b: BorradorDeDocumento;
+  perfil: Perfil;
+  ficha: Ficha;
   auditoria: ActuacionDelExpediente['auditoria'];
   bloqueado: boolean;
   base: string;
@@ -564,54 +552,9 @@ function DocumentoGenerado({
         )}
       </div>
 
-      {/* Vista previa */}
+      {/* Vista previa: las mismas piezas que el Word. */}
       <article className="max-h-[560px] overflow-y-auto rounded-xl border border-border bg-background p-5 text-[13px] leading-relaxed shadow-inner">
-        <p className="text-center text-[13.5px] font-bold uppercase">{b.titulo}</p>
-        <p className="mt-3">
-          <strong>ASUNTO:</strong> {b.asunto}
-        </p>
-        {b.referencias.length > 0 && (
-          <div className="mt-1">
-            <strong>REFERENCIA:</strong>
-            <ol className="ml-5 list-[lower-alpha]">
-              {b.referencias.map((r, i) => (
-                <li key={i}>{r}</li>
-              ))}
-            </ol>
-          </div>
-        )}
-        {b.tipo === 'resolucion' ? (
-          <>
-            <p className="mt-3">
-              <strong>VISTOS:</strong> <Texto t={(b.vistos ?? []).join('; ')} />
-            </p>
-            <p className="mt-3 font-bold">CONSIDERANDO:</p>
-            {(b.considerandos ?? []).map((t, i) => (
-              <p key={i} className="mt-2 text-justify">
-                <Texto t={t} />
-              </p>
-            ))}
-            <p className="mt-3 font-bold">SE RESUELVE:</p>
-            {(b.resuelve ?? []).map((t, i) => (
-              <p key={i} className="mt-2 text-justify">
-                <strong>Artículo {i + 1}.-</strong> <Texto t={t} />
-              </p>
-            ))}
-          </>
-        ) : (
-          b.secciones.map((s, i) => (
-            <section key={i} className="mt-4">
-              <p className="font-bold uppercase">
-                {b.tipo === 'carta' ? `${i + 1}.` : b.tipo === 'adenda' ? `Cláusula ${ORDINAL[i] ?? i + 1}:` : `${ROMANOS[i] ?? i + 1}.`} {s.titulo}
-              </p>
-              {s.parrafos.map((p, j) => (
-                <p key={j} className="mt-2 whitespace-pre-line text-justify">
-                  <Texto t={p} />
-                </p>
-              ))}
-            </section>
-          ))
-        )}
+        <VistaDelDocumento piezas={piezasDelDocumento({ borrador: b, perfil, ficha, anio: Number(hoyISO().slice(0, 4)) })} />
       </article>
     </div>
   );

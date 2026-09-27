@@ -29,6 +29,11 @@ export interface Contexto {
   regimen: 'ley_32069' | 'ley_30225' | 'por_determinar';
   /** Respuestas a las preguntas decisivas, por su id. */
   respuestas: Record<string, string>;
+  /**
+   * Es un contrato menor: se modifica por acta suscrita por ambas partes,
+   * no por resolución ni adenda (numeral 229.1 del Reglamento).
+   */
+  contratoMenor?: boolean;
 }
 
 export interface ReglaRequisito {
@@ -1172,6 +1177,11 @@ export function documentoRecomendado(
   if (actuacion === 'diagnostico') return { tipo: 'informe_diagnostico', titulo: 'Informe de diagnóstico contractual' };
   switch (perfil) {
     case 'area_usuaria':
+      // En los expedientes de César el área usuaria no informa: pide y
+      // sustenta por memorándum (adicional, reducción, otras
+      // modificaciones). El informe técnico queda para lo demás.
+      if (actuacion === 'adicional' || actuacion === 'reduccion' || actuacion === 'otra_modificacion')
+        return { tipo: 'memorandum', titulo: `Memorándum que sustenta ${sobre}` };
       return { tipo: 'informe_tecnico', titulo: `Informe técnico sobre ${sobre}` };
     case 'dec':
       if (actuacion === 'suspension') return { tipo: 'acta', titulo: 'Acta de suspensión del plazo de ejecución' };
@@ -1181,6 +1191,12 @@ export function documentoRecomendado(
       return { tipo: 'informe_legal', titulo: `Informe legal sobre ${sobre}` };
     case 'aga':
     case 'titular':
+      // El contrato menor se modifica por acta que firman las dos partes y
+      // se registra en la Pladicop (numeral 229.1 del Reglamento); así lo
+      // hacen las actas de César para reducir, ampliar el plazo o cambiar
+      // la marca.
+      if (c.contratoMenor && (actuacion === 'reduccion' || actuacion === 'ampliacion_plazo' || actuacion === 'otra_modificacion'))
+        return { tipo: 'acta', titulo: `Acta de modificación del contrato menor: ${sobre}` };
       if (actuacion === 'resolucion')
         return /resoluci/i.test(c.respuestas.etapa_resolucion ?? '')
           ? { tipo: 'carta', titulo: 'Carta de resolución del contrato' }
