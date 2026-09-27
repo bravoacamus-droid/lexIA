@@ -20,7 +20,7 @@ import { auditarDocumento } from '../../src/lib/ejecucion/auditoria';
 import { documentoADocx, documentoEnMarkdown, fichaADocx } from '../../src/lib/ejecucion/documento';
 import { CLASES, type Actuacion, type Perfil } from '../../src/lib/ejecucion/catalogo';
 import type { DocumentoDelExpediente, NivelDeSalida, Respuesta } from '../../src/lib/ejecucion/tipos';
-import { CONTRATO_SERVICIOS, SOLICITUD_AMPLIACION, CONTRATO_BIENES_ANTERIOR, SOLICITUD_RECONOCIMIENTO, INFORME_RECEPCION_SIN_CONTRATO } from './ejecucion-casos';
+import { CONTRATO_SERVICIOS, SOLICITUD_AMPLIACION, CONTRATO_BIENES_ANTERIOR, SOLICITUD_RECONOCIMIENTO, INFORME_RECEPCION_SIN_CONTRATO, CONFORMIDAD_CON_PENALIDAD } from './ejecucion-casos';
 
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 const perfil = (process.argv[2] ?? 'dec') as Perfil;
@@ -58,6 +58,8 @@ void (async () => {
   const docs =
     caso === 'anterior'
       ? [await documento('Contrato 0115-2024.docx', CONTRATO_BIENES_ANTERIOR)]
+      : caso === 'penalidad'
+        ? [await documento('Contrato 015-2026.pdf', CONTRATO_SERVICIOS), await documento('Acta de conformidad 062-2026.pdf', CONFORMIDAD_CON_PENALIDAD)]
       : caso === 'sin_contrato'
         ? [
             await documento('Contrato 015-2026.pdf', CONTRATO_SERVICIOS),
@@ -65,10 +67,13 @@ void (async () => {
             await documento('Informe 088-2026-SGSG.pdf', INFORME_RECEPCION_SIN_CONTRATO),
           ]
         : [await documento('Contrato 015-2026.pdf', CONTRATO_SERVICIOS), await documento('Carta 027-2026 solicitud de ampliación.pdf', SOLICITUD_AMPLIACION)];
-  const actuacion: Actuacion = caso === 'anterior' ? 'resolucion' : caso === 'sin_contrato' ? 'reconocimiento_pago' : 'ampliacion_plazo';
+  const actuacion: Actuacion =
+    caso === 'anterior' ? 'resolucion' : caso === 'sin_contrato' ? 'reconocimiento_pago' : caso === 'penalidad' ? 'penalidad' : 'ampliacion_plazo';
   const pedido =
     caso === 'anterior'
       ? 'La Entidad no pagó el primer entregable pese a tener conformidad desde el 10 de junio de 2024. Queremos resolver el contrato.'
+      : caso === 'penalidad'
+        ? 'El área usuaria dio la conformidad de mayo con una penalidad de la tabla de otras penalidades. Necesito el informe de cálculo de la penalidad.'
       : caso === 'sin_contrato'
         ? 'El proveedor siguió prestando el servicio de limpieza después de vencido el contrato y pide que le paguen S/ 110,000. Necesito evaluar si se puede reconocer.'
         : 'La Entidad recibió una solicitud de ampliación de plazo del contratista por el cierre de locales. Necesito evaluarla.';

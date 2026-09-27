@@ -117,10 +117,11 @@ const PATRONES: Array<[ClaseDeCita, RegExp]> = [
  * tiene que estar en ningún sustento. La versión mejorada del
  * requerimiento la marcaba como cita sin respaldo. El `(?![\d.])` impide
  * que, al fallar la exclusión, la expresión retroceda a «numeral 6» y lo
- * cuente igual.
+ * cuente igual. Puede haber un literal en medio: «numeral 6.9, literal f)
+ * de los Términos de Referencia», como citan los informes de penalidad.
  */
 const ARTICULO =
-  /\b(?:art[íi]culo|numeral)\s+(\d{1,3})(?:\.\d{1,2})*(?![\d.])(?!\s+(?:del?|de\s+l[oa]s?)\s+(?:presente|propi[oa]|requerimiento|t[ée]rminos\s+de\s+referencia|especificaciones\s+t[ée]cnicas|TDR|EETT|bases|pliego|contrato|documento)\b)/gi;
+  /\b(?:art[íi]culo|numeral)\s+(\d{1,3})(?:\.\d{1,2})*(?![\d.])(?!(?:,?\s+literal\s+[a-z]\))?,?\s+(?:del?|de\s+l[oa]s?)\s+(?:presente|propi[oa]|requerimiento|t[ée]rminos\s+de\s+referencia|especificaciones\s+t[ée]cnicas|TDR|EETT|bases|pliego|contrato|documento)\b)/gi;
 
 /** «009-2025-EF.» y «009-2025-EF» son el mismo número. */
 function sinPuntuacionFinal(s: string): string {

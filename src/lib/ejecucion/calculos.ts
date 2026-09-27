@@ -34,6 +34,14 @@ export interface Insumos {
   /** Ya hay una resolución que se pronuncia en el expediente. */
   hayPronunciamiento?: boolean;
   hoy: string;
+  /**
+   * El régimen del contrato. En el anterior casi no se calcula nada (sus
+   * plazos y porcentajes son otros); solo las «otras penalidades» y su
+   * tope, que están verificados.
+   */
+  regimen?: 'ley_32069' | 'ley_30225' | 'por_determinar';
+  /** Es un contrato menor (numeral 229.1: no se le aumenta el monto). */
+  contratoMenor?: boolean;
 }
 
 /** «S/ 1'410,000.00», «1 410 000,50», «240000» → número. */
@@ -105,6 +113,48 @@ export function limiteDeAdicionales(
   return { organo: 'Ninguno: se supera el 25 % del monto del contrato original', base, excede: true, tope: 25 };
 }
 
+/**
+ * Las infracciones de «otras penalidades», una por renglón, como las
+ * escribe César en su cuadro de cálculo: «Entrega tardía del plan de
+ * seguridad: S/ 40.00 × 48», «Prendas excedentes: S/ 27.50 x 12», «Retraso
+ * en guías: S/ 80.00 por 2», o un monto solo («S/ 330.00»).
+ *
+ * Lo que va en porcentaje de la UIT o del contrato no se convierte aquí:
+ * falta el valor de la base y no se supone. Se devuelve aparte para que el
+ * usuario lo escriba en soles.
+ */
+export function otrasPenalidades(texto: string | null | undefined): {
+  infracciones: Array<{ descripcion: string; unitario: number; veces: number; total: number }>;
+  sinLeer: string[];
+} {
+  const infracciones: Array<{ descripcion: string; unitario: number; veces: number; total: number }> = [];
+  const sinLeer: string[] = [];
+  const renglones = (texto ?? '')
+    .split(/\n|;/)
+    .map((l) => l.replace(/^\s*(?:[-•*]|\d+[.)]|[a-z]\))\s+/i, '').trim())
+    .filter(Boolean);
+  for (const l of renglones) {
+    if (/%|\bUIT\b/i.test(l)) {
+      sinLeer.push(l);
+      continue;
+    }
+    const m =
+      l.match(/(?:S\/\.?\s*)([\d.,]+\d)\s*(?:[x×*]|por)\s*(\d+(?:[.,]\d+)?)/i) ??
+      l.match(/([\d.,]*\d[.,]\d{2})\s*(?:[x×*]|por)\s*(\d+(?:[.,]\d+)?)/i);
+    const solo = m ? null : l.match(/S\/\.?\s*([\d.,]+\d)/i);
+    const unitario = aNumero(m ? m[1] : solo?.[1]);
+    const veces = m ? aNumero(m[2]) : 1;
+    if (unitario === null || veces === null) {
+      sinLeer.push(l);
+      continue;
+    }
+    const indice = (m ?? solo)!.index ?? 0;
+    const descripcion = l.slice(0, indice).replace(/[:\-–—=]\s*$/, '').trim() || `Infracción N.° ${String(infracciones.length + 1).padStart(2, '0')}`;
+    infracciones.push({ descripcion, unitario, veces, total: r2(unitario * veces) });
+  }
+  return { infracciones, sinLeer };
+}
+
 /** El factor F de la fórmula de penalidad (numeral 120.1). */
 export function factorF(tipo: TipoContratacion, plazo: number): number {
   if (tipo === 'obra') return plazo <= 60 ? 0.4 : plazo <= 120 ? 0.25 : 0.15;
@@ -130,6 +180,8 @@ export function calcular(i: Insumos): Calculo[] {
   const vigente = montoVigente(i.ficha);
   const plazo = plazoDias(i.ficha);
   const R = i.respuestas;
+  const anterior = i.regimen === 'ley_30225';
+  if (anterior && i.actuacion !== 'penalidad') return out;
 
   switch (i.actuacion) {
     case 'ampliacion_plazo': {
@@ -194,6 +246,17 @@ export function calcular(i: Insumos): Calculo[] {
     }
 
     case 'adicional': {
+      // Al contrato menor no se le aumenta el monto: sus modificaciones
+      // «no aumenten el monto ni desnaturalicen el requerimiento».
+      if (i.contratoMenor)
+        out.push({
+          concepto: 'Contrato menor',
+          resultado: 'No admite prestaciones adicionales',
+          detalle:
+            'Las partes pueden modificar un contrato menor siempre que la modificación no aumente el monto ni desnaturalice el requerimiento, y se perfecciona por acta. Un adicional aumenta el monto: si la necesidad es mayor, corresponde una nueva contratación.',
+          base: 'numeral 229.1 del artículo 229 del Reglamento',
+          impide: true,
+        });
       const monto = aNumero(R.monto_adicional);
       const previos = aNumero(R.adicionales_previos) ?? 0;
       if (original && monto !== null) {
@@ -261,29 +324,95 @@ export function calcular(i: Insumos): Calculo[] {
     }
 
     case 'penalidad': {
+      // Qué se calcula: mora, «otras penalidades» (las de la tabla de las
+      // bases o del contrato) o ambas. Sin respuesta, la mora, como antes.
+      const clase = R.tipo_penalidad ?? '';
+      const conMora = !/^\s*otras/i.test(clase);
+      const conOtras = /otras|ambas/i.test(clase);
+      let mora: number | null = null;
+      let otras: number | null = null;
+
+      // La fórmula de la mora es la del Reglamento vigente; la del
+      // anterior tiene otros valores de F y no se calcula aquí.
       const dias = aNumero(R.dias_atraso);
       const entregable = /entregable/i.test(R.entregable ?? '');
       const montoBase = entregable ? aNumero(R.monto_entregable) : vigente;
       const plazoBase = entregable ? aNumero(R.plazo_entregable) : plazo;
-      if (i.tipo && montoBase && plazoBase && dias !== null) {
+      if (conMora && !anterior && i.tipo && montoBase && plazoBase && dias !== null) {
         const F = factorF(i.tipo, plazoBase);
         const diaria = r2((0.1 * montoBase) / (F * plazoBase));
-        const total = r2(diaria * dias);
-        const tope = vigente ? r2(vigente * 0.1) : null;
-        const aplicada = tope !== null ? Math.min(total, tope) : total;
+        mora = r2(diaria * dias);
         out.push({
           concepto: 'Penalidad por mora',
-          resultado: `${soles(aplicada)}${tope !== null && total > tope ? ' (tope del 10 %)' : ''}`,
-          detalle: `Penalidad diaria = 0.10 × ${soles(montoBase)} / (${F} × ${plazoBase} días) = ${soles(diaria)}. Por ${dias} ${dias === 1 ? 'día' : 'días'} de atraso: ${soles(total)}.${tope !== null ? ` El tope del 10 % del monto vigente es ${soles(tope)}.` : ''}`,
-          base: 'numerales 120.1 y 120.2 del artículo 120 y numeral 119.2 del artículo 119 del Reglamento',
-          valores: [soles(montoBase), soles(diaria), soles(total), soles(aplicada), String(F), ...(tope !== null ? [soles(tope)] : [])],
+          resultado: soles(mora),
+          detalle: `Penalidad diaria = 0.10 × ${soles(montoBase)} / (${F} × ${plazoBase} días) = ${soles(diaria)}. Por ${dias} ${dias === 1 ? 'día' : 'días'} de atraso: ${soles(mora)}.`,
+          base: 'numerales 120.1 y 120.2 del artículo 120 del Reglamento',
+          valores: [soles(montoBase), soles(diaria), soles(mora), String(F)],
         });
-        if (tope !== null && total >= tope) {
+      }
+
+      if (conOtras) {
+        const { infracciones, sinLeer } = otrasPenalidades(R.otras_penalidades);
+        if (infracciones.length) {
+          otras = r2(infracciones.reduce((a, x) => a + x.total, 0));
           out.push({
-            concepto: 'Penalidad máxima',
-            resultado: 'Se alcanzó el tope del 10 %',
-            detalle: 'Alcanzado el monto máximo de penalidad, la Entidad puede resolver el contrato sin apercibimiento previo.',
-            base: 'numeral 122.2 del artículo 122 del Reglamento',
+            concepto: 'Otras penalidades',
+            resultado: soles(otras),
+            detalle: `${infracciones
+              .map((x) => `${x.descripcion}: ${soles(x.unitario)}${x.veces !== 1 ? ` × ${x.veces}` : ''} = ${soles(x.total)}`)
+              .join('; ')}.${sinLeer.length ? ` No se pudo leer, y no se sumó: «${sinLeer.join('»; «')}» (indica el monto en soles y las veces).` : ''}`,
+            base: 'Tabla de otras penalidades del contrato o de las bases',
+            valores: [soles(otras), ...infracciones.flatMap((x) => [soles(x.unitario), soles(x.total)])],
+          });
+        } else if (sinLeer.length) {
+          out.push({
+            concepto: 'Otras penalidades',
+            resultado: 'No se pudo calcular',
+            detalle: `No se entendió el monto de: «${sinLeer.join('»; «')}». Indica cada infracción con su monto en soles y las veces que ocurrió, p. ej. «Entrega tardía del plan de seguridad: S/ 40.00 × 48».`,
+            base: 'Tabla de otras penalidades del contrato o de las bases',
+          });
+        }
+      }
+
+      // El tope y el acumulado del contrato: lo ya aplicado antes cuenta.
+      if (vigente && (mora !== null || otras !== null)) {
+        const tope = r2(vigente * 0.1);
+        const moraPrevia = aNumero(R.mora_previa) ?? 0;
+        const otrasPrevias = aNumero(R.otras_previas) ?? 0;
+        const pctDe = (n: number) => porcentaje(r2((n / vigente) * 100));
+        if (!anterior) {
+          // Ley N.° 32069: la mora y las otras suman juntas un solo tope.
+          const previas = r2(moraPrevia + otrasPrevias);
+          const actual = r2((mora ?? 0) + (otras ?? 0));
+          const acumulado = r2(previas + actual);
+          const aplicable = r2(Math.max(0, Math.min(actual, tope - previas)));
+          const alcanza = acumulado >= tope;
+          out.push({
+            concepto: 'Tope de penalidades',
+            resultado: alcanza ? `Se alcanza el tope del 10 %: corresponde aplicar ${soles(aplicable)}` : `Dentro del tope: corresponde aplicar ${soles(actual)}`,
+            detalle: `Penalidades aplicadas antes: ${soles(previas)}${previas ? ` (mora ${soles(moraPrevia)}; otras ${soles(otrasPrevias)})` : ''}. Penalidad actual: ${soles(actual)}. Acumulado: ${soles(acumulado)}, el ${pctDe(acumulado)} del monto vigente de ${soles(vigente)}. La suma de la penalidad por mora y las otras penalidades no puede exceder el 10 % (${soles(tope)}).`,
+            base: 'numeral 119.2 del artículo 119 del Reglamento',
+            valores: [soles(tope), soles(acumulado), soles(aplicable), soles(actual), pctDe(acumulado), pctDe(actual), pctDe(previas), ...(previas ? [soles(previas)] : [])],
+          });
+          if (alcanza)
+            out.push({
+              concepto: 'Penalidad máxima',
+              resultado: 'Se alcanzó el tope del 10 %',
+              detalle: 'Alcanzado el monto máximo de penalidad, la Entidad puede resolver el contrato sin apercibimiento previo.',
+              base: 'numeral 122.2 del artículo 122 del Reglamento',
+            });
+        } else if (otras !== null) {
+          // Régimen anterior: cada tipo de penalidad tiene su propio tope
+          // del 10 % (numeral 161.2 del Reglamento aprobado por D.S. N.°
+          // 344-2018-EF, que recoge la Opinión N° D000035-2025-OECE-DTN).
+          const acumulado = r2(otrasPrevias + otras);
+          const aplicable = r2(Math.max(0, Math.min(otras, tope - otrasPrevias)));
+          out.push({
+            concepto: 'Tope de otras penalidades',
+            resultado: acumulado >= tope ? `Se alcanza el tope del 10 %: corresponde aplicar ${soles(aplicable)}` : `Dentro del tope: corresponde aplicar ${soles(otras)}`,
+            detalle: `Otras penalidades aplicadas antes: ${soles(otrasPrevias)}. Actual: ${soles(otras)}. Acumulado: ${soles(acumulado)}, el ${pctDe(acumulado)} del monto vigente de ${soles(vigente)}. En el régimen anterior la penalidad por mora y las otras penalidades tienen cada una su propio tope del 10 % (${soles(tope)}).`,
+            base: 'Régimen anterior: cada tipo de penalidad tiene su tope del 10 % del monto vigente (Opinión N° D000035-2025-OECE-DTN)',
+            valores: [soles(tope), soles(acumulado), soles(aplicable), pctDe(acumulado), pctDe(otras), pctDe(otrasPrevias)],
           });
         }
       }

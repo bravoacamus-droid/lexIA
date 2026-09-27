@@ -140,8 +140,12 @@ export function prepararCaso(d: {
     fechaLiquidacion: fechaDe('liquidacion'),
     hayPronunciamiento: cargados.some((x) => x.clase === 'resolucion' && (x.datos.fecha ?? '') >= (fechaDe('solicitud_contratista') ?? '9999')),
     hoy,
+    regimen: regimen.clave,
+    contratoMenor: contexto.contratoMenor,
   };
-  const calculos = regimen.clave === 'ley_30225' ? [] : calcular({ ...insumos, respuestas });
+  // `calcular` decide qué cuentas valen en el régimen anterior: casi
+  // ninguna, salvo las de «otras penalidades» y su tope propio.
+  const calculos = calcular({ ...insumos, respuestas });
   return {
     perfil: d.perfil,
     actuacion: d.actuacion,
@@ -312,7 +316,7 @@ const CALCULO_DE_CONDICION: Partial<Record<Actuacion, Record<string, string>>> =
   adicional: { limite: 'Porcentaje acumulado de adicionales' },
   reduccion: { limite: 'Porcentaje de la reducción' },
   complementario: { limite: 'Porcentaje del complementario', plazo: 'Plazo para la contratación complementaria' },
-  penalidad: { formula: 'Penalidad por mora' },
+  penalidad: { formula: 'Penalidad por mora', tope: 'Tope de penalidades', tope_anterior: 'Tope de otras penalidades' },
   liquidacion: { oportunidad: 'Oportunidad de la liquidación' },
 };
 
@@ -352,8 +356,7 @@ export function componerAnalisis(caso: Caso, lectura: LecturaDelModelo, sustento
   // toman de ahí, con su cita, y los cálculos se rehacen con ellos.
   const deducidos = datosDeLosDocumentos(caso, lectura);
   const respuestas: Record<string, string> = { ...Object.fromEntries(deducidos.map((d) => [d.id, d.valor])), ...caso.respuestas };
-  const calculos =
-    deducidos.length && caso.regimen.clave !== 'ley_30225' ? calcular({ ...caso.insumos, respuestas }) : caso.calculos;
+  const calculos = deducidos.length ? calcular({ ...caso.insumos, respuestas }) : caso.calculos;
 
   // Condiciones, con su evidencia comprobada.
   const reglasCond = condicionesAplicables(caso.actuacion, c);

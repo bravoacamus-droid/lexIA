@@ -86,6 +86,16 @@ const CASOS: Caso[] = [
     esperado: [],
   },
   {
+    nombre: 'con un literal en medio sigue siendo remisión al documento (informes de penalidad de César)',
+    texto: 'La penalidad está en la tabla del numeral 6.9, literal f) de los Términos de Referencia, y en el numeral 6.10 literal b) de las bases.',
+    esperado: [],
+  },
+  {
+    nombre: 'pero el literal de un numeral de la norma sí se comprueba',
+    texto: 'Conforme al numeral 88.4, literal b) del artículo 88 de la Ley…',
+    esperado: ['numeral 88.4'],
+  },
+  {
     nombre: 'pero un numeral de la norma sí se sigue comprobando',
     texto: 'Conforme al numeral 88.4 del artículo 88 de la Ley, y según el numeral 6.2 del requerimiento…',
     esperado: ['numeral 88.4'],

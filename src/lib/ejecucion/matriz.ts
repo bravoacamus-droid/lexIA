@@ -861,10 +861,24 @@ const PENALIDAD: DefinicionDeActuacion = {
     CONTROL,
   ],
   condiciones: [
-    { id: 'retraso', texto: 'Hay un retraso injustificado e imputable al contratista', base: art('120.1', 120, REG) },
-    { id: 'formula', texto: 'La penalidad diaria se calcula con la fórmula 0.10 × monto / (F × plazo) sobre el monto y plazo vigentes del contrato o del entregable', base: 'numerales 120.1 y 120.2 del artículo 120 del Reglamento' },
-    { id: 'tope', texto: 'La suma de penalidades no supera el 10 % del monto vigente', base: art('119.2', 119, REG) },
-    { id: 'conformidad', texto: 'No se imputan al contratista los días en que la Entidad excedió su plazo para dar la conformidad, ni se penaliza lo subsanado a tiempo', base: 'numerales 144.4 y 144.6 del artículo 144 del Reglamento' },
+    { id: 'retraso', texto: 'Hay un retraso injustificado e imputable al contratista', base: art('120.1', 120, REG), aplica: (c) => !soloOtrasPenalidades(c) },
+    { id: 'formula', texto: 'La penalidad diaria se calcula con la fórmula 0.10 × monto / (F × plazo) sobre el monto y plazo vigentes del contrato o del entregable', base: 'numerales 120.1 y 120.2 del artículo 120 del Reglamento', aplica: (c) => !soloOtrasPenalidades(c) },
+    // Las otras penalidades de los informes de César: la infracción está
+    // en la tabla de las bases o del contrato y se verifica como ella dice.
+    {
+      id: 'infraccion',
+      texto: 'La infracción está prevista en la tabla de otras penalidades del contrato o de las bases, con su monto, y se verificó con el procedimiento que esa tabla indica',
+      base: art('119.1', 119, REG),
+      aplica: (c) => /otras|ambas/i.test(c.respuestas.tipo_penalidad ?? ''),
+    },
+    { id: 'tope', texto: 'La suma de la penalidad por mora y las otras penalidades, con las ya aplicadas, no supera el 10 % del monto vigente', base: art('119.2', 119, REG), aplica: (c) => c.regimen !== 'ley_30225' },
+    {
+      id: 'tope_anterior',
+      texto: 'Cada tipo de penalidad —la mora y las otras—, con lo ya aplicado, no supera su propio tope del 10 % del monto vigente',
+      base: 'Régimen anterior: precisar el artículo',
+      aplica: (c) => c.regimen === 'ley_30225',
+    },
+    { id: 'conformidad', texto: 'No se imputan al contratista los días en que la Entidad excedió su plazo para dar la conformidad, ni se penaliza lo subsanado a tiempo', base: 'numerales 144.4 y 144.6 del artículo 144 del Reglamento', aplica: (c) => !soloOtrasPenalidades(c) },
   ],
   articulos: () => ({ ley: [], reglamento: [119, 120, 144] }),
   organo: () => ({
@@ -1139,6 +1153,11 @@ export function requisitosAplicables(actuacion: Actuacion, c: Contexto): ReglaRe
     vistos.add(r.id);
     return true;
   });
+}
+
+/** Solo se calculan «otras penalidades»: lo de la mora no aplica. */
+function soloOtrasPenalidades(c: Contexto): boolean {
+  return /^\s*otras/i.test(c.respuestas.tipo_penalidad ?? '');
 }
 
 export function condicionesAplicables(actuacion: Actuacion, c: Contexto): ReglaCondicion[] {

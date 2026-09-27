@@ -134,3 +134,17 @@ FECHA: 24 de setiembre de 2026
 2. Esta Subgerencia verificó que, entre el 10 de agosto y el 20 de setiembre de 2026, la empresa continuó prestando el servicio de limpieza y desinfección en los locales municipales. Los locales fueron utilizados con normalidad durante ese periodo y se cuenta con los registros de asistencia del personal de la empresa, firmados por los administradores de cada local.
 3. No se suscribió contrato, adenda ni orden de servicio para ese periodo.
 4. Se remite el presente para la evaluación correspondiente.`;
+
+/** Una conformidad con «otras penalidades», como el acta del informe E24 de César. */
+export const CONFORMIDAD_CON_PENALIDAD = `ACTA DE CONFORMIDAD DE SERVICIO N.° 062-2026-MDVE/SGSG
+
+Villa Esperanza, 10 de junio de 2026
+
+Contrato: Contrato N.° 015-2026-MDVE/GAF — Servicio de limpieza y desinfección de los locales municipales.
+Contratista: SERVICIOS GENERALES ANDINOS S.A.C.
+Periodo: del 1 al 31 de mayo de 2026.
+
+1. La Subgerencia de Servicios Generales, en su calidad de área usuaria, otorga la conformidad del servicio prestado en el periodo de mayo de 2026.
+2. Se deja constancia de la aplicación de otras penalidades, conforme a la tabla del numeral 6.9 de los Términos de Referencia, literal f): «Entrega tardía del reporte mensual de supervisión: S/ 80.00 por cada día de retraso. Procedimiento de verificación: informe del área usuaria».
+3. El reporte mensual debió entregarse hasta el 5 de junio de 2026 y fue ingresado por mesa de partes el 7 de junio de 2026, con un retraso de dos (02) días calendario.
+4. En los periodos anteriores se aplicaron otras penalidades por S/ 1,200.00 (Informe N.° 00211-2026-MDVE/ABA). No se aplicó penalidad por mora.`;

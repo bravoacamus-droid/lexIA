@@ -38,6 +38,8 @@ interface Regla extends PreguntaDecisiva {
 }
 
 const respondida = (e: EstadoParaPreguntar, id: string) => (e.respuestas[id] ?? '').trim().length > 0;
+/** Solo se calculan otras penalidades: las preguntas de la mora sobran. */
+const soloOtras = (e: EstadoParaPreguntar) => /^\s*otras/i.test(e.respuestas.tipo_penalidad ?? '');
 const hayMonto = (e: EstadoParaPreguntar, re: RegExp) => e.montos.some((m) => re.test(m.concepto));
 
 const REGLAS: Regla[] = [
@@ -162,13 +164,23 @@ const REGLAS: Regla[] = [
   },
   // ── Penalidad ──
   {
+    id: 'tipo_penalidad',
+    para: ['penalidad'],
+    texto: '¿Qué penalidad se calcula: por mora, otras penalidades (las que fija la tabla de las bases o del contrato por cada infracción) o ambas?',
+    porQue:
+      'Cambia el cálculo: la mora sale de la fórmula del Reglamento; las otras penalidades, del monto que fija la tabla por cada infracción. Y el tope del 10 % se mide distinto según el régimen del contrato.',
+    cambia: ['cálculo', 'monto', 'documento'],
+    opciones: ['Por mora', 'Otras penalidades', 'Ambas'],
+    resuelta: (e) => respondida(e, 'tipo_penalidad'),
+  },
+  {
     id: 'entregable',
     para: ['penalidad'],
     texto: '¿El atraso es de todo el contrato o de un entregable?',
     porQue: 'Si hay entregables cuantificables, la penalidad se calcula con el monto y el plazo del entregable atrasado.',
     cambia: ['cálculo', 'monto'],
     opciones: ['Todo el contrato', 'Un entregable'],
-    resuelta: (e) => respondida(e, 'entregable'),
+    resuelta: (e) => soloOtras(e) || respondida(e, 'entregable'),
   },
   {
     id: 'monto_entregable',
@@ -176,7 +188,7 @@ const REGLAS: Regla[] = [
     texto: '¿Cuál es el monto del entregable atrasado?',
     porQue: 'Es el monto de la fórmula de la penalidad.',
     cambia: ['cálculo', 'monto'],
-    resuelta: (e) => !/entregable/i.test(e.respuestas.entregable ?? '') || respondida(e, 'monto_entregable'),
+    resuelta: (e) => soloOtras(e) || !/entregable/i.test(e.respuestas.entregable ?? '') || respondida(e, 'monto_entregable'),
   },
   {
     id: 'plazo_entregable',
@@ -184,7 +196,7 @@ const REGLAS: Regla[] = [
     texto: '¿Cuál es el plazo del entregable atrasado, en días?',
     porQue: 'Es el plazo de la fórmula de la penalidad y decide el factor F.',
     cambia: ['cálculo'],
-    resuelta: (e) => !/entregable/i.test(e.respuestas.entregable ?? '') || respondida(e, 'plazo_entregable'),
+    resuelta: (e) => soloOtras(e) || !/entregable/i.test(e.respuestas.entregable ?? '') || respondida(e, 'plazo_entregable'),
   },
   {
     id: 'dias_atraso',
@@ -192,7 +204,35 @@ const REGLAS: Regla[] = [
     texto: '¿Cuántos días de atraso se imputan al contratista?',
     porQue: 'Sin los días de atraso no hay penalidad que calcular. No deben contarse los días en que la Entidad excedió su plazo para dar la conformidad.',
     cambia: ['cálculo', 'monto'],
-    resuelta: (e) => respondida(e, 'dias_atraso'),
+    resuelta: (e) => soloOtras(e) || respondida(e, 'dias_atraso'),
+  },
+  {
+    id: 'otras_penalidades',
+    para: ['penalidad'],
+    texto:
+      'Por cada infracción: ¿qué penalidad fija la tabla de otras penalidades y cuántas veces (días, prendas, documentos) ocurrió? Una por línea, en soles, así: «Entrega tardía del plan de seguridad: S/ 40.00 × 48».',
+    porQue:
+      'Las otras penalidades no salen de una fórmula: son el monto que fija la tabla por cada infracción, multiplicado por las veces que ocurrió. Si la tabla la fija en % de la UIT, escríbela ya convertida a soles.',
+    cambia: ['cálculo', 'monto'],
+    resuelta: (e) => !/otras|ambas/i.test(e.respuestas.tipo_penalidad ?? '') || respondida(e, 'otras_penalidades'),
+  },
+  {
+    id: 'mora_previa',
+    para: ['penalidad'],
+    texto: '¿Cuánto suman las penalidades por mora ya aplicadas antes en este contrato? (0 si ninguna)',
+    porQue: 'El tope del 10 % se mide sobre lo acumulado en el contrato, no sobre la penalidad de hoy.',
+    cambia: ['cálculo', 'monto'],
+    // En el régimen anterior cada tipo tiene su propio tope: la mora
+    // anterior solo importa si hoy se calcula mora.
+    resuelta: (e) => (e.regimen === 'ley_30225' && soloOtras(e)) || respondida(e, 'mora_previa'),
+  },
+  {
+    id: 'otras_previas',
+    para: ['penalidad'],
+    texto: '¿Cuánto suman las otras penalidades ya aplicadas antes en este contrato? (0 si ninguna)',
+    porQue: 'El tope del 10 % se mide sobre lo acumulado en el contrato, no sobre la penalidad de hoy.',
+    cambia: ['cálculo', 'monto'],
+    resuelta: (e) => (e.regimen === 'ley_30225' && !/otras|ambas/i.test(e.respuestas.tipo_penalidad ?? '')) || respondida(e, 'otras_previas'),
   },
   // ── Reconocimiento de obligaciones ──
   {
@@ -228,6 +268,8 @@ export const DATOS_DETERMINANTES: Record<string, { formato: 'fecha' | 'monto' | 
   monto_reduccion: { formato: 'monto' },
   monto_complementario: { formato: 'monto' },
   dias_atraso: { formato: 'numero' },
+  mora_previa: { formato: 'monto' },
+  otras_previas: { formato: 'monto' },
   monto_entregable: { formato: 'monto' },
   plazo_entregable: { formato: 'numero' },
 };
