@@ -162,6 +162,9 @@ export async function auditoriaDeterminista(e: EntradaAuditoria): Promise<Hallaz
     if (n !== null) montosPermitidos.push(n);
   }
   for (const c of a.calculos) for (const v of c.valores ?? []) for (const m of montosDe(v)) montosPermitidos.push(m.n);
+  // «S/ 0.00» no es un monto que se pueda inventar: dice que no hubo
+  // (la mora anterior de un informe de penalidad, por ejemplo).
+  montosPermitidos.push(0);
   const vistosM = new Set<number>();
   for (const m of montosDe(e.texto)) {
     if (vistosM.has(m.n)) continue;

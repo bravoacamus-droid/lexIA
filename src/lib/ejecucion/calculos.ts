@@ -392,7 +392,7 @@ export function calcular(i: Insumos): Calculo[] {
             resultado: alcanza ? `Se alcanza el tope del 10 %: corresponde aplicar ${soles(aplicable)}` : `Dentro del tope: corresponde aplicar ${soles(actual)}`,
             detalle: `Penalidades aplicadas antes: ${soles(previas)}${previas ? ` (mora ${soles(moraPrevia)}; otras ${soles(otrasPrevias)})` : ''}. Penalidad actual: ${soles(actual)}. Acumulado: ${soles(acumulado)}, el ${pctDe(acumulado)} del monto vigente de ${soles(vigente)}. La suma de la penalidad por mora y las otras penalidades no puede exceder el 10 % (${soles(tope)}).`,
             base: 'numeral 119.2 del artículo 119 del Reglamento',
-            valores: [soles(tope), soles(acumulado), soles(aplicable), soles(actual), pctDe(acumulado), pctDe(actual), pctDe(previas), ...(previas ? [soles(previas)] : [])],
+            valores: [soles(tope), soles(acumulado), soles(aplicable), soles(actual), pctDe(acumulado), pctDe(actual), pctDe(previas), soles(previas), soles(moraPrevia), soles(otrasPrevias)],
           });
           if (alcanza)
             out.push({
@@ -412,7 +412,7 @@ export function calcular(i: Insumos): Calculo[] {
             resultado: acumulado >= tope ? `Se alcanza el tope del 10 %: corresponde aplicar ${soles(aplicable)}` : `Dentro del tope: corresponde aplicar ${soles(otras)}`,
             detalle: `Otras penalidades aplicadas antes: ${soles(otrasPrevias)}. Actual: ${soles(otras)}. Acumulado: ${soles(acumulado)}, el ${pctDe(acumulado)} del monto vigente de ${soles(vigente)}. En el régimen anterior la penalidad por mora y las otras penalidades tienen cada una su propio tope del 10 % (${soles(tope)}).`,
             base: 'Régimen anterior: cada tipo de penalidad tiene su tope del 10 % del monto vigente (Opinión N° D000035-2025-OECE-DTN)',
-            valores: [soles(tope), soles(acumulado), soles(aplicable), pctDe(acumulado), pctDe(otras), pctDe(otrasPrevias)],
+            valores: [soles(tope), soles(acumulado), soles(aplicable), pctDe(acumulado), pctDe(otras), pctDe(otrasPrevias), soles(otrasPrevias)],
           });
         }
       }

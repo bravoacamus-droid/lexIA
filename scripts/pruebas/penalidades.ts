@@ -51,6 +51,9 @@ comprobar('sin mora: no calcula la fórmula', !calc(e26, 'Penalidad por mora'));
 const tope26 = calc(e26, 'Tope de penalidades');
 comprobar('dentro del tope: se cobra el íntegro', tope26?.resultado === 'Dentro del tope: corresponde aplicar S/ 1,920.00', tope26);
 comprobar('el tope es el 10 % del monto VIGENTE (S/ 64,033.97)', !!tope26?.detalle.includes('S/ 64,033.97'), tope26?.detalle);
+// En producción (27/09) la auditoría bloqueó un informe que decía «mora
+// anterior: S/ 0.00»: ese monto tiene que estar entre los valores.
+comprobar('lo aplicado antes, aunque sea cero, está entre los valores que el informe puede citar', !!tope26?.valores?.includes('S/ 0.00'), tope26?.valores);
 
 console.log('\nLey N.° 32069: mora y otras suman un solo tope');
 const junto = insumos({
