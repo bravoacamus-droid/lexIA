@@ -15,6 +15,7 @@ import { documentoRecomendado, type Contexto } from '../../src/lib/ejecucion/mat
 import { apartadosDe } from '../../src/lib/ejecucion/redaccion';
 import { determinarRegimen, esContratoMenor } from '../../src/lib/ejecucion/regimen';
 import { siguientePregunta } from '../../src/lib/ejecucion/preguntas';
+import { repararFicha } from '../../src/lib/ejecucion/lectura';
 import { formatoDelChat, piezasDelChat } from '../../src/lib/documentos/forma-del-chat';
 import type { Perfil } from '../../src/lib/ejecucion/catalogo';
 import type { BorradorDeDocumento, Ficha } from '../../src/lib/ejecucion/tipos';
@@ -200,6 +201,18 @@ async function xmlDelWord(b: BorradorDeDocumento, perfil: Perfil): Promise<strin
     hayFechaSolicitud: false,
   });
   comprobar('el monto de la reducción se pregunta si no llegó con su cita', prRed?.id === 'monto_reduccion', prRed);
+
+  // La lectura: el modelo juntaba el campo con su valor y el contrato
+  // quedaba sin leer (4 de 12 en producción, 27/09/2026).
+  const roto = '{"ficha": [ { "campo": "plazo_dias": "180", "cita": "El plazo de ejecución es de ciento ochenta (180) días calendario." } ]}';
+  let leido: { ficha: Array<{ campo: string; valor: string }> } | null = null;
+  try {
+    leido = JSON.parse(repararFicha(roto));
+  } catch {
+    leido = null;
+  }
+  comprobar('repara «"campo": "plazo_dias": "180"»', leido?.ficha[0].campo === 'plazo_dias' && leido.ficha[0].valor === '180', repararFicha(roto));
+  comprobar('no toca un JSON bien formado', repararFicha('{ "campo": "objeto", "valor": "x" }') === '{ "campo": "objeto", "valor": "x" }');
 
   console.log('\nApartados según la actuación');
   comprobar('penalidad: antecedentes, análisis y conclusión', apartadosDe('informe_dec', 'penalidad').join('|') === 'ANTECEDENTES|ANÁLISIS|CONCLUSIÓN');

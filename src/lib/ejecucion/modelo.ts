@@ -12,6 +12,11 @@ export interface OpcionesDelModelo {
   /** Para el registro de consumo. */
   usuario?: string | null;
   funcion: string;
+  /**
+   * Arreglo de un error conocido del modelo antes de leer el JSON: el que
+   * lo pide sabe qué forma tiene y qué suele romperse.
+   */
+  reparar?: (texto: string) => string;
 }
 
 export async function pedirJSON<T>(prompt: string, o: OpcionesDelModelo): Promise<T> {
@@ -33,7 +38,7 @@ export async function pedirJSON<T>(prompt: string, o: OpcionesDelModelo): Promis
         latencyMs: Date.now() - inicio,
         status: 'ok',
       });
-      return parseJsonLoose<T>(text);
+      return parseJsonLoose<T>(o.reparar ? o.reparar(text) : text);
     } catch (e) {
       ultimo = e as Error;
       console.error(`[ejecucion] ${o.funcion}: intento ${intento + 1} falló:`, ultimo.message);

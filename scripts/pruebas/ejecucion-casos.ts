@@ -158,28 +158,28 @@ Conste por el presente documento el contrato menor que celebran la MUNICIPALIDAD
 
 CLÁUSULA PRIMERA: OBJETO. Adquisición de uniformes institucionales de verano e invierno 2026 para el personal: 12 sacos, 12 pantalones y 24 blusas, conforme a las especificaciones técnicas.
 CLÁUSULA SEGUNDA: MONTO. S/ 40,000.00 (cuarenta mil con 00/100 soles), a precios unitarios: saco S/ 300.00, pantalón S/ 180.00, blusa S/ 120.00, entre otros.
-CLÁUSULA TERCERA: PLAZO. Ciento veinte (120) días calendario, del 2 de marzo al 29 de junio de 2026.
-Suscrito en Villa Esperanza el 27 de febrero de 2026.`;
+CLÁUSULA TERCERA: PLAZO. Ciento veinte (120) días calendario, del 1 de setiembre al 29 de diciembre de 2026.
+Suscrito en Villa Esperanza el 28 de agosto de 2026.`;
 
 /** El pedido de reducción del área usuaria en el contrato menor. */
 export const MEMO_REDUCCION_MENOR = `MEMORÁNDUM N.° 00129-2026-MDVE/SGRH
 
-Villa Esperanza, 10 de abril de 2026
+Villa Esperanza, 18 de setiembre de 2026
 
 Asunto: Reducción de prestaciones del Contrato Menor N.° 004-2026-MDVE/GAF
 
-Se comunica que una servidora beneficiaria de los uniformes cesó en su cargo el 31 de marzo de 2026 por culminación de su contrato de suplencia. En consecuencia, se solicita reducir un (01) paquete de uniforme de dama: un saco (S/ 300.00), un pantalón (S/ 180.00) y dos blusas (S/ 240.00), por un total de S/ 720.00. Las prendas no han sido confeccionadas y la reducción no afecta la finalidad de dotar de uniformes al personal vigente.`;
+Se comunica que una servidora beneficiaria de los uniformes cesó en su cargo el 15 de setiembre de 2026 por culminación de su contrato de suplencia. En consecuencia, se solicita reducir un (01) paquete de uniforme de dama: un saco (S/ 300.00), un pantalón (S/ 180.00) y dos blusas (S/ 240.00), por un total de S/ 720.00. Las prendas no han sido confeccionadas y la reducción no afecta la finalidad de dotar de uniformes al personal vigente.`;
 
 /** El informe de Abastecimiento que sustenta la reducción del contrato menor. */
 export const INFORME_DEC_REDUCCION_MENOR = `INFORME N.° 00140-2026-MDVE/GAF/ABA
 
-Villa Esperanza, 14 de abril de 2026
+Villa Esperanza, 22 de setiembre de 2026
 
 PARA: Jefe de la Gerencia de Administración y Finanzas
 ASUNTO: Sustento técnico de la reducción de prestaciones del Contrato Menor N.° 004-2026-MDVE/GAF
 REFERENCIA: Memorándum N.° 00129-2026-MDVE/SGRH
 
-1. El Contrato Menor N.° 004-2026-MDVE/GAF, suscrito el 27 de febrero de 2026 con MULTISERVICIOS KATERIN E.I.R.L. por S/ 40,000.00, está en ejecución y los bienes aún no se entregan.
+1. El Contrato Menor N.° 004-2026-MDVE/GAF, suscrito el 28 de agosto de 2026 con MULTISERVICIOS KATERIN E.I.R.L. por S/ 40,000.00, está en ejecución y los bienes aún no se entregan.
 2. La reducción de un paquete de uniforme (un saco, un pantalón y dos blusas) asciende a S/ 720.00, el 1.80 % del monto del contrato, y el nuevo monto contractual es S/ 39,280.00.
 3. La reducción recae sobre prestaciones futuras y divisibles, no afecta la finalidad del contrato y no aumenta el monto, por lo que procede formalizarla mediante acta suscrita por ambas partes y registrarla en la Pladicop, conforme al numeral 229.1 del artículo 229 del Reglamento.
 4. Se recomienda que el Jefe de la Gerencia de Administración y Finanzas, facultado para suscribir contratos menores por la Resolución de Alcaldía N.° 015-2026-MDVE, suscriba el acta de modificación.`;

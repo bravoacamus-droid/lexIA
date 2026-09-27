@@ -44,7 +44,7 @@ Devuelve:
   "fecha": "AAAA-MM-DD de emisión o null",
   "emisor": "quién lo emite (cargo y órgano, o el contratista) o null",
   "resumen": "dos a cuatro oraciones: qué es, qué dice y qué pide o decide",
-  "ficha": [ { "campo": uno de ${LISTA_CAMPOS.map((c) => `"${c}"`).join(', ')}, "valor": "...", "cita": "frase LITERAL del documento que lo dice" } ],
+  "ficha": [ { "campo": "nombre del campo", "valor": "el dato", "cita": "frase LITERAL del documento que lo dice" } ],
   "hechos": [ { "fecha": "AAAA-MM-DD o null", "hecho": "qué ocurrió, en una oración", "cita": "frase LITERAL" } ],
   "montos": [ { "concepto": "qué es el monto (monto contractual, adicional, reducción, penalidad, valorización…)", "monto": número sin separadores, "cita": "frase LITERAL" } ],
   "contiene": [ clases de otros documentos que vienen transcritos o adjuntos DENTRO de este ]
@@ -52,10 +52,19 @@ Devuelve:
 
 REGLAS:
 1. Cada "cita" debe copiarse del documento tal cual, entre 8 y 40 palabras. Si no puedes citarlo, no lo incluyas.
-2. "ficha": solo los datos del CONTRATO al que se refiere el documento (${LISTA_CAMPOS.map((c) => `${c} = ${CAMPOS_FICHA[c].nombre}`).join('; ')}). "tipo_contratacion" se escribe como "Bienes", "Servicios", "Consultoría de obras" o "Ejecución de obras". "plazo_dias" es el número de días del plazo de ejecución. Las fechas, en AAAA-MM-DD. Los montos, como aparecen.
+2. "ficha": solo los datos del CONTRATO al que se refiere el documento. "campo" es uno de estos nombres y "valor" es el dato, en su propia propiedad (${LISTA_CAMPOS.map((c) => `${c} = ${CAMPOS_FICHA[c].nombre}`).join('; ')}). Ejemplo: { "campo": "plazo_dias", "valor": "180", "cita": "…" }. "tipo_contratacion" se escribe como "Bienes", "Servicios", "Consultoría de obras" o "Ejecución de obras". "plazo_dias" es el número de días del plazo de ejecución. Las fechas, en AAAA-MM-DD. Los montos, como aparecen.
 3. "hechos": los hechos relevantes para la ejecución del contrato (entregas, atrasos, paralizaciones, solicitudes, notificaciones, conformidades, pagos, anotaciones), con su fecha si el documento la da.
 4. No deduzcas ni completes: si el documento no dice un dato, no lo pongas.
 5. Si es una resolución, una carta o un informe que transcribe otro documento, indícalo en "contiene".`;
+}
+
+/**
+ * El modelo a veces junta el campo con su valor —«"campo": "plazo_dias":
+ * "180"»— y el JSON no se deja leer: el contrato quedaba sin leer y todo
+ * el análisis caía a diagnóstico (4 de 12 lecturas en producción, 27/09/2026).
+ */
+export function repararFicha(texto: string): string {
+  return texto.replace(/"campo"\s*:\s*"([a-z_]+)"\s*:\s*/g, '"campo": "$1", "valor": ');
 }
 
 export async function leerDocumento(
@@ -66,6 +75,7 @@ export async function leerDocumento(
   const crudo = await pedirJSON<Record<string, unknown>>(prompt(nombre, texto), {
     usuario,
     funcion: 'ejecucion_lectura',
+    reparar: repararFicha,
   });
   return depurarLectura(crudo, texto);
 }
