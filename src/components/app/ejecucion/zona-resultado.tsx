@@ -33,6 +33,7 @@ import { SemaforoDeInformacion, SemaforoDeProcedencia } from './semaforos';
 import { FASES_DE_LA_REDACCION, FASES_DEL_ANALISIS, Progreso } from './progreso';
 import { CajaDeDocumentos, type ArchivoSubido } from './subida';
 import { Zona } from './zona';
+import { RutaDeHabilitacion } from './ruta-de-habilitacion';
 
 export type Ocupacion = 'analizando' | 'redactando' | 'auditando' | 'respondiendo' | 'subiendo' | null;
 
@@ -299,6 +300,8 @@ export function ZonaResultado({
           </Plegable>
         )}
       </div>
+
+      {(act.perfil === 'aga' || act.perfil === 'titular') && <RutaDeHabilitacion analisis={a} />}
 
       {/* Cadena documental */}
       {a.cadena.length > 0 && (

@@ -93,3 +93,44 @@ CLÁUSULA QUINTA: DEL PLAZO
 El plazo de ejecución es de ciento cincuenta (150) días calendario, en cinco entregas.
 
 Ayacucho, 15 de abril de 2024.`;
+
+/**
+ * Prestación sin contrato: un servicio que siguió dos meses después de
+ * vencido el contrato. Para probar el enriquecimiento sin causa
+ * (respuesta de César del 27/09/2026).
+ */
+export const SOLICITUD_RECONOCIMIENTO = `CARTA N.° 041-2026-SGA/GG
+Lima, 22 de setiembre de 2026
+
+Señores
+MUNICIPALIDAD DISTRITAL DE VILLA ESPERANZA
+Av. Los Próceres 450, Villa Esperanza
+Presente.-
+
+Asunto: Solicitud de reconocimiento y pago de servicios prestados
+Referencia: Contrato N.° 015-2026-MDVE/GAF
+
+De nuestra consideración:
+
+Nos dirigimos a ustedes para solicitar el reconocimiento y pago de los servicios de limpieza y desinfección de locales municipales que SERVICIOS GENERALES ANDINOS S.A.C. prestó entre el 10 de agosto y el 20 de setiembre de 2026, luego de vencido el plazo del contrato de la referencia, a pedido verbal de la Subgerencia de Servicios Generales, que nos indicó que el nuevo procedimiento de selección aún no concluía.
+
+Durante ese periodo prestamos el servicio en las mismas condiciones del contrato, con el mismo personal, lo que puede verificarse en los cuadernos de control de asistencia de cada local. El valor de los servicios prestados, calculado con los precios del contrato, asciende a S/ 110,000.00 (ciento diez mil con 00/100 soles).
+
+Solicitamos que la Entidad reconozca y pague dicho monto.
+
+Atentamente,
+
+Julio César Paredes Villa
+Gerente General
+SERVICIOS GENERALES ANDINOS S.A.C.`;
+
+export const INFORME_RECEPCION_SIN_CONTRATO = `INFORME N.° 088-2026-MDVE/SGSG
+A: Gerente de Administración y Finanzas
+DE: Subgerente de Servicios Generales
+ASUNTO: Servicio de limpieza prestado después del vencimiento del Contrato N.° 015-2026-MDVE/GAF
+FECHA: 24 de setiembre de 2026
+
+1. El Contrato N.° 015-2026-MDVE/GAF, con SERVICIOS GENERALES ANDINOS S.A.C., culminó su plazo de ejecución el 9 de agosto de 2026.
+2. Esta Subgerencia verificó que, entre el 10 de agosto y el 20 de setiembre de 2026, la empresa continuó prestando el servicio de limpieza y desinfección en los locales municipales. Los locales fueron utilizados con normalidad durante ese periodo y se cuenta con los registros de asistencia del personal de la empresa, firmados por los administradores de cada local.
+3. No se suscribió contrato, adenda ni orden de servicio para ese periodo.
+4. Se remite el presente para la evaluación correspondiente.`;

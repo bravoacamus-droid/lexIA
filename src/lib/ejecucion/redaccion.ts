@@ -133,12 +133,26 @@ function prompt(d: {
       : d.nivel === 'borrador_condicionado'
         ? 'BORRADOR CONDICIONADO: redacta el documento completo, pero todo lo no acreditado se dice como tal y todo dato faltante queda como hueco entre corchetes.'
         : 'DOCUMENTO PARA REVISIÓN FINAL: lo esencial está acreditado. Redacta el documento completo; los datos que igual falten (número, firmante) quedan como hueco.';
+  // La autoridad no decide sin sustento: el proyecto se puede preparar,
+  // pero no se presenta como listo para firmar (César, 27/09/2026: «el
+  // bloqueo recae sobre la decisión lista para emisión, no sobre la
+  // posibilidad de analizar el caso o preparar un proyecto claramente
+  // condicionado»).
+  const decide = d.perfil === 'aga' || d.perfil === 'titular';
+  const proyecto =
+    decide && d.nivel === 'borrador_condicionado'
+      ? `\nPROYECTO DE DECISIÓN CONDICIONADO: el expediente todavía no permite recomendar su emisión. Redacta el acto como proyecto: en los considerandos, cada fundamento que depende de un informe, opinión o requisito que no está en el expediente se escribe en prosa como pendiente («queda pendiente el informe técnico del Área Usuaria que sustente…»). NUNCA afirmes que el expediente está completo o listo para aprobar, NUNCA atribuyas a la DEC, al Área Usuaria o a Asesoría Jurídica una opinión favorable que no está en los documentos, y en la parte resolutiva no ordenes una aprobación sin condicionarla a que se incorpore lo que falta.`
+      : '';
 
   return `Actúa como un sistema experto de Gestión Contractual Inteligente de LexIA Contrataciones y redacta un documento profesional de la administración pública peruana.
 
 DOCUMENTO: ${d.titulo}
 PERFIL QUE LO EMITE: ${p.nombre} — ${p.enfoque}. Debe responder: ${p.responde.join(' ')}
-NIVEL: ${nivel}
+NIVEL: ${nivel}${proyecto}${
+    a.condiciones.some((c) => c.id === 'enriquecimiento')
+      ? `\nENRIQUECIMIENTO SIN CAUSA: funda el análisis en el artículo 1954 del Código Civil y en las opiniones del OSCE/OECE de 2020 en adelante que están en el SUSTENTO: cita al menos una por su número exacto (p. ej. «Opinión N.° 065-2022/DTN») y di qué criterio recoge. Evalúa por separado cada uno de los cuatro elementos. Las opiniones o resoluciones anteriores a 2020 que el sustento menciona como citadas por el especialista van solo como referencia, sin afirmar su contenido literal.`
+      : ''
+  }
 ACTUACIÓN: ${ACTUACIONES[a.actuacion].nombre}. Tipo de contratación: ${a.tipo ? TIPOS_CONTRATACION[a.tipo] : '[precisar]'}.
 FECHA DE HOY: ${fechaLarga(hoyISO())}.
 
@@ -172,7 +186,11 @@ Devuelve SOLO JSON:
 REGLAS DE REDACCIÓN:
 1. NO INVENCIÓN: nunca inventes hechos, documentos, números, fechas, montos, firmas, cargos, competencias, artículos, opiniones ni antecedentes. Lo que falte va entre corchetes: «[número del informe]», «[fecha de notificación]», «[●]».
 2. Distingue siempre: lo acreditado se afirma citando el documento; lo declarado se escribe «según lo declarado por el usuario» o «según lo manifestado por [quien corresponda]»; lo no probado, «no se encuentra acreditado documentalmente» o «de la documentación proporcionada no se advierte evidencia suficiente».
-3. Cita la norma con precisión y con su parte: «numeral 142.3 del artículo 142 del Reglamento de la Ley N.° 32069, aprobado por Decreto Supremo N.° 009-2025-EF»; la primera vez completa y después «el Reglamento» o «la Ley». Cita solo artículos que estén en el SUSTENTO NORMATIVO.
+${
+    a.regimen.clave === 'ley_30225'
+      ? `3. El contrato se rige por el régimen anterior (${a.regimen.texto}), cuyo articulado no está en el sustento: NO cites ningún número de artículo ni numeral, ni la Ley N.° 32069 ni su Reglamento. Describe la regla y escribe «[precisar artículo del régimen anterior]» donde iría la cita.`
+      : `3. Cita la norma con precisión y con su parte: «numeral 142.3 del artículo 142 del Reglamento de la Ley N.° 32069, aprobado por Decreto Supremo N.° 009-2025-EF»; la primera vez completa y después «el Reglamento» o «la Ley». Cita solo artículos que estén en el SUSTENTO NORMATIVO.`
+  }
 4. Los montos, porcentajes, plazos y fechas de CÁLCULOS se usan con esos valores exactos, redactados en prosa (no copies el rótulo del cálculo).
 5. Coherencia: las conclusiones se siguen del análisis, las recomendaciones de las conclusiones y la parte resolutiva de los considerandos. Si la procedencia es «no procedente» o «la figura no corresponde», el documento no aprueba: deniega, observa o recomienda la figura correcta.
 6. Lenguaje de la administración pública peruana: formal, impersonal en informes, claro, sin adjetivos innecesarios. Párrafos de 3 a 6 oraciones. Nada de viñetas con emojis, ni markdown salvo **negrita** puntual. Las listas, con «a)», «b)».

@@ -17,6 +17,7 @@
  */
 import type { Actuacion, ClaseDocumental, Perfil, TipoContratacion } from './catalogo';
 import type { CampoFicha, Nivel, PasoDeLaCadena, TipoDeDocumento } from './tipos';
+import { sinContrato } from './enriquecimiento';
 
 export interface Contexto {
   perfil: Perfil;
@@ -915,32 +916,78 @@ const RECONOCIMIENTO: DefinicionDeActuacion = {
       acreditaCon: [],
       porHecho: true,
       porQue: 'Sin contrato o fuera de él, lo único que sostiene el reconocimiento es la prueba de la prestación recibida.',
-      aplica: (c) => /sin contrato|fuera/i.test(c.respuestas.origen_obligacion ?? ''),
+      aplica: (c) => sinContrato(c.respuestas),
+    },
+    {
+      id: 'aprovechamiento',
+      texto: 'Documentos que acrediten que la Entidad recibió y aprovechó la prestación (actas, informes del Área Usuaria, guías, registros)',
+      nivel: 1,
+      acreditaCon: ['informe_area_usuaria', 'acta_recepcion', 'conformidad'],
+      porQue: 'El enriquecimiento de la Entidad es el primer elemento: sin prueba de que recibió y usó la prestación, no hay beneficio que indemnizar.',
+      base: 'artículo 1954 del Código Civil',
+      aplica: (c) => sinContrato(c.respuestas) && desdeLaEntidad(c),
+    },
+    {
+      id: 'valor_prestacion',
+      texto: 'Sustento del valor de la prestación (precios de mercado, cotizaciones o valorización técnica)',
+      nivel: 2,
+      // Lo decide el contenido, no la clase: un informe del Área Usuaria
+      // que confirma la prestación no por eso la valoriza.
+      acreditaCon: [],
+      porHecho: true,
+      porQue: 'La indemnización se mide por el enriquecimiento de la Entidad, no por lo que el proveedor pida.',
+      aplica: (c) => sinContrato(c.respuestas),
     },
     DELEGACION,
     CONTROL,
   ],
   condiciones: [
-    { id: 'conformidad', texto: 'La prestación cuenta con la conformidad del Área Usuaria', base: 'artículo 144 del Reglamento' },
-    { id: 'plazo_pago', texto: 'El pago se realiza en un plazo máximo de diez días hábiles desde la conformidad, prorrogable por cinco días hábiles con justificación', base: 'numeral 67.3 del artículo 67 de la Ley' },
-    { id: 'intereses', texto: 'Si hay retraso injustificado, la Entidad reconoce los intereses legales y repite contra los responsables', base: 'numeral 67.5 del artículo 67 de la Ley' },
+    { id: 'conformidad', texto: 'La prestación cuenta con la conformidad del Área Usuaria', base: 'artículo 144 del Reglamento', aplica: (c) => !sinContrato(c.respuestas) },
+    { id: 'plazo_pago', texto: 'El pago se realiza en un plazo máximo de diez días hábiles desde la conformidad, prorrogable por cinco días hábiles con justificación', base: 'numeral 67.3 del artículo 67 de la Ley', aplica: (c) => !sinContrato(c.respuestas) },
+    { id: 'intereses', texto: 'Si hay retraso injustificado, la Entidad reconoce los intereses legales y repite contra los responsables', base: 'numeral 67.5 del artículo 67 de la Ley', aplica: (c) => !sinContrato(c.respuestas) },
+    // Sin contrato: los cuatro elementos del enriquecimiento sin causa que
+    // indicó César (27/09/2026), con el artículo 1954 del Código Civil.
+    { id: 'enriquecimiento', texto: 'La Entidad se enriqueció con la prestación y el proveedor se empobreció correlativamente', base: 'artículo 1954 del Código Civil', aplica: (c) => sinContrato(c.respuestas) },
+    { id: 'nexo', texto: 'El enriquecimiento y el empobrecimiento tienen relación directa: derivan de la prestación ejecutada por el proveedor y aprovechada por la Entidad', base: 'artículo 1954 del Código Civil', aplica: (c) => sinContrato(c.respuestas) },
+    { id: 'sin_causa', texto: 'No existe una causa jurídica válida (contrato o cobertura contractual suficiente) que sustente el pago ordinario', base: 'artículo 1954 del Código Civil', aplica: (c) => sinContrato(c.respuestas) },
+    { id: 'buena_fe', texto: 'El proveedor actuó de buena fe', base: 'artículo 1954 del Código Civil', aplica: (c) => sinContrato(c.respuestas) },
+    { id: 'otra_accion', texto: 'El proveedor no cuenta con otra acción para obtener la indemnización', base: 'artículo 1955 del Código Civil', aplica: (c) => sinContrato(c.respuestas) },
   ],
   articulos: () => ({ ley: [67, 76], reglamento: [124, 144, 145] }),
-  organo: () => ({
-    organo: 'Autoridad de la gestión administrativa',
-    base: 'numeral 67.4 del artículo 67 de la Ley',
-    verificar: 'El incumplimiento o la demora injustificada del pago con conformidad es falta grave de la autoridad de la gestión administrativa.',
-  }),
+  organo: (c) =>
+    sinContrato(c.respuestas)
+      ? {
+          organo: 'El órgano que las normas de gestión interna de la Entidad faculten para reconocer obligaciones',
+          base: 'artículo 1954 del Código Civil',
+          verificar:
+            'La Ley y el Reglamento no atribuyen este reconocimiento a un órgano: no es un pago contractual. Si la prestación deriva de adicionales no aprobados, la pretensión es de competencia del Poder Judicial (numeral 76.3 del artículo 76 de la Ley).',
+        }
+      : {
+          organo: 'Autoridad de la gestión administrativa',
+          base: 'numeral 67.4 del artículo 67 de la Ley',
+          verificar: 'El incumplimiento o la demora injustificada del pago con conformidad es falta grave de la autoridad de la gestión administrativa.',
+        },
   cadena: (c) =>
-    c.perfil === 'contratista'
-      ? [{ perfil: 'contratista', documento: 'Carta de requerimiento de pago (con intereses, si corresponden)', base: 'numerales 67.3 y 67.5 del artículo 67 de la Ley' }]
-      : [
-          { perfil: 'area_usuaria', documento: 'Conformidad de la prestación', base: 'artículo 144 del Reglamento' },
-          { perfil: 'dec', documento: 'Informe de la DEC: monto exigible, plazo e intereses' },
-          { perfil: 'aga', documento: 'Disposición del pago', base: 'numeral 67.3 del artículo 67 de la Ley' },
-        ],
-  explicacion: () =>
-    'El pago de una prestación con conformidad no necesita un acto nuevo: corre el plazo de diez días hábiles de la Ley. Si la obligación nace sin contrato o fuera de él, ya no es un pago contractual y su base legal es otra.',
+    sinContrato(c.respuestas)
+      ? c.perfil === 'contratista'
+        ? [{ perfil: 'contratista', documento: 'Solicitud de reconocimiento de la prestación ejecutada, con la prueba de su entrega y de su valor', base: 'artículo 1954 del Código Civil' }]
+        : [
+            { perfil: 'area_usuaria', documento: 'Informe que acredita la prestación recibida y aprovechada, y su valor', base: 'artículo 1954 del Código Civil' },
+            { perfil: 'dec', documento: 'Informe de la DEC sobre los elementos del enriquecimiento sin causa y la cuantificación' },
+            { perfil: 'asesoria_juridica', documento: 'Opinión legal sobre la procedencia del reconocimiento' },
+            { perfil: 'aga', documento: 'Acto de reconocimiento de la obligación, según las normas de gestión interna' },
+          ]
+      : c.perfil === 'contratista'
+        ? [{ perfil: 'contratista', documento: 'Carta de requerimiento de pago (con intereses, si corresponden)', base: 'numerales 67.3 y 67.5 del artículo 67 de la Ley' }]
+        : [
+            { perfil: 'area_usuaria', documento: 'Conformidad de la prestación', base: 'artículo 144 del Reglamento' },
+            { perfil: 'dec', documento: 'Informe de la DEC: monto exigible, plazo e intereses' },
+            { perfil: 'aga', documento: 'Disposición del pago', base: 'numeral 67.3 del artículo 67 de la Ley' },
+          ],
+  explicacion: (c) =>
+    sinContrato(c.respuestas)
+      ? 'Una prestación ejecutada sin contrato o fuera de él no se paga por las reglas del contrato. Excepcionalmente puede reconocerse como indemnización por enriquecimiento sin causa (artículo 1954 del Código Civil), si concurren sus cuatro elementos: enriquecimiento de la Entidad y empobrecimiento del proveedor, relación directa entre ambos, ausencia de causa jurídica válida y buena fe del proveedor. No es una regularización del contrato.'
+      : 'El pago de una prestación con conformidad no necesita un acto nuevo: corre el plazo de diez días hábiles de la Ley.',
 };
 
 const LIQUIDACION: DefinicionDeActuacion = {
@@ -1115,7 +1162,12 @@ export function documentoRecomendado(
   actuacion: Actuacion,
   c: Contexto,
 ): { tipo: TipoDeDocumento; titulo: string } {
-  const sobre = NOMBRE_ACTUACION[actuacion];
+  // Sin contrato no hay «pago de la obligación»: es el reconocimiento por
+  // enriquecimiento sin causa, y el título lo dice.
+  const sobre =
+    actuacion === 'reconocimiento_pago' && sinContrato(c.respuestas)
+      ? 'el reconocimiento de la prestación ejecutada sin contrato (enriquecimiento sin causa)'
+      : NOMBRE_ACTUACION[actuacion];
   if (actuacion === 'diagnostico') return { tipo: 'informe_diagnostico', titulo: 'Informe de diagnóstico contractual' };
   switch (perfil) {
     case 'area_usuaria':

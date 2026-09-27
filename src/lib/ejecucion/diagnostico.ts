@@ -38,9 +38,10 @@ import {
 } from './matriz';
 import { pedirJSON } from './modelo';
 import { datosDeterminantes, siguientePregunta, tipoDesdeTexto } from './preguntas';
-import { determinarRegimen, fechaISO, fechaLarga, hoyISO } from './regimen';
+import { determinarRegimen, fechaISO, fechaLarga, hoyISO, sinArticuladoVigente } from './regimen';
 import { calcularSuficiencia, evaluarRequisitos, peor, type EvaluacionDeHecho } from './suficiencia';
 import { articulosDeLaNorma, criteriosRelacionados } from './sustento';
+import { sinContrato, sustentoDelEnriquecimiento } from './enriquecimiento';
 import type {
   AnalisisDeActuacion,
   Calculo,
@@ -240,7 +241,7 @@ SUSTENTO NORMATIVO (artículos de la Ley y su Reglamento, y criterios):
 ${sustento || '(sin sustento: no cites artículos)'}
 
 CONDICIONES DE PROCEDENCIA QUE DEBES EVALUAR:
-${condiciones.map((c) => `- id "${c.id}": ${c.texto} [${c.base}]`).join('\n') || '(ninguna fija: identifica tú las que apliquen en "riesgos")'}
+${condiciones.map((c) => (caso.regimen.clave === 'ley_30225' ? `- id "${c.id}": ${sinArticuladoVigente(c.texto)}` : `- id "${c.id}": ${c.texto} [${c.base}]`)).join('\n') || '(ninguna fija: identifica tú las que apliquen en "riesgos")'}
 
 DATOS QUE PUEDEN ESTAR EN LOS DOCUMENTOS (si un documento los dice, dalos con su cita; así no se le preguntan al usuario):
 ${datosDeterminantes(caso.actuacion).filter((x) => !caso.respuestas[x.id]).map((x) => `- id "${x.id}": ${x.texto} (${x.formato === 'fecha' ? 'AAAA-MM-DD' : x.formato === 'monto' ? 'número, sin S/ ni separadores' : 'número entero'})`).join('\n') || '(ninguno)'}
@@ -284,11 +285,15 @@ export async function interpretarConModelo(
   let sustento = '';
   if (caso.regimen.clave !== 'ley_30225') {
     const pedidos = MATRIZ[caso.actuacion].articulos(caso.contexto);
-    const [norma, criterios] = await Promise.all([
+    const enriquecimiento = caso.actuacion === 'reconocimiento_pago' && sinContrato(caso.respuestas);
+    const [norma, criterios, delEnriquecimiento] = await Promise.all([
       articulosDeLaNorma(supabase, pedidos),
       criteriosRelacionados(supabase, `${ACTUACIONES[caso.actuacion].nombre} ${caso.tipo ? TIPOS_CONTRATACION[caso.tipo] : ''}. ${caso.pedido}`.slice(0, 600)),
+      // Sin contrato: el Código Civil, el criterio de César y las
+      // opiniones de 2020 en adelante (ver enriquecimiento.ts).
+      enriquecimiento ? sustentoDelEnriquecimiento(supabase) : Promise.resolve(''),
     ]);
-    sustento = [norma.texto, criterios].filter(Boolean).join('\n\n---\n\n');
+    sustento = [norma.texto, delEnriquecimiento, criterios].filter(Boolean).join('\n\n---\n\n');
   }
   const lectura = await pedirJSON<LecturaDelModelo>(promptDiagnostico(caso, sustento), {
     usuario,
@@ -336,6 +341,9 @@ const PERFIL_DE_CLASE: Partial<Record<string, ClaseDocumental[]>> = {
 export function componerAnalisis(caso: Caso, lectura: LecturaDelModelo, sustento: string): AnalisisDeActuacion {
   const def = MATRIZ[caso.actuacion];
   const c = caso.contexto;
+  // Régimen anterior: los textos de la matriz traen el articulado de la
+  // Ley N.° 32069 y no deben llegar así al análisis ni al documento.
+  const anterior = caso.regimen.clave === 'ley_30225';
   const advertencias: string[] = [];
 
   // Los datos decisivos que ya dicen los documentos no se preguntan: se
@@ -370,8 +378,8 @@ export function componerAnalisis(caso: Caso, lectura: LecturaDelModelo, sustento
     }
     return {
       id: r.id,
-      texto: r.texto,
-      base: caso.regimen.clave === 'ley_30225' ? 'Régimen anterior: precisar el artículo' : r.base,
+      texto: anterior ? sinArticuladoVigente(r.texto) : r.texto,
+      base: anterior ? 'Régimen anterior: precisar el artículo' : r.base,
       estado,
       sustento: sustentoCond,
       evidencia,
@@ -486,13 +494,20 @@ export function componerAnalisis(caso: Caso, lectura: LecturaDelModelo, sustento
   }
 
   // En el régimen anterior no se cita el articulado de la Ley N.° 32069.
-  if (caso.regimen.clave === 'ley_30225') competencia = { ...competencia, base: 'Régimen anterior: precisar el artículo' };
+  if (anterior)
+    competencia = {
+      organo: sinArticuladoVigente(competencia.organo),
+      verificar: sinArticuladoVigente(competencia.verificar),
+      base: 'Régimen anterior: precisar el artículo',
+    };
 
   // La cadena documental, marcando lo que ya está en el expediente.
   const cargados = caso.documentos.filter((d) => d.origen === 'cargado');
   const cadena: PasoDeLaCadena[] = def.cadena(c).map((p) => ({
     ...p,
-    base: caso.regimen.clave === 'ley_30225' ? undefined : p.base,
+    documento: anterior ? sinArticuladoVigente(p.documento) : p.documento,
+    condicion: anterior && p.condicion ? sinArticuladoVigente(p.condicion) : p.condicion,
+    base: anterior ? undefined : p.base,
     hecho: (PERFIL_DE_CLASE[p.perfil] ?? []).some((cl) => cargados.some((d) => d.clase === cl || (d.datos.contiene ?? []).includes(cl))),
   }));
 
@@ -551,9 +566,9 @@ export function componerAnalisis(caso: Caso, lectura: LecturaDelModelo, sustento
       `${citasFalsas === 1 ? 'Una cita del análisis no se encontró' : `${citasFalsas} citas del análisis no se encontraron`} en el documento que decía citar y no se ${citasFalsas === 1 ? 'tomó' : 'tomaron'} como evidencia.`,
     );
   for (const aviso of new Set(calculos.map((x) => x.aviso).filter((x): x is string => !!x))) advertencias.push(aviso);
-  if (caso.actuacion === 'reconocimiento_pago' && /sin contrato|fuera/i.test(caso.respuestas.origen_obligacion ?? ''))
+  if (caso.actuacion === 'reconocimiento_pago' && sinContrato(caso.respuestas))
     advertencias.push(
-      'Una prestación ejecutada sin contrato o fuera de él no se paga por las reglas del contrato. La biblioteca de LexIA no contiene la norma aplicable a ese reconocimiento: el documento deja su base legal por precisar. Si deriva de adicionales no aprobados, las pretensiones de enriquecimiento sin causa son de competencia del Poder Judicial (numeral 76.3 del artículo 76 de la Ley).',
+      'Una prestación ejecutada sin contrato o fuera de él no se paga por las reglas del contrato: solo puede reconocerse, de forma excepcional, como indemnización por enriquecimiento sin causa (artículo 1954 del Código Civil), si se acreditan sus cuatro elementos. No es una regularización del contrato. Si deriva de adicionales no aprobados, la pretensión es de competencia del Poder Judicial (numeral 76.3 del artículo 76 de la Ley).',
     );
   for (const r of requisitos) if (r.declaracion && r.estado === 'falta' && r.declaracion.startsWith('Existe el borrador')) advertencias.push(r.declaracion);
   if (figura.alternativa && !figura.corresponde)
@@ -581,7 +596,7 @@ export function componerAnalisis(caso: Caso, lectura: LecturaDelModelo, sustento
     calculos: calculos,
     competencia,
     cadena,
-    explicacionCadena: def.explicacion(c),
+    explicacionCadena: anterior ? sinArticuladoVigente(def.explicacion(c)) : def.explicacion(c),
     documento: { tipo: doc.tipo, titulo: doc.titulo, advertencia: advertenciaDoc },
     suficiencia: suf.porcentaje,
     semaforoInformacion: suf.semaforo,

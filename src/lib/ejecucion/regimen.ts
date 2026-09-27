@@ -188,6 +188,30 @@ export function vencimientoCalendario(desde: string, n: number): { vence: string
   return { vence: f, corrido: f !== original };
 }
 
+/**
+ * Para un contrato del régimen anterior: quita de un texto de la matriz el
+ * articulado de la Ley N.° 32069 y su Reglamento, que no rige ese contrato
+ * y que el modelo copiaría. La regla se conserva; el artículo queda por
+ * precisar. César, 27/09/2026: el modelo de Ayacucho sirve «solo a fin de
+ * considerar la estructura… no debe considerar el marco legal».
+ */
+export function sinArticuladoVigente(t: string): string {
+  const numero = String.raw`\d+(?:\.\d+)*`;
+  const cita = new RegExp(
+    String.raw`(?:literal(?:es)?\s+[a-z]\)(?:\s*(?:,|y)\s*[a-z]\))*\s+del?\s+)?` +
+      String.raw`(?:numeral(?:es)?|art[íi]culos?)\s+${numero}(?:\s*(?:,|y)\s*${numero})*` +
+      String.raw`(?:\s+del\s+art[íi]culo\s+\d+)?\s+(?:de\s+la\s+Ley|del\s+Reglamento)(?![\wáéíóúñ])`,
+    'gi',
+  );
+  return t
+    .replace(/Reglamento\s+de\s+la\s+Ley\s+N\.?\s*°?\s*32069(?:,\s*aprobado\s+por\s+Decreto\s+Supremo\s+N\.?\s*°?\s*009-2025-EF)?/gi, 'reglamento aplicable al contrato')
+    .replace(cita, '[precisar artículo del régimen anterior]')
+    .replace(/Ley\s+N\.?\s*°?\s*32069(?:,\s*Ley General de Contrataciones Públicas)?/gi, 'ley aplicable al contrato')
+    .replace(/Decreto\s+Supremo\s+N\.?\s*°?\s*009-2025-EF/gi, '[precisar el reglamento aplicable]')
+    .replace(/\bla\s+Pladicop\b/gi, 'el SEACE')
+    .replace(/\bPladicop\b/g, 'SEACE');
+}
+
 /** Días calendario entre dos fechas (b − a). */
 export function diasEntre(a: string, b: string): number {
   return Math.round((desdeISO(b).getTime() - desdeISO(a).getTime()) / 86400000);

@@ -192,6 +192,21 @@ export async function auditoriaDeterminista(e: EntradaAuditoria): Promise<Hallaz
         gravedad: 'error',
         texto: 'El contrato se rige por el régimen anterior (Ley N.° 30225 y su Reglamento), pero el documento aplica el Reglamento de la Ley N.° 32069.',
       });
+    // Sin el articulado del régimen anterior en el sustento, ningún número
+    // de artículo se puede comprobar: uno inventado pasaría. Los del Código
+    // Civil (enriquecimiento sin causa) sí están en el sustento.
+    const vistosArt = new Set<string>();
+    for (const m of e.texto.matchAll(/(?:art[íi]culo|numeral)\s+(\d+(?:\.\d+)*)[^.;\n]{0,60}/gi)) {
+      if (/C[óo]digo\s+Civil/i.test(m[0])) continue;
+      const cual = m[0].match(/^(?:art[íi]culo|numeral)\s+\d+(?:\.\d+)*/i)![0];
+      if (vistosArt.has(cual.toLowerCase())) continue;
+      vistosArt.add(cual.toLowerCase());
+      h.push({
+        tipo: 'normativa',
+        gravedad: 'error',
+        texto: `Cita el «${cual}», pero el contrato se rige por el régimen anterior y su articulado no está en el sustento: reemplázalo por «[precisar artículo del régimen anterior]» o verifícalo en la norma.`,
+      });
+    }
   } else {
     const auditoria = await auditarCitas(e.texto, a.sustento, e.buscarEnBiblioteca);
     for (const av of auditoria.avisos) {

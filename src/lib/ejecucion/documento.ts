@@ -70,6 +70,15 @@ export interface DatosDelDocumento {
 function nota(d: DatosDelDocumento): Pieza[] {
   const b = d.borrador;
   if (b.nivel === 'revision_final') return [];
+  // Un acto de la autoridad sin el sustento completo es un proyecto, y el
+  // Word lo dice arriba, con esas palabras: no es apto para firma.
+  if ((d.perfil === 'aga' || d.perfil === 'titular') && b.nivel === 'borrador_condicionado')
+    return [
+      {
+        clase: 'nota',
+        texto: `PROYECTO DE DECISIÓN CONDICIONADO — NO APTO PARA FIRMA. Generado el ${fechaLarga(diaEnLima(b.generadoEn))}. El expediente aún no permite recomendar su emisión: falta sustento que la autoridad necesita para decidir (ver la ficha de control y los fundamentos pendientes en los considerandos). Retire esta nota solo cuando ese sustento esté incorporado.`,
+      },
+    ];
   return [
     {
       clase: 'nota',
@@ -125,13 +134,25 @@ function cuerpo(secciones: BorradorDeDocumento['secciones'], numerar: (i: number
   return out;
 }
 
+/**
+ * A quién va un INFORME. La AGA y el Titular escriben al contratista
+ * cuando mandan una carta, pero un informe suyo es interno: la auditoría
+ * de coherencia lo marcó en un diagnóstico de la AGA dirigido «A:
+ * Contratista» (27/09/2026).
+ */
+function destinatarioDelInforme(perfil: Perfil): string {
+  if (perfil === 'aga') return 'Titular de la Entidad';
+  if (perfil === 'titular') return 'Dependencia encargada de las contrataciones (DEC)';
+  return DESTINATARIO[perfil];
+}
+
 function piezasDelInforme(d: DatosDelDocumento): Pieza[] {
   const b = d.borrador;
   const siglas = `${HUECO}-${d.anio}-[SIGLAS]`;
   return [
     { clase: 'titulo', rol: 'encabezado', nivel: 0, texto: `${ENCABEZADO[b.tipo] ?? 'INFORME'} N.° ${siglas}` },
     ...nota(d),
-    { clase: 'campo', etiqueta: 'A', valor: `[Nombres y apellidos] — ${DESTINATARIO[d.perfil]}` },
+    { clase: 'campo', etiqueta: 'A', valor: `[Nombres y apellidos] — ${destinatarioDelInforme(d.perfil)}` },
     { clase: 'campo', etiqueta: 'DE', valor: `[Nombres y apellidos] — ${CARGO_DEL_PERFIL[d.perfil]}` },
     { clase: 'campo', etiqueta: 'ASUNTO', valor: b.asunto },
     ...(b.referencias.length
