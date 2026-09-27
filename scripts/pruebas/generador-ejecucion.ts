@@ -210,7 +210,14 @@ void (async () => {
   comprobar('después, quién originó la ampliación', siguientePregunta({ ...estado, tipo: 'servicios' })?.id === 'origen');
   comprobar('si ya está la solicitud, no se pregunta el origen', siguientePregunta({ ...estado, tipo: 'servicios', clases: new Set(['solicitud_contratista']) })?.id === 'hecho');
   comprobar('si el hecho se conoce, se pregunta si hay prueba', siguientePregunta({ ...estado, tipo: 'servicios', clases: new Set(['solicitud_contratista']), hechoIdentificado: true })?.id === 'evidencia');
-  comprobar('respondido «No», no se vuelve a pedir', siguientePregunta({ ...estado, tipo: 'servicios', clases: new Set(['solicitud_contratista']), hechoIdentificado: true, respuestas: { evidencia: 'No' } }) === null);
+  comprobar(
+    'respondido «No», no se vuelve a pedir: sigue el dato de los días de ampliación',
+    siguientePregunta({ ...estado, tipo: 'servicios', clases: new Set(['solicitud_contratista']), hechoIdentificado: true, respuestas: { evidencia: 'No' } })?.id === 'dias_ampliacion',
+  );
+  comprobar(
+    'con los días (de la carta o respondidos), no hay nada más que preguntar',
+    siguientePregunta({ ...estado, tipo: 'servicios', clases: new Set(['solicitud_contratista']), hechoIdentificado: true, respuestas: { evidencia: 'No', dias_ampliacion: '16' } }) === null,
+  );
   comprobar('régimen por determinar → fecha de convocatoria', siguientePregunta({ ...estado, tipo: 'servicios', regimen: 'por_determinar' })?.id === 'fecha_convocatoria');
   comprobar('«Adquisición de bienes para la obra…» es bienes', tipoDesdeTexto('Adquisición de bienes para la obra de la I.E.') === 'bienes');
   comprobar('«Ejecución de obras» es obra y «Consultoría de obras» consultoría', tipoDesdeTexto('Ejecución de obras') === 'obra' && tipoDesdeTexto('Consultoría de obras') === 'consultoria_obra');
@@ -312,6 +319,28 @@ void (async () => {
   const aObra = componerAnalisis(casoObra, { procedencia: { semaforo: 'verde' } }, '');
   comprobar('complementario de obra: semáforo negro y alternativa', aObra.procedencia.semaforo === 'negro' && aObra.figura.alternativa === 'adicional', aObra.figura);
 
+  // Contrato menor: competencia y cadena del acta (prueba en producción,
+  // 27/09: el diagnóstico decía «mediante resolución» para un acta).
+  const casoMenor = prepararCaso({
+    perfil: 'aga',
+    actuacion: 'reduccion',
+    actuacionPedida: 'reduccion',
+    pedido: 'Es un contrato menor: reducir un paquete de uniforme.',
+    documentos: [],
+    fichaUsuario: { tipo_contratacion: { valor: 'Bienes', delUsuario: true }, fecha_suscripcion: { valor: '2026-08-28', delUsuario: true } },
+    respuestas: [],
+    hoy: '2026-09-27',
+  });
+  comprobar('contrato menor: régimen resuelto sin convocatoria', casoMenor.regimen.clave === 'ley_32069', casoMenor.regimen);
+  const aMenor = componerAnalisis(casoMenor, { procedencia: { semaforo: 'verde' } }, '');
+  comprobar('contrato menor: el documento es el acta', aMenor.documento.tipo === 'acta', aMenor.documento);
+  comprobar('contrato menor: la competencia es por acta (229.1), no por resolución', /acta/.test(aMenor.competencia.organo) && !/resoluci/i.test(aMenor.competencia.organo) && aMenor.competencia.base.includes('229.1'), aMenor.competencia);
+  comprobar(
+    'contrato menor: en la cadena, la autoridad suscribe el acta',
+    aMenor.cadena.some((p) => p.perfil === 'aga' && /Acta de modificación/.test(p.documento)) && !aMenor.cadena.some((p) => p.perfil === 'aga' && /[Rr]esoluci/.test(p.documento)),
+    aMenor.cadena,
+  );
+
   console.log('\nAuditoría del documento');
   comprobar('fechas largas y cortas', fechasDe('el 4 de junio de 2026 y el 15/06/2026').map((f) => f.iso).join() === '2026-06-04,2026-06-15');
   comprobar('montos en soles', montosDe("S/ 480,000.00 y S/ 1'410,000.00.").map((m) => m.n).join() === '480000,1410000');
@@ -333,6 +362,22 @@ También el Contrato N.° 099-2026-MDVE/GAF, el RUC 20999999999, S/ 12,345.00 y 
   comprobar('no marca el contrato del expediente', !tiene(/«N\.° 015-2026/));
   comprobar('marca el RUC ajeno', tiene(/20999999999/));
   comprobar('marca el monto sin respaldo y no el del contrato', tiene(/12,345\.00/) && !tiene(/480,000\.00/));
+  comprobar('el monto sin cuenta posible sigue siendo error', h.some((x) => x.gravedad === 'error' && /12,345\.00/.test(x.texto)));
+  // Prueba en producción (27/09): «dos blusas: S/ 240.00» con la blusa a
+  // S/ 120.00 en el contrato se marcaba como monto inventado.
+  const hSub = await auditoriaDeterminista({
+    texto: 'Dos periodos del servicio suman S/ 960,000.00.',
+    analisis: a,
+    ficha,
+    documentos: [CONTRATO, SOLICITUD],
+    respuestas: [],
+    pedido: '',
+    perfil: 'dec',
+    hoy: '2026-09-23',
+    buscarEnBiblioteca: async () => true,
+  });
+  const sub = hSub.find((x) => /960,000\.00/.test(x.texto));
+  comprobar('un precio del documento por una cantidad es advertencia, con la cuenta', sub?.gravedad === 'advertencia' && /480,000\.00 × 2/.test(sub.texto), hSub);
   comprobar('marca la fecha sin respaldo y no las del caso ni las calculadas', tiene(/febrero de 2025/) && !tiene(/15 de junio/) && !tiene(/2 de julio/));
   comprobar('advierte el porcentaje sin origen', h.some((x) => x.tipo === 'economia' && x.gravedad === 'advertencia' && /37/.test(x.texto)));
   comprobar('marca el artículo que no estaba en el sustento', tiene(/999/));

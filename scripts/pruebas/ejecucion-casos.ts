@@ -157,7 +157,7 @@ Contratación menor (igual o inferior a ocho UIT) de bienes, bajo la Ley N.° 32
 Conste por el presente documento el contrato menor que celebran la MUNICIPALIDAD DISTRITAL DE VILLA ESPERANZA, con RUC N.° 20123456789, y MULTISERVICIOS KATERIN E.I.R.L., con RUC N.° 20601234567, representada por su gerente general.
 
 CLÁUSULA PRIMERA: OBJETO. Adquisición de uniformes institucionales de verano e invierno 2026 para el personal: 12 sacos, 12 pantalones y 24 blusas, conforme a las especificaciones técnicas.
-CLÁUSULA SEGUNDA: MONTO. S/ 40,000.00 (cuarenta mil con 00/100 soles), a precios unitarios: saco S/ 300.00, pantalón S/ 180.00, blusa S/ 120.00, entre otros.
+CLÁUSULA SEGUNDA: MONTO. S/ 8,640.00 (ocho mil seiscientos cuarenta con 00/100 soles), a precios unitarios: saco S/ 300.00 (12 unidades, S/ 3,600.00), pantalón S/ 180.00 (12 unidades, S/ 2,160.00) y blusa S/ 120.00 (24 unidades, S/ 2,880.00).
 CLÁUSULA TERCERA: PLAZO. Ciento veinte (120) días calendario, del 1 de setiembre al 29 de diciembre de 2026.
 Suscrito en Villa Esperanza el 28 de agosto de 2026.`;
 
@@ -179,8 +179,8 @@ PARA: Jefe de la Gerencia de Administración y Finanzas
 ASUNTO: Sustento técnico de la reducción de prestaciones del Contrato Menor N.° 004-2026-MDVE/GAF
 REFERENCIA: Memorándum N.° 00129-2026-MDVE/SGRH
 
-1. El Contrato Menor N.° 004-2026-MDVE/GAF, suscrito el 28 de agosto de 2026 con MULTISERVICIOS KATERIN E.I.R.L. por S/ 40,000.00, está en ejecución y los bienes aún no se entregan.
-2. La reducción de un paquete de uniforme (un saco, un pantalón y dos blusas) asciende a S/ 720.00, el 1.80 % del monto del contrato, y el nuevo monto contractual es S/ 39,280.00.
+1. El Contrato Menor N.° 004-2026-MDVE/GAF, suscrito el 28 de agosto de 2026 con MULTISERVICIOS KATERIN E.I.R.L. por S/ 8,640.00, está en ejecución y los bienes aún no se entregan.
+2. La reducción de un paquete de uniforme (un saco, un pantalón y dos blusas) asciende a S/ 720.00, el 8.33 % del monto del contrato, y el nuevo monto contractual es S/ 7,920.00.
 3. La reducción recae sobre prestaciones futuras y divisibles, no afecta la finalidad del contrato y no aumenta el monto, por lo que procede formalizarla mediante acta suscrita por ambas partes y registrarla en la Pladicop, conforme al numeral 229.1 del artículo 229 del Reglamento.
 4. Se recomienda que el Jefe de la Gerencia de Administración y Finanzas, facultado para suscribir contratos menores por la Resolución de Alcaldía N.° 015-2026-MDVE, suscriba el acta de modificación.`;
 

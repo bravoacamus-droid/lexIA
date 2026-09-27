@@ -16,6 +16,7 @@ import { apartadosDe } from '../../src/lib/ejecucion/redaccion';
 import { determinarRegimen, esContratoMenor } from '../../src/lib/ejecucion/regimen';
 import { siguientePregunta } from '../../src/lib/ejecucion/preguntas';
 import { repararFicha } from '../../src/lib/ejecucion/lectura';
+import { calcular } from '../../src/lib/ejecucion/calculos';
 import { formatoDelChat, piezasDelChat } from '../../src/lib/documentos/forma-del-chat';
 import type { Perfil } from '../../src/lib/ejecucion/catalogo';
 import type { BorradorDeDocumento, Ficha } from '../../src/lib/ejecucion/tipos';
@@ -213,6 +214,19 @@ async function xmlDelWord(b: BorradorDeDocumento, perfil: Perfil): Promise<strin
   }
   comprobar('repara «"campo": "plazo_dias": "180"»', leido?.ficha[0].campo === 'plazo_dias' && leido.ficha[0].valor === '180', repararFicha(roto));
   comprobar('no toca un JSON bien formado', repararFicha('{ "campo": "objeto", "valor": "x" }') === '{ "campo": "objeto", "valor": "x" }');
+
+  // La ampliación: el nuevo término lo calcula el sistema (en producción
+  // el modelo confundió el término original con el nuevo).
+  const amp = calcular({
+    actuacion: 'ampliacion_plazo',
+    tipo: 'servicios',
+    sistemaEntrega: null,
+    ficha: { fecha_inicio: { valor: '2026-02-11' }, plazo_dias: { valor: '180' } },
+    respuestas: { dias_ampliacion: '16' },
+    hoy: '2026-09-27',
+  }).find((x) => x.concepto === 'Nuevo término del plazo');
+  comprobar('180 días desde el 11/02 terminan el 9/08; con 16 más, el 25 de agosto', amp?.resultado === 'Hasta el 25 de agosto de 2026' && !!amp.detalle.includes('9 de agosto de 2026'), amp);
+  comprobar('y el plazo total vigente es de 196 días', !!amp?.detalle.includes('196 días calendario'), amp?.detalle);
 
   console.log('\nApartados según la actuación');
   comprobar('penalidad: antecedentes, análisis y conclusión', apartadosDe('informe_dec', 'penalidad').join('|') === 'ANTECEDENTES|ANÁLISIS|CONCLUSIÓN');

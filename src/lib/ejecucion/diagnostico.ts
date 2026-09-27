@@ -499,6 +499,18 @@ export function componerAnalisis(caso: Caso, lectura: LecturaDelModelo, sustento
     }
   }
 
+  // El contrato menor se modifica por acta que firman las partes, no por
+  // resolución: lo firma el funcionario facultado para los contratos
+  // menores (numeral 229.1). En producción, la auditoría marcó un acta
+  // cuyo diagnóstico seguía diciendo «mediante resolución» (27/09/2026).
+  const porActa = !!c.contratoMenor && (caso.actuacion === 'reduccion' || caso.actuacion === 'ampliacion_plazo' || caso.actuacion === 'otra_modificacion');
+  if (porActa)
+    competencia = {
+      organo: 'Funcionario facultado para suscribir contratos menores según las normas de gestión interna, mediante acta suscrita por ambas partes',
+      base: 'numeral 229.1 del artículo 229 del Reglamento',
+      verificar: 'La norma interna o la resolución que faculta a ese funcionario para suscribir y modificar contratos menores.',
+    };
+
   // En el régimen anterior no se cita el articulado de la Ley N.° 32069.
   if (anterior)
     competencia = {
@@ -509,7 +521,15 @@ export function componerAnalisis(caso: Caso, lectura: LecturaDelModelo, sustento
 
   // La cadena documental, marcando lo que ya está en el expediente.
   const cargados = caso.documentos.filter((d) => d.origen === 'cargado');
-  const cadena: PasoDeLaCadena[] = def.cadena(c).map((p) => ({
+  // En el contrato menor, el paso de la autoridad es el acta, no la resolución.
+  const pasos = def
+    .cadena(c)
+    .map((p) =>
+      porActa && (p.perfil === 'aga' || p.perfil === 'titular')
+        ? { ...p, documento: 'Acta de modificación suscrita por ambas partes y registrada en la Pladicop', base: 'numeral 229.1 del artículo 229 del Reglamento' }
+        : p,
+    );
+  const cadena: PasoDeLaCadena[] = pasos.map((p) => ({
     ...p,
     documento: anterior ? sinArticuladoVigente(p.documento) : p.documento,
     condicion: anterior && p.condicion ? sinArticuladoVigente(p.condicion) : p.condicion,

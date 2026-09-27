@@ -97,6 +97,14 @@ const REGLAS: Regla[] = [
     cambia: ['procedencia', 'plazo'],
     resuelta: (e) => !e.hayFechaSolicitud || respondida(e, 'fecha_fin_hecho'),
   },
+  {
+    id: 'dias_ampliacion',
+    para: ['ampliacion_plazo'],
+    texto: '¿Cuántos días calendario de ampliación se solicitan?',
+    porQue: 'Con ellos se calcula el plazo total vigente y la nueva fecha de término, que el documento debe decir sin error.',
+    cambia: ['cálculo', 'plazo'],
+    resuelta: (e) => /entidad/i.test(e.respuestas.origen ?? '') || respondida(e, 'dias_ampliacion'),
+  },
   // ── Adicional ──
   {
     id: 'monto_adicional',
@@ -267,6 +275,7 @@ const REGLAS: Regla[] = [
  */
 export const DATOS_DETERMINANTES: Record<string, { formato: 'fecha' | 'monto' | 'numero' }> = {
   fecha_fin_hecho: { formato: 'fecha' },
+  dias_ampliacion: { formato: 'numero' },
   monto_adicional: { formato: 'monto' },
   adicionales_previos: { formato: 'monto' },
   monto_reduccion: { formato: 'monto' },

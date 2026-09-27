@@ -242,6 +242,24 @@ export function calcular(i: Insumos): Calculo[] {
           valores: [fechaLarga(vence), fechaLarga(sol)],
         });
       }
+      // El plazo original, la ampliación y el nuevo término, como los
+      // escribe César en su acta de ampliación: «Plazo Original: 120 días
+      // calendario. Ampliación concedida: 31. Plazo Total Vigente: 151» y
+      // la nueva fecha. En una prueba en producción (27/09/2026) el modelo
+      // confundió la fecha de término original con la nueva.
+      const diasAmp = aNumero(R.dias_ampliacion);
+      const inicio = fechaISO(i.ficha.fecha_inicio?.valor);
+      const terminoOriginal = fechaISO(i.ficha.fecha_fin?.valor) ?? (inicio && plazo ? sumarDiasCalendario(inicio, plazo - 1) : null);
+      if (diasAmp && diasAmp > 0 && terminoOriginal) {
+        const nuevo = sumarDiasCalendario(terminoOriginal, Math.round(diasAmp));
+        out.push({
+          concepto: 'Nuevo término del plazo',
+          resultado: `Hasta el ${fechaLarga(nuevo)}`,
+          detalle: `Plazo original: ${plazo ? `${plazo} días calendario, ` : ''}hasta el ${fechaLarga(terminoOriginal)}. Ampliación: ${diasAmp} días calendario. ${plazo ? `Plazo total vigente: ${plazo + diasAmp} días calendario, ` : 'Nuevo término: '}hasta el ${fechaLarga(nuevo)}.`,
+          base: i.tipo === 'obra' ? 'artículo 198 del Reglamento' : i.tipo === 'consultoria_obra' ? 'artículo 199 del Reglamento' : 'artículo 142 del Reglamento',
+          valores: [fechaLarga(terminoOriginal), fechaLarga(nuevo), String(diasAmp), ...(plazo ? [String(plazo), String(plazo + diasAmp)] : [])],
+        });
+      }
       break;
     }
 

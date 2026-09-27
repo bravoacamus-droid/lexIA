@@ -13,7 +13,7 @@
  * inconsistencia que debe ser revisada antes de emitir el documento».
  */
 import { auditarCitas, type BuscarEnBiblioteca } from '@/lib/normativa/citas';
-import { aNumero } from './calculos';
+import { aNumero, soles } from './calculos';
 import { soloElNumero } from './ficha';
 import { pedirJSON } from './modelo';
 import { fechaISO } from './regimen';
@@ -151,6 +151,11 @@ export async function auditoriaDeterminista(e: EntradaAuditoria): Promise<Hallaz
 
   // ── Economía ──
   const montosPermitidos: number[] = [];
+  // Solo los precios que están en los documentos pueden multiplicarse: no
+  // las respuestas del usuario ni los números sueltos de los cálculos.
+  const preciosDeDocumentos = e.documentos
+    .filter((d) => d.origen === 'cargado')
+    .flatMap((d) => montosDe(d.texto ?? '').map((m) => m.n));
   for (const m of montosDe(fuentes)) montosPermitidos.push(m.n);
   for (const d of e.documentos) for (const m of d.datos.montos ?? []) montosPermitidos.push(m.monto);
   for (const k of ['monto_original', 'monto_vigente'] as const) {
@@ -169,8 +174,19 @@ export async function auditoriaDeterminista(e: EntradaAuditoria): Promise<Hallaz
   for (const m of montosDe(e.texto)) {
     if (vistosM.has(m.n)) continue;
     vistosM.add(m.n);
-    if (!montosPermitidos.some((p) => Math.abs(p - m.n) < 0.011))
-      h.push({ tipo: 'economia', gravedad: 'error', texto: `El monto «${m.tal}» no consta en los documentos ni resulta de los cálculos.` });
+    if (montosPermitidos.some((p) => Math.abs(p - m.n) < 0.011)) continue;
+    // Un subtotal —«dos blusas: S/ 240.00» con la blusa a S/ 120.00 en el
+    // contrato— no es un monto inventado: es un precio del expediente por
+    // una cantidad. Se deja como advertencia, con la cuenta, para que se
+    // verifique; un monto sin cuenta posible sigue siendo un error.
+    const cuenta = preciosDeDocumentos.flatMap((p) =>
+      p >= 1 && m.n > p && Math.abs(m.n / p - Math.round(m.n / p)) < 0.0001 && Math.round(m.n / p) <= 50 ? [`${soles(p)} × ${Math.round(m.n / p)}`] : [],
+    )[0];
+    h.push(
+      cuenta
+        ? { tipo: 'economia', gravedad: 'advertencia', texto: `El monto «${m.tal}» no consta tal cual: resultaría de ${cuenta}. Verifica la cuenta.` }
+        : { tipo: 'economia', gravedad: 'error', texto: `El monto «${m.tal}» no consta en los documentos ni resulta de los cálculos.` },
+    );
   }
   const porcentajesPermitidos = new Set<string>();
   for (const c of a.calculos) for (const v of c.valores ?? []) for (const p of v.matchAll(/(\d+(?:[.,]\d+)?)\s*%/g)) porcentajesPermitidos.add(p[1].replace(',', '.'));
