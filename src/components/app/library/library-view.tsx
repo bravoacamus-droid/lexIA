@@ -599,6 +599,28 @@ export function LibraryView({
     if (actual !== volverHref) router.replace(volverHref, { scroll: false });
   }, [volverHref, router]);
 
+  // Y al revés: si la dirección cambia desde fuera —el menú, la barra
+  // superior, el botón atrás—, los filtros se leen de nuevo. Next reutiliza
+  // la página y los useState de arriba solo miran la URL al montar: desde
+  // «Guardados», pulsar «Biblioteca normativa» dejaba puesto el filtro de
+  // favoritos y el efecto de arriba volvía a escribir `?guardados=1`
+  // (observación del usuario, 27/09/2026: «cuando inicio la búsqueda
+  // inicia en favoritos»). Lo que escribió la propia página no se relee.
+  const hrefRef = useRef(volverHref);
+  hrefRef.current = volverHref;
+  useEffect(() => {
+    const deLaUrl = urlParams.toString();
+    const nuestro = hrefRef.current.split('?')[1] ?? '';
+    if (deLaUrl === nuestro) return;
+    setType((urlParams.get('tipo') as NormativeDocType | null) || null);
+    setEntidad(urlParams.get('entidad'));
+    setAnioDesde(urlParams.get('desde') ? Number(urlParams.get('desde')) : null);
+    setAnioHasta(urlParams.get('hasta') ? Number(urlParams.get('hasta')) : null);
+    setLawFilter(urlParams.get('ley') ? ([urlParams.get('ley')] as LawFilter) : null);
+    setQuickFilter(urlParams.get('guardados') ? 'favorites' : urlParams.get('recientes') ? 'recent' : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlParams]);
+
   function onFolderCreated(folder: FolderItem) {
     setFolders((prev) => [...prev, folder]);
   }
@@ -659,7 +681,11 @@ export function LibraryView({
           onTagsChange={setTags}
           onInputChange={setQuery}
           loading={loading}
-          placeholder="Pregunta en lenguaje natural o busca un documento…"
+          placeholder={
+            quickFilter === 'favorites'
+              ? 'Buscar solo en tus favoritos… (quita «Favoritos» para buscar en toda la biblioteca)'
+              : 'Pregunta en lenguaje natural o busca un documento…'
+          }
         />
         {tags.length === 0 && query.length === 0 && (
           <SuggestedQueries onPick={(q) => setQuery(q)} />
