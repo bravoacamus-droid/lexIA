@@ -135,6 +135,7 @@ export function prepararCaso(d: {
     ficha,
     fechaSolicitud: fechaDe('solicitud_contratista'),
     fechaConformidad: fechaDe('conformidad') ?? fechaDe('acta_recepcion'),
+    fechaLiquidacion: fechaDe('liquidacion'),
     hayPronunciamiento: cargados.some((x) => x.clase === 'resolucion' && (x.datos.fecha ?? '') >= (fechaDe('solicitud_contratista') ?? '9999')),
     hoy,
   };
@@ -305,6 +306,7 @@ const CALCULO_DE_CONDICION: Partial<Record<Actuacion, Record<string, string>>> =
   reduccion: { limite: 'Porcentaje de la reducción' },
   complementario: { limite: 'Porcentaje del complementario', plazo: 'Plazo para la contratación complementaria' },
   penalidad: { formula: 'Penalidad por mora' },
+  liquidacion: { oportunidad: 'Oportunidad de la liquidación' },
 };
 
 const ESTADOS_CONDICION: EstadoCondicion[] = ['cumple', 'no_cumple', 'no_acreditado', 'declarado', 'no_aplica'];

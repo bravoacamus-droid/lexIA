@@ -16,6 +16,7 @@ import {
   fechaLarga,
   sumarDiasCalendario,
   sumarDiasHabiles,
+  vencimientoCalendario,
 } from './regimen';
 import type { Calculo, Ficha } from './tipos';
 
@@ -28,6 +29,8 @@ export interface Insumos {
   /** Fecha de la solicitud del contratista, si está en el expediente. */
   fechaSolicitud?: string | null;
   fechaConformidad?: string | null;
+  /** Fecha de la liquidación presentada, si está en el expediente. */
+  fechaLiquidacion?: string | null;
   /** Ya hay una resolución que se pronuncia en el expediente. */
   hayPronunciamiento?: boolean;
   hoy: string;
@@ -298,6 +301,63 @@ export function calcular(i: Insumos): Calculo[] {
             : `Con un plazo de ejecución de ${plazo} días, el plazo razonable no puede ser menor del 10 % (${p.minimo} días) ni mayor del 15 % (${p.maximo} días); los decimales cuentan como día completo. Si el incumplimiento es de un entregable, el porcentaje se calcula sobre el plazo de ese entregable.`,
           base: 'literal a) del numeral 122.1 del artículo 122 del Reglamento',
           valores: [String(plazo), String(p.minimo), String(p.maximo)],
+        });
+      }
+      break;
+    }
+
+    case 'liquidacion': {
+      // El cuadro del numeral 215.6, confirmado por César (27/09/2026):
+      // presentación, pronunciamiento y contestación. Son días calendario
+      // porque el numeral 105.3 así cuenta los plazos de la ejecución
+      // contractual, salvo que el Reglamento diga otra cosa.
+      if (i.tipo !== 'obra' && i.tipo !== 'consultoria_obra') break;
+      const obra = i.tipo === 'obra';
+      const pres = obra ? 30 : 15;
+      const pron = obra ? 50 : 30;
+      const base = 'numerales 215.1, 215.3 y 215.6 del artículo 215 y numeral 105.3 del artículo 105 del Reglamento';
+      const corrido = (c: boolean) => (c ? ' Como el último día era inhábil, vence el primer día hábil siguiente (inciso 5 del artículo 183 del Código Civil).' : '');
+      const hito = fechaISO(i.fechaConformidad ?? null);
+      const presentada = fechaISO(i.fechaLiquidacion ?? null);
+      if (hito) {
+        const p = vencimientoCalendario(hito, pres);
+        const aTiempo = presentada ? presentada <= p.vence : null;
+        out.push({
+          // Sin liquidación presentada no hay oportunidad que evaluar:
+          // solo el plazo que corre.
+          concepto: presentada ? 'Oportunidad de la liquidación' : 'Plazo para presentar la liquidación',
+          resultado:
+            aTiempo === null
+              ? `El contratista la presenta hasta el ${fechaLarga(p.vence)}`
+              : aTiempo
+                ? 'Presentada dentro de plazo'
+                : 'Presentada fuera del plazo del contratista',
+          detalle: `Desde el día siguiente de la conformidad o de la recepción (${fechaLarga(hito)}), el contratista tiene ${pres} días calendario: hasta el ${fechaLarga(p.vence)}.${corrido(p.corrido)}${
+            presentada ? ` La liquidación es del ${fechaLarga(presentada)}.` : ''
+          }${aTiempo === false ? ' Vencido ese plazo, desde el día siguiente corre el de la Entidad para presentarla, y los gastos son de cargo del contratista; si también vence el de la Entidad, cualquiera de las partes puede presentarla (numeral 215.2). Verifica si la Entidad ya presentó la suya.' : ''}`,
+          base,
+          // No la invalida: el numeral 215.2 abre el plazo de la Entidad y,
+          // vencido este, deja presentarla a cualquiera. Es un riesgo.
+          impide: false,
+          valores: [fechaLarga(hito), fechaLarga(p.vence), ...(presentada ? [fechaLarga(presentada)] : [])],
+        });
+      }
+      if (presentada) {
+        const p = vencimientoCalendario(presentada, pron);
+        const vencido = !i.hayPronunciamiento && i.hoy > p.vence;
+        out.push({
+          concepto: 'Plazo para pronunciarse sobre la liquidación',
+          resultado: i.hayPronunciamiento
+            ? `Vencía el ${fechaLarga(p.vence)}: hay un pronunciamiento en el expediente, verifica su fecha de notificación`
+            : vencido
+              ? 'Vencido sin pronunciamiento: la liquidación se considera consentida o aprobada'
+              : `Vence el ${fechaLarga(p.vence)}`,
+          detalle: `Quien recibe la liquidación (${fechaLarga(presentada)}) tiene ${pron} días calendario para notificar su conformidad u observaciones: hasta el ${fechaLarga(p.vence)}.${corrido(p.corrido)} Si no se pronuncia en plazo, queda consentida o aprobada; si observa, quien la presentó tiene quince días calendario para subsanar.`,
+          base,
+          // Vencido, la Entidad ya no puede observar; pero eso no impide la
+          // actuación: favorece a quien la presentó, y el resultado lo dice.
+          impide: false,
+          valores: [fechaLarga(presentada), fechaLarga(p.vence)],
         });
       }
       break;

@@ -175,6 +175,19 @@ export function sumarDiasCalendario(desde: string, n: number): string {
   return aISO(new Date(desdeISO(desde).getTime() + n * 86400000));
 }
 
+/**
+ * Un plazo de días calendario de la ejecución contractual: el Reglamento
+ * los cuenta así salvo que diga otra cosa, con los artículos 183 y 184 del
+ * Código Civil de forma supletoria (numeral 105.3). Por el inciso 5 del
+ * 183, si el último día es inhábil, vence el primer día hábil siguiente.
+ */
+export function vencimientoCalendario(desde: string, n: number): { vence: string; corrido: boolean } {
+  let f = sumarDiasCalendario(desde, n);
+  const original = f;
+  while (!esDiaHabil(f)) f = sumarDiasCalendario(f, 1);
+  return { vence: f, corrido: f !== original };
+}
+
 /** Días calendario entre dos fechas (b − a). */
 export function diasEntre(a: string, b: string): number {
   return Math.round((desdeISO(b).getTime() - desdeISO(a).getTime()) / 86400000);

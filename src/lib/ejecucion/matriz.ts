@@ -986,7 +986,7 @@ const LIQUIDACION: DefinicionDeActuacion = {
     CONTROL,
   ],
   condiciones: [
-    { id: 'oportunidad', texto: 'La liquidación se presenta y se contesta dentro de los plazos del cuadro del numeral 215.6', base: 'numerales 215.1 y 215.6 del artículo 215 del Reglamento' },
+    { id: 'oportunidad', texto: 'La liquidación se presenta dentro del plazo del cuadro del numeral 215.6 (días calendario: numeral 105.3)', base: 'numerales 215.1 y 215.6 del artículo 215 y numeral 105.3 del artículo 105 del Reglamento' },
     { id: 'consentimiento', texto: 'Si quien la recibe no se pronuncia en plazo, la liquidación queda consentida o aprobada', base: art('215.3', 215, REG) },
     { id: 'observaciones', texto: 'Las observaciones se subsanan en plazo; si no, queda consentida con ellas', base: art('215.4', 215, REG) },
     { id: 'controversias', texto: 'No incluye lo sometido a un medio de solución de controversias', base: art('215.7', 215, REG) },
@@ -1008,7 +1008,7 @@ const LIQUIDACION: DefinicionDeActuacion = {
           { perfil: 'aga', documento: 'Pronunciamiento sobre la liquidación (conformidad u observaciones)', base: art('215.3', 215, REG) },
         ],
   explicacion: () =>
-    'La liquidación es propia de obras y consultorías de obra. Los plazos para presentarla y pronunciarse están en el cuadro del numeral 215.6 del Reglamento; si no hay pronunciamiento en plazo, queda consentida.',
+    'La liquidación es propia de obras y consultorías de obra. Según el cuadro del numeral 215.6 del Reglamento, en obra se presenta en treinta días, quien la recibe se pronuncia en cincuenta y las observaciones se contestan en quince; en consultoría de obra, quince, treinta y quince. Son días calendario (numeral 105.3). Si no hay pronunciamiento en plazo, queda consentida.',
   noCorresponde: (c) =>
     esBienesOServicios(c)
       ? {

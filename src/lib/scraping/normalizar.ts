@@ -53,7 +53,10 @@ export function anioDe(titulo: string, fecha: string | null): string | null {
  * decide la fecha: el OECE reemplazó al OSCE con la Ley N.° 32069.
  */
 export function entidadDe(titulo: string, fecha: string | null): string {
-  if (/EF\s*\/?\s*54\.01/i.test(titulo)) return 'DGA';
+  // La DGA (MEF) firma «EF/54.01», pero gob.pe también lo escribe
+  // «EF-54/01» (Resolución Directoral N.° 001-2026-EF-54/01, la de las
+  // bases estándar, quedaba como OECE).
+  if (/EF\s*[/-]?\s*54\s*[./]\s*0?1(?!\d)/i.test(titulo)) return 'DGA';
   if (/OSCE/i.test(titulo)) return 'OSCE';
   if (/OECE/i.test(titulo)) return 'OECE';
   if (/per[uú]\s*compras/i.test(titulo)) return 'Perú Compras';
