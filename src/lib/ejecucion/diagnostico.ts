@@ -221,6 +221,7 @@ function promptDiagnostico(caso: Caso, sustento: string): string {
 PERFIL EMISOR: ${perfil.nombre} — ${perfil.enfoque}.
 ACTUACIÓN A ANALIZAR: ${ACTUACIONES[caso.actuacion].nombre}${caso.actuacionPedida && caso.actuacionPedida !== caso.actuacion ? ` (el usuario eligió «${ACTUACIONES[caso.actuacionPedida].nombre}»)` : ''}.
 TIPO DE CONTRATACIÓN: ${caso.tipo ? TIPOS_CONTRATACION[caso.tipo] : 'no determinado'}.
+DOCUMENTO QUE EMITIRÁ ESTE PERFIL: ${documentoRecomendado(caso.perfil, caso.actuacion, caso.contexto).titulo}. La "procedencia" se evalúa para ESTE documento y la etapa que representa, no para el desenlace final de la figura: si la figura exige un paso previo y este documento ES ese paso (por ejemplo, el requerimiento bajo apercibimiento antes de resolver el contrato), evalúa si procede dar ese paso; que el desenlace aún no proceda es la razón de ser del paso, no su improcedencia.
 ${regimen}
 FECHA DE HOY: ${fechaLarga(caso.hoy)}.
 

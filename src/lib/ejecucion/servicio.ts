@@ -150,14 +150,24 @@ export async function redactar(
   supabase: SupabaseClient,
   expedienteId: string,
   actuacionId: string,
-  nivel: NivelDeSalida,
+  nivelPedido: NivelDeSalida,
   usuario: { id: string; nombre: string },
+  enfoque?: 'descarte',
 ): Promise<Actuacion_> {
   const cargado = await cargarExpediente(supabase, expedienteId);
   if (!cargado) throw new Error('Expediente no encontrado');
   const act = cargado.actuaciones.find((a) => a.id === actuacionId);
   if (!act?.analisis) throw new Error('Primero hay que analizar el caso');
-  if (!act.analisis.nivelesPermitidos.includes(nivel)) throw new Error('El expediente no alcanza ese nivel de salida');
+  // Descartar motivadamente la figura pedida no necesita que proceda: es
+  // justamente decir por qué no. Solo tiene sentido si el análisis
+  // concluyó que no corresponde.
+  let nivel = nivelPedido;
+  if (enfoque === 'descarte') {
+    if (act.analisis.figura.corresponde) throw new Error('La figura solicitada corresponde: no hay nada que descartar');
+    nivel = 'borrador_condicionado';
+  } else if (!act.analisis.nivelesPermitidos.includes(nivel)) {
+    throw new Error('El expediente no alcanza ese nivel de salida');
+  }
   await supabase.from('expediente_actuaciones').update({ estado: 'redactando', error: null }).eq('id', act.id);
   try {
     const { ficha } = reconstruirFicha(cargado.documentos, cargado.expediente.ficha ?? {});
@@ -172,6 +182,7 @@ export async function redactar(
       respuestas: act.respuestas ?? [],
       version,
       usuario: usuario.id,
+      enfoque,
     });
     const auditoria = await auditarBorrador(cargado, act, borrador, ficha, usuario.id);
 

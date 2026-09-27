@@ -82,7 +82,7 @@ export default async function GeneradorPage() {
         icono={FileSignature}
         familia="generar"
         titulo="Documentos de ejecución contractual"
-        bajada="Comprende · Diagnostica · Solicita · Analiza · Redacta · Verifica. Cuéntale tu caso a A-LexIA y adjunta lo que tengas: identifica la figura, pide solo lo indispensable y proyecta el documento del perfil que lo emite."
+        bajada="Dime qué documento necesitas o cuéntame qué ocurrió. A-LexIA comprobará la actuación, te pedirá solo lo indispensable y te indicará cómo continúa el trámite."
         aside={
           <NotaDelCompanero icono={Bot} familia="generar" className="max-w-[330px]">
             Pido menos, analizo más y explico mejor: no te volveré a preguntar lo que ya dicen tus documentos.

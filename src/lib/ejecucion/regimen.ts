@@ -224,3 +224,15 @@ export function hoyISO(): string {
 
 export const AVISO_DIAS_HABILES =
   'El cómputo descuenta sábados, domingos y feriados nacionales, pero no los días no laborables que el Poder Ejecutivo declare para el sector público: verifícalo.';
+
+/**
+ * Fecha y hora de Lima escritas a mano: «27/09/2026 11:48». No se usa
+ * toLocaleString porque el servidor y el navegador traen tablas de idioma
+ * distintas —uno pone un espacio fino antes de «a. m.» y el otro no— y el
+ * texto no coincide al hidratar la página.
+ */
+export function fechaHoraLima(iso: string): string {
+  const f = new Date(new Date(iso).getTime() - 5 * 3600000);
+  const d = (n: number) => String(n).padStart(2, '0');
+  return `${d(f.getUTCDate())}/${d(f.getUTCMonth() + 1)}/${f.getUTCFullYear()} ${d(f.getUTCHours())}:${d(f.getUTCMinutes())}`;
+}

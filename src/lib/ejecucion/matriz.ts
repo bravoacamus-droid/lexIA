@@ -1142,7 +1142,8 @@ export function condicionesAplicables(actuacion: Actuacion, c: Contexto): ReglaC
 
 // ── El documento que corresponde al perfil ──────────────────────────
 
-const NOMBRE_ACTUACION: Record<Actuacion, string> = {
+/** La actuación con su artículo, para títulos: «la prestación adicional». */
+export const NOMBRE_ACTUACION: Record<Actuacion, string> = {
   diagnostico: 'la situación del contrato',
   adicional: 'la prestación adicional',
   reduccion: 'la reducción de prestaciones',

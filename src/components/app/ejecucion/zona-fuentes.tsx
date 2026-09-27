@@ -10,6 +10,7 @@
  * qué estado está: original, generado por LexIA, firmado, presentado,
  * incorporado.
  */
+import { fechaHoraLima } from '@/lib/ejecucion/regimen';
 import { useState } from 'react';
 import {
   AlertTriangle,
@@ -367,7 +368,7 @@ function FilaDeDocumento({
           {d.datos?.resumen && d.lectura === 'leido' && <p className="mt-1 line-clamp-2 text-[11.5px] leading-snug text-muted-foreground">{d.datos.resumen}</p>}
           {esDeLexia && d.generacion && (
             <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-              Generado por {d.generacion.usuario} el {new Date(d.generacion.fecha).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' })} · versión {d.generacion.version}. No es un documento oficial.
+              Generado por {d.generacion.usuario} el {fechaHoraLima(d.generacion.fecha)} · versión {d.generacion.version}. No es un documento oficial.
             </p>
           )}
           {esDeLexia && formalizando && (

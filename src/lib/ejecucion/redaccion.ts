@@ -30,6 +30,7 @@ import type {
   SeccionDeDocumento,
   TipoDeDocumento,
 } from './tipos';
+import { NOMBRE_ACTUACION } from './matriz';
 
 /** Los apartados de cada clase de documento, en su orden. */
 export const APARTADOS: Partial<Record<TipoDeDocumento, string[]>> = {
@@ -211,10 +212,37 @@ export async function redactarDocumento(d: {
   respuestas: Array<{ pregunta: string; respuesta: string }>;
   version: number;
   usuario: string | null;
+  /** Descartar motivadamente la figura pedida (no corresponde). */
+  enfoque?: 'descarte';
 }): Promise<BorradorDeDocumento> {
   const a = d.analisis;
-  const tipo: TipoDeDocumento = d.nivel === 'diagnostico' ? 'informe_diagnostico' : a.documento.tipo;
-  const titulo = d.nivel === 'diagnostico' ? `Diagnóstico preliminar: ${ACTUACIONES[a.actuacion].nombre.toLowerCase()}` : a.documento.titulo;
+  const descarte = d.enfoque === 'descarte';
+  // Con su artículo: «la prestación adicional», «la ampliación de plazo».
+  const pedida = NOMBRE_ACTUACION[a.actuacionPedida ?? a.actuacion];
+  const decide = d.perfil === 'aga' || d.perfil === 'titular';
+  // El descarte es un informe (o, para la autoridad, la resolución que
+  // declara improcedente lo pedido); un acta o una adenda no descartan.
+  const tipo: TipoDeDocumento =
+    d.nivel === 'diagnostico'
+      ? 'informe_diagnostico'
+      : descarte
+        ? decide
+          ? 'resolucion'
+          : a.documento.tipo === 'acta' || a.documento.tipo === 'adenda'
+            ? 'informe_dec'
+            : a.documento.tipo
+        : a.documento.tipo;
+  const titulo =
+    d.nivel === 'diagnostico'
+      ? `Diagnóstico preliminar: ${ACTUACIONES[a.actuacion].nombre.toLowerCase()}`
+      : descarte
+        ? decide
+          ? `Resolución que declara improcedente ${pedida} solicitada`
+          : `Informe que evalúa y descarta motivadamente ${pedida}`
+        : a.documento.titulo;
+  const enfoque = descarte
+    ? `\nENFOQUE — DESCARTE MOTIVADO: el documento evalúa la figura solicitada («${pedida}») y la DESCARTA de forma motivada. Explica qué exige esa figura, por qué los hechos del expediente no la configuran (${a.figura.razon}), qué figura correspondería${a.figura.alternativa ? ` («${ACTUACIONES[a.figura.alternativa].nombre.toLowerCase()}»)` : ''} y qué falta para tramitarla. No aprueba ni autoriza nada; si es una resolución, declara improcedente lo pedido y dispone lo que corresponde.`
+    : '';
   const crudo = await pedirJSON<Record<string, unknown>>(
     prompt({
       perfil: d.perfil,
@@ -226,7 +254,7 @@ export async function redactarDocumento(d: {
       documentos: d.documentos,
       pedido: d.pedido,
       respuestas: d.respuestas.map((r) => `- ${r.pregunta} → ${r.respuesta}`).join('\n'),
-    }),
+    }) + enfoque,
     { usuario: d.usuario, funcion: 'ejecucion_redaccion', temperatura: 0.2 },
   );
   return depurarBorrador(crudo, { tipo, titulo, nivel: d.nivel, version: d.version });

@@ -21,7 +21,10 @@ import { ACTUACIONES, CLASES, ESTADOS_DOCUMENTO, PERFILES, TIPOS_CONTRATACION, t
 import { fechaLarga } from './regimen';
 import { DESTINATARIO } from './redaccion';
 import { TEXTO_INFORMACION, TEXTO_NIVEL, TEXTO_PROCEDENCIA } from './suficiencia';
+import { rutaEnTexto } from './continuacion';
+import { evidenciaPorObtener, SI_NO_EXISTE } from './evidencia';
 import {
+  CAMPOS_FICHA,
   TIPO_DE_HALLAZGO,
   type AnalisisDeActuacion,
   type AuditoriaDelDocumento,
@@ -348,11 +351,11 @@ export function piezasDeLaFicha(d: DatosDeLaFicha): Pieza[] {
     xs.length ? { clase: 'lista', marca: 'literal', elementos: xs } : { clase: 'parrafo', texto: vacio };
 
   return [
-    { clase: 'titulo', rol: 'encabezado', nivel: 0, texto: 'FICHA DE CONTROL LEXIA' },
+    { clase: 'titulo', rol: 'encabezado', nivel: 0, texto: 'FICHA DE SUSTENTO Y PENDIENTES' },
     { clase: 'titulo', rol: 'subtitulo', nivel: 0, texto: d.titulo },
     {
       clase: 'nota',
-      texto: 'Ficha para la revisión humana del documento. No forma parte del documento ni necesariamente se incorpora al expediente.',
+      texto: 'Ficha para la revisión humana del documento: de dónde salió cada dato, qué está pendiente y cómo continúa el trámite. No forma parte del documento formal.',
     },
     {
       clase: 'datos',
@@ -374,6 +377,21 @@ export function piezasDeLaFicha(d: DatosDeLaFicha): Pieza[] {
           : []),
       ],
     },
+    // César (27/09/2026): la ficha «mostraría de dónde salió cada hecho
+    // relevante». Cada dato del contrato con su documento y su frase.
+    apartado('Datos del contrato y su fuente'),
+    Object.keys(d.ficha).length
+      ? {
+          clase: 'tabla',
+          columnas: ['Dato', 'Valor', 'Fuente'],
+          conContenido: Object.keys(d.ficha).length,
+          filas: (Object.entries(d.ficha) as Array<[keyof typeof CAMPOS_FICHA, NonNullable<Ficha[keyof Ficha]>]>).map(([campo, v]) => [
+            CAMPOS_FICHA[campo]?.nombre ?? campo,
+            v.valor,
+            v.delUsuario ? 'Declarado por el usuario' : v.documento ? `${v.documento}${v.cita ? `: «${v.cita.slice(0, 160)}»` : ''}` : '—',
+          ]),
+        }
+      : { clase: 'parrafo', texto: 'No se identificaron datos del contrato.' },
     apartado('Documentos analizados'),
     cargados.length
       ? {
@@ -414,9 +432,14 @@ export function piezasDeLaFicha(d: DatosDeLaFicha): Pieza[] {
     a.condiciones.length
       ? {
           clase: 'tabla',
-          columnas: ['Condición', 'Base', 'Resultado', 'Sustento'],
+          columnas: ['Condición', 'Base', 'Resultado', 'Sustento y evidencia'],
           conContenido: a.condiciones.length,
-          filas: a.condiciones.map((c) => [c.texto, c.base, ESTADO_COND[c.estado], c.sustento || '—']),
+          filas: a.condiciones.map((c) => [
+            c.texto,
+            c.base,
+            ESTADO_COND[c.estado],
+            [c.sustento, ...c.evidencia.map((e) => `«${e.cita.slice(0, 160)}» (${e.documento})`)].filter(Boolean).join(' ') || '—',
+          ]),
         }
       : { clase: 'parrafo', texto: 'La actuación no tiene condiciones fijas: ver el análisis.' },
     apartado('Documentos faltantes'),
@@ -438,13 +461,42 @@ export function piezasDeLaFicha(d: DatosDeLaFicha): Pieza[] {
       a.cadena.map((p) => `${PERFILES[p.perfil as Perfil]?.nombre ?? p.perfil}: ${p.documento}${p.condicion ? ` (${p.condicion})` : ''}${p.hecho ? ' — ya consta en el expediente' : ''}`),
       'Sin cadena fija.',
     ),
-    {
-      clase: 'parrafo',
-      texto: siguiente
-        ? `**Próxima actuación sugerida:** ${PERFILES[siguiente.perfil as Perfil]?.nombre ?? siguiente.perfil} — ${siguiente.documento}.`
-        : '**Próxima actuación sugerida:** revisar y emitir el documento.',
-    },
+    apartado('Ruta de continuación'),
+    lista(rutaEnTexto(a, d.perfil, (p) => PERFILES[p as Perfil]?.nombre ?? p), 'Revisar y emitir el documento.'),
   ];
+}
+
+/**
+ * La lista precisa de evidencia por obtener (César, 27/09/2026): qué
+ * acreditar, por qué y quién puede producir cada documento.
+ */
+export function piezasDeLaEvidencia(d: DatosDeLaFicha): Pieza[] {
+  const a = d.analisis;
+  const filas = evidenciaPorObtener(a);
+  return [
+    { clase: 'titulo', rol: 'encabezado', nivel: 0, texto: 'LISTA DE EVIDENCIA POR OBTENER' },
+    { clase: 'titulo', rol: 'subtitulo', nivel: 0, texto: `${ACTUACIONES[a.actuacion].nombre} — ${PERFILES[d.perfil].nombre}` },
+    {
+      clase: 'nota',
+      texto: `Qué hace falta acreditar para ${a.nivelesPermitidos.includes('revision_final') ? 'emitir el documento' : 'pasar del diagnóstico a un documento para revisión final'}, por qué, y quién puede producir cada documento. Adjúntalos en «Fuentes» del expediente: A-LexIA los leerá y rehará el análisis.`,
+    },
+    filas.length
+      ? {
+          clase: 'tabla',
+          columnas: ['Documento o dato', 'Por qué se necesita', 'Quién puede emitirlo', 'Prioridad'],
+          conContenido: filas.length,
+          filas: filas.map((f) => [f.que + (f.soloDeclarada ? ' (hoy solo declarado)' : ''), f.porQue, f.quien, f.prioridad]),
+        }
+      : { clase: 'parrafo', texto: 'No falta ningún documento de los requisitos aplicables.' },
+    ...(a.pregunta
+      ? ([{ clase: 'parrafo', texto: `**Además, falta responder:** ${a.pregunta.texto} ${a.pregunta.porQue}` }] as Pieza[])
+      : []),
+    { clase: 'parrafo', texto: `**Si un documento no existe.** ${SI_NO_EXISTE}` },
+  ];
+}
+
+export function evidenciaADocx(d: DatosDeLaFicha): Promise<Buffer> {
+  return piezasADocx(piezasDeLaEvidencia(d), FORMATO_DOCUMENTO);
 }
 
 export function fichaADocx(d: DatosDeLaFicha): Promise<Buffer> {

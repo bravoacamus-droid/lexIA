@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { sesion } from '@/lib/ejecucion/api';
 import { MENSAJE_BLOQUEO } from '@/lib/ejecucion/auditoria';
-import { documentoADocx, fichaADocx } from '@/lib/ejecucion/documento';
+import { documentoADocx, evidenciaADocx, fichaADocx } from '@/lib/ejecucion/documento';
 import { reconstruirFicha } from '@/lib/ejecucion/ficha';
 import { hoyISO } from '@/lib/ejecucion/regimen';
 import { cargarExpediente } from '@/lib/ejecucion/servicio';
@@ -35,7 +35,8 @@ export async function GET(req: Request, { params }: { params: { id: string; aid:
   const s = await sesion();
   if ('error' in s) return s.error;
   const url = new URL(req.url);
-  const que = url.searchParams.get('que') === 'ficha' ? 'ficha' : 'documento';
+  const pedido = url.searchParams.get('que');
+  const que = pedido === 'ficha' || pedido === 'evidencia' ? pedido : 'documento';
   const c = await cargarExpediente(s.supabase, params.id);
   const act = c?.actuaciones.find((a) => a.id === params.aid);
   if (!c || !act?.analisis) return NextResponse.json({ error: 'not_found' }, { status: 404 });
@@ -43,7 +44,18 @@ export async function GET(req: Request, { params }: { params: { id: string; aid:
 
   let buffer: Buffer;
   let nombre: string;
-  if (que === 'ficha') {
+  if (que === 'evidencia') {
+    buffer = await evidenciaADocx({
+      titulo: act.analisis.documento.titulo,
+      perfil: act.perfil,
+      analisis: act.analisis,
+      documentos: c.documentos,
+      borrador: act.borrador,
+      auditoria: act.auditoria,
+      ficha,
+    });
+    nombre = `Evidencia-por-obtener-${nombreDeArchivo(act.analisis.documento.titulo)}.docx`;
+  } else if (que === 'ficha') {
     buffer = await fichaADocx({
       titulo: act.borrador?.titulo ?? act.analisis.documento.titulo,
       perfil: act.perfil,
@@ -53,7 +65,7 @@ export async function GET(req: Request, { params }: { params: { id: string; aid:
       auditoria: act.auditoria,
       ficha,
     });
-    nombre = `Ficha-de-control-${nombreDeArchivo(act.borrador?.titulo ?? act.analisis.documento.titulo)}.docx`;
+    nombre = `Ficha-de-sustento-${nombreDeArchivo(act.borrador?.titulo ?? act.analisis.documento.titulo)}.docx`;
   } else {
     if (!act.borrador) return NextResponse.json({ error: 'sin_documento' }, { status: 404 });
     let borrador = act.borrador;

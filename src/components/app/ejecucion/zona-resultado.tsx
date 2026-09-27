@@ -5,6 +5,7 @@
  * semáforos, el documento que corresponde y lo que se puede hacer
  * después.
  */
+import { fechaHoraLima } from '@/lib/ejecucion/regimen';
 import { useState } from 'react';
 import {
   AlertTriangle,
@@ -17,6 +18,7 @@ import {
   FileDown,
   FileSignature,
   HelpCircle,
+  ListChecks,
   Loader2,
   RefreshCw,
   ShieldAlert,
@@ -34,6 +36,9 @@ import { FASES_DE_LA_REDACCION, FASES_DEL_ANALISIS, Progreso } from './progreso'
 import { CajaDeDocumentos, type ArchivoSubido } from './subida';
 import { Zona } from './zona';
 import { RutaDeHabilitacion } from './ruta-de-habilitacion';
+import { Discrepancia } from './discrepancia';
+import { LineaDeTiempo } from './linea-de-tiempo';
+import { RutaDeContinuacion } from './ruta-de-continuacion';
 
 export type Ocupacion = 'analizando' | 'redactando' | 'auditando' | 'respondiendo' | 'subiendo' | null;
 
@@ -75,7 +80,7 @@ export function ZonaResultado({
   pendienteOficial: { documentoId: string; nombre: string; perfil: Perfil } | null;
   alResponder: (p: PreguntaDecisiva, respuesta: string) => Promise<void>;
   alAnalizar: (como?: Actuacion) => Promise<void>;
-  alRedactar: (nivel: NivelDeSalida) => Promise<void>;
+  alRedactar: (nivel: NivelDeSalida, enfoque?: 'descarte') => Promise<void>;
   alAuditar: () => Promise<void>;
   alContinuar: (perfil: Perfil) => Promise<void>;
   alSubirOficial: (subidos: ArchivoSubido[], versionDe: string) => Promise<void>;
@@ -115,7 +120,7 @@ export function ZonaResultado({
     <Zona
       numero="3"
       titulo="Resultado"
-      bajada={`Diagnóstico del ${new Date(a.generadoEn).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' })}`}
+      bajada={`Diagnóstico del ${fechaHoraLima(a.generadoEn)}`}
       accion={
         <button
           type="button"
@@ -154,20 +159,7 @@ export function ZonaResultado({
       {a.pregunta && <PreguntaDecisivaView key={a.pregunta.id} p={a.pregunta} ocupado={ocupadoAlgo} alResponder={alResponder} />}
 
       {!a.figura.corresponde && (
-        <div className="rounded-xl border border-zinc-300 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/50">
-          <p className="text-[13px] font-semibold">La figura solicitada no corresponde</p>
-          <p className="mt-1 text-[12.5px] leading-relaxed text-foreground/85">{a.figura.razon}</p>
-          {a.figura.alternativa && (
-            <button
-              type="button"
-              disabled={ocupadoAlgo}
-              onClick={() => void alAnalizar(a.figura.alternativa!)}
-              className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg bg-foreground px-3 py-2 text-[12.5px] font-semibold text-background hover:opacity-90"
-            >
-              Analizar como {ACTUACIONES[a.figura.alternativa].nombre.toLowerCase()} <ArrowRight className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
+        <Discrepancia a={a} perfil={act.perfil} ocupado={ocupadoAlgo} alAnalizar={alAnalizar} alRedactar={alRedactar} />
       )}
 
       {/* Diagnóstico */}
@@ -225,31 +217,9 @@ export function ZonaResultado({
           </Plegable>
         )}
 
-        {a.hechos.length > 0 && (
-          <Plegable titulo="Hechos: acreditados y declarados">
-            <ul className="space-y-1.5 text-[12.5px] leading-relaxed">
-              {a.hechos.map((h, i) => (
-                <li key={i} className="flex gap-2">
-                  <span
-                    className={cn(
-                      'mt-0.5 shrink-0 rounded px-1.5 py-px text-[10.5px] font-semibold',
-                      h.estado === 'acreditado'
-                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300'
-                        : h.estado === 'declarado'
-                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300'
-                          : 'bg-secondary text-muted-foreground',
-                    )}
-                  >
-                    {h.estado === 'acreditado' ? 'Acreditado' : h.estado === 'declarado' ? 'Declarado' : 'No acreditado'}
-                  </span>
-                  <span>
-                    {h.fecha && <span className="text-muted-foreground">{h.fecha.split('-').reverse().join('/')} · </span>}
-                    {h.hecho}
-                    {h.documento && <span className="text-muted-foreground"> ({h.documento})</span>}
-                  </span>
-                </li>
-              ))}
-            </ul>
+        {(a.hechos.length > 0 || a.contradicciones.length > 0) && (
+          <Plegable titulo="Línea de tiempo del caso" abierto>
+            <LineaDeTiempo hechos={a.hechos} contradicciones={a.contradicciones.map((c) => c.descripcion)} />
           </Plegable>
         )}
 
@@ -269,8 +239,8 @@ export function ZonaResultado({
           </Plegable>
         )}
 
-        {(a.riesgos.length > 0 || a.contradicciones.length > 0) && (
-          <Plegable titulo={`Riesgos y contradicciones (${a.riesgos.length + a.contradicciones.length})`} icono={AlertTriangle}>
+        {a.riesgos.length > 0 && (
+          <Plegable titulo={`Riesgos (${a.riesgos.length})`} icono={AlertTriangle}>
             <ul className="space-y-1.5 text-[12.5px] leading-relaxed">
               {a.riesgos.map((r, i) => (
                 <li key={`r${i}`} className="flex gap-2">
@@ -278,12 +248,6 @@ export function ZonaResultado({
                     Riesgo {r.gravedad}
                   </span>
                   <span>{r.descripcion}</span>
-                </li>
-              ))}
-              {a.contradicciones.map((c, i) => (
-                <li key={`c${i}`} className="flex gap-2">
-                  <span className="mt-0.5 shrink-0 rounded bg-amber-100 px-1.5 py-px text-[10.5px] font-semibold text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">Contradicción</span>
-                  <span>{c.descripcion}</span>
                 </li>
               ))}
             </ul>
@@ -395,26 +359,16 @@ export function ZonaResultado({
         />
       )}
 
-      {/* ¿Qué deseas hacer ahora? */}
-      <div>
-        <h3 className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">¿Qué deseas hacer ahora?</h3>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {continuar.map((p) => (
-            <button
-              key={p.perfil}
-              type="button"
-              disabled={ocupadoAlgo}
-              onClick={() => void alContinuar(p.perfil as Perfil)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-generar-300 bg-generar-50/60 px-3 py-2 text-[12.5px] font-semibold text-generar-800 hover:bg-generar-100 disabled:opacity-50 dark:border-generar-800 dark:bg-generar-900/25 dark:text-generar-200"
-            >
-              Continuar expediente en perfil {PERFILES[p.perfil as Perfil].nombre} <ArrowRight className="h-3.5 w-3.5" />
-            </button>
-          ))}
-          <OtroPerfil actual={act.perfil} permitidos={permitidos} excluir={continuar.map((p) => p.perfil as Perfil)} ocupado={ocupadoAlgo} alElegir={alContinuar} />
-          <a href={`${base}?que=ficha`} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[12.5px] font-medium hover:bg-secondary">
-            <ShieldCheck className="h-3.5 w-3.5" /> Ficha de control (Word)
-          </a>
-        </div>
+      {/* La ruta de continuación (César, 27/09/2026) */}
+      <RutaDeContinuacion a={a} perfil={act.perfil} permitidos={permitidos} ocupado={ocupadoAlgo} alContinuar={alContinuar} />
+      <div className="flex flex-wrap gap-2">
+        <OtroPerfil actual={act.perfil} permitidos={permitidos} excluir={continuar.map((p) => p.perfil as Perfil)} ocupado={ocupadoAlgo} alElegir={alContinuar} />
+        <a href={`${base}?que=ficha`} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[12.5px] font-medium hover:bg-secondary">
+          <ShieldCheck className="h-3.5 w-3.5" /> Ficha de sustento y pendientes (Word)
+        </a>
+        <a href={`${base}?que=evidencia`} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-[12.5px] font-medium hover:bg-secondary">
+          <ListChecks className="h-3.5 w-3.5" /> Lista de evidencia por obtener (Word)
+        </a>
       </div>
     </Zona>
   );

@@ -184,7 +184,9 @@ export function VistaDelExpediente({ inicial, permitidos }: { inicial: EstadoDel
           pendienteOficial={pendienteOficial}
           alResponder={respuestaCambia}
           alAnalizar={(como) => analizar(act.id, como)}
-          alRedactar={(nivel: NivelDeSalida) => conOcupacion('redactando', () => llamar(`${base}/actuaciones/${act.id}/redactar`, 'POST', { nivel }))}
+          alRedactar={(nivel: NivelDeSalida, enfoque?: 'descarte') =>
+            conOcupacion('redactando', () => llamar(`${base}/actuaciones/${act.id}/redactar`, 'POST', { nivel, enfoque }))
+          }
           alAuditar={() => conOcupacion('auditando', () => llamar(`${base}/actuaciones/${act.id}/auditar`, 'POST'))}
           alContinuar={(perfil) =>
             conOcupacion('analizando', async () => {
