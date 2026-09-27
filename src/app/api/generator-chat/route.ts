@@ -14,7 +14,7 @@ import {
   type GeneratorPerfil,
 } from '@/lib/ai/generator-perfiles';
 import { recordAiUsage } from '@/lib/ai/usage-log';
-import { ensureCanUse } from '@/lib/billing/feature-gate';
+import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
 import type { NormativeDocType } from '@/lib/supabase/types';
 
 export const runtime = 'nodejs';
@@ -104,6 +104,9 @@ export async function POST(req: Request) {
   if (!lastUser) {
     return NextResponse.json({ error: 'no_user_message' }, { status: 400 });
   }
+  // Se comprobaba la cuota pero nunca se descontaba: el consumo de
+  // «Generar» no avanzaba (César, 27/09/2026).
+  await recordUsage(user.id, 'generator_call');
 
   // Cargar files adjuntos vigentes de esta conversación (los ya subidos
   // a Gemini Files API por el endpoint POST /api/generator-chat/[id]/files).

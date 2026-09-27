@@ -14,7 +14,7 @@ import {
   SUBTIPO_META,
   type SubtipoRequerimiento,
 } from '@/lib/requerimientos/subtipos';
-import { ensureCanUse } from '@/lib/billing/feature-gate';
+import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -111,6 +111,7 @@ export async function POST(req: Request) {
     );
   }
 
+  await recordUsage(user.id, 'generator_call');
   return NextResponse.json({ id: (data as { id: string }).id });
 }
 

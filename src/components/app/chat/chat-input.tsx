@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { ArrowUp, Square, Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import { useDictado } from '@/lib/voz/use-dictado';
 
 interface Props {
   value: string;
@@ -16,49 +16,9 @@ interface Props {
 }
 
 /**
- * Web Speech API type — no está en @types/dom por defecto.
- * Definimos la interfaz mínima que necesitamos.
- */
-interface SpeechRecognitionEvent {
-  results: {
-    length: number;
-    item(index: number): {
-      length: number;
-      item(index: number): { transcript: string };
-      isFinal: boolean;
-      [index: number]: { transcript: string };
-    };
-    [index: number]: {
-      length: number;
-      isFinal: boolean;
-      [index: number]: { transcript: string };
-    };
-  };
-}
-
-interface SpeechRecognitionInstance {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  onstart: (() => void) | null;
-  onresult: ((event: SpeechRecognitionEvent) => void) | null;
-  onerror: ((event: { error: string }) => void) | null;
-  onend: (() => void) | null;
-  start(): void;
-  stop(): void;
-  abort(): void;
-}
-
-/**
- * Chat input con dictado de voz nativo (Web Speech API).
+ * El cajón de escribir de una conversación, con dictado por voz.
  *
- * Feature solicitado por César 30/06/2026: "para hacer las consultas
- * no habría un botón así machucas un botón y lo dictas para no estar
- * escribiendo".
- *
- * Usa la Web Speech API del navegador (SpeechRecognition) que es
- * gratuita y no consume la API de voz de Google que preocupaba a César.
- * Soporte: Chrome/Edge/Safari (100% de nuestro tráfico esperado).
+ * El dictado vive en `useDictado`, compartido con la portada del chat.
  */
 export function ChatInput({
   value,
@@ -69,20 +29,7 @@ export function ChatInput({
   placeholder,
 }: Props) {
   const ref = useRef<HTMLTextAreaElement | null>(null);
-  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [isSupported, setIsSupported] = useState(false);
-
-  // Detectar soporte al montar (solo cliente).
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const w = window as typeof window & {
-      SpeechRecognition?: new () => SpeechRecognitionInstance;
-      webkitSpeechRecognition?: new () => SpeechRecognitionInstance;
-    };
-    const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
-    setIsSupported(!!SR);
-  }, []);
+  const dictado = useDictado(value, onChange);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -96,85 +43,22 @@ export function ChatInput({
     ref.current?.focus();
   }, []);
 
+  function enviar(e?: React.FormEvent) {
+    if (isLoading) return;
+    // Con el cajón vacío la flecha no quedaba muerta sin explicación
+    // (César, 27/09/2026): lleva al cajón para escribir.
+    if (!value.trim()) {
+      ref.current?.focus();
+      return;
+    }
+    if (dictado.dictando) dictado.detener();
+    onSubmit(e);
+  }
+
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (!isLoading && value.trim()) onSubmit();
-    }
-  }
-
-  function startDictation() {
-    if (!isSupported || isRecording) return;
-    const w = window as typeof window & {
-      SpeechRecognition?: new () => SpeechRecognitionInstance;
-      webkitSpeechRecognition?: new () => SpeechRecognitionInstance;
-    };
-    const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
-    if (!SR) return;
-
-    try {
-      const recognition = new SR();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = 'es-PE';
-
-      const baseValue = value;
-      let finalTranscript = '';
-
-      recognition.onstart = () => {
-        setIsRecording(true);
-      };
-
-      recognition.onresult = (event) => {
-        let interim = '';
-        for (let i = 0; i < event.results.length; i++) {
-          const result = event.results[i];
-          const text = result[0].transcript;
-          if (result.isFinal) {
-            finalTranscript += text + ' ';
-          } else {
-            interim += text;
-          }
-        }
-        // Combinar: valor original + dictado final + interim (para feedback en vivo)
-        const combined = (baseValue + (baseValue.endsWith(' ') || baseValue === '' ? '' : ' ') + finalTranscript + interim).trim();
-        onChange(combined);
-      };
-
-      recognition.onerror = (event) => {
-        const err = event.error;
-        if (err === 'not-allowed' || err === 'service-not-allowed') {
-          toast.error('Permite el acceso al micrófono para dictar', {
-            description: 'El navegador bloqueó el acceso.',
-          });
-        } else if (err === 'no-speech') {
-          toast.info('No detectamos audio. Intenta de nuevo.');
-        } else if (err !== 'aborted') {
-          toast.error(`Error de dictado: ${err}`);
-        }
-        setIsRecording(false);
-      };
-
-      recognition.onend = () => {
-        setIsRecording(false);
-        recognitionRef.current = null;
-      };
-
-      recognitionRef.current = recognition;
-      recognition.start();
-    } catch (e) {
-      toast.error('No se pudo iniciar el dictado');
-      console.error(e);
-    }
-  }
-
-  function stopDictation() {
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch {
-        /* ignore */
-      }
+      enviar();
     }
   }
 
@@ -182,11 +66,11 @@ export function ChatInput({
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        if (!isLoading && value.trim()) onSubmit(e);
+        enviar(e);
       }}
       className={cn(
         'flex items-end gap-2 rounded-2xl border border-border bg-card pl-4 pr-2 py-2 shadow-sm focus-within:border-brand-400 focus-within:shadow-md transition-all',
-        isRecording && 'border-rose-400 ring-2 ring-rose-500/20',
+        dictado.dictando && 'border-rose-400 ring-2 ring-rose-500/20',
       )}
     >
       <textarea
@@ -195,7 +79,7 @@ export function ChatInput({
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={onKeyDown}
         placeholder={
-          isRecording
+          dictado.dictando
             ? '🎤 Escuchando… habla claro'
             : placeholder || 'Escribe tu consulta…'
         }
@@ -204,24 +88,20 @@ export function ChatInput({
         disabled={isLoading}
       />
 
-      {isSupported && !isLoading && (
+      {dictado.disponible && !isLoading && (
         <Button
           type="button"
           size="icon"
-          variant={isRecording ? 'default' : 'ghost'}
-          onClick={isRecording ? stopDictation : startDictation}
+          variant={dictado.dictando ? 'default' : 'ghost'}
+          onClick={dictado.alternar}
           className={cn(
             'rounded-xl transition-all',
-            isRecording && 'bg-rose-600 hover:bg-rose-700 animate-pulse',
+            dictado.dictando && 'bg-rose-600 hover:bg-rose-700 animate-pulse',
           )}
-          aria-label={isRecording ? 'Detener dictado' : 'Dictar por voz'}
-          title={isRecording ? 'Detener dictado' : 'Dictar por voz'}
+          aria-label={dictado.dictando ? 'Detener dictado' : 'Dictar por voz'}
+          title={dictado.dictando ? 'Detener dictado' : 'Dictar por voz'}
         >
-          {isRecording ? (
-            <MicOff className="h-4 w-4" />
-          ) : (
-            <Mic className="h-4 w-4" />
-          )}
+          {dictado.dictando ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
         </Button>
       )}
 
@@ -241,9 +121,10 @@ export function ChatInput({
           type="submit"
           size="icon"
           variant="default"
-          disabled={!value.trim() || isLoading}
-          className="rounded-xl"
+          disabled={isLoading}
+          className={cn('rounded-xl', !value.trim() && 'opacity-60')}
           aria-label="Enviar"
+          title={value.trim() ? 'Enviar' : 'Escribe o dicta tu consulta'}
         >
           <ArrowUp className="h-4 w-4" />
         </Button>

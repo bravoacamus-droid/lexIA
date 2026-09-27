@@ -19,9 +19,20 @@
  *   - gemini-3.1-flash-live-preview
  *   - gemini-3.5-live-translate-preview (solo traducción)
  */
+/*
+ * 27/09/2026 — se pasa a 'gemini-3.8-live' (estable, no preview).
+ * César reportó llamadas cortadas con «código 1007: The audio content
+ * type (CONTENT_TYPE_AUDIO) is not supported for this model
+ * configuration» y con «1011: Internal error». El 1007 es una falla
+ * conocida de Google en el modelo 2.5 native audio, típicamente mientras
+ * prepara una llamada a función (foro de Google AI, ago-2026). Medido con
+ * la misma pregunta y la misma función: primer audio a 1,5 s con 3.8
+ * contra 4,2 s con 2.5. Además el cliente ahora reanuda la sesión si la
+ * conexión se cae (ver live-client.ts).
+ */
 export const VOICE_MODEL_ID =
   process.env.GEMINI_LIVE_MODEL_ID ||
-  'gemini-2.5-flash-native-audio-latest';
+  'gemini-3.8-live';
 
 /** Versión actual del disclaimer aceptado. Si cambia, se vuelve a pedir. */
 export const DISCLAIMER_VERSION = 'v1-2026-06-26';
@@ -147,27 +158,26 @@ export function describeLawScope(lawFilter: string[] | null): string {
 export const VOICE_SYSTEM_PROMPT = buildVoiceSystemPrompt(['ley_32069']);
 
 /**
- * Construye el system prompt del Abogado Virtual ajustando el ámbito
- * normativo al régimen que el usuario eligió en el LawSelector.
+ * La llamada responde solo sobre la norma vigente.
  *
- * Fix reportado por César 01/07/2026: el modelo respondía siempre "me
- * baso únicamente en la Ley 32069" aunque el usuario hubiera marcado
- * "Ambas". Causa: el prompt estaba hardcoded a "Ley 32069". Ahora el
- * texto se genera con describeLawScope() según voice_calls.law_filter.
+ * César (27/09/2026): «Se debe eliminar la selección de las leyes dado
+ * que A-LexIA no está preparado para responder preguntas por tipo de
+ * norma. Para tener un mejor resultado, solo nos enfocaremos en la norma
+ * vigente Ley 32069». El parámetro se conserva para no romper llamadas
+ * viejas que lo guardaron, pero ya no cambia nada.
  */
-export function buildVoiceSystemPrompt(lawFilter: string[] | null): string {
-  const scope = describeLawScope(lawFilter);
-  const includesBoth = !lawFilter || lawFilter.length === 0 || lawFilter.length === 2;
-  const includes30225 = includesBoth || (lawFilter?.includes('ley_30225') ?? false);
-  const legacyLine = includes30225
-    ? '\n\nCuando el usuario pregunte sobre procedimientos convocados antes de abril de 2025, aplica la Ley 30225 y su Reglamento (DS 344-2018-EF y modificatorias). Cuando pregunte por procedimientos posteriores, aplica la Ley 32069.'
-    : '';
+export const REGIMEN_DE_VOZ = ['ley_32069'];
 
-  return `Eres el Abogado Virtual de A-LexIA, asistente especializado EXCLUSIVAMENTE en Contrataciones del Estado peruano.
+export function buildVoiceSystemPrompt(_lawFilter?: string[] | null): string {
+  return `Eres A-LexIA, asistente especializado EXCLUSIVAMENTE en Contrataciones Públicas del Perú.
 
-Tu ámbito normativo activo en esta llamada es: ${scope}.${legacyLine}
+Respondes sobre la norma vigente: la Ley N.° 32069, Ley General de Contrataciones Públicas, y su Reglamento (Decreto Supremo N.° 009-2025-EF y modificatorias), junto con las directivas y opiniones del OECE, los pronunciamientos y las resoluciones del Tribunal de Contrataciones Públicas que los aplican. Si el usuario pregunta por la Ley 30225 o por un procedimiento convocado antes de abril de 2025, dile con amabilidad que por voz respondes sobre la Ley 32069 y que el chat escrito de A-LexIA puede ayudarle con el régimen anterior.
 
-Tu base de conocimiento incluye: leyes de contrataciones del Estado (32069 y 30225), sus reglamentos, directivas del OECE / DGA / Perú Compras, lineamientos, opiniones DTN, pronunciamientos DSAT y resoluciones del Tribunal de Contrataciones.
+NIVEL DEL USUARIO — ADAPTA CADA RESPUESTA:
+- Si el usuario pide que se lo expliques "paso a paso", "desde cero", dice que "recién empieza" o "no conoce mucho la norma", o te cuenta un caso concreto para que lo guíes: explícalo PASO A PASO. Da uno a tres pasos por turno, con palabras sencillas: qué se hace, quién lo hace, en qué plazo y con qué artículo. Al terminar ese tramo pregunta: "¿Seguimos con el siguiente paso?".
+- Si pregunta de forma técnica y directa ("¿plazo para apelar?", "¿qué artículo regula…?") o pide "directo", "concreto", "sin rodeos": responde DIRECTO, en una o dos frases, con la cifra y el artículo, sin introducción ni frase de cierre.
+- Si no sabes su nivel, responde directo y ofrece: "Si quieres, te lo explico paso a paso."
+- Mantén el nivel que el usuario eligió durante el resto de la llamada, hasta que te pida otro.
 
 CONSULTA A LA BASE NORMATIVA (obligatorio antes de responder):
 Antes de responder CUALQUIER pregunta sobre normativa, plazos, procedimientos, artículos, numerales o citas legales, DEBES llamar a la función search_normativa(query). No hay excepciones.
@@ -241,8 +251,8 @@ REGLAS DE CITACIÓN — CRÍTICAS PARA NO ALUCINAR:
 
 7. Cuando el chat responde a "plazos de difusión del requerimiento" con "5 días para consultas técnicas, 6 días para absolución, 3 días para reunión de confirmación, día hábil siguiente para acta" (todos artículos 51.2 a 51.5), la voz debe responder LO MISMO con ese nivel de detalle. Si es una lista de plazos, enuméralos claramente.
 
-ESTILO DE RESPUESTA HABLADA — MANTÉN CORTO:
-- **Duración objetivo: 30-45 segundos hablados por respuesta** (aprox. 80-130 palabras). El modelo de voz se robotiza en respuestas más largas.
+ESTILO DE RESPUESTA HABLADA:
+- **Duración objetivo: 20 a 45 segundos hablados por turno** (aprox. 60-130 palabras). En modo paso a paso, cada turno lleva solo su tramo de pasos.
 - Estructura: (1) respuesta directa en 1-2 frases, (2) UNA cita al artículo/fuente, (3) pregunta de seguimiento.
 - Si la respuesta requiere más de 45 segundos, EN VEZ de darla toda, ofrece un desglose: "Hay tres puntos importantes. ¿Empiezo por el plazo, los requisitos, o las excepciones?"
 - Habla en español peruano natural, formal pero accesible.
@@ -256,7 +266,7 @@ ESTILO DE RESPUESTA HABLADA — MANTÉN CORTO:
   respuesta breve.
 - Cita números de artículo y plazos en palabras: "ocho días hábiles", "artículo cincuenta y uno punto dos". No leas símbolos.
 - Ante ambigüedad, pide aclaración con UNA repregunta específica.
-- Al terminar tu respuesta, cierra con UNA de estas frases (ALTÉRNALAS aleatoriamente en cada turno para no sonar repetitivo — nunca uses la misma frase dos veces seguidas):
+- En respuestas directas NO agregues frase de cierre. En las explicativas, cierra con UNA de estas frases (ALTÉRNALAS aleatoriamente en cada turno para no sonar repetitivo — nunca uses la misma frase dos veces seguidas):
   1) "Si deseas profundizar en este tema, con gusto continuamos."
   2) "Estoy listo para ayudarte con cualquier otra consulta."
   3) "Si algo no quedó claro, puedo explicarlo de otra manera."
@@ -313,12 +323,23 @@ export const VOICE_TOOLS = [
   },
 ];
 
-/** Voces disponibles. Puede ampliarse cuando Gemini agregue más. */
-export const VOICES = {
-  Aoede: { label: 'Aoede (femenina, neutra)', gender: 'female' as const },
-  Puck: { label: 'Puck (masculina, juvenil)', gender: 'male' as const },
-  Charon: { label: 'Charon (masculina, grave)', gender: 'male' as const },
-  Kore: { label: 'Kore (femenina, cálida)', gender: 'female' as const },
-} as const;
+/**
+ * Las voces, con nombres fáciles de recordar (César, 27/09/2026: «Los
+ * tipos de voces deben ir con nombre fácil de recordar y con una voz
+ * predeterminada, listo para iniciar la conversación»). Los nombres y
+ * los estilos son los que él propuso; debajo, la voz de Gemini que mejor
+ * se ajusta a cada estilo. Clara es la predeterminada.
+ */
+export const VOCES = [
+  { id: 'Kore', nombre: 'Clara', genero: 'femenina', estilo: 'Profesional · Natural' },
+  { id: 'Aoede', nombre: 'Valeria', genero: 'femenina', estilo: 'Cercana · Dinámica' },
+  { id: 'Charon', nombre: 'César', genero: 'masculina', estilo: 'Profesional · Serena' },
+  { id: 'Puck', nombre: 'Mateo', genero: 'masculina', estilo: 'Natural · Dinámica' },
+] as const;
 
-export type VoiceId = keyof typeof VOICES;
+export type VoiceId = (typeof VOCES)[number]['id'];
+export const VOZ_PREDETERMINADA: VoiceId = 'Kore';
+
+export function vozPorId(id: string | null | undefined) {
+  return VOCES.find((v) => v.id === id) ?? VOCES[0];
+}

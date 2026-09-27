@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { catalogoPlantillas, obtenerPlantilla } from '@/lib/generadores/plantillas';
-import { ensureCanUse } from '@/lib/billing/feature-gate';
+import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
 import { MontoSchema } from '@/lib/generadores/ensamblador';
 
 export const runtime = 'nodejs';
@@ -99,5 +99,7 @@ export async function POST(req: Request) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // Se comprobaba la cuota pero nunca se descontaba (César, 27/09/2026).
+  await recordUsage(user.id, 'generator_call');
   return NextResponse.json({ id: data.id }, { status: 201 });
 }

@@ -21,6 +21,7 @@ import { TagSearchInput } from '@/components/app/library/tag-search-input';
 import { TypeFilter } from '@/components/app/library/type-filter';
 import { LawSelectorCard, type LawFilter } from '@/components/app/law-selector';
 import { DocumentCard } from '@/components/app/library/document-card';
+import type { PasajeDeTermino } from '@/components/app/library/pasajes-por-termino';
 import { SearchLottieLoader } from '@/components/app/search/search-lottie-loader';
 import {
   Pagina,
@@ -57,7 +58,11 @@ interface SearchResult {
   ai_summary?: AiSummaryMini | null;
   matchedCount?: number;
   matchedQueries?: number[];
+  pasajes?: PasajeDeTermino[];
+  bajada?: string | null;
 }
+
+const POR_PAGINA = 20;
 
 /**
  * Vista dedicada del Buscador Inteligente Multi-Tag.
@@ -90,13 +95,47 @@ export function SmartSearchView({ role }: Props) {
   const [type, setType] = useState<NormativeDocType | null>(null);
   const [lawFilter, setLawFilter] = useState<LawFilter>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [cargandoMas, setCargandoMas] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
   // Ejecutar búsqueda cuando cambian tags o filtros
+  async function pedir(offset: number) {
+    const law = lawFilter && lawFilter.length === 1 ? lawFilter[0] : null;
+    const res = await fetch('/api/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: '',
+        queries: tags,
+        type,
+        law,
+        limit: POR_PAGINA,
+        offset,
+      }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json?.detail || json?.error || `HTTP ${res.status}`);
+    return json as { results?: SearchResult[]; total?: number };
+  }
+
+  async function verMas() {
+    setCargandoMas(true);
+    try {
+      const json = await pedir(results.length);
+      setResults((r) => [...r, ...((json.results || []) as SearchResult[])]);
+    } catch {
+      toast.error('No se pudieron traer más resultados. Intenta de nuevo.');
+    } finally {
+      setCargandoMas(false);
+    }
+  }
+
   useEffect(() => {
     if (tags.length === 0) {
       setResults([]);
+      setTotal(0);
       return;
     }
 
@@ -104,22 +143,10 @@ export function SmartSearchView({ role }: Props) {
     const t = setTimeout(async () => {
       setLoading(true);
       try {
-        const law = lawFilter && lawFilter.length === 1 ? lawFilter[0] : null;
-        const res = await fetch('/api/search', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            query: '',
-            queries: tags,
-            type,
-            law,
-            limit: 20,
-            offset: 0,
-          }),
-        });
-        const json = await res.json();
+        const json = await pedir(0);
         if (cancelled) return;
         setResults((json.results || []) as SearchResult[]);
+        setTotal(json.total ?? (json.results || []).length);
       } catch {
         if (!cancelled) toast.error('Error al buscar. Intenta de nuevo.');
       } finally {
@@ -195,8 +222,14 @@ export function SmartSearchView({ role }: Props) {
         />
         {tags.length > 0 && (
           <p className="text-[11px] text-muted-foreground -mt-1">
-            Buscando documentos que mencionan <strong>{tags.length}</strong> término
-            {tags.length !== 1 ? 's' : ''} · Los que más coincidan suben en el ranking
+            {tags.length === 1 ? (
+              <>Documentos que contienen esta palabra · los más recientes primero</>
+            ) : (
+              <>
+                Documentos que contienen <strong>las {tags.length} palabras</strong> · los más
+                recientes primero
+              </>
+            )}
           </p>
         )}
 
@@ -346,8 +379,8 @@ export function SmartSearchView({ role }: Props) {
               <div className="min-w-0 text-xs leading-relaxed text-muted-foreground">
                 <p className="font-semibold text-foreground mb-1">Consejo</p>
                 <p>
-                  Combina hasta <strong>8 términos</strong>. Un documento que mencione TODOS
-                  aparece arriba de uno que mencione solo algunos. Ejemplo: buscar
+                  Combina hasta <strong>8 términos</strong>: solo salen los documentos que los
+                  contienen <strong>todos</strong>, con el pasaje donde aparece cada uno. Ejemplo: buscar
                   <code className="mx-1 px-1 py-0.5 rounded bg-background text-[11px]">
                     personal clave
                   </code>
@@ -379,23 +412,17 @@ export function SmartSearchView({ role }: Props) {
               <Sparkles className="mx-auto h-6 w-6 text-muted-foreground mb-2" />
               <p className="text-sm font-medium">Sin resultados</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Prueba con términos más generales o quita algún tag.
+                Ningún documento contiene {tags.length > 1 ? 'todas estas palabras' : 'esta palabra'}.
+                Prueba quitando alguna o con términos más generales.
               </p>
             </Card>
           ) : (
             <>
               <div className="flex flex-wrap items-center gap-2">
                 <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
-                  {results.length} resultado{results.length !== 1 ? 's' : ''}
+                  {total.toLocaleString('es-PE')} documento{total !== 1 ? 's' : ''}
+                  {total > results.length ? ` · mostrando ${results.length}` : ''}
                 </p>
-                {countByType(results).map(([t, n]) => (
-                  <span
-                    key={t}
-                    className="text-[10px] uppercase tracking-wider font-medium text-muted-foreground/80 px-1.5 py-0.5 rounded bg-secondary/60"
-                  >
-                    {t} {n}
-                  </span>
-                ))}
               </div>
               <div className="space-y-3">
                 <AnimatePresence initial={false}>
@@ -418,7 +445,10 @@ export function SmartSearchView({ role }: Props) {
                           source_url: r.source_url,
                           ai_summary: r.ai_summary,
                         }}
-                        excerpt={r.topChunkContent}
+                        volverHref={`/buscador?q=${encodeURIComponent(tags.join(','))}`}
+                        pasajes={r.pasajes}
+                        bajada={r.bajada}
+                        excerpt={r.pasajes ? undefined : r.topChunkContent}
                         highlightTerms={tags}
                         matchedCount={r.matchedCount}
                         totalQueries={tags.length}
@@ -427,6 +457,13 @@ export function SmartSearchView({ role }: Props) {
                   ))}
                 </AnimatePresence>
               </div>
+              {total > results.length && (
+                <div className="flex justify-center pt-1">
+                  <Button variant="outline" onClick={verMas} loading={cargandoMas}>
+                    Ver más resultados ({(total - results.length).toLocaleString('es-PE')} restantes)
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </section>
@@ -567,11 +604,3 @@ const RAPIDAS = [
   'adicional de obra',
   'subsanación de ofertas',
 ];
-
-function countByType(results: SearchResult[]): Array<[string, number]> {
-  const map = new Map<string, number>();
-  for (const r of results) {
-    map.set(r.doc_type, (map.get(r.doc_type) || 0) + 1);
-  }
-  return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
-}

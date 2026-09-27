@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { DISCLAIMER_VERSION } from '@/lib/ai/voice-config';
+import { DISCLAIMER_VERSION, REGIMEN_DE_VOZ, VOZ_PREDETERMINADA } from '@/lib/ai/voice-config';
 import { ensureCanUse } from '@/lib/billing/feature-gate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const CreateSchema = z.object({
-  voice_id: z.enum(['Aoede', 'Puck', 'Charon', 'Kore']).optional().default('Aoede'),
+  voice_id: z.enum(['Aoede', 'Puck', 'Charon', 'Kore']).optional().default(VOZ_PREDETERMINADA),
   /**
    * Filtro de ley aplicable para el RAG de esta llamada. Array vacío
    * o ausente = sin filtro (busca en ambas leyes). Valores válidos:
@@ -69,10 +69,9 @@ export async function POST(req: Request) {
   }
 
   // Crear llamada
-  const lawFilter =
-    parsed.data.law_filter && parsed.data.law_filter.length > 0
-      ? parsed.data.law_filter
-      : null;
+  // Solo la Ley 32069: ya no se elige régimen (César, 27/09/2026). Se
+  // guarda para que la búsqueda normativa de la llamada filtre por ella.
+  const lawFilter = REGIMEN_DE_VOZ;
   const { data, error } = await supabase
     .from('voice_calls')
     .insert({

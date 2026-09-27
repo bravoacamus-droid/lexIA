@@ -109,7 +109,7 @@ export default async function ConsultarPage() {
           acabado="relleno"
           etiqueta="Texto"
           titulo="Pregunta a A-LexIA"
-          descripcion="Formula tus consultas y recibe respuestas con sustento normativo."
+          descripcion="Haz tu consulta sobre contrataciones públicas y recibe una respuesta clara, sustentada en fuentes especializadas."
           llamada="Iniciar chat"
           className="bg-gradient-to-br from-noche-900 via-consultar-900 to-consultar-700"
           pastillas={[

@@ -27,6 +27,8 @@ export interface NormativaSearchResult {
   snippet: string;
   /** Score de relevancia 0-1. */
   similarity: number;
+  /** Para enlazar la fuente desde la llamada («Ver fuentes de la respuesta»). */
+  documentId?: string;
 }
 
 export interface SearchOptions {
@@ -78,8 +80,19 @@ export async function searchNormativa(
   // límite de longitud de la respuesta lo fija el prompt, no el número
   // de fragmentos, así que más contexto no alarga lo que se escucha.
   const matchCount = Math.min(Math.max(opts.match_count ?? 8, 8), 12);
+  // «ley» y «reglamento» no filtran: la Ley 32069 y su Reglamento
+  // (DS 009-2025-EF) están en la biblioteca como UN solo documento de
+  // tipo «ley». Filtrar por «reglamento» dejaba fuera justo ese texto y
+  // traía solo decretos de equivalencias: la voz respondía «no aparece
+  // el dato» sobre el plazo de consultas y observaciones (27/09/2026,
+  // con gemini-3.8-live, que usa este filtro mucho más que el modelo
+  // anterior). Sin filtro, el rescate de norma base de más abajo ya
+  // asegura que la Ley y el Reglamento entren.
   const filterType =
-    opts.filter_type && VALID_TYPES.has(opts.filter_type)
+    opts.filter_type &&
+    VALID_TYPES.has(opts.filter_type) &&
+    opts.filter_type !== 'ley' &&
+    opts.filter_type !== 'reglamento'
       ? opts.filter_type
       : null;
 
@@ -108,6 +121,13 @@ export async function searchNormativa(
   const focalStartIdx = embedPromises.length;
   for (const focal of focalQueries) embedPromises.push(safeEmbed(focal));
 
+  // La reescritura a lenguaje jurídico solo se usa si el rescate hace
+  // falta (más abajo), pero tarda hasta 1,8 s: se lanza ya, en paralelo
+  // con los embeddings, y si no se necesita se descarta.
+  const reescrituraAnticipada = !filterType
+    ? rewriteToLegalQueries(opts.query, 1800).catch(() => [] as string[])
+    : null;
+
   const allEmbeds = await Promise.all(embedPromises);
   const embedding = allEmbeds[0];
   if (!embedding) return []; // sin embedding principal no hay retrieval
@@ -121,13 +141,27 @@ export async function searchNormativa(
   // exactamente matchCount y perdíamos chunks importantes cuando quedaban
   // en posiciones 6-10 (ej: Ley 32069 Art. 66.6 sobre prevalencia).
   const oversample = Math.min(matchCount * 2, 15);
-  const { data, error } = await admin.rpc('hybrid_search', {
-    query_text: opts.query,
-    query_embedding: embedding,
-    match_count: oversample,
-    filter_type: filterType,
-    filter_law: filterLaw,
-  });
+  // La búsqueda principal y la expandida no dependen una de otra: van en
+  // paralelo (César, 27/09/2026, pidió respuestas de voz más rápidas).
+  // El orden de fusión es el mismo que cuando iban una tras otra.
+  const [{ data, error }, extra] = await Promise.all([
+    admin.rpc('hybrid_search', {
+      query_text: opts.query,
+      query_embedding: embedding,
+      match_count: oversample,
+      filter_type: filterType,
+      filter_law: filterLaw,
+    }),
+    expandedEmbedding
+      ? admin.rpc('hybrid_search', {
+          query_text: expandedQuery,
+          query_embedding: expandedEmbedding,
+          match_count: 8,
+          filter_type: filterType,
+          filter_law: filterLaw,
+        })
+      : Promise.resolve({ data: null }),
+  ]);
   if (error) {
     console.error('[voice-search] hybrid_search error:', error.message);
     return [];
@@ -142,13 +176,7 @@ export async function searchNormativa(
       combined.map((c) => `${c.document_id}:${c.content.slice(0, 60)}`),
     );
 
-    const { data: extraData } = await admin.rpc('hybrid_search', {
-      query_text: expandedQuery,
-      query_embedding: expandedEmbedding,
-      match_count: 8,
-      filter_type: filterType,
-      filter_law: filterLaw,
-    });
+    const extraData = extra.data;
     if (extraData) {
       for (const r of extraData as HybridRow[]) {
         const k = `${r.document_id}:${r.content.slice(0, 60)}`;
@@ -218,7 +246,7 @@ export async function searchNormativa(
     !filterType && !combined.some((c) => esPrimariaTipo(c.doc_type));
 
   if (necesitaRescate) {
-    const rewrites = await rewriteToLegalQueries(opts.query, 1800);
+    const rewrites = reescrituraAnticipada ? await reescrituraAnticipada : [];
     if (rewrites.length > 0) {
       const seen = new Set(
         combined.map((c) => `${c.document_id}:${c.content.slice(0, 60)}`),
@@ -335,6 +363,7 @@ export async function searchNormativa(
     const typeLabel = formatTypeLabel(r.doc_type);
     return {
       type: r.doc_type,
+      documentId: (r as { document_id?: string }).document_id,
       citation: `${typeLabel}${numberPart}`.trim(),
       title: r.doc_title,
       /**

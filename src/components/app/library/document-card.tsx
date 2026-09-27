@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn, getDocTypeMeta, formatDate } from '@/lib/utils';
 import { HighlightedText } from '@/components/app/library/highlighted-text';
+import { PasajesPorTermino, type PasajeDeTermino } from '@/components/app/library/pasajes-por-termino';
 import { clasificarParte, nombreDePapel } from '@/lib/normativa/actos';
 import { getSummarySnippet } from '@/lib/ai/document-summary';
 import type { NormativeDocType } from '@/lib/supabase/types';
@@ -49,6 +50,14 @@ interface Props {
    *  (reportado por César 01/08/2026; la ruta desde el chat ya lo hacía). */
   volverHref?: string;
   matchedCount?: number;
+  /**
+   * Búsqueda por chips: dónde aparece cada palabra. Cuando viene, la
+   * tarjeta muestra la bajada del documento y los pasajes por término en
+   * vez de un solo extracto (César, 27/09/2026).
+   */
+  pasajes?: PasajeDeTermino[];
+  /** De qué trata, en una línea (el «VISTO…» de una resolución). */
+  bajada?: string | null;
   /** Total de queries activos. */
   totalQueries?: number;
   isSaved?: boolean;
@@ -66,9 +75,12 @@ function etiquetaDePieza(numero: string, titulo: string): string {
 }
 
 /** Enlace al visor, arrastrando a dónde debe volver. */
-function hrefDocumento(id: string, volver?: string): string {
-  const base = `/biblioteca/documento/${id}`;
-  return volver ? `${base}?volver=${encodeURIComponent(volver)}` : base;
+function hrefDocumento(id: string, volver?: string, resaltar?: string): string {
+  const params = new URLSearchParams();
+  if (volver) params.set('volver', volver);
+  if (resaltar) params.set('resaltar', resaltar);
+  const q = params.toString();
+  return `/biblioteca/documento/${id}${q ? `?${q}` : ''}`;
 }
 
 export function DocumentCard({
@@ -78,13 +90,15 @@ export function DocumentCard({
   highlightTerms = [],
   matchedCount,
   totalQueries = 0,
+  pasajes,
+  bajada,
   isSaved,
   onSave,
   onUnsave,
 }: Props) {
   const meta = getDocTypeMeta(document.type);
   // Snippet unificado: `de_que_trata` (v1) o primer `questions[].answer` (v2).
-  const summarySnippet = getSummarySnippet(document.ai_summary);
+  const summarySnippet = pasajes ? null : getSummarySnippet(document.ai_summary);
   return (
     <motion.article
       whileHover={{ y: -2 }}
@@ -192,7 +206,7 @@ export function DocumentCard({
       )}
 
       {/* Tags de temas principales (si el resumen IA los tiene) */}
-      {document.ai_summary?.temas && document.ai_summary.temas.length > 0 && !excerpt && (
+      {document.ai_summary?.temas && document.ai_summary.temas.length > 0 && !excerpt && !pasajes && (
         <div className="mt-2 flex flex-wrap items-center gap-1">
           <Tag className="h-3 w-3 text-muted-foreground/70" />
           {document.ai_summary.temas.slice(0, 4).map((tema) => (
@@ -207,7 +221,7 @@ export function DocumentCard({
       )}
 
       {/* Fallback al summary del extractor si NO hay ai_summary */}
-      {document.summary && !summarySnippet && !excerpt && (
+      {document.summary && !summarySnippet && !excerpt && !pasajes && (
         <p className="mt-2 text-sm text-muted-foreground leading-relaxed line-clamp-3">
           <HighlightedText
             text={document.summary}
@@ -217,7 +231,18 @@ export function DocumentCard({
         </p>
       )}
 
-      {excerpt && (
+      {pasajes && bajada && (
+        <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground line-clamp-3">{bajada}</p>
+      )}
+      {pasajes && (
+        <PasajesPorTermino
+          pasajes={pasajes}
+          terminos={highlightTerms}
+          hrefDocumento={(resaltar) => hrefDocumento(document.id, volverHref, resaltar)}
+        />
+      )}
+
+      {excerpt && !pasajes && (
         <div className="mt-3 border-l-2 border-brand-500 bg-brand-50/30 dark:bg-brand-950/30 pl-3 py-2 text-sm leading-relaxed">
           <p className="text-foreground/85 italic">
             "

@@ -5,6 +5,7 @@ import {
   buildVoiceSystemPrompt,
   buildVoiceInitialGreeting,
   DISCLAIMER_VERSION,
+  REGIMEN_DE_VOZ,
 } from '@/lib/ai/voice-config';
 
 export const runtime = 'nodejs';
@@ -70,10 +71,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'missing_api_key' }, { status: 500 });
   }
 
-  // Construir prompt y saludo según el régimen elegido por el usuario.
-  // Antes se enviaba siempre "Ley 32069" hardcoded, aunque el usuario
-  // hubiera marcado "Ambas" en el LawSelector.
-  const lawFilter = (call as { law_filter: string[] | null }).law_filter;
+  // La voz responde solo sobre la Ley 32069 (César, 27/09/2026).
+  const lawFilter = REGIMEN_DE_VOZ;
 
   return NextResponse.json({
     api_key: apiKey,
@@ -86,6 +85,10 @@ export async function POST(req: Request) {
         functionDeclarations: [
           {
             name: 'search_normativa',
+            // En gemini-3.8-live las funciones corren en segundo plano
+            // por defecto y el modelo sigue hablando sin esperar el
+            // resultado. Aquí debe esperar: responde con lo que trae.
+            behavior: 'BLOCKING',
             description:
               'Busca en la base normativa de A-LexIA. Devuelve los fragmentos más relevantes con su cita. USAR ANTES de citar cualquier norma.',
             parameters: {

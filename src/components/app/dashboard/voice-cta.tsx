@@ -55,7 +55,7 @@ export function VoiceCTA() {
         </div>
 
         <Button asChild size="lg" variant="glow" className="shrink-0">
-          <Link href="/llamadas/nueva">
+          <Link href="/llamadas">
             <Mic className="h-4 w-4" />
             Hablar con A-LexIA
           </Link>

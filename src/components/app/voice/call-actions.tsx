@@ -165,10 +165,10 @@ export function CallActions({
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
             <p className="text-xs text-muted-foreground">
-              Tu feedback nos ayuda a mejorar la Abogada Virtual.
+              Tu opinión nos ayuda a mejorar A-LexIA.
             </p>
             <Button asChild variant="glow" size="sm">
-              <Link href="/llamadas/nueva">
+              <Link href="/llamadas">
                 <PhoneCall className="h-4 w-4" />
                 Hacer otra llamada
               </Link>
@@ -179,7 +179,7 @@ export function CallActions({
         <div className="space-y-3">
           <p className="text-[10px] uppercase tracking-widest font-semibold text-brand-600 flex items-center gap-1.5">
             <MessageSquareText className="h-3.5 w-3.5" />
-            ¿Cómo te respondió la Abogada Virtual?
+            ¿Cómo te respondió A-LexIA?
           </p>
           <div className="flex items-center gap-1">
             {[1, 2, 3, 4, 5].map((n) => (

@@ -1,15 +1,14 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
-import { RelativeTime } from '@/components/ui/relative-time';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Phone, Mic, Star, Clock, BookOpen, Crown, ShieldCheck } from 'lucide-react';
+import { Mic, Crown, ShieldCheck, Lightbulb, HelpCircle, ScrollText, FileText, ArrowRight } from 'lucide-react';
 import { checkFeatureGate } from '@/lib/billing/feature-gate';
 import { getCurrentUserWithRole } from '@/lib/auth/session';
 import { getTier } from '@/lib/billing/tiers';
 import { Companero } from '@/components/marca/companero';
-import { PortadaDeVoz } from '@/components/app/voice/portada-de-voz';
+import { HablaConALexia } from '@/components/app/voice/habla-con-alexia';
+import { HistorialDeVoz, type LlamadaDelHistorial } from '@/components/app/voice/historial-de-voz';
+import { DISCLAIMER_VERSION } from '@/lib/ai/voice-config';
 import {
   Pagina,
   MigaDePan,
@@ -25,7 +24,17 @@ export default async function LlamadasPage() {
   const ctx = await getCurrentUserWithRole();
   if (!ctx) return null;
 
-  const [{ data: calls }, gate] = await Promise.all([
+  // Una llamada que se cortó sin colgar (se cerró la pestaña, se cayó la
+  // red) quedaba «En curso» para siempre en el historial (César,
+  // 27/09/2026). Pasadas tres horas ya no puede seguir viva.
+  await supabase
+    .from('voice_calls')
+    .update({ status: 'failed', ended_at: new Date().toISOString() } as never)
+    .eq('user_id', ctx.userId)
+    .eq('status', 'active')
+    .lt('started_at', new Date(Date.now() - 3 * 3600 * 1000).toISOString());
+
+  const [{ data: calls }, gate, { data: consentimiento }] = await Promise.all([
     supabase
       .from('voice_calls')
       .select(
@@ -35,19 +44,16 @@ export default async function LlamadasPage() {
       .order('started_at', { ascending: false })
       .limit(30),
     checkFeatureGate(ctx.userId, 'voice_call_minute'),
+    supabase
+      .from('voice_consents')
+      .select('id')
+      .eq('user_id', ctx.userId)
+      .eq('disclaimer_version', DISCLAIMER_VERSION)
+      .limit(1)
+      .maybeSingle(),
   ]);
 
-  const callList = (calls || []) as Array<{
-    id: string;
-    status: 'active' | 'completed' | 'failed' | 'deleted';
-    started_at: string;
-    ended_at: string | null;
-    duration_seconds: number | null;
-    summary: string | null;
-    voice_id: string;
-    rag_queries_count: number;
-    user_rating: number | null;
-  }>;
+  const callList = (calls || []) as LlamadaDelHistorial[];
 
   // Cuota real desde feature gate (incluye bonus si los hay)
   const tier = ctx.subscription?.tier
@@ -100,7 +106,51 @@ export default async function LlamadasPage() {
         }
       />
 
-      <PortadaDeVoz disponible={tierIncluyeVoz} />
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <HablaConALexia
+          disponible={tierIncluyeVoz}
+          tieneConsentimiento={!!consentimiento}
+          versionAviso={DISCLAIMER_VERSION}
+        />
+        <div className="space-y-4">
+          <section className="rounded-2xl border border-border bg-card p-4 shadow-soft">
+            <header className="flex items-center gap-2">
+              <Lightbulb className="h-4 w-4 text-amber-500" strokeWidth={2} />
+              <h3 className="text-[14px] font-bold tracking-tight">Consejos para una mejor consulta</h3>
+            </header>
+            <ul className="mt-3 space-y-2">
+              {CONSEJOS.map((c) => (
+                <li key={c.texto} className="flex items-center gap-2.5 rounded-xl bg-secondary/50 px-3 py-2.5">
+                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-consultar-50 dark:bg-consultar-900/40">
+                    <c.icono className="h-3.5 w-3.5 text-consultar-600 dark:text-consultar-400" strokeWidth={2} />
+                  </span>
+                  <span className="text-[12.5px] leading-snug">{c.texto}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+          <section className="rounded-2xl border border-border bg-card p-4 shadow-soft">
+            <header className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-consultar-500" strokeWidth={2} />
+              <h3 className="text-[14px] font-bold tracking-tight">Ejemplos que puedes probar</h3>
+            </header>
+            <ul className="mt-3 space-y-2">
+              {EJEMPLOS.map((e) => (
+                <li key={e}>
+                  {/* Llevan al chat escrito: por voz la pregunta hay que decirla. */}
+                  <Link
+                    href={`/chat?new=1&q=${encodeURIComponent(e)}`}
+                    className="group flex items-center gap-2 rounded-xl border border-border px-3 py-2.5 transition-colors hover:border-consultar-300 hover:bg-consultar-50/60 dark:hover:border-consultar-700 dark:hover:bg-consultar-900/20"
+                  >
+                    <span className="min-w-0 flex-1 text-pretty text-[12.5px] leading-snug">{e}</span>
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-consultar-500 transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
+      </div>
 
       {/* La cuota de minutos — es el dato que decide si se puede llamar. */}
       {tierIncluyeVoz ? (
@@ -144,16 +194,7 @@ export default async function LlamadasPage() {
         </Card>
       )}
 
-      {callList.length > 0 && (
-        <section className="space-y-2">
-          <p className="px-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Tus consultas por voz
-          </p>
-          {callList.map((c) => (
-            <CallCard key={c.id} call={c} />
-          ))}
-        </section>
-      )}
+      <HistorialDeVoz llamadas={callList} />
 
       <div className="flex items-start gap-3 rounded-2xl border border-consultar-100 bg-consultar-50/60 px-4 py-3.5 dark:border-consultar-900/60 dark:bg-consultar-900/20">
         <ShieldCheck className="mt-0.5 h-4.5 w-4.5 shrink-0 text-consultar-600 dark:text-consultar-400" />
@@ -166,86 +207,14 @@ export default async function LlamadasPage() {
   );
 }
 
-function CallCard({
-  call,
-}: {
-  call: {
-    id: string;
-    status: 'active' | 'completed' | 'failed' | 'deleted';
-    started_at: string;
-    duration_seconds: number | null;
-    summary: string | null;
-    rag_queries_count: number;
-    user_rating: number | null;
-  };
-}) {
-  const isActive = call.status === 'active';
-  const isCompleted = call.status === 'completed';
-  return (
-    <Link
-      href={`/llamadas/${call.id}`}
-      className="block rounded-lg border border-border bg-card p-4 hover:border-brand-400 hover:shadow-md transition-all"
-    >
-      <div className="flex items-start gap-3">
-        <span
-          className={`inline-flex h-10 w-10 items-center justify-center rounded-lg shrink-0 ${
-            isActive
-              ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 animate-pulse'
-              : isCompleted
-                ? 'bg-brand-100 dark:bg-brand-950 text-brand-700 dark:text-brand-400'
-                : 'bg-secondary text-muted-foreground'
-          }`}
-        >
-          <Phone className="h-4 w-4" />
-        </span>
+const CONSEJOS = [
+  { icono: Mic, texto: 'Habla con claridad y a un ritmo natural' },
+  { icono: HelpCircle, texto: 'Pídele «paso a paso» si recién empiezas, o «directo» si solo quieres el dato' },
+  { icono: ScrollText, texto: 'Responde sobre la Ley N.° 32069 y su Reglamento' },
+];
 
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 mb-0.5">
-            {isActive && (
-              <Badge variant="outline" className="text-[10px] border-emerald-500/40 text-emerald-700 dark:text-emerald-400">
-                En curso
-              </Badge>
-            )}
-            {isCompleted && call.duration_seconds && (
-              <span className="text-xs font-mono text-muted-foreground">
-                <Clock className="h-3 w-3 inline mr-0.5" />
-                {formatDuration(call.duration_seconds)}
-              </span>
-            )}
-            <span className="text-xs text-muted-foreground">
-              <RelativeTime date={call.started_at} />
-            </span>
-            {call.rag_queries_count > 0 && (
-              <span className="text-[10px] text-muted-foreground">
-                <BookOpen className="h-3 w-3 inline mr-0.5" />
-                {call.rag_queries_count} consultas a normativa
-              </span>
-            )}
-          </div>
-          <p className="text-sm font-medium truncate">
-            {call.summary || (isActive ? 'Llamada activa...' : 'Llamada sin resumen')}
-          </p>
-        </div>
-
-        {call.user_rating && (
-          <div className="flex items-center gap-0.5 shrink-0 ml-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star
-                key={i}
-                className={`h-3 w-3 ${
-                  i < (call.user_rating || 0) ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30'
-                }`}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    </Link>
-  );
-}
-
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
-}
+const EJEMPLOS = [
+  '¿Cuándo procede una ampliación de plazo?',
+  '¿Cómo se calcula la penalidad por mora?',
+  '¿Qué requisitos se solicitan para acreditar la experiencia del postor?',
+];

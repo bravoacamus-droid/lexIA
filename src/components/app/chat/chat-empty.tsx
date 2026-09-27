@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
   Sparkles,
@@ -16,6 +15,7 @@ import {
   ArrowRight,
   ArrowUp,
   Mic,
+  MicOff,
   Info,
   type LucideIcon,
 } from 'lucide-react';
@@ -23,6 +23,7 @@ import { Companero } from '@/components/marca/companero';
 import { useConversations } from '@/lib/stores/conversations';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useDictado } from '@/lib/voz/use-dictado';
 
 interface Props {
   autoCreate?: boolean;
@@ -83,6 +84,10 @@ export function ChatEmpty({ autoCreate, prefillQuery, nombre }: Props) {
   const [texto, setTexto] = useState('');
   const [todos, setTodos] = useState(false);
   const cajon = useRef<HTMLTextAreaElement>(null);
+  const dictado = useDictado(texto, (v) => {
+    setTexto(v);
+    requestAnimationFrame(ajustarAlto);
+  });
 
   async function abrirCon(consulta?: string) {
     setCreando(true);
@@ -151,8 +156,8 @@ export function ChatEmpty({ autoCreate, prefillQuery, nombre }: Props) {
             ¿En qué puedo ayudarte hoy?
           </p>
           <p className="mt-3 max-w-xl text-pretty text-[15px] leading-relaxed text-muted-foreground">
-            Formula tus consultas sobre contrataciones del Estado y recibe respuestas claras, con
-            sustento normativo.
+            Haz tu consulta sobre contrataciones públicas y recibe una respuesta clara, sustentada
+            en fuentes especializadas.
           </p>
         </motion.div>
 
@@ -202,7 +207,15 @@ export function ChatEmpty({ autoCreate, prefillQuery, nombre }: Props) {
           onSubmit={(e) => {
             e.preventDefault();
             const t = texto.trim();
-            if (t) abrirCon(t);
+            // Con el cajón vacío la flecha no hacía nada (César,
+            // 27/09/2026): ahora lleva al cajón para escribir.
+            if (!t) {
+              cajon.current?.focus();
+              toast.info('Escribe o dicta tu consulta y luego envíala.');
+              return;
+            }
+            if (dictado.dictando) dictado.detener();
+            abrirCon(t);
           }}
         >
           <div className="flex items-end gap-2 rounded-2xl border border-border bg-card p-2.5 shadow-soft transition-colors focus-within:border-consultar-400">
@@ -221,20 +234,31 @@ export function ChatEmpty({ autoCreate, prefillQuery, nombre }: Props) {
                 }
               }}
               rows={1}
-              placeholder="Pregunta sobre contrataciones públicas…"
+              placeholder={dictado.dictando ? '🎤 Escuchando… habla claro' : 'Pregunta sobre contrataciones públicas…'}
               aria-label="Escribe tu consulta"
               className="max-h-[200px] min-h-[40px] flex-1 resize-none bg-transparent px-2 py-2 text-[14.5px] outline-none placeholder:text-muted-foreground"
             />
-            <Link
-              href="/llamadas"
-              aria-label="Consultar por voz"
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            >
-              <Mic className="h-4.5 w-4.5" />
-            </Link>
+            {/* Dicta la pregunta en el cajón. Antes llevaba a «Hablando con
+                A-LexIA», que es una llamada y no un dictado (César,
+                27/09/2026). */}
+            {dictado.disponible && (
+              <button
+                type="button"
+                onClick={dictado.alternar}
+                aria-label={dictado.dictando ? 'Detener dictado' : 'Dictar tu consulta'}
+                title={dictado.dictando ? 'Detener dictado' : 'Dictar tu consulta'}
+                className={cn(
+                  'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors',
+                  dictado.dictando
+                    ? 'animate-pulse bg-rose-600 text-white hover:bg-rose-700'
+                    : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                )}
+              >
+                {dictado.dictando ? <MicOff className="h-4.5 w-4.5" /> : <Mic className="h-4.5 w-4.5" />}
+              </button>
+            )}
             <button
               type="submit"
-              disabled={!texto.trim()}
               aria-label="Enviar consulta"
               className={cn(
                 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors',

@@ -167,7 +167,7 @@ function getWorkSections(role: ProfileRole, data: Props['data']): WorkSection[] 
   const commonCall: WorkSection = {
     title: 'Hablar con A-LexIA',
     desc: 'Cuéntanos tu consulta en lenguaje natural y responderemos con normativa citada.',
-    href: '/llamadas/nueva',
+    href: '/llamadas',
     cta: 'Hablar con A-LexIA',
     icon: PhoneCall,
     count: data.voiceCallsCount,

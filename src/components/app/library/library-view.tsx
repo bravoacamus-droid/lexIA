@@ -14,6 +14,7 @@ import {
   type ActoNormativo,
 } from '@/lib/normativa/actos';
 import { TarjetaDeActo } from '@/components/app/library/tarjeta-de-acto';
+import type { PasajeDeTermino } from '@/components/app/library/pasajes-por-termino';
 import { DocumentCard } from '@/components/app/library/document-card';
 import { SaveToFolderDialog } from '@/components/app/library/save-to-folder';
 import type { NormativeDocType } from '@/lib/supabase/types';
@@ -253,6 +254,9 @@ interface SearchResult {
   matchedCount?: number;
   /** Índices de queries que matchearon, alineado a `tags` del componente. */
   matchedQueries?: number[];
+  /** Búsqueda por chips: dónde aparece cada palabra (ver /api/search). */
+  pasajes?: PasajeDeTermino[];
+  bajada?: string | null;
 }
 
 export interface LibraryStats {
@@ -662,8 +666,14 @@ export function LibraryView({
         )}
         {tags.length > 0 && (
           <p className="text-[11px] text-muted-foreground -mt-1.5">
-            Buscando documentos que mencionan <strong>{tags.length}</strong> término
-            {tags.length !== 1 ? 's' : ''}. Los que coincidan en más tags suben en el ranking.
+            {tags.length === 1 ? (
+              <>Documentos que contienen esta palabra.</>
+            ) : (
+              <>
+                Documentos que contienen <strong>las {tags.length} palabras</strong>, con el pasaje
+                donde aparece cada una.
+              </>
+            )}
           </p>
         )}
         <div className="flex flex-wrap items-center gap-3">
@@ -914,7 +924,9 @@ function SearchResultsList({
                   ai_summary: r.ai_summary,
                 }}
                 volverHref={volverHref}
-                excerpt={r.topChunkContent}
+                excerpt={r.pasajes ? undefined : r.topChunkContent}
+                pasajes={r.pasajes}
+                bajada={r.bajada}
                 highlightTerms={highlightTerms}
                 matchedCount={r.matchedCount}
                 totalQueries={highlightTerms.length}

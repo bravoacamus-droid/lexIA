@@ -121,6 +121,7 @@ export async function POST(req: Request) {
         citation: r.citation,
         title: r.title,
         type: r.type,
+        document_id: r.documentId ?? null,
       })),
     });
   } catch (err) {

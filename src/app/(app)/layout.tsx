@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { AppShell, type ResumenDePlan } from '@/components/app/app-shell';
 import { SurveyPromptModal } from '@/components/app/surveys/survey-prompt-modal';
 import { getMonthlyUsage } from '@/lib/billing/feature-gate';
-import { getTier, FEATURE_LABELS, type FeatureKey } from '@/lib/billing/tiers';
+import { getTier, type FeatureKey } from '@/lib/billing/tiers';
 import type { SubscriptionTier } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
@@ -11,10 +11,12 @@ export const dynamic = 'force-dynamic';
 /**
  * El resumen del plan que pinta la barra lateral.
  *
- * No hay un saldo único de «créditos»: cada función tiene su cuota
- * mensual. Lo útil es **la que está más cerca de agotarse**, porque es
- * la primera que va a frenar el trabajo; esa es la que se muestra, con
- * su nombre. Las cuotas infinitas y las deshabilitadas no compiten.
+ * Antes mostraba solo la cuota más cerca de agotarse. En un plan con
+ * chat, generadores y evaluador ilimitados, esa era siempre la de
+ * minutos de voz: la tarjeta decía «0 / 120 minutos de llamada» aunque
+ * César hubiera usado A-LexIA todo el mes (27/09/2026). Ahora muestra
+ * el consumo de las tres acciones —Consultar, Generar, Evaluar—, con su
+ * tope cuando lo hay.
  */
 async function resumirElPlan(
   userId: string,
@@ -22,29 +24,38 @@ async function resumirElPlan(
   finDePeriodo: string | null,
 ): Promise<ResumenDePlan> {
   const plan = getTier(tier);
-  let medidor: ResumenDePlan['medidor'] = null;
+  let medidores: ResumenDePlan['medidores'] = null;
+  const tope = (clave: FeatureKey) => {
+    const t = plan.quotas[clave];
+    return Number.isFinite(t) ? t : null;
+  };
 
   try {
     const consumo = await getMonthlyUsage(userId);
-    let peor = -1;
-    for (const [clave, tope] of Object.entries(plan.quotas) as Array<[FeatureKey, number]>) {
-      if (!Number.isFinite(tope) || tope <= 0) continue;
-      const usado = consumo[clave] || 0;
-      const proporcion = usado / tope;
-      if (proporcion > peor) {
-        peor = proporcion;
-        medidor = { usado, tope, unidad: FEATURE_LABELS[clave].toLowerCase() };
-      }
-    }
+    const topeVoz = tope('voice_call_minute');
+    medidores = [
+      {
+        accion: 'Consultar',
+        usado: consumo.chat_message,
+        tope: tope('chat_message'),
+        unidad: 'consultas',
+        detalle:
+          topeVoz === 0
+            ? undefined
+            : `${consumo.voice_call_minute}${topeVoz ? ` de ${topeVoz}` : ''} min de voz`,
+      },
+      { accion: 'Generar', usado: consumo.generator_call, tope: tope('generator_call'), unidad: 'documentos' },
+      { accion: 'Evaluar', usado: consumo.evaluation_run, tope: tope('evaluation_run'), unidad: 'evaluaciones' },
+    ];
   } catch {
-    // Si el consumo no se puede leer, la tarjeta se queda sin barra
+    // Si el consumo no se puede leer, la tarjeta se queda sin barras
     // antes que mostrar un número inventado.
-    medidor = null;
+    medidores = null;
   }
 
   return {
     etiqueta: plan.label,
-    medidor,
+    medidores,
     renovacion: finDePeriodo
       ? new Date(finDePeriodo).toLocaleDateString('es-PE', {
           day: '2-digit',

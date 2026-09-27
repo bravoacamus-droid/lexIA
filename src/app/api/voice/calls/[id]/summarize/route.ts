@@ -31,8 +31,10 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 
-  // Si ya tiene resumen, devolver el existente
-  if ((call as { summary: string | null }).summary) {
+  // Si ya tiene resumen, devolver el existente. Un resumen que no
+  // termina en punto quedó cortado (ver abajo) y se rehace.
+  const previo = (call as { summary: string | null }).summary;
+  if (previo && resumenCompleto(previo)) {
     return NextResponse.json({
       summary: (call as { summary: string }).summary,
       cached: true,
@@ -46,7 +48,7 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
     .order('timestamp_seconds', { ascending: true });
 
   const transcript = ((turns || []) as Array<{ speaker: string; text: string }>)
-    .map((t) => `${t.speaker === 'user' ? 'Usuario' : 'Abogada Virtual'}: ${t.text}`)
+    .map((t) => `${t.speaker === 'user' ? 'Usuario' : 'A-LexIA'}: ${t.text}`)
     .join('\n');
 
   if (!transcript.trim()) {
@@ -64,8 +66,12 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
   try {
     const res = await genai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: `Resume la siguiente llamada entre un usuario y un abogado virtual sobre contrataciones públicas en 2 a 4 oraciones cortas. Enfócate en QUÉ PREGUNTÓ el usuario y QUÉ NORMA O ARTÍCULO se mencionó como respuesta. Sin viñetas ni emojis. Español formal peruano.\n\nTranscripción:\n${transcript.slice(0, 15000)}`,
-      config: { temperature: 0.3, maxOutputTokens: 300 },
+      contents: `Resume la siguiente llamada entre un usuario y A-LexIA, asistente de contrataciones públicas, en 2 a 4 oraciones cortas. Llama al asistente «A-LexIA». Enfócate en QUÉ PREGUNTÓ el usuario y QUÉ NORMA O ARTÍCULO se mencionó como respuesta. Sin viñetas ni emojis. Español formal peruano.\n\nTranscripción:\n${transcript.slice(0, 15000)}`,
+      // Sin «pensar»: el modelo gastaba en razonar los 300 tokens de
+      // salida y el resumen quedaba cortado a media frase («Un usuario
+      // consultó sobre la validez de»), que es lo que César veía en su
+      // historial (27/09/2026).
+      config: { temperature: 0.3, maxOutputTokens: 600, thinkingConfig: { thinkingBudget: 0 } },
     });
     const summary = (res.text || '').trim();
 
@@ -93,4 +99,9 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
       { status: 500 },
     );
   }
+}
+
+/** Un resumen cortado por el tope de salida no termina en signo final. */
+function resumenCompleto(texto: string): boolean {
+  return /[.!?»”")]\s*$/.test(texto.trim());
 }

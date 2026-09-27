@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Clock, Star, BookOpen, Phone } from 'lucide-react';
 import { CallActions } from '@/components/app/voice/call-actions';
 import { TurnMarkdown } from '@/components/app/voice/turn-markdown';
+import { vozPorId } from '@/lib/ai/voice-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,7 +92,7 @@ export default async function LlamadaDetailPage({ params }: Props) {
                   : c.status === 'active'
                     ? 'En curso'
                     : c.status === 'failed'
-                      ? 'Falló'
+                      ? 'Interrumpida'
                       : 'Eliminada'}
               </Badge>
               <span className="text-xs text-muted-foreground">
@@ -131,7 +132,7 @@ export default async function LlamadaDetailPage({ params }: Props) {
           />
           <Metric
             label="Voz utilizada"
-            value={c.voice_id}
+            value={vozPorId(c.voice_id).nombre}
             icon={<Phone className="h-3.5 w-3.5" />}
           />
           <Metric
@@ -241,7 +242,7 @@ function Turn({
         }`}
       >
         <p className="text-[10px] uppercase tracking-widest font-semibold mb-2 text-brand-600 dark:text-brand-400">
-          {isUser ? 'Tú' : 'Abogada Virtual'}
+          {isUser ? 'Tú' : 'A-LexIA'}
         </p>
         {/* Feedback César 30/06/2026: aplicar el MISMO estilo del chat a
             las transcripciones. Antes era <p> plain, ahora es prose-lexia

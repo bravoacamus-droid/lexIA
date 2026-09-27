@@ -127,7 +127,8 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
     (call as { status: string }).status === 'active'
   ) {
     const minutes = Math.ceil(parsed.data.duration_seconds / 60);
-    void recordUsage(user.id, 'voice_call_minute', minutes);
+    // Con await: en Vercel lo que queda pendiente tras responder se corta.
+    await recordUsage(user.id, 'voice_call_minute', minutes);
   }
 
   return NextResponse.json({ ok: true });

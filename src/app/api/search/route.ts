@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { embedOne } from '@/lib/ai/embeddings';
 import type { NormativeDocType } from '@/lib/supabase/types';
+import { buscarConTodasLasPalabras } from '@/lib/busqueda/todas-las-palabras';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -190,6 +191,47 @@ export async function POST(req: Request) {
       limit,
       hasMore: count != null ? offset + (data?.length || 0) < count : false,
     });
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // Chips: documentos con TODAS las palabras.
+  //
+  // Antes cada chip se buscaba por significado y se sumaban los ocho
+  // mejores fragmentos de cada uno: salían documentos con una sola de
+  // las palabras («1/4»). César pidió lo contrario (27/09/2026): que
+  // estén todas y se vea dónde aparece cada una. Ver
+  // src/lib/busqueda/todas-las-palabras.ts.
+  // ──────────────────────────────────────────────────────────────
+  if (isMultiTag) {
+    try {
+      const { total, resultados } = await buscarConTodasLasPalabras(
+        supabase,
+        multiTags,
+        {
+          tipo: type ?? null,
+          ley: law ?? null,
+          entidad: entidad ?? null,
+          anioDesde: yearFrom ?? year ?? null,
+          anioHasta: yearTo ?? year ?? null,
+          fechaDesde: dateFrom ?? null,
+        },
+        Math.min(limit, 50),
+        offset,
+      );
+      return NextResponse.json({
+        mode: 'search',
+        modo: 'todas',
+        results: resultados,
+        total,
+        offset,
+        hasMore: offset + resultados.length < total,
+        queries: multiTags,
+        multiTag: true,
+      });
+    } catch (e) {
+      console.error('[search] buscar_con_todas_las_palabras:', (e as Error).message);
+      return NextResponse.json({ error: 'busqueda_fallida', detail: (e as Error).message }, { status: 500 });
+    }
   }
 
   // ──────────────────────────────────────────────────────────────

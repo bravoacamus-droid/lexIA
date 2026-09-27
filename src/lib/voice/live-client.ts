@@ -50,6 +50,16 @@ export interface LiveClientConfig {
   onStateChange: (state: AgentState) => void;
   /** Callback para errores. */
   onError: (message: string) => void;
+  /**
+   * La conexión se cayó y se está reanudando (true) o ya volvió (false).
+   * La llamada sigue: el usuario solo ve «Reconectando…».
+   */
+  onReconnecting?: (reconectando: boolean) => void;
+  /**
+   * La conexión se perdió y no se pudo reanudar. La pantalla debe cerrar
+   * la llamada: antes quedaba «En curso» para siempre en el historial.
+   */
+  onLost?: (motivo: string) => void;
 }
 
 interface ToolCallMsg {
@@ -76,7 +86,7 @@ interface GeminiServerMessage {
     functionCalls: ToolCallMsg[];
   };
   goAway?: { timeLeft: string };
-  sessionResumptionUpdate?: object;
+  sessionResumptionUpdate?: { newHandle?: string; resumable?: boolean };
   usageMetadata?: {
     promptTokenCount?: number;
     responseTokenCount?: number;
@@ -181,60 +191,109 @@ export class LiveClient {
     this.cfg = config;
   }
 
+  /**
+   * Reanudación de sesión. Google cierra la conexión cada ~10 minutos, y
+   * además la cortaba con errores 1007/1011 a mitad de llamada (César,
+   * 27/09/2026: «que las llamadas no se corten a los 5 o 6 minutos»).
+   * Con el identificador que manda el servidor se abre otra conexión que
+   * continúa la MISMA conversación: el modelo recuerda lo hablado.
+   */
+  private resumeHandle: string | null = null;
+  private stopping = false;
+  private reconnectAttempts = 0;
+  private static readonly MAX_REINTENTOS = 4;
+  private greeted = false;
+
   async start() {
     this.startedAt = Date.now();
-    // 1. Abrir WebSocket
-    const url = `${LIVE_WS_URL}?key=${encodeURIComponent(this.cfg.apiKey)}`;
-    this.ws = new WebSocket(url);
-    this.ws.binaryType = 'arraybuffer';
-    await new Promise<void>((resolve, reject) => {
-      if (!this.ws) return reject(new Error('No WS'));
-      this.ws.onopen = () => resolve();
-      this.ws.onerror = () => reject(new Error('No se pudo conectar a Gemini Live'));
-      setTimeout(() => reject(new Error('Timeout abriendo WebSocket')), 10000);
-    });
-    this.ws.onmessage = (e) => this.handleServerMessage(e.data);
-    this.ws.onclose = (ev) => {
-      // Gemini cierra con código 1008 + reason específico cuando hay
-      // problema con el modelo, permisos o billing. Lo mostramos al
-      // usuario para que sepa qué hacer.
-      if (ev.code !== 1000 && ev.code !== 1005) {
-        const reason = ev.reason || 'sin detalle';
-        this.cfg.onError(
-          `Llamada cerrada (código ${ev.code}): ${reason.slice(0, 200)}`,
-        );
-      }
-      this.cleanup();
-    };
-    this.ws.onerror = () => this.cfg.onError('Error de red con Gemini Live');
-
-    // 2. Enviar setup
-    this.ws.send(
-      JSON.stringify({
-        setup: {
-          model: `models/${this.cfg.model}`,
-          generationConfig: {
-            responseModalities: ['AUDIO'],
-            speechConfig: {
-              voiceConfig: {
-                prebuiltVoiceConfig: { voiceName: this.cfg.voiceId },
-              },
-              languageCode: 'es-US',
-            },
-          },
-          systemInstruction: {
-            parts: [{ text: this.cfg.systemInstruction }],
-          },
-          tools: this.cfg.tools,
-          inputAudioTranscription: {},
-          outputAudioTranscription: {},
-        },
-      }),
-    );
-
-    // 3. Inicializar audio
+    this.stopping = false;
+    await this.openSocket();
+    // El audio se prepara una sola vez: sobrevive a las reconexiones.
     await this.setupAudioCapture();
     this.setupPlayback();
+  }
+
+  private openSocket(): Promise<void> {
+    const url = `${LIVE_WS_URL}?key=${encodeURIComponent(this.cfg.apiKey)}`;
+    const ws = new WebSocket(url);
+    ws.binaryType = 'arraybuffer';
+    this.ws = ws;
+    const abierto = new Promise<void>((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error('Timeout abriendo WebSocket')), 10000);
+      ws.onopen = () => {
+        clearTimeout(t);
+        resolve();
+      };
+      ws.onerror = () => {
+        clearTimeout(t);
+        reject(new Error('No se pudo conectar a Gemini Live'));
+      };
+    });
+    ws.onmessage = (e) => {
+      if (ws === this.ws) void this.handleServerMessage(e.data);
+    };
+    ws.onclose = (ev) => {
+      if (ws !== this.ws) return; // una conexión ya reemplazada
+      this.ws = null;
+      if (this.stopping) return;
+      console.warn('[live] conexión cerrada', ev.code, ev.reason);
+      void this.reconnect(`código ${ev.code}${ev.reason ? `: ${ev.reason.slice(0, 160)}` : ''}`);
+    };
+    return abierto.then(() => {
+      ws.onerror = () => console.warn('[live] error de red en la conexión');
+      ws.send(
+        JSON.stringify({
+          setup: {
+            model: `models/${this.cfg.model}`,
+            generationConfig: {
+              responseModalities: ['AUDIO'],
+              speechConfig: {
+                voiceConfig: {
+                  prebuiltVoiceConfig: { voiceName: this.cfg.voiceId },
+                },
+                languageCode: 'es-US',
+              },
+            },
+            systemInstruction: {
+              parts: [{ text: this.cfg.systemInstruction }],
+            },
+            tools: this.cfg.tools,
+            inputAudioTranscription: {},
+            outputAudioTranscription: {},
+            sessionResumption: this.resumeHandle ? { handle: this.resumeHandle } : {},
+            // Sin compresión, una sesión de solo audio muere a los 15
+            // minutos. La ventana deslizante descarta lo más viejo y la
+            // llamada puede seguir.
+            contextWindowCompression: { slidingWindow: {}, triggerTokens: 80000 },
+          },
+        }),
+      );
+    });
+  }
+
+  /**
+   * Reabre la conexión con el identificador de sesión. Si no hay
+   * identificador (se cayó antes del primero) o se agotan los intentos,
+   * la llamada se da por perdida y la pantalla la cierra.
+   */
+  private async reconnect(motivo: string) {
+    if (this.stopping) return;
+    if (!this.resumeHandle || this.reconnectAttempts >= LiveClient.MAX_REINTENTOS) {
+      this.cfg.onLost?.(motivo);
+      return;
+    }
+    this.reconnectAttempts += 1;
+    this.cfg.onReconnecting?.(true);
+    // Lo que el modelo estaba diciendo se perdió con la conexión.
+    if (this.playbackContext) this.nextPlaybackTime = this.playbackContext.currentTime;
+    this.flushPendingTranscript();
+    await new Promise((r) => setTimeout(r, 400 * this.reconnectAttempts));
+    try {
+      await this.openSocket();
+    } catch (e) {
+      console.warn('[live] reintento fallido:', (e as Error).message);
+      void this.reconnect(motivo);
+    }
   }
 
   /**
@@ -360,10 +419,11 @@ export class LiveClient {
   private sendAudioChunk(pcmBuffer: ArrayBuffer) {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
     const b64 = arrayBufferToBase64(pcmBuffer);
+    // `mediaChunks` quedó obsoleto: los modelos nuevos esperan `audio`.
     this.ws.send(
       JSON.stringify({
         realtimeInput: {
-          mediaChunks: [{ mimeType: 'audio/pcm;rate=16000', data: b64 }],
+          audio: { mimeType: 'audio/pcm;rate=16000', data: b64 },
         },
       }),
     );
@@ -381,12 +441,40 @@ export class LiveClient {
     if (msg.setupComplete) {
       console.log('[live] setup complete');
       this.setState('idle');
+      if (this.reconnectAttempts > 0) {
+        // Conversación reanudada: no se vuelve a saludar.
+        this.reconnectAttempts = 0;
+        this.cfg.onReconnecting?.(false);
+        return;
+      }
       // Disparar saludo proactivo: enviamos un turn del usuario "vacío"
       // pero con instrucción interna para que el modelo se presente
       // sin esperar que el humano hable primero. El system prompt ya
       // define el guion de saludo ("Hola, soy tu asistente legal…").
       // Este trigger lo activa. Ver src/lib/ai/voice-config.ts.
-      this.sendInitialGreeting();
+      if (!this.greeted) {
+        this.greeted = true;
+        this.sendInitialGreeting();
+      }
+      return;
+    }
+
+    if (msg.sessionResumptionUpdate?.resumable && msg.sessionResumptionUpdate.newHandle) {
+      this.resumeHandle = msg.sessionResumptionUpdate.newHandle;
+    }
+
+    if (msg.goAway) {
+      // El servidor avisa que va a cerrar. Se cierra ya y se reanuda, en
+      // vez de esperar a que corte a media frase.
+      console.log('[live] goAway', msg.goAway.timeLeft);
+      const viejo = this.ws;
+      this.ws = null;
+      try {
+        viejo?.close(1000);
+      } catch {
+        /* ya cerrada */
+      }
+      void this.reconnect('fin de la conexión programado por el servidor');
       return;
     }
 
@@ -470,6 +558,9 @@ export class LiveClient {
       // del usuario). La UI usa esta diferencia para NO mentir con
       // "Analizando la Ley 32069" cuando el modelo aún no consultó nada.
       this.setState('searching');
+      // La respuesta va a la conexión que hizo la pregunta. Si en medio se
+      // reanudó la sesión, la conexión nueva no la espera: se descarta.
+      const origen = this.ws;
       for (const fc of msg.toolCall.functionCalls) {
         // Cinturón de seguridad: incluso si la implementación del
         // onToolCall ya tiene timeout interno, garantizamos aquí un
@@ -491,8 +582,10 @@ export class LiveClient {
             this.cfg.onToolCall(fc.name, fc.args),
             timeoutResult,
           ]);
+          if (this.ws !== origen) continue;
           this.sendToolResponse(fc.id, fc.name, result);
         } catch (e) {
+          if (this.ws !== origen) continue;
           this.sendToolResponse(
             fc.id,
             fc.name,
@@ -603,6 +696,7 @@ export class LiveClient {
   }
 
   async stop() {
+    this.stopping = true;
     // Cancelar el timer de VAD para no disparar setState después de
     // cerrar la sesión.
     if (this.vadSilenceTimer) {

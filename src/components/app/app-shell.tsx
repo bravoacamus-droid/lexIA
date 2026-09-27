@@ -23,10 +23,21 @@ export interface AppUser {
  * layout (servidor) y baja como propiedad: la barra es un componente de
  * cliente y no puede consultar la base.
  */
+/** El consumo del mes de una de las tres acciones de A-LexIA. */
+export interface MedidorDeAccion {
+  accion: 'Consultar' | 'Generar' | 'Evaluar';
+  usado: number;
+  /** `null` = sin límite; `0` = no incluido en el plan. */
+  tope: number | null;
+  unidad: string;
+  /** Una línea más, p. ej. los minutos de voz dentro de Consultar. */
+  detalle?: string;
+}
+
 export interface ResumenDePlan {
   etiqueta: string;
-  /** La cuota más cerca de agotarse. `null` si el plan no tiene límites. */
-  medidor: { usado: number; tope: number; unidad: string } | null;
+  /** Consultar, Generar y Evaluar, en ese orden. `null` si no se pudo leer. */
+  medidores: MedidorDeAccion[] | null;
   /** Fecha de renovación ya formateada, o `null` si no aplica. */
   renovacion: string | null;
 }

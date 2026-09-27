@@ -193,6 +193,11 @@ const config: Config = {
           '0%': { opacity: '0', transform: 'translate(-50%, -50%) scale(1.5)' },
           '100%': { opacity: '0.8', transform: 'translate(-50%, -50%) scale(0.55)' },
         },
+        // Las barras de sonido de la llamada (escuchando / respondiendo).
+        'barra-de-voz': {
+          '0%, 100%': { transform: 'scaleY(0.35)' },
+          '50%': { transform: 'scaleY(1)' },
+        },
         'companero-destello': {
           '0%, 100%': { opacity: '0', transform: 'scale(0.4) rotate(0deg)' },
           '45%': { opacity: '1', transform: 'scale(1) rotate(80deg)' },
@@ -205,6 +210,7 @@ const config: Config = {
         },
       },
       animation: {
+        'barra-de-voz': 'barra-de-voz 1s ease-in-out infinite',
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'fade-in': 'fade-in 0.4s ease-out forwards',

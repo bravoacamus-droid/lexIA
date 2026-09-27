@@ -13,6 +13,8 @@ import {
   Trash2,
   MessageSquarePlus,
   Search,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,6 +57,26 @@ export function ConversationSidebar({ initialConversations }: Props) {
   const [deleting, setDeleting] = useState<ConvoMini | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [busy, setBusy] = useState(false);
+  // Ocultar y desplegar el panel (César, 27/09/2026). La preferencia se
+  // recuerda en este navegador; si no se puede leer, arranca desplegado.
+  const [oculto, setOculto] = useState(false);
+  useEffect(() => {
+    try {
+      setOculto(localStorage.getItem('lexia.chat.panel') === 'oculto');
+    } catch {
+      /* sin almacenamiento: desplegado */
+    }
+  }, []);
+  function alternarPanel() {
+    setOculto((o) => {
+      try {
+        localStorage.setItem('lexia.chat.panel', o ? 'visible' : 'oculto');
+      } catch {
+        /* sin almacenamiento: no se recuerda */
+      }
+      return !o;
+    });
+  }
 
   useEffect(() => {
     setAll(initialConversations);
@@ -148,6 +170,40 @@ export function ConversationSidebar({ initialConversations }: Props) {
     }
   }
 
+  if (oculto) {
+    return (
+      <aside className="hidden w-14 shrink-0 flex-col items-center gap-2 border-r border-border bg-secondary/20 py-3 md:flex">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={alternarPanel}
+          aria-label="Desplegar conversaciones"
+          title="Desplegar conversaciones"
+        >
+          <PanelLeftOpen className="h-4.5 w-4.5" />
+        </Button>
+        <Button
+          size="icon"
+          onClick={createNew}
+          loading={busy}
+          aria-label="Nueva conversación"
+          title="Nueva conversación"
+        >
+          <MessageSquarePlus className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={alternarPanel}
+          aria-label="Buscar conversaciones"
+          title="Buscar conversaciones"
+        >
+          <Search className="h-4 w-4" />
+        </Button>
+      </aside>
+    );
+  }
+
   return (
     <>
       <aside className="hidden w-72 shrink-0 flex-col border-r border-border bg-secondary/20 md:flex">
@@ -156,12 +212,22 @@ export function ConversationSidebar({ initialConversations }: Props) {
             pantallas. */}
         <div className="flex items-center gap-2.5 border-b border-border px-3 py-3.5">
           <Isotipo alto={26} />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="truncate text-[14px] font-bold tracking-tight">Pregunta a A-LexIA</p>
             <p className="text-[10.5px] leading-tight text-muted-foreground">
               IA especializada en contrataciones públicas
             </p>
           </div>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={alternarPanel}
+            aria-label="Ocultar conversaciones"
+            title="Ocultar conversaciones"
+            className="shrink-0 text-muted-foreground"
+          >
+            <PanelLeftClose className="h-4 w-4" />
+          </Button>
         </div>
         <div className="space-y-2 border-b border-border p-3">
           <Button onClick={createNew} loading={busy} className="w-full justify-start">
