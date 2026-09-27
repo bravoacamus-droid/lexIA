@@ -263,7 +263,8 @@ export async function auditoriaDeCoherencia(
     const r = await pedirJSON<{ hallazgos?: Array<{ gravedad?: string; texto?: string }> }>(
       `Eres el auditor de calidad de documentos administrativos de A-LexIA. Revisa la COHERENCIA del documento. No corrijas el estilo.
 
-DIAGNÓSTICO DEL CASO: figura «${a.figura.nombre}» (${a.figura.corresponde ? 'corresponde' : 'NO corresponde'}); procedencia: ${TEXTO_PROCEDENCIA[a.procedencia.semaforo]}; competencia: ${a.competencia.organo}.
+DIAGNÓSTICO DEL CASO: figura «${a.figura.nombre}» (${a.figura.corresponde ? 'corresponde' : 'NO corresponde'}); semáforo de procedencia: ${TEXTO_PROCEDENCIA[a.procedencia.semaforo]} (${a.procedencia.razon}); competencia: ${a.competencia.organo}.
+El semáforo dice si procede y con qué nivel de riesgo: NO es la causal legal. Que el documento invoque una causal o un artículo no contradice el semáforo; sí lo contradice aprobar sin reservas lo que el semáforo da por no procedente.
 
 DOCUMENTO:
 """

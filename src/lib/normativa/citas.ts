@@ -93,8 +93,11 @@ const REGIMEN_DEROGADO: Array<[RegExp, string]> = [
   [
     // Sin el «(?<![-/])» esto marcaría el «Pronunciamiento N° 080-2025/OSCE-DGR»,
     // que es un documento real y se cita por su nombre. Lo que no vale es
-    // hablar del OSCE como si siguiera siendo el organismo de hoy.
-    /(?<![-/\w])OSCE\b/,
+    // hablar del OSCE como si siguiera siendo el organismo de hoy. Tampoco
+    // se marca cuando es el emisor de un documento de antes de 2025, en la
+    // misma frase: «Opinión N.° 097-2020/DTN de la Dirección Técnico
+    // Normativa del OSCE» es exacto (prueba en producción, 27/09/2026).
+    /(?<![-/\w])(?<!(?:Opini[óo]n|Pronunciamiento|Resoluci[óo]n|Directiva|Comunicado)\s+N[^;\n]{0,30}?-(?:19\d\d|20[01]\d|202[0-4])\b[^;\n]{0,120})OSCE\b/,
     'nombra al OSCE, sustituido por el OECE (Ley N° 32069, disposición vigésima tercera)',
   ],
 ];

@@ -86,6 +86,16 @@ const CASOS: Caso[] = [
     esperado: [],
   },
   {
+    nombre: 'el OSCE como emisor de una opinión de antes de 2025 es exacto',
+    texto: 'Conforme a la Opinión N.° 097-2020/DTN de la Dirección Técnico Normativa del OSCE, la ampliación procede.',
+    esperado: [],
+  },
+  {
+    nombre: 'pero el OSCE como organismo de hoy se sigue marcando',
+    texto: 'El OSCE supervisa hoy los procedimientos de selección.',
+    esperado: ['OSCE'],
+  },
+  {
     nombre: 'con un literal en medio sigue siendo remisión al documento (informes de penalidad de César)',
     texto: 'La penalidad está en la tabla del numeral 6.9, literal f) de los Términos de Referencia, y en el numeral 6.10 literal b) de las bases.',
     esperado: [],
