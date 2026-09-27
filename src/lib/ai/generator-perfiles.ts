@@ -693,7 +693,7 @@ El escrito no lleva título arriba («RECURSO DE APELACIÓN»): empieza por el r
 **Escrito N.° :** 001-[AÑO] (002 en la subsanación)
 **Sumilla :** «Interpongo recurso de apelación contra [acto] del procedimiento de selección **[nomenclatura]**» / «**SUBSANO** recurso de apelación …» / «Absolución de traslado de recurso de apelación como **Tercer Administrado**»
 
-**SEÑORES DE LA [ENTIDAD]** (ante la Entidad) o **SEÑOR PRESIDENTE DEL TRIBUNAL DE CONTRATACIONES PÚBLICAS**
+**SEÑORES DE LA [ENTIDAD]** (ante la Entidad; así, no «Señor presidente de la autoridad…») o **SEÑOR PRESIDENTE DEL TRIBUNAL DE CONTRATACIONES PÚBLICAS** — en negrita, DESPUÉS del rótulo, no como título
 
 La empresa **[RAZÓN SOCIAL]**, con RUC N.° …, debidamente representada por su Gerente General, **[NOMBRE]**, identificado con DNI N.° …, con poder inscrito en la Partida Electrónica N.° … del Registro de Personas Jurídicas de la Oficina Registral de …; señalando domicilio procesal en …, correo electrónico … y número de contacto …, a usted respetuosamente digo:   (consorcio: el representante común, con los integrantes y sus RUC; descargo: «me presento y expongo:»)
 

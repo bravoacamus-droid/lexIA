@@ -343,6 +343,9 @@ void (async () => {
 
   console.log('\nAuditoría del documento');
   comprobar('fechas largas y cortas', fechasDe('el 4 de junio de 2026 y el 15/06/2026').map((f) => f.iso).join() === '2026-06-04,2026-06-15');
+  // El patrón era «se?ptiembre»: leía «septiembre» y no «setiembre», que es
+  // como escribe las fechas el propio sistema (producción, 27/09/2026).
+  comprobar('«setiembre» y «septiembre»', fechasDe('el 10 de setiembre de 2026 y el 11 de septiembre de 2026').map((f) => f.iso).join() === '2026-09-10,2026-09-11');
   comprobar('montos en soles', montosDe("S/ 480,000.00 y S/ 1'410,000.00.").map((m) => m.n).join() === '480000,1410000');
   const texto = `El Contrato N.° 015-2026-MDVE/GAF, suscrito con SERVICIOS GENERALES ANDINOS S.A.C. con RUC N.° 20601234567, por S/ 480,000.00. La solicitud del 15 de junio de 2026. Plazo vencido el 2 de julio de 2026.
 También el Contrato N.° 099-2026-MDVE/GAF, el RUC 20999999999, S/ 12,345.00 y el 30 de febrero de 2025, al 37 %. Según el numeral 142.3 del artículo 142 del Reglamento y el artículo 999 del Reglamento.`;

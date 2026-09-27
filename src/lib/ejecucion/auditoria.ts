@@ -48,7 +48,7 @@ const MESES: Record<string, string> = {
 /** Todas las fechas de un texto, en AAAA-MM-DD, con cómo aparecían. */
 export function fechasDe(texto: string): Array<{ iso: string; tal: string }> {
   const out: Array<{ iso: string; tal: string }> = [];
-  const largas = /\b(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|se?ptiembre|octubre|noviembre|diciembre)\s+(?:de|del)\s+(\d{4})\b/gi;
+  const largas = /\b(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|sep?tiembre|octubre|noviembre|diciembre)\s+(?:de|del)\s+(\d{4})\b/gi;
   for (const m of texto.matchAll(largas)) {
     out.push({ iso: `${m[3]}-${MESES[m[2].toLowerCase()]}-${m[1].padStart(2, '0')}`, tal: m[0] });
   }

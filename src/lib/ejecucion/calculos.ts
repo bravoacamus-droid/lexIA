@@ -218,7 +218,9 @@ export function calcular(i: Insumos): Calculo[] {
                 ? 'literal a) del numeral 199.1 del artículo 199 del Reglamento'
                 : 'numeral 142.3 del artículo 142 del Reglamento',
           impide: !aTiempo && !enProrroga,
-          valores: [fechaLarga(fin), fechaLarga(limite), fechaLarga(conProrroga), fechaLarga(sol)],
+          // El día siguiente es desde donde corre el plazo: el documento lo
+          // cita («computado desde el 5 de junio»).
+          valores: [fechaLarga(fin), fechaLarga(sumarDiasCalendario(fin, 1)), fechaLarga(limite), fechaLarga(conProrroga), fechaLarga(sol)],
         });
       }
       if (sol && !i.hayPronunciamiento) {
@@ -239,7 +241,7 @@ export function calcular(i: Insumos): Calculo[] {
               : i.tipo === 'consultoria_obra'
                 ? 'literal b) del numeral 199.1 del artículo 199 del Reglamento'
                 : 'numeral 142.5 del artículo 142 del Reglamento',
-          valores: [fechaLarga(vence), fechaLarga(sol)],
+          valores: [fechaLarga(vence), fechaLarga(sol), fechaLarga(sumarDiasCalendario(sol, 1))],
         });
       }
       // El plazo original, la ampliación y el nuevo término, como los
@@ -249,7 +251,10 @@ export function calcular(i: Insumos): Calculo[] {
       // confundió la fecha de término original con la nueva.
       const diasAmp = aNumero(R.dias_ampliacion);
       const inicio = fechaISO(i.ficha.fecha_inicio?.valor);
-      const terminoOriginal = fechaISO(i.ficha.fecha_fin?.valor) ?? (inicio && plazo ? sumarDiasCalendario(inicio, plazo - 1) : null);
+      // Del inicio y el plazo del contrato: el «fin del plazo vigente» de la
+      // ficha puede venir de un informe que ya cuenta la ampliación (en
+      // producción, 27/09/2026, se le sumaron los días dos veces).
+      const terminoOriginal = inicio && plazo ? sumarDiasCalendario(inicio, plazo - 1) : fechaISO(i.ficha.fecha_fin?.valor);
       if (diasAmp && diasAmp > 0 && terminoOriginal) {
         const nuevo = sumarDiasCalendario(terminoOriginal, Math.round(diasAmp));
         out.push({

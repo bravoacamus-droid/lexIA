@@ -227,6 +227,16 @@ async function xmlDelWord(b: BorradorDeDocumento, perfil: Perfil): Promise<strin
   }).find((x) => x.concepto === 'Nuevo término del plazo');
   comprobar('180 días desde el 11/02 terminan el 9/08; con 16 más, el 25 de agosto', amp?.resultado === 'Hasta el 25 de agosto de 2026' && !!amp.detalle.includes('9 de agosto de 2026'), amp);
   comprobar('y el plazo total vigente es de 196 días', !!amp?.detalle.includes('196 días calendario'), amp?.detalle);
+  const ampDoble = calcular({
+    actuacion: 'ampliacion_plazo',
+    tipo: 'servicios',
+    sistemaEntrega: null,
+    // El «fin vigente» salió de un informe que ya contaba la ampliación.
+    ficha: { fecha_inicio: { valor: '2026-02-11' }, plazo_dias: { valor: '180' }, fecha_fin: { valor: '2026-08-25' } },
+    respuestas: { dias_ampliacion: '16' },
+    hoy: '2026-09-27',
+  }).find((x) => x.concepto === 'Nuevo término del plazo');
+  comprobar('no suma la ampliación dos veces cuando el fin vigente ya la incluye', ampDoble?.resultado === 'Hasta el 25 de agosto de 2026', ampDoble);
 
   console.log('\nApartados según la actuación');
   comprobar('penalidad: antecedentes, análisis y conclusión', apartadosDe('informe_dec', 'penalidad').join('|') === 'ANTECEDENTES|ANÁLISIS|CONCLUSIÓN');
@@ -284,6 +294,21 @@ async function xmlDelWord(b: BorradorDeDocumento, perfil: Perfil): Promise<strin
   );
   comprobar('el escrito no lleva el título que el modelo pone arriba', esc3[0]?.clase === 'rotulo', esc3);
   comprobar('el rótulo en mayúsculas también se reconoce', esc3.filter((p) => p.clase === 'rotulo').length === 3, esc3);
+  // Producción (27/09): el destinatario venía como «# SEÑOR…» y el Word lo
+  // centraba arriba de todo, antes del rótulo.
+  for (const [cual, md] of [
+    ['después del rótulo', '**Expediente N.° :**\n**Escrito N.° :** 001-2026\n**Sumilla :** Interpongo.\n\n---\n\n# SEÑORES DE LA MUNICIPALIDAD PROVINCIAL DE EL COLLAO\n\nLa empresa **X**, a usted respetuosamente digo:'],
+    ['antes del rótulo', '# SEÑORES DE LA MUNICIPALIDAD PROVINCIAL DE EL COLLAO\n\n**Expediente N.° :**\n**Escrito N.° :** 001-2026\n**Sumilla :** Interpongo.\n\nLa empresa **X**, a usted respetuosamente digo:'],
+  ] as const) {
+    const pz = piezasDelChat(md, 'postor');
+    const iDest = pz.findIndex((p) => p.clase === 'parrafo' && /SEÑORES DE LA MUNICIPALIDAD/.test(p.texto));
+    const iUltRotulo = pz.map((p) => p.clase).lastIndexOf('rotulo');
+    comprobar(
+      `destinatario ${cual}: párrafo en negrita, después del rótulo y antes del recurrente, no título centrado`,
+      iDest > iUltRotulo && !pz.some((p) => p.clase === 'titulo' && p.rol) && pz[iDest + 1]?.clase === 'parrafo' && /digo:$/.test((pz[iDest + 1] as { texto: string }).texto),
+      pz,
+    );
+  }
   comprobar(
     'otro perfil conserva su título',
     piezasDelChat('# INFORME N° 1\n\n**PARA:** x', 'dec')[0]?.clase === 'titulo',

@@ -86,13 +86,39 @@ export function piezasDelChat(markdown: string, perfil: string): Pieza[] {
   const salida: Pieza[] = [];
   let enRotulo = false;
 
+  // El destinatario del escrito —«SEÑORES DE LA MUNICIPALIDAD…», «SEÑOR
+  // PRESIDENTE DEL TRIBUNAL…»— va después del rótulo, a la izquierda y en
+  // negrita. El modelo a veces lo pone arriba como título, y el Word lo
+  // centraba antes del rótulo (prueba en producción, 27/09/2026).
+  const esDestinatario = (x: Pieza) =>
+    (x.clase === 'titulo' && /^SEÑOR/i.test(x.texto)) || (x.clase === 'parrafo' && /^\*\*SEÑOR[^*]*\*\*:?$/i.test(x.texto.trim()));
+  const textoDe = (x: Pieza) => (x.clase === 'titulo' || x.clase === 'parrafo' ? x.texto.replace(/^\*\*|\*\*:?$/g, '').trim() : '');
+  let destinatario: string | null = null;
+  if (escrito) {
+    const primerRotulo = entrada.findIndex((x) => x.clase === 'parrafo' && ROTULO_ESCRITO.test(x.texto));
+    const d = entrada.findIndex(esDestinatario);
+    if (d >= 0 && primerRotulo > d) {
+      destinatario = textoDe(entrada[d]);
+      entrada.splice(d, 1);
+    }
+  }
+
   const cerrarRotulo = () => {
     if (enRotulo && !escrito) salida.push({ clase: 'raya' });
+    if (enRotulo && escrito && destinatario) {
+      salida.push({ clase: 'parrafo', texto: `**${destinatario}**`, alineacion: 'izquierda', margen: true });
+      destinatario = null;
+    }
     enRotulo = false;
   };
 
   for (let i = 0; i < entrada.length; i++) {
     const p = entrada[i];
+    if (escrito && p.clase === 'titulo' && esDestinatario(p)) {
+      cerrarRotulo();
+      salida.push({ clase: 'parrafo', texto: `**${textoDe(p)}**`, alineacion: 'izquierda', margen: true });
+      continue;
+    }
     if (p.clase === 'parrafo') {
       const e = escrito ? p.texto.match(ROTULO_ESCRITO) : null;
       if (e) {
