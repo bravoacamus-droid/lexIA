@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Loader2, Paperclip, SendHorizonal, X, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -36,6 +36,16 @@ export function Compositor({
   const [enviando, setEnviando] = useState(false);
   const entrada = useRef<HTMLInputElement>(null);
   const area = useRef<HTMLTextAreaElement>(null);
+
+  // Con un mensaje ya armado, el cursor va al final para seguir escribiendo.
+  useEffect(() => {
+    const a = area.current;
+    if (!autoFocus || !a) return;
+    a.focus();
+    a.setSelectionRange(a.value.length, a.value.length);
+    // Solo al montar: si cambia el texto armado, la caja se vuelve a montar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function cambiarTexto(t: string) {
     setTexto(t);

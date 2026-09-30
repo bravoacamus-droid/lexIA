@@ -90,6 +90,8 @@ export interface TicketDetalle extends TicketResumen {
   contexto: Record<string, unknown>;
   nota_interna?: string | null;
   mensajes: MensajeDeTicket[];
+  /** Quién la marcó resuelta (lo anota la base). */
+  resuelto_por: 'usuario' | 'equipo' | null;
   usuario?: UsuarioDeSoporte;
   otros?: Array<Pick<TicketResumen, 'id' | 'numero' | 'asunto' | 'estado' | 'ultimo_mensaje_at'>>;
 }

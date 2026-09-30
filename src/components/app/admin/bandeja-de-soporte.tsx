@@ -448,6 +448,12 @@ function Conversacion({ id, alCerrar }: { id: string; alCerrar: () => void }) {
 
         <div className="min-h-0 flex-1 overflow-y-auto bg-secondary/20">
           <Hilo mensajes={ticket.mensajes} vistaDeEquipo nombreDelUsuario={u?.nombre || u?.email} />
+          {ticket.estado === 'resuelto' && ticket.resuelto_por && (
+            <p className="mb-2 flex items-center justify-center gap-1.5 text-[12px] font-medium text-emerald-700 dark:text-emerald-400">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              {ticket.resuelto_por === 'usuario' ? 'El usuario la marcó como resuelta.' : 'El equipo la marcó como resuelta.'}
+            </p>
+          )}
           {ticket.estado === 'resuelto' && ticket.calificacion && (
             <p className="mb-4 flex items-center justify-center gap-1 text-[12px] text-muted-foreground">
               Calificó la atención:

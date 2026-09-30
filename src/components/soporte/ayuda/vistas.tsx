@@ -144,7 +144,12 @@ export function VistaInicio({
                 </button>
               </div>
             ) : (
-              resultados.map((p) => <Pregunta key={p.id} p={p} ir={ir} cerrar={cerrar} />)
+              resultados.map((p) => <Pregunta
+                  key={p.id}
+                  p={p}
+                  alQuererEscribir={(texto, categoria) => ir({ tipo: 'nueva', categoria, texto })}
+                  cerrar={cerrar}
+                />)
             )}
           </div>
         ) : (
@@ -224,7 +229,12 @@ export function VistaInicio({
                     <p className="mb-1 px-1 text-[12px] font-semibold text-foreground/80">{tema}</p>
                     <div className="space-y-1.5">
                       {PREGUNTAS_FRECUENTES.filter((p) => p.tema === tema).map((p) => (
-                        <Pregunta key={p.id} p={p} ir={ir} cerrar={cerrar} />
+                        <Pregunta
+                  key={p.id}
+                  p={p}
+                  alQuererEscribir={(texto, categoria) => ir({ tipo: 'nueva', categoria, texto })}
+                  cerrar={cerrar}
+                />
                       ))}
                     </div>
                   </div>
@@ -257,14 +267,26 @@ export function VistaInicio({
 }
 
 /** Una pregunta frecuente que se despliega, con «¿Te sirvió?». */
+/**
+ * El mensaje que se arma cuando una pregunta frecuente no bastó: dice
+ * cuál se leyó, para que el equipo no la repita, y deja al usuario
+ * completando la frase.
+ */
+function mensajeSobre(p: PreguntaFrecuente): string {
+  return `Leí la pregunta frecuente «${p.pregunta}», pero no resuelve mi caso. ${
+    p.categoria === 'error' ? 'Lo que me pasa es: ' : 'Mi consulta es: '
+  }`;
+}
+
 function Pregunta({
   p,
-  ir,
+  alQuererEscribir,
   cerrar,
   abiertaAlInicio = false,
 }: {
   p: PreguntaFrecuente;
-  ir: (v: VistaDelWidget) => void;
+  /** «No, quiero escribir al equipo»: recibe el mensaje ya armado. */
+  alQuererEscribir: (texto: string, categoria: CategoriaDeTicket) => void;
   cerrar: () => void;
   abiertaAlInicio?: boolean;
 }) {
@@ -312,7 +334,7 @@ function Pregunta({
                 </button>
                 <button
                   type="button"
-                  onClick={() => ir({ tipo: 'nueva', categoria: p.categoria, texto: `Sobre «${p.pregunta}»: ` })}
+                  onClick={() => alQuererEscribir(mensajeSobre(p), p.categoria)}
                   className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 font-medium hover:border-brand-400 hover:text-brand-700"
                 >
                   <MessagesSquare className="h-3 w-3" /> No, quiero escribir al equipo
@@ -414,6 +436,10 @@ export function VistaNueva({
   const [texto, setTexto] = useState(textoInicial || '');
   const [sugeridas, setSugeridas] = useState<PreguntaFrecuente[]>([]);
   const [abierta, setAbierta] = useState<string | null>(null);
+  // El texto con que arranca la caja de escribir. Cambiarlo (con `n`)
+  // vuelve a montarla con el mensaje armado desde una pregunta frecuente.
+  const [semilla, setSemilla] = useState({ texto: textoInicial || '', n: 0 });
+  const [preparado, setPreparado] = useState(!!textoInicial);
 
   // Las preguntas de esta categoría, primero: quizá la respuesta ya está escrita.
   const propias = useMemo(
@@ -489,11 +515,20 @@ export function VistaNueva({
           </BurbujaDeAlexia>
         )}
 
+        {preparado && (
+          <BurbujaDeAlexia>Te dejé el mensaje listo abajo: complétalo con lo que pasa y envíalo.</BurbujaDeAlexia>
+        )}
+
         {abierta && (
           <Pregunta
             key={abierta}
             p={PREGUNTAS_FRECUENTES.find((p) => p.id === abierta)!}
-            ir={() => setAbierta(null)}
+            alQuererEscribir={(texto) => {
+              setAbierta(null);
+              setPreparado(true);
+              setSemilla((s) => ({ texto, n: s.n + 1 }));
+              setTexto(texto);
+            }}
             cerrar={cerrar}
             abiertaAlInicio
           />
@@ -519,8 +554,9 @@ export function VistaNueva({
       )}
 
       <Compositor
+        key={semilla.n}
         alEnviar={enviar}
-        valorInicial={textoInicial}
+        valorInicial={semilla.texto}
         alCambiar={setTexto}
         autoFocus
         placeholder={
@@ -545,6 +581,7 @@ export function VistaNueva({
 
 export function VistaConversacion({ id, usuario }: { id: string; usuario: UsuarioDelWidget }) {
   const queryClient = useQueryClient();
+  const [confirmando, setConfirmando] = useState(false);
   const { data: ticket, isLoading, isError } = useQuery({
     queryKey: ['soporte', 'ticket', id],
     queryFn: async (): Promise<TicketDetalle> => {
@@ -596,17 +633,59 @@ export function VistaConversacion({ id, usuario }: { id: string; usuario: Usuari
   }
 
   const resuelto = ticket.estado === 'resuelto';
+  const hayRespuesta = ticket.mensajes.some((m) => m.de_equipo);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-start gap-2 border-b border-border px-4 py-2.5">
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[13.5px] font-semibold">{ticket.asunto}</p>
-          <p className="text-[11.5px] text-muted-foreground">
-            #{ticket.numero} · {CATEGORIAS[ticket.categoria].etiqueta}
-          </p>
+      <div className="border-b border-border px-4 py-2.5">
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13.5px] font-semibold">{ticket.asunto}</p>
+            <p className="text-[11.5px] text-muted-foreground">
+              #{ticket.numero} · {CATEGORIAS[ticket.categoria].etiqueta}
+            </p>
+          </div>
+          <EstadoChip estado={ticket.estado} className="mt-0.5" />
         </div>
-        <EstadoChip estado={ticket.estado} className="mt-0.5" />
+        {/* Resolver es una decisión del usuario, no un estado: antes era una
+            barra «Ya se resolvió…» pegada a la caja de escribir, que aparecía
+            justo al llegar la respuesta y se leía como si ya estuviera
+            resuelta (ticket #26, 30/09/2026). Ahora pide confirmación. */}
+        {!resuelto && hayRespuesta && !confirmando && (
+          <button
+            type="button"
+            onClick={() => setConfirmando(true)}
+            className="mt-1 inline-flex items-center gap-1 text-[11.5px] font-medium text-muted-foreground underline-offset-2 hover:text-emerald-700 hover:underline"
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" /> Marcar como resuelta
+          </button>
+        )}
+        {!resuelto && confirmando && (
+          <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 p-2.5 dark:border-emerald-900 dark:bg-emerald-950/40">
+            <p className="text-[12px] leading-snug text-emerald-900 dark:text-emerald-200">
+              ¿Tu consulta quedó resuelta? La conversación se cerrará; si necesitas algo más, basta con volver a escribir.
+            </p>
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmando(false);
+                  void cambiar({ estado: 'resuelto' });
+                }}
+                className="rounded-md bg-emerald-600 px-2.5 py-1 text-[12px] font-semibold text-white hover:bg-emerald-700"
+              >
+                Sí, está resuelta
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmando(false)}
+                className="rounded-md border border-border bg-background px-2.5 py-1 text-[12px] font-medium hover:bg-secondary"
+              >
+                Todavía no
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -622,6 +701,11 @@ export function VistaConversacion({ id, usuario }: { id: string; usuario: Usuari
             <p className="flex items-center justify-center gap-1.5 text-[13px] font-semibold text-emerald-800 dark:text-emerald-300">
               <CheckCircle2 className="h-4 w-4" /> Conversación resuelta
             </p>
+            {ticket.resuelto_por && (
+              <p className="text-[11.5px] text-emerald-800/70 dark:text-emerald-300/70">
+                {ticket.resuelto_por === 'usuario' ? 'La marcaste como resuelta.' : 'La marcó como resuelta el equipo de A-LexIA.'}
+              </p>
+            )}
             {ticket.calificacion ? (
               <p className="mt-1 text-[12px] text-emerald-800/80 dark:text-emerald-300/80">
                 Gracias por calificar la atención con {ticket.calificacion} de 5.
@@ -635,16 +719,6 @@ export function VistaConversacion({ id, usuario }: { id: string; usuario: Usuari
           </div>
         )}
       </div>
-
-      {!resuelto && ticket.mensajes.some((m) => m.de_equipo) && (
-        <button
-          type="button"
-          onClick={() => void cambiar({ estado: 'resuelto' })}
-          className="flex items-center justify-center gap-1.5 border-t border-border bg-secondary/30 py-2 text-[12px] font-medium text-muted-foreground hover:text-emerald-700"
-        >
-          <CheckCircle2 className="h-3.5 w-3.5" /> Ya se resolvió, marcar como resuelta
-        </button>
-      )}
 
       <Compositor
         alEnviar={enviar}

@@ -31,7 +31,7 @@ export async function esAdmin(supabase: SupabaseClient, userId: string): Promise
 }
 
 export const COLUMNAS_DE_TICKET =
-  'id, numero, user_id, asunto, categoria, prioridad, estado, ultimo_mensaje, ultimo_mensaje_at, created_at, iniciado_por_equipo, calificacion, leido_usuario_at, leido_equipo_at, pagina, contexto, nota_interna';
+  'id, numero, user_id, asunto, categoria, prioridad, estado, ultimo_mensaje, ultimo_mensaje_at, created_at, iniciado_por_equipo, calificacion, leido_usuario_at, leido_equipo_at, pagina, contexto, nota_interna, resuelto_por';
 
 export interface FilaDeTicket {
   id: string;
@@ -51,6 +51,7 @@ export interface FilaDeTicket {
   pagina: string | null;
   contexto: Record<string, unknown> | null;
   nota_interna: string | null;
+  resuelto_por: string | null;
 }
 
 /**
@@ -122,6 +123,7 @@ export async function leerTicket(
     pagina: t.pagina,
     contexto: t.contexto || {},
     mensajes,
+    resuelto_por: t.estado !== 'resuelto' || !t.resuelto_por ? null : t.resuelto_por === t.user_id ? 'usuario' : 'equipo',
   };
 
   if (vistaDeEquipo) {
