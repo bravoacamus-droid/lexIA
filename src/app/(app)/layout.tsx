@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { AppShell, type ResumenDePlan } from '@/components/app/app-shell';
 import { SurveyPromptModal } from '@/components/app/surveys/survey-prompt-modal';
+import { WidgetDeAyuda } from '@/components/soporte/ayuda/widget-de-ayuda';
 import { getMonthlyUsage } from '@/lib/billing/feature-gate';
 import { getTier, type FeatureKey } from '@/lib/billing/tiers';
 import type { SubscriptionTier } from '@/lib/auth/session';
@@ -110,6 +111,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     >
       {children}
       <SurveyPromptModal />
+      <WidgetDeAyuda
+        usuario={{
+          id: user.id,
+          nombre: profile?.full_name || null,
+          email: user.email || '',
+          perfil: (profile?.profile_role as 'entity' | 'provider' | 'consultant' | null) || null,
+          esAdmin: Boolean(profile?.is_admin),
+        }}
+      />
     </AppShell>
   );
 }

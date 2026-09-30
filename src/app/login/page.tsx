@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { LoginCard } from '@/components/auth/login-card';
 import { LogoMark } from '@/components/brand';
 import Link from 'next/link';
+import { BotonWhatsApp } from '@/components/soporte/boton-whatsapp';
 import { ArrowLeft } from 'lucide-react';
 
 export const metadata = {
@@ -45,6 +46,10 @@ export default function LoginPage() {
           </Link>
         </p>
       </footer>
+      <BotonWhatsApp
+        mensaje="Hola, quisiera ayuda para ingresar a A-LexIA."
+        invitacion="¿Problemas para ingresar o quieres una cuenta? Escríbenos por WhatsApp."
+      />
     </div>
   );
 }

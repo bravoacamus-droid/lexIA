@@ -13,7 +13,11 @@ import {
   Bell,
   Wrench,
   ChevronDown,
+  LifeBuoy,
+  Inbox,
 } from 'lucide-react';
+import { abrirAyuda } from '@/components/soporte/ayuda/widget-de-ayuda';
+import { BandejaDelEquipo } from '@/components/soporte/bandeja-del-equipo';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -116,6 +120,8 @@ export function AppTopbar({ user, onOpenPalette, onOpenMobileSidebar }: Props) {
           )}
         </Button>
 
+        {user.is_admin && <BandejaDelEquipo />}
+
         <Button variant="ghost" size="icon-sm" asChild aria-label="Avisos">
           <Link href="/cuenta/notificaciones">
             <Bell className="h-4 w-4" />
@@ -197,6 +203,10 @@ export function AppTopbar({ user, onOpenPalette, onOpenMobileSidebar }: Props) {
                 Seguridad
               </Link>
             </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => abrirAyuda()}>
+              <LifeBuoy className="h-4 w-4" />
+              Ayuda y soporte
+            </DropdownMenuItem>
             {user.is_admin && (
               <>
                 <DropdownMenuSeparator />
@@ -204,6 +214,12 @@ export function AppTopbar({ user, onOpenPalette, onOpenMobileSidebar }: Props) {
                   <Link href="/admin">
                     <Wrench className="h-4 w-4" />
                     Panel administrador
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/admin/soporte">
+                    <Inbox className="h-4 w-4" />
+                    Bandeja de soporte
                   </Link>
                 </DropdownMenuItem>
               </>

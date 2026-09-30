@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LogoMark } from '@/components/brand';
+import { BotonWhatsApp } from '@/components/soporte/boton-whatsapp';
 import { TIERS, type TierDefinition } from '@/lib/billing/tiers';
 import {
   Accordion,
@@ -248,6 +249,10 @@ export default function PricingPage() {
           </p>
         </div>
       </footer>
+      <BotonWhatsApp
+        mensaje="Hola, estoy viendo los planes de A-LexIA y quisiera información para contratar."
+        invitacion="¿Dudas sobre qué plan te conviene? Escríbenos por WhatsApp."
+      />
     </div>
   );
 }

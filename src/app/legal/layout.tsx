@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { LogoMark } from '@/components/brand';
 import { ArrowLeft } from 'lucide-react';
+import { BotonWhatsApp } from '@/components/soporte/boton-whatsapp';
 
 export const metadata = { title: 'Legal · A-LexIA' };
 
@@ -48,6 +49,7 @@ export default function LegalLayout({
           <p>© {new Date().getFullYear()} Promptive · A-LexIA Contrataciones</p>
         </div>
       </footer>
+      <BotonWhatsApp mensaje="Hola, tengo una consulta sobre los términos o la privacidad de A-LexIA." />
     </div>
   );
 }

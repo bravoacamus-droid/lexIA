@@ -253,3 +253,38 @@
   0%, 100% { outline: 2px solid transparent; }
   50% { outline: 2px solid hsl(45 90% 50% / 0.8); outline-offset: 2px; }
 }
+
+/* ── Botones flotantes de atención ──────────────────────────────────
+   WhatsApp en las páginas públicas y «Ayuda» dentro de la plataforma
+   (César, 29/09/2026). Entran con un rebote, respiran con dos ondas y
+   cada tanto el ícono se mueve para llamar la atención sin molestar.
+   Con «reducir movimiento» activado en el sistema, se quedan quietos. */
+@keyframes flotante-entra {
+  0% { opacity: 0; transform: translateY(24px) scale(0.6); }
+  60% { opacity: 1; transform: translateY(-6px) scale(1.06); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes flotante-onda {
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+@keyframes flotante-saluda {
+  0%, 84%, 100% { transform: rotate(0deg) scale(1); }
+  87% { transform: rotate(-14deg) scale(1.08); }
+  90% { transform: rotate(12deg) scale(1.08); }
+  93% { transform: rotate(-8deg) scale(1.04); }
+  96% { transform: rotate(5deg) scale(1.02); }
+}
+@keyframes flotante-globo {
+  0% { opacity: 0; transform: translateY(8px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.flotante-entra { animation: flotante-entra 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.flotante-onda { animation: flotante-onda 2.4s cubic-bezier(0, 0, 0.2, 1) infinite; }
+.flotante-onda-2 { animation: flotante-onda 2.4s cubic-bezier(0, 0, 0.2, 1) 1.2s infinite; }
+.flotante-saluda { animation: flotante-saluda 6s ease-in-out 2s infinite; transform-origin: 50% 60%; }
+.flotante-globo { animation: flotante-globo 0.35s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .flotante-entra, .flotante-onda, .flotante-onda-2, .flotante-saluda, .flotante-globo { animation: none; }
+  .flotante-onda, .flotante-onda-2 { display: none; }
+}

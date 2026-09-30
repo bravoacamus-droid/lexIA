@@ -14,6 +14,7 @@ import {
   Wrench,
   Lock,
   PhoneCall,
+  Inbox,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ROLE_LABELS } from '@/lib/navigation/menu-by-role';
@@ -77,6 +78,7 @@ export default async function AdminPage() {
     usageRes,
     surveysRes,
     activeUsersRes,
+    soporteRes,
   ] = await Promise.all([
     admin
       .from('profiles')
@@ -112,6 +114,11 @@ export default async function AdminPage() {
       .select('conversation_id, created_at', { count: 'exact' })
       .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
       .limit(1),
+    admin
+      .from('soporte_tickets')
+      .select('id', { count: 'exact', head: true })
+      .eq('estado', 'abierto')
+      .neq('user_id', user.id),
   ]);
 
   type Profile = {
@@ -398,6 +405,29 @@ export default async function AdminPage() {
           Herramientas de mantenimiento
         </h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <Link
+            href="/admin/soporte"
+            className="group rounded-xl border border-border bg-card p-5 hover:border-brand-400 hover:shadow-md hover:-translate-y-0.5 transition-all"
+          >
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-400 mb-3">
+              <Inbox className="h-4 w-4" />
+            </span>
+            <h3 className="font-semibold text-base mb-1">Bandeja de soporte</h3>
+            <p className="text-xs text-muted-foreground">
+              Conversaciones del botón «Ayuda»: errores, consultas y sugerencias de los usuarios.
+            </p>
+            <p
+              className={
+                (soporteRes.count || 0) > 0
+                  ? 'mt-2 text-[11.5px] font-semibold text-amber-700 dark:text-amber-400'
+                  : 'mt-2 text-[11.5px] font-semibold text-emerald-700 dark:text-emerald-400'
+              }
+            >
+              {(soporteRes.count || 0) > 0
+                ? `● ${soporteRes.count} por responder`
+                : '● Todo al día'}
+            </p>
+          </Link>
           <Link
             href="/admin/encuestas"
             className="group rounded-xl border border-border bg-card p-5 hover:border-brand-400 hover:shadow-md hover:-translate-y-0.5 transition-all"
