@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { embedOne } from '@/lib/ai/embeddings';
 import type { NormativeDocType } from '@/lib/supabase/types';
 import { buscarConTodasLasPalabras } from '@/lib/busqueda/todas-las-palabras';
+import { actosDe, idsOcultos } from '@/lib/normativa/ocultos';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -34,6 +35,10 @@ const requestSchema = z.object({
       'lineamiento',
       'codigo_etica',
       'resolucion',
+      'bases_estandar',
+      'directiva_entidad',
+      'preguntas_frecuentes',
+      'nota_tecnica',
     ])
     .nullable()
     .optional(),
@@ -120,16 +125,11 @@ export async function POST(req: Request) {
 
   // Sin query → listar docs (paginable) con filtros + conteo total para saber
   // cuándo terminar el infinite scroll.
-  // Jurisprudencia: se lista de lo más reciente a lo más antiguo. El
-  // resto conserva el correlativo ascendente acordado con César.
-  const esJurisprudencia =
-    type === 'resolucion_tce' || type === 'pronunciamiento' || type === 'acuerdo_sala_plena';
-
   if (!trimmed && !isMultiTag) {
     const base = supabase
       .from('normative_documents')
       .select(
-        'id, type, number, title, summary, date, source_url, applicable_law, ai_summary, metadata',
+        'id, type, number, title, summary, date, source_url, applicable_law, ai_summary, metadata, acto_clave',
         {
           count: 'exact',
         },
@@ -158,19 +158,17 @@ export async function POST(req: Request) {
       // tipos de ancho fijo no se notaba; las resoluciones del Tribunal
       // mezclan 4 y 5 dígitos. Ver migración 0037.
       //
-      // SENTIDO según el tipo. El correlativo ascendente que pidió César
-      // funciona como catálogo en Directivas u Opiniones, que son decenas
-      // al año. En jurisprudencia no: con 15,399 resoluciones, lo último
-      // que resolvió el Tribunal —que es lo que se consulta— quedaba en
-      // la última página. Ahí se ordena de lo más reciente a lo más
-      // antiguo.
-      .order('correlativo_num', {
-        ascending: !esJurisprudencia,
-        nullsFirst: false,
-      })
+      // SENTIDO: de lo más reciente a lo más antiguo en todos los tipos.
+      // El 01/08/2026 César pidió correlativo ascendente (catálogo); el
+      // 30/09/2026 lo corrigió: «en la primera fila, la opinión que se
+      // debe ver es la última que fue publicada… esta misma observación
+      // va para todos». Antes solo la jurisprudencia iba descendente.
+      .order('correlativo_num', { ascending: false, nullsFirst: false })
       .order('date', { ascending: false, nullsFirst: false });
 
     q = q.range(offset, offset + limit - 1);
+    // Lo derogado, vencido o retirado no se lista (ver lib/normativa/ocultos).
+    q = q.eq('oculto', false);
     if (type) q = q.eq('type', type);
     if (entidad) q = q.eq('metadata->>entidad', entidad);
     if (dateFrom) q = q.gte('date', dateFrom);
@@ -182,9 +180,11 @@ export async function POST(req: Request) {
     if (law) q = q.contains('applicable_law', [law]);
     const { data, count, error } = await q;
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    const actos = await actosDe(supabase, (data || []).map((d) => d.acto_clave as string | null));
     return NextResponse.json({
       mode: 'browse',
       documents: data || [],
+      actos,
       results: [],
       total: count ?? null,
       offset,
@@ -218,10 +218,11 @@ export async function POST(req: Request) {
         Math.min(limit, 50),
         offset,
       );
+      const ocultos = await idsOcultos(supabase);
       return NextResponse.json({
         mode: 'search',
         modo: 'todas',
-        results: resultados,
+        results: resultados.filter((r) => !ocultos.has(r.document_id)),
         total,
         offset,
         hasMore: offset + resultados.length < total,
@@ -372,7 +373,9 @@ export async function POST(req: Request) {
   // Bonus multi-tag: documentos que matchean N queries reciben score
   // ponderado por N. Asegura que un doc con todos los tags suba sobre
   // uno con un solo tag aunque la similitud individual sea menor.
+  const ocultos = await idsOcultos(supabase);
   const results = Array.from(byDoc.values())
+    .filter((r) => !ocultos.has(r.document_id))
     .map((r) => ({
       ...r,
       matchedCount: r.matchedQueries.size,

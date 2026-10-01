@@ -162,6 +162,14 @@ async function handleRun(req: Request, body: unknown): Promise<NextResponse> {
     }
   }
 
+  // Lo que perdió vigencia (actos derogados o vencidos) sale de la
+  // biblioteca y del chat; lo que la recuperó, vuelve. Ver migración 0081.
+  {
+    const { data: vigencias, error: errVig } = await admin.rpc('actualizar_vigencias');
+    if (errVig) console.error('[scraping] no se pudieron actualizar las vigencias:', errVig.message);
+    else console.log('[scraping] vigencias', vigencias);
+  }
+
   // Candado: dos corridas a la vez (la del cron y una manual) procesan
   // los mismos enlaces y duplican trabajo.
   const { data: enCurso } = await admin.from('scraping_runs').select('id').eq('status', 'running').limit(1);

@@ -52,6 +52,8 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
 interface NormaPendiente {
   /** El PDF en gob.pe. */
   url: string;
+  /** Un PDF ya descargado (p. ej. del MEF, que bloquea las descargas automáticas). */
+  archivo?: string;
   /** La página oficial de la norma; si falta, se usa `url`. */
   fuente?: string;
   tipo: NormativeDocType;
@@ -121,9 +123,14 @@ async function ingestar(n: NormaPendiente): Promise<string> {
     .maybeSingle();
   if (ya) return 'ya estaba';
 
-  const res = await fetch(n.url, { headers: { 'User-Agent': UA } });
-  if (!res.ok) return `no se pudo descargar (HTTP ${res.status})`;
-  const buffer = Buffer.from(await res.arrayBuffer());
+  let buffer: Buffer;
+  if (n.archivo) {
+    buffer = readFileSync(join(process.cwd(), n.archivo));
+  } else {
+    const res = await fetch(n.url, { headers: { 'User-Agent': UA } });
+    if (!res.ok) return `no se pudo descargar (HTTP ${res.status})`;
+    buffer = Buffer.from(await res.arrayBuffer());
+  }
 
   const { texto: crudo, paginas } = await extraerPdf(buffer);
   // Los nulos y los reemplazos rompen el TEXT de Postgres.
@@ -176,7 +183,7 @@ async function ingestar(n: NormaPendiente): Promise<string> {
   // De 25 en 25: una directiva larga son setenta trozos con su vector de
   // 1024 dimensiones cada uno, y en una sola sentencia Postgres corta por
   // tiempo de espera y deja el documento sin nada.
-  const POR_TANDA = 25;
+  const POR_TANDA = Number(process.env.POR_TANDA || 25);
   for (let i = 0; i < filas.length; i += POR_TANDA) {
     const { error: errTrozos } = await supabase
       .from('normative_chunks')
@@ -194,7 +201,10 @@ async function ingestar(n: NormaPendiente): Promise<string> {
 
 async function main() {
   const manifiesto = JSON.parse(
-    readFileSync(join(process.cwd(), 'scripts', 'normas-pendientes.json'), 'utf8'),
+    readFileSync(
+      join(process.cwd(), process.argv.includes('--manifiesto') ? process.argv[process.argv.indexOf('--manifiesto') + 1] : join('scripts', 'normas-pendientes.json')),
+      'utf8',
+    ),
   ) as NormaPendiente[];
 
   console.log(`${manifiesto.length} norma(s) en el manifiesto${DRY_RUN ? ' · simulación' : ''}\n`);

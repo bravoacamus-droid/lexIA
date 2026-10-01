@@ -11,6 +11,7 @@ import { MigaDePan } from '@/components/app/seccion/piezas';
 import {
   agruparEnActos,
   TIPOS_CON_PARTES,
+  type ActoInfo,
   type ActoNormativo,
 } from '@/lib/normativa/actos';
 import { TarjetaDeActo } from '@/components/app/library/tarjeta-de-acto';
@@ -181,16 +182,26 @@ function EntidadFilter({
   );
 }
 
-/** Agrupa documentos por año conservando el orden recibido. */
+/**
+ * Agrupa documentos por año. Los actos con datos oficiales se ordenan por
+ * su fecha, de lo más reciente a lo más antiguo («en la primera fila…
+ * el último documento emitido», César, 30/09/2026); el resto conserva el
+ * orden en que llegan del servidor, que ya es ese.
+ */
 function agruparPorAnio(
   docs: BrowseDoc[],
+  actosInfo: Record<string, ActoInfo> = {},
 ): Array<{ anio: string; actos: Array<ActoNormativo<BrowseDoc>> }> {
   const out: Array<{ anio: string; actos: Array<ActoNormativo<BrowseDoc>> }> = [];
+  const actos = agruparEnActos(docs, actosInfo);
+  if (actos.some((a) => a.info)) {
+    actos.sort((a, b) => (b.fecha ?? '').localeCompare(a.fecha ?? ''));
+  }
   // Primero se arma el acto y después se reparte por año. Al revés, una
   // norma cuyas piezas tienen fechas distintas —o alguna sin fecha— se
   // parte en dos tarjetas, una bajo cada encabezado, y vuelve a parecer
   // un duplicado.
-  for (const acto of agruparEnActos(docs)) {
+  for (const acto of actos) {
     const d = acto.principal;
     // Se agrupa por metadata.anio —el año DEL DOCUMENTO, tomado de su
     // numeración— y no por el año de la fecha.
@@ -208,13 +219,18 @@ function agruparPorAnio(
     // los tipos sin metadata.anio, sin pasar por Date() para no depender
     // de la zona horaria (ver formatDate en utils.ts).
     const anio =
-      d.metadata?.anio || (acto.fecha ? acto.fecha.slice(0, 4) : 'Sin año');
+      (acto.info && acto.fecha ? acto.fecha.slice(0, 4) : null) ||
+      d.metadata?.anio ||
+      (acto.fecha ? acto.fecha.slice(0, 4) : 'Sin año');
     const ultimo = out[out.length - 1];
     if (ultimo && ultimo.anio === anio) ultimo.actos.push(acto);
     else out.push({ anio, actos: [acto] });
   }
   return out;
 }
+
+/** Dónde estaba el usuario antes de abrir un documento (ver anotarRetorno). */
+const CLAVE_RETORNO = 'lexia.biblioteca.retorno';
 
 interface BrowseDoc {
   id: string;
@@ -235,7 +251,13 @@ interface BrowseDoc {
     entidad?: string | null;
     anio?: string | null;
     package_folder?: string | null;
+    parte_rol?: string | null;
+    parte_etiqueta?: string | null;
+    parte_fecha?: string | null;
+    parte_url?: string | null;
   } | null;
+  /** El acto normativo al que pertenece (tabla normative_acts). */
+  acto_clave?: string | null;
 }
 
 interface SearchResult {
@@ -327,16 +349,21 @@ export function LibraryView({
     () => new Set(initialSavedIds),
   );
 
-  const [query, setQuery] = useState('');
-  const [debounced, setDebounced] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
   // Los filtros viven en la URL para que "Volver" desde el visor
   // restaure exactamente la vista (César 01/08/2026: "al hacer clic en
   // volver no retorna a la ubicación anterior... debiendo volver a la
   // carpeta de opiniones dado que estoy en opiniones"). De paso, la vista
   // filtrada se puede compartir y el botón atrás del navegador funciona.
+  // Desde el 30/09/2026 también la búsqueda, las palabras clave, la
+  // carpeta y la página: «al volver debe seguir mostrando la Directiva
+  // 007-2025 y no la primera página».
   const router = useRouter();
   const urlParams = useSearchParams();
+  const [query, setQuery] = useState(urlParams.get('q') || '');
+  const [debounced, setDebounced] = useState((urlParams.get('q') || '').trim());
+  const [tags, setTags] = useState<string[]>(
+    urlParams.get('chips') ? urlParams.get('chips')!.split('|').filter(Boolean) : [],
+  );
   const [type, setType] = useState<NormativeDocType | null>(
     (urlParams.get('tipo') as NormativeDocType | null) || null,
   );
@@ -370,7 +397,7 @@ export function LibraryView({
     new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10);
   const [selectedFolderId, setSelectedFolderId] = useState<
     string | null | 'unfiled' | 'all-saved'
-  >(null);
+  >(urlParams.get('carpeta'));
   const [browseDocs, setBrowseDocs] = useState<BrowseDoc[]>(initialDocuments);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [mode, setMode] = useState<'browse' | 'search' | 'folder'>('browse');
@@ -389,7 +416,14 @@ export function LibraryView({
    * de saber dónde estás ni de volver a donde estabas, y al abrir un
    * documento y regresar se pierde todo lo cargado.
    */
-  const [pagina, setPagina] = useState(0);
+  const [pagina, setPagina] = useState(urlParams.get('pag') ? Math.max(Number(urlParams.get('pag')) - 1, 0) : 0);
+
+  /** Los datos oficiales de los actos que se están listando. */
+  const [actosInfo, setActosInfo] = useState<Record<string, ActoInfo>>({});
+  /** Los actos con sus partes desplegadas (se recuerdan al volver). */
+  const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
+  /** Ya llegó la primera respuesta del servidor (la lista del SSR va en otro orden). */
+  const [primeraCarga, setPrimeraCarga] = useState(false);
 
   // Save modal state
   const [savingDocId, setSavingDocId] = useState<string | null>(null);
@@ -479,11 +513,15 @@ export function LibraryView({
             setExhausted(json.hasMore === false);
           }
           setBrowseDocs(docs);
+          if (json.actos) setActosInfo((prev) => ({ ...prev, ...json.actos }));
         }
       } catch {
         toast.error('Error al buscar. Intenta de nuevo.');
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setPrimeraCarga(true);
+        }
       }
     }
     run();
@@ -499,7 +537,13 @@ export function LibraryView({
    * de Opiniones —que tiene 726— pediría un tramo que no existe y vería
    * la lista vacía sin entender por qué.
    */
+  // La primera vez no: la página puede venir de la URL al volver del visor.
+  const filtrosMontados = useRef(false);
   useEffect(() => {
+    if (!filtrosMontados.current) {
+      filtrosMontados.current = true;
+      return;
+    }
     setPagina(0);
   }, [debounced, type, entidad, anioDesde, anioHasta, lawFilter, tags, quickFilter, selectedFolderId]);
 
@@ -582,6 +626,9 @@ export function LibraryView({
     if (anioDesde) p.set('desde', String(anioDesde));
     if (anioHasta) p.set('hasta', String(anioHasta));
     if (debounced) p.set('q', debounced);
+    if (tags.length > 0) p.set('chips', tags.join('|'));
+    if (selectedFolderId) p.set('carpeta', selectedFolderId);
+    if (pagina > 0) p.set('pag', String(pagina + 1));
     // El filtro rápido también va en la URL. Sin él, entrar por
     // «Mi espacio › Guardados» duraba un instante: al montar, este
     // efecto reescribía la dirección sin el parámetro, el filtro
@@ -618,8 +665,64 @@ export function LibraryView({
     setAnioHasta(urlParams.get('hasta') ? Number(urlParams.get('hasta')) : null);
     setLawFilter(urlParams.get('ley') ? ([urlParams.get('ley')] as LawFilter) : null);
     setQuickFilter(urlParams.get('guardados') ? 'favorites' : urlParams.get('recientes') ? 'recent' : null);
+    setQuery(urlParams.get('q') || '');
+    setTags(urlParams.get('chips') ? urlParams.get('chips')!.split('|').filter(Boolean) : []);
+    setSelectedFolderId(urlParams.get('carpeta'));
+    setPagina(urlParams.get('pag') ? Math.max(Number(urlParams.get('pag')) - 1, 0) : 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlParams]);
+
+  /**
+   * Volver al mismo punto de la lista (documento 11 de César, 30/09/2026:
+   * «al volver no solo debe volver a la fuente de donde partió sino a la
+   * parte de donde partió»). Al abrir un documento se anota qué tarjeta
+   * era, qué actos estaban desplegados y el desplazamiento; al volver a
+   * la misma lista, en cuanto llegan los datos, se despliegan otra vez y
+   * la tarjeta queda a la vista, marcada un instante.
+   */
+  function anotarRetorno(e: React.MouseEvent) {
+    const objetivo = e.target as HTMLElement;
+    if (!objetivo.closest('a[href^="/biblioteca/documento/"]')) return;
+    const tarjeta = objetivo.closest('[data-ancla]');
+    try {
+      sessionStorage.setItem(
+        CLAVE_RETORNO,
+        JSON.stringify({
+          href: volverHref,
+          ancla: tarjeta?.getAttribute('data-ancla') ?? null,
+          y: window.scrollY,
+          abiertos: Array.from(abiertos),
+        }),
+      );
+    } catch {
+      // Sin almacenamiento de sesión se vuelve a la lista, pero arriba.
+    }
+  }
+  const retornoHecho = useRef(false);
+  useEffect(() => {
+    if (retornoHecho.current || !primeraCarga || loading) return;
+    retornoHecho.current = true;
+    let r: { href: string; ancla: string | null; y: number; abiertos: string[] } | null = null;
+    try {
+      r = JSON.parse(sessionStorage.getItem(CLAVE_RETORNO) || 'null');
+      sessionStorage.removeItem(CLAVE_RETORNO);
+    } catch {
+      r = null;
+    }
+    if (!r || r.href !== `${window.location.pathname}${window.location.search}`) return;
+    setAbiertos(new Set(r.abiertos || []));
+    const destino = r;
+    window.setTimeout(() => {
+      const el = destino.ancla ? document.querySelector(`[data-ancla="${CSS.escape(destino.ancla)}"]`) : null;
+      if (el) {
+        el.scrollIntoView({ block: 'center' });
+        el.classList.add('retorno-resaltado');
+        window.setTimeout(() => el.classList.remove('retorno-resaltado'), 2400);
+      } else {
+        window.scrollTo({ top: destino.y });
+      }
+    }, 120);
+  }, [primeraCarga, loading]);
 
   function onFolderCreated(folder: FolderItem) {
     setFolders((prev) => [...prev, folder]);
@@ -748,7 +851,7 @@ export function LibraryView({
         </aside>
 
         {/* Main — results */}
-        <section className="lg:col-span-9 min-w-0">
+        <section className="lg:col-span-9 min-w-0" onClickCapture={anotarRetorno}>
           {/* Badge removible cuando hay carpeta activa */}
           {mode === 'folder' && selectedFolderId && (
             <ActiveFolderBadge
@@ -804,6 +907,16 @@ export function LibraryView({
                 setQuickFilter(null);
               }}
               docs={browseDocs}
+              actosInfo={actosInfo}
+              abiertos={abiertos}
+              onAlternar={(clave) =>
+                setAbiertos((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(clave)) next.delete(clave);
+                  else next.add(clave);
+                  return next;
+                })
+              }
               loading={loading}
               loadingMore={loadingMore}
               exhausted={exhausted}
@@ -811,7 +924,8 @@ export function LibraryView({
               sentinelRef={sentinelRef}
               pagina={pagina}
               porPagina={pageSize}
-              onPagina={(p) => {
+              // Los tipos que se agrupan en actos llegan enteros: no hay páginas.
+              onPagina={type != null && TIPOS_CON_PARTES.has(type) ? undefined : (p) => {
                 setPagina(p);
                 // Volver arriba: sin esto quedas a media lista de la
                 // página nueva sin darte cuenta de que cambió.
@@ -970,6 +1084,9 @@ function SearchResultsList({
 
 interface BrowseProps {
   docs: BrowseDoc[];
+  actosInfo: Record<string, ActoInfo>;
+  abiertos: Set<string>;
+  onAlternar: (clave: string) => void;
   loading: boolean;
   loadingMore: boolean;
   exhausted: boolean;
@@ -998,6 +1115,9 @@ interface BrowseProps {
 
 function BrowseList({
   docs,
+  actosInfo,
+  abiertos,
+  onAlternar,
   loading,
   loadingMore,
   exhausted,
@@ -1069,7 +1189,7 @@ function BrowseList({
           decir «62 de 62» y pintar 34 tarjetas es una contradicción a la
           vista; se dice cuántos actos son y de cuántas piezas salen. */}
       {(() => {
-        const actos = agruparEnActos(docs).length;
+        const actos = agruparEnActos(docs, actosInfo).length;
         const piezas = docs.length;
         const cuenta =
           actos === piezas
@@ -1090,7 +1210,7 @@ function BrowseList({
           endpoint ya entrega ordenado por fecha descendente, así que
           basta con insertar el encabezado al cambiar de año. */}
       <div className="space-y-3">
-        {agruparPorAnio(docs).map(({ anio, actos }) => (
+        {agruparPorAnio(docs, actosInfo).map(({ anio, actos }) => (
           <section key={anio} className="space-y-3">
             <div className="flex items-center gap-2 pt-2">
               <h3 className="text-sm font-bold tracking-tight">{anio}</h3>
@@ -1103,10 +1223,14 @@ function BrowseList({
                 con una sola pieza, como la tarjeta de siempre. Así la
                 lista no tiene dos aspectos distintos sin motivo. */}
             {actos.map((acto) =>
-              acto.partes.length > 1 ? (
+              // Un acto con datos oficiales se pinta como acto aunque tenga
+              // una sola pieza: así lleva su número, título y fuente oficial.
+              acto.partes.length > 1 || acto.info ? (
                 <TarjetaDeActo
                   key={acto.clave}
                   acto={acto}
+                  abierto={abiertos.has(acto.clave)}
+                  onAlternar={() => onAlternar(acto.clave)}
                   volverHref={volverHref}
                   savedIds={savedIds}
                   onSave={onSave}

@@ -288,3 +288,70 @@
   .flotante-entra, .flotante-onda, .flotante-onda-2, .flotante-saluda, .flotante-globo { animation: none; }
   .flotante-onda, .flotante-onda-2 { display: none; }
 }
+
+/* La tarjeta desde la que se abrió un documento, al volver a la lista
+   (documento 11 de César, 30/09/2026). */
+@keyframes retorno-resaltado {
+  0%, 60% { box-shadow: 0 0 0 3px hsl(206 96% 48% / 0.55); }
+  100% { box-shadow: 0 0 0 0 hsl(206 96% 48% / 0); }
+}
+.retorno-resaltado { animation: retorno-resaltado 2.4s ease-out; border-color: hsl(206 96% 48% / 0.6) !important; }
+
+/* ── El texto de una norma en el visor de la biblioteca ─────────────
+   Documento 11 de César (30/09/2026): «el texto debe mostrarse
+   justificado, ordenado, con adecuada separación y jerarquía visual».
+   Convención del texto estructurado (scripts/texto-estructurado.py):
+   nivel-1 la norma, nivel-2 título, nivel-3 capítulo, nivel-4
+   subcapítulo, nivel-5 artículo. */
+.lexia-norma {
+  font-size: 15px;
+  line-height: 1.78;
+  color: hsl(var(--foreground));
+  max-width: 62rem;
+}
+.lexia-norma .seccion-norma {
+  /* Un documento de 1,3 millones de caracteres: lo que no se ve no se pinta. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 420px;
+  scroll-margin-top: 9.5rem;
+}
+.lexia-norma p { text-align: justify; hyphens: auto; margin: 0.65em 0; }
+.lexia-norma strong { font-weight: 650; }
+.lexia-norma p > strong:first-child { color: hsl(var(--brand-700, 211 96% 35%)); }
+.dark .lexia-norma p > strong:first-child { color: #6FB7F8; }
+.lexia-norma em { font-size: 12.5px; color: hsl(var(--muted-foreground)); font-style: italic; }
+.lexia-norma ul { list-style: none; padding-left: 1.6rem; margin: 0.4em 0; }
+.lexia-norma ul > li { margin: 0.35em 0; text-align: justify; hyphens: auto; }
+.lexia-norma ul > li > p { margin: 0; }
+.lexia-norma ol { padding-left: 1.6rem; list-style: decimal; }
+.lexia-norma table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 13px; line-height: 1.45; }
+.lexia-norma th, .lexia-norma td { border: 1px solid hsl(var(--border)); padding: 6px 8px; vertical-align: top; text-align: left; }
+.lexia-norma thead th { background: hsl(var(--secondary)); font-weight: 600; text-align: center; }
+.lexia-norma .encabezado-norma { font-weight: 700; letter-spacing: -0.01em; }
+.lexia-norma .nivel-1 > .encabezado-norma { text-align: center; font-size: 1.35rem; margin: 2.2rem 0 1.2rem; padding-bottom: 0.6rem; border-bottom: 2px solid hsl(var(--border)); text-transform: uppercase; }
+.lexia-norma .nivel-2 > .encabezado-norma { text-align: center; font-size: 1.12rem; margin: 2rem 0 0.8rem; color: hsl(var(--foreground)); text-transform: uppercase; }
+.lexia-norma .nivel-3 > .encabezado-norma { text-align: center; font-size: 1.02rem; margin: 1.6rem 0 0.6rem; text-transform: uppercase; }
+.lexia-norma .nivel-4 > .encabezado-norma { text-align: center; font-size: 0.95rem; margin: 1.3rem 0 0.5rem; }
+.lexia-norma .encabezado-nombre { font-weight: 600; font-size: 0.92em; margin-top: 0.15rem; }
+.lexia-norma .encabezado-norma.articulo {
+  text-align: left; font-size: 1rem; margin: 1.6rem 0 0.5rem; padding: 0.45rem 0.75rem;
+  border-left: 3px solid #0583F2; background: hsl(206 90% 96%); border-radius: 0 6px 6px 0;
+}
+.dark .lexia-norma .encabezado-norma.articulo { background: hsl(214 60% 14%); }
+.lexia-norma .articulo-numero { font-weight: 700; color: #035DAE; margin-right: 0.4rem; }
+.dark .lexia-norma .articulo-numero { color: #6FB7F8; }
+.lexia-norma .articulo-titulo { font-weight: 650; }
+
+/* Resaltados del usuario, búsqueda y cita del chat (indice-de-texto.ts). */
+::highlight(resaltado-yellow) { background-color: rgba(253, 224, 71, 0.6); }
+::highlight(resaltado-green) { background-color: rgba(110, 231, 183, 0.6); }
+::highlight(resaltado-blue) { background-color: rgba(125, 211, 252, 0.6); }
+::highlight(busqueda) { background-color: rgba(251, 191, 36, 0.35); }
+::highlight(busqueda-actual) { background-color: rgba(249, 115, 22, 0.75); color: #fff; }
+::highlight(cita) { background-color: rgba(250, 204, 21, 0.55); }
+
+@media print {
+  .no-imprimir, header.sticky, aside, nav { display: none !important; }
+  .lexia-norma .seccion-norma { content-visibility: visible; }
+  .lexia-norma { max-width: none; font-size: 11pt; }
+}

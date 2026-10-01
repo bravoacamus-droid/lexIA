@@ -34,9 +34,10 @@ export default async function LibraryPage() {
       .eq('user_id', user.id),
     supabase
       .from('normative_documents')
-      .select('id, type, number, title, summary, date, source_url', {
+      .select('id, type, number, title, summary, date, source_url, metadata, acto_clave', {
         count: 'exact',
       })
+      .eq('oculto', false)
       .order('date', { ascending: false, nullsFirst: false })
       .range(0, INITIAL_PAGE_SIZE - 1),
     // Conteos por tipo y años disponibles, agregados en Postgres.

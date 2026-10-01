@@ -23,7 +23,7 @@ export async function GET(req: Request) {
   let q = supabase
     .from('user_saved_documents')
     .select(
-      'id, saved_at, folder_id, document_id, normative_documents(id, type, number, title, summary, date)',
+      'id, saved_at, folder_id, document_id, normative_documents(id, type, number, title, summary, date, source_url, metadata, acto_clave, ai_summary)',
     )
     .eq('user_id', user.id)
     .order('saved_at', { ascending: false });

@@ -1,37 +1,56 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
-import { motion } from 'framer-motion';
 import {
   ArrowLeft,
-  Star,
+  ChevronLeft,
+  ChevronRight,
   ExternalLink,
-  ListTree,
   Highlighter,
-  Trash2,
-  MessageSquare,
   Link2,
+  ListTree,
+  MessageSquare,
+  PanelLeftOpen,
+  Printer,
+  Star,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn, getDocTypeMeta, formatDate } from '@/lib/utils';
 import { formatForDisplay } from '@/lib/normativa/format-raw';
-import { SummaryPanel, type DocumentSummary } from '@/components/app/library/summary-panel';
-import { toast } from 'sonner';
+import { dividirEnSecciones, rutaDe, type Encabezado, type Seccion } from '@/lib/normativa/estructura';
+import { separarCabeceraDeOpinion, sinConstanciaDeFirma, type CabeceraDeOpinion } from '@/lib/normativa/cabecera-opinion';
+import { IndiceDeTexto, hayResaltadoNativo, pintar } from '@/lib/normativa/indice-de-texto';
+import { tituloDeActo, type ActoInfo } from '@/lib/normativa/actos';
 import { SaveToFolderDialog } from '@/components/app/library/save-to-folder';
 import { HighlightToolbar } from '@/components/app/library/highlight-toolbar';
-import type {
-  NormativeDocType,
-  UserAnnotation,
-} from '@/lib/supabase/types';
+import { IndiceDeNorma } from '@/components/app/library/indice-de-norma';
+import { Vigencia } from '@/components/app/library/tarjeta-de-acto';
+import type { NormativeDocType, UserAnnotation } from '@/lib/supabase/types';
 import type { FolderItem } from '@/components/app/library/library-view';
+
+/**
+ * El visor de un documento de la biblioteca.
+ *
+ * Rehecho con el documento 11 de César (30/09/2026):
+ *   · sin el panel de la derecha (resumen IA, contenido, citas, historial):
+ *     «eliminar los resúmenes de la parte derecha»;
+ *   · índice jerárquico desplegable con buscador y el apartado en lectura
+ *     resaltado, con «Ocultar índice» (ver indice-de-norma.tsx);
+ *   · el texto con su estructura: justificado, títulos y capítulos
+ *     diferenciados, artículos en banda, numerales y literales sangrados,
+ *     tablas como tablas. Si el documento tiene texto estructurado desde
+ *     su PDF oficial, se usa ese; si no, el texto plano con formato;
+ *   · «Fuente oficial» siempre que exista (la del documento, la de su
+ *     pieza dentro del acto o la del acto);
+ *   · los resaltados marcan exactamente lo seleccionado (indice-de-texto.ts).
+ */
 
 interface DocumentFull {
   id: string;
@@ -41,634 +60,577 @@ interface DocumentFull {
   summary: string | null;
   date: string | null;
   source_url: string | null;
-  raw_text: string | null;
+  metadata: Record<string, unknown> | null;
+  /** Markdown estructurado (PDF oficial) o texto plano. */
+  texto: string | null;
+  estructurado: boolean;
+}
+
+export interface ParteDelActo {
+  id: string;
+  etiqueta: string;
+  fecha: string | null;
 }
 
 interface Props {
   document: DocumentFull;
+  acto: ActoInfo | null;
+  partes: ParteDelActo[];
   initialAnnotations: UserAnnotation[];
   isSaved: boolean;
-  savedFolderId: string | null;
   folders: FolderItem[];
-  initialSummary?: DocumentSummary | null;
-  initialSummaryGeneratedAt?: string | null;
-  initialSummaryModel?: string | null;
 }
 
-const HIGHLIGHT_COLORS: Record<string, string> = {
-  yellow: 'bg-yellow-200/70 dark:bg-yellow-500/40',
-  green: 'bg-green-200/70 dark:bg-green-500/40',
-  blue: 'bg-blue-200/70 dark:bg-blue-500/40',
-};
-
-export function DocumentViewer({
-  document: doc,
-  initialAnnotations,
-  isSaved: initialSaved,
-  folders: initialFolders,
-  initialSummary = null,
-  initialSummaryGeneratedAt = null,
-  initialSummaryModel = null,
-}: Props) {
+export function DocumentViewer({ document: doc, acto, partes, initialAnnotations, isSaved: initialSaved, folders: initialFolders }: Props) {
   const meta = getDocTypeMeta(doc.type);
   const [saved, setSaved] = useState(initialSaved);
   const [folders, setFolders] = useState<FolderItem[]>(initialFolders);
   const [savingDialog, setSavingDialog] = useState(false);
   const [annotations, setAnnotations] = useState<UserAnnotation[]>(initialAnnotations);
-  const [toolbar, setToolbar] = useState<{
-    x: number;
-    y: number;
-    start: number;
-    end: number;
-    text: string;
-  } | null>(null);
-
+  const [toolbar, setToolbar] = useState<{ x: number; y: number; inicio: number; fin: number; texto: string } | null>(null);
+  const [indiceVisible, setIndiceVisible] = useState(true);
+  const [indiceMovil, setIndiceMovil] = useState(false);
+  const [activo, setActivo] = useState<string | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
+  const indiceTexto = useRef<IndiceDeTexto | null>(null);
+  // Se pregunta al navegador después de montar: en el servidor no hay CSS
+  // y la diferencia rompía la hidratación.
+  const [resaltadoNativo, setResaltadoNativo] = useState(true);
+  useEffect(() => setResaltadoNativo(hayResaltadoNativo()), []);
 
-  // Parámetros de navegación desde una cita del chat (César 27/07/2026):
-  // `volver` = ruta de la conversación de origen (el botón Volver regresa
-  // ahí, no a la biblioteca); `resaltar` = texto del fragmento citado
-  // (se hace scroll y se marca temporalmente).
   const searchParams = useSearchParams();
   const volverParam = searchParams.get('volver');
   // Solo rutas internas — nunca URLs absolutas (evita open redirect).
-  const volverHref =
-    volverParam && volverParam.startsWith('/') && !volverParam.startsWith('//')
-      ? volverParam
-      : '/biblioteca';
+  const volverHref = volverParam && volverParam.startsWith('/') && !volverParam.startsWith('//') ? volverParam : '/biblioteca';
   const resaltar = searchParams.get('resaltar');
 
-  useEffect(() => {
-    if (!resaltar || !contentRef.current) return;
-    const norm = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase();
-    const needle = norm(resaltar).slice(0, 60);
-    if (needle.length < 8) return;
-    // Buscar el primer bloque cuyo texto contenga el fragmento citado.
-    const blocks = contentRef.current.querySelectorAll('p, li, td, h1, h2, h3, h4, blockquote');
-    for (const el of blocks) {
-      if (norm(el.textContent || '').includes(needle)) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        el.classList.add('cita-resaltada');
-        const t = setTimeout(() => el.classList.remove('cita-resaltada'), 6000);
-        return () => clearTimeout(t);
-      }
+  // ── El texto ─────────────────────────────────────────────────────────
+  const { markdown, cabecera } = useMemo((): { markdown: string; cabecera: CabeceraDeOpinion | null } => {
+    const crudo = doc.texto || '';
+    if (doc.estructurado) return { markdown: crudo, cabecera: null };
+    if (doc.type === 'opinion') {
+      const { cabecera, resto } = separarCabeceraDeOpinion(crudo);
+      // «1. ANTECEDENTES Mediante…»: el primer apartado va pegado al texto.
+      const m = /^((?:1\.?|I\.)\s+ANTECEDENTES?)\s+/i.exec(resto);
+      const md = m ? `## ${m[1].toUpperCase()}\n\n${formatForDisplay(resto.slice(m[0].length))}` : formatForDisplay(resto);
+      return { markdown: md, cabecera };
     }
-  }, [resaltar]);
-  // Formatear el texto plano del PDF a markdown estructurado antes de
-  // renderizar. El extractor de PDF deja headings y artículos como
-  // texto plano; formatForDisplay convierte tablas del PDF en tablas
-  // markdown reales, une palabras partidas y estructura secciones.
-  // NO se usa el mismo formateador del chunk-sheet ni del RAG:
-  //   Biblioteca (usuario final) → formatForDisplay (mode: 'display')
-  //   Chunk-sheet (cita en chat) → formatNormativaText (mode: 'strip')
-  //   RAG (chat/llamada respuestas) → el chunk raw, sin formato
-  // Feedback César 30/06/2026: "la biblioteca es para el usuario y no
-  // tendría que ser la misma que usa el sistema para responder".
-  const text = useMemo(
-    () => formatForDisplay(doc.raw_text),
-    [doc.raw_text],
-  );
+    return { markdown: formatForDisplay(sinConstanciaDeFirma(crudo)), cabecera: null };
+  }, [doc.texto, doc.estructurado, doc.type]);
 
-  // Track del heading (artículo/capítulo) actualmente visible al hacer
-  // scroll. Se usa para mostrar el sticky mini-header con "estás en
-  // Artículo X" y para resaltar el item activo del TOC.
-  const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
-  const [activeHeadingText, setActiveHeadingText] = useState<string>('');
+  const { secciones, encabezados } = useMemo(() => dividirEnSecciones(markdown), [markdown]);
+  const porId = useMemo(() => new Map(encabezados.map((e) => [e.id, e])), [encabezados]);
+  const articulos = useMemo(() => encabezados.filter((e) => e.esArticulo), [encabezados]);
+  const hayIndice = encabezados.length > 0;
 
-  // Detect text selection and show toolbar
+  // ── Apartado en lectura ──────────────────────────────────────────────
+  // El apartado en lectura es la última sección que ya empezó por encima
+  // de la línea de lectura (bajo las barras fijas). Las secciones están en
+  // orden, así que basta una búsqueda binaria: unas pocas mediciones por
+  // cuadro aunque el documento tenga seiscientas.
   useEffect(() => {
-    function onMouseUp() {
-      const sel = window.getSelection();
-      if (!sel || sel.isCollapsed || !contentRef.current) {
-        setToolbar(null);
-        return;
+    const cont = contentRef.current;
+    if (!cont || encabezados.length === 0) return;
+    const lista = Array.from(cont.querySelectorAll<HTMLElement>('[data-seccion]'));
+    let pendiente = false;
+    const medir = () => {
+      pendiente = false;
+      const linea = 175;
+      let lo = 0;
+      let hi = lista.length - 1;
+      let k = -1;
+      while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        if (lista[mid].getBoundingClientRect().top <= linea) {
+          k = mid;
+          lo = mid + 1;
+        } else hi = mid - 1;
       }
-      const range = sel.getRangeAt(0);
-      // Ensure selection is within contentRef
-      if (!contentRef.current.contains(range.commonAncestorContainer)) {
-        setToolbar(null);
-        return;
+      for (let i = k; i >= 0; i--) {
+        const id = lista[i].dataset.seccion!;
+        if (porId.has(id)) {
+          setActivo(id);
+          return;
+        }
       }
-      const selectedText = sel.toString();
-      if (selectedText.length < 4) {
-        setToolbar(null);
-        return;
-      }
-      // Compute offsets relative to the full plain text
-      const offsets = getSelectionOffsets(contentRef.current, range);
-      if (!offsets) {
-        setToolbar(null);
-        return;
-      }
-      const rect = range.getBoundingClientRect();
-      setToolbar({
-        x: rect.left + rect.width / 2,
-        y: rect.top - 8,
-        start: offsets.start,
-        end: offsets.end,
-        text: selectedText,
-      });
-    }
-    window.addEventListener('mouseup', onMouseUp);
-    window.addEventListener('keyup', onMouseUp);
-    return () => {
-      window.removeEventListener('mouseup', onMouseUp);
-      window.removeEventListener('keyup', onMouseUp);
+      setActivo(null);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const alDesplazar = () => {
+      if (!pendiente) {
+        pendiente = true;
+        requestAnimationFrame(medir);
+      }
+    };
+    window.addEventListener('scroll', alDesplazar, { passive: true });
+    medir();
+    return () => window.removeEventListener('scroll', alDesplazar);
+  }, [secciones, encabezados.length, porId]);
+
+  const irA = useCallback((id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ block: 'start' });
+    setActivo(id);
+    setIndiceMovil(false);
+    // content-visibility estima la altura de lo no pintado: un segundo
+    // ajuste, ya pintado el destino, lo deja exacto.
+    window.setTimeout(() => el.scrollIntoView({ block: 'start' }), 120);
   }, []);
 
-  async function createHighlight(color: 'yellow' | 'green' | 'blue') {
+  const ruta = activo ? rutaDe(activo, porId) : [];
+  const articuloActual = useMemo(() => {
+    if (!activo) return null;
+    const e = porId.get(activo);
+    if (e?.esArticulo) return e;
+    // Si se está en un título o capítulo, el artículo más cercano antes.
+    const k = encabezados.findIndex((x) => x.id === activo);
+    for (let i = k; i >= 0; i--) if (encabezados[i].esArticulo) return encabezados[i];
+    return null;
+  }, [activo, porId, encabezados]);
+  const navArticulos = useMemo(() => {
+    if (!articuloActual) return null;
+    const mismos = articulos.filter((a) => a.parte === articuloActual.parte);
+    const k = mismos.findIndex((a) => a.id === articuloActual.id);
+    return { anterior: mismos[k - 1] ?? null, siguiente: mismos[k + 1] ?? null, posicion: k + 1, total: mismos.length };
+  }, [articuloActual, articulos]);
+
+  // ── Índice del texto pintado (resaltados y búsqueda) ─────────────────
+  const [versionIndice, setVersionIndice] = useState(0);
+  useEffect(() => {
+    // Una vez pintado el documento (y cada vez que cambia el texto).
+    const t = window.setTimeout(() => {
+      if (!contentRef.current) return;
+      indiceTexto.current = new IndiceDeTexto(contentRef.current);
+      setVersionIndice((v) => v + 1);
+    }, 50);
+    return () => window.clearTimeout(t);
+  }, [markdown]);
+
+  // Pintar los resaltados guardados.
+  const rangosDeResaltados = useRef(new Map<string, Range>());
+  useEffect(() => {
+    const ind = indiceTexto.current;
+    if (!ind) return;
+    const porColor: Record<string, Range[]> = { yellow: [], green: [], blue: [] };
+    rangosDeResaltados.current.clear();
+    for (const a of annotations) {
+      const pos = ind.ubicar(a.highlighted_text, a.position?.start_offset, a.position?.end_offset);
+      const r = pos ? ind.rango(pos.inicio, pos.fin) : null;
+      if (!r) continue;
+      rangosDeResaltados.current.set(a.id, r);
+      (porColor[a.color] ?? porColor.yellow).push(r);
+    }
+    for (const [color, rangos] of Object.entries(porColor)) pintar(`resaltado-${color}`, rangos);
+  }, [annotations, versionIndice]);
+
+  // Selección → barra de colores
+  useEffect(() => {
+    function alSoltar() {
+      const sel = window.getSelection();
+      const cont = contentRef.current;
+      if (!sel || sel.isCollapsed || !cont || !indiceTexto.current) {
+        setToolbar(null);
+        return;
+      }
+      const r = sel.getRangeAt(0);
+      if (!cont.contains(r.commonAncestorContainer)) {
+        setToolbar(null);
+        return;
+      }
+      const texto = sel.toString().trim();
+      const pos = texto.length >= 3 ? indiceTexto.current.desdeRango(r) : null;
+      if (!pos) {
+        setToolbar(null);
+        return;
+      }
+      const caja = r.getBoundingClientRect();
+      setToolbar({ x: caja.left + caja.width / 2, y: caja.top - 8, inicio: pos.inicio, fin: pos.fin, texto: texto.slice(0, 7900) });
+    }
+    window.addEventListener('mouseup', alSoltar);
+    window.addEventListener('keyup', alSoltar);
+    return () => {
+      window.removeEventListener('mouseup', alSoltar);
+      window.removeEventListener('keyup', alSoltar);
+    };
+  }, []);
+
+  async function crearResaltado(color: 'yellow' | 'green' | 'blue') {
     if (!toolbar) return;
-    const optimistic: UserAnnotation = {
-      id: `optimistic-${Date.now()}`,
+    const provisional: UserAnnotation = {
+      id: `provisional-${Date.now()}`,
       user_id: '',
       document_id: doc.id,
-      highlighted_text: toolbar.text,
-      position: { start_offset: toolbar.start, end_offset: toolbar.end },
+      highlighted_text: toolbar.texto,
+      position: { start_offset: toolbar.inicio, end_offset: toolbar.fin },
       color,
       created_at: new Date().toISOString(),
     };
-    setAnnotations((prev) => [...prev, optimistic]);
+    setAnnotations((prev) => [...prev, provisional]);
     setToolbar(null);
     window.getSelection()?.removeAllRanges();
-
     try {
       const res = await fetch('/api/annotations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           document_id: doc.id,
-          highlighted_text: toolbar.text,
-          position: { start_offset: toolbar.start, end_offset: toolbar.end },
+          highlighted_text: provisional.highlighted_text,
+          position: provisional.position,
           color,
         }),
       });
       if (!res.ok) throw new Error();
       const { annotation } = await res.json();
-      setAnnotations((prev) =>
-        prev.map((a) => (a.id === optimistic.id ? annotation : a)),
-      );
+      setAnnotations((prev) => prev.map((a) => (a.id === provisional.id ? annotation : a)));
     } catch {
-      setAnnotations((prev) => prev.filter((a) => a.id !== optimistic.id));
-      toast.error('No se pudo guardar el resaltado');
+      setAnnotations((prev) => prev.filter((a) => a.id !== provisional.id));
+      toast.error('No se pudo guardar el resaltado.');
     }
   }
 
-  async function deleteAnnotation(id: string) {
+  async function borrarResaltado(id: string) {
+    if (id.startsWith('provisional-')) return;
+    const antes = annotations;
     setAnnotations((prev) => prev.filter((a) => a.id !== id));
-    await fetch(`/api/annotations/${id}`, { method: 'DELETE' });
+    const res = await fetch(`/api/annotations/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      setAnnotations(antes);
+      toast.error('No se pudo eliminar el resaltado.');
+    }
   }
+
+  function irAResaltado(a: UserAnnotation) {
+    const r = rangosDeResaltados.current.get(a.id);
+    const el = r?.startContainer.parentElement;
+    if (!el) {
+      toast.info('No encontramos ese pasaje en esta versión del texto.');
+      return;
+    }
+    el.scrollIntoView({ block: 'center' });
+    setIndiceMovil(false);
+  }
+
+  // ── Búsqueda dentro del documento ────────────────────────────────────
+  const [consulta, setConsulta] = useState('');
+  const [coincidencias, setCoincidencias] = useState<Array<{ inicio: number; fin: number }>>([]);
+  const [actual, setActual] = useState(0);
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      const ind = indiceTexto.current;
+      const lista = ind && consulta.trim().length >= 2 ? ind.buscar(consulta) : [];
+      setCoincidencias(lista);
+      setActual(0);
+    }, 250);
+    return () => window.clearTimeout(t);
+  }, [consulta, versionIndice]);
+  useEffect(() => {
+    const ind = indiceTexto.current;
+    if (!ind) return;
+    const rangos = coincidencias.map((c) => ind.rango(c.inicio, c.fin)).filter((r): r is Range => !!r);
+    pintar('busqueda', rangos);
+    pintar('busqueda-actual', rangos[actual] ? [rangos[actual]] : []);
+  }, [coincidencias, actual]);
+  const irACoincidencia = useCallback(
+    (k: number) => {
+      const ind = indiceTexto.current;
+      if (!ind || coincidencias.length === 0) return;
+      const n = ((k % coincidencias.length) + coincidencias.length) % coincidencias.length;
+      setActual(n);
+      const r = ind.rango(coincidencias[n].inicio, coincidencias[n].fin);
+      r?.startContainer.parentElement?.scrollIntoView({ block: 'center' });
+    },
+    [coincidencias],
+  );
+
+  // ── Llegada desde una cita del chat (?resaltar=…) ────────────────────
+  useEffect(() => {
+    const ind = indiceTexto.current;
+    if (!resaltar || !ind) return;
+    const trozo = resaltar.replace(/\s+/g, ' ').trim().slice(0, 80);
+    const pos = ind.buscar(trozo, 1)[0] ?? ind.buscar(trozo.slice(0, 40), 1)[0];
+    const r = pos ? ind.rango(pos.inicio, pos.fin) : null;
+    if (!r) return;
+    pintar('cita', [r]);
+    r.startContainer.parentElement?.scrollIntoView({ block: 'center' });
+    const t = window.setTimeout(() => pintar('cita', []), 6000);
+    return () => window.clearTimeout(t);
+  }, [resaltar, versionIndice]);
+
+  // ── Acciones ─────────────────────────────────────────────────────────
+  const fuente = doc.source_url || (doc.metadata?.parte_url as string | undefined) || acto?.url || null;
+  const parteEtiqueta = (doc.metadata?.parte_etiqueta as string | undefined) ?? null;
 
   async function toggleSave() {
     if (saved) {
       setSaved(false);
-      const res = await fetch(`/api/saved-documents/${doc.id}`, {
-        method: 'DELETE',
-      });
+      const res = await fetch(`/api/saved-documents/${doc.id}`, { method: 'DELETE' });
       if (!res.ok) {
         setSaved(true);
-        toast.error('No se pudo quitar de biblioteca');
-      } else {
-        toast.success('Quitado de biblioteca');
-      }
-    } else {
-      setSavingDialog(true);
-    }
+        toast.error('No se pudo quitar de la biblioteca.');
+      } else toast.success('Quitado de tus guardados.');
+    } else setSavingDialog(true);
   }
 
-  // Generate TOC from headings in raw_text
-  const toc = useMemo(() => extractToc(text), [text]);
-
-  // Mapa question.key → anchor id, para que el SummaryPanel pueda hacer
-  // scroll a la sección cuando se clickea una pregunta.
-  const sectionAnchors = useMemo(
-    () =>
-      mapQuestionKeysToAnchors(
-        Object.keys(QUESTION_KEY_TO_SECTION_HINTS),
-        toc,
-      ),
-    [toc],
-  );
-
-  // Build a text with highlight overlays + anclas invisibles en las
-  // secciones detectadas por la TOC (útil para pronunciamientos y
-  // opiniones cuyos "CUESTIONAMIENTO N° 1" son texto plano, no headings
-  // markdown).
-  /**
-   * En qué documentos se muestra el panel de resumen de la derecha.
-   *
-   * César lo pidió fuera de las opiniones, los pronunciamientos y las
-   * resoluciones del Tribunal (23/09/2026): «considero que el resumen
-   * que está a la derecha debe ser eliminado y dejar más limpio la
-   * página». Son justo los tres tipos donde el documento ya viene
-   * estructurado por secciones y el resumen compite con el texto. En
-   * una directiva o una ley, donde no hay esa estructura, sigue
-   * ayudando, así que ahí se queda.
-   *
-   * El resumen no se borra: sigue alimentando la ficha de la biblioteca
-   * y las respuestas del chat. Lo que se quita es el panel.
-   */
-  // El acuerdo de Sala Plena viene tan estructurado como la resolución
-  // —antecedentes, análisis, acuerdo—, así que corre la misma suerte.
-  const conPanelDeResumen = !['opinion', 'pronunciamiento', 'resolucion_tce', 'acuerdo_sala_plena'].includes(
-    doc.type as string,
-  );
-
-  const renderedContent = useMemo(
-    () => renderWithHighlights(injectSectionAnchors(text, toc), annotations),
-    [text, toc, annotations],
-  );
-
-  // Trackear qué heading está actualmente en el viewport para mostrar
-  // el sticky mini-header con "Estás leyendo Artículo X" y para
-  // resaltar el item activo en el TOC. Usamos IntersectionObserver
-  // con rootMargin negativo desde arriba para que solo dispare cuando
-  // el heading ya pasó del "área de lectura".
-  useEffect(() => {
-    if (toc.length === 0) return;
-    const headings = toc
-      .map((t) => document.getElementById(t.id))
-      .filter((el): el is HTMLElement => el !== null);
-    if (headings.length === 0) return;
-
-    // Fallback: si el usuario no ha scrolleado nada, marcar el primero
-    setActiveHeadingId((prev) => prev || toc[0].id);
-    setActiveHeadingText((prev) => prev || toc[0].text);
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        // Filtramos los que ya cruzaron la línea de 25% del viewport
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible.length > 0) {
-          const el = visible[0].target as HTMLElement;
-          const id = el.id;
-          const item = toc.find((t) => t.id === id);
-          if (item) {
-            setActiveHeadingId(id);
-            setActiveHeadingText(item.text);
-          }
-        }
-      },
-      {
-        rootMargin: '-80px 0px -70% 0px',
-        threshold: [0, 1],
-      },
-    );
-    headings.forEach((h) => observer.observe(h));
-    return () => observer.disconnect();
-  }, [toc]);
-
-  async function copyDocumentLink() {
-    const url = window.location.href;
+  async function copiarEnlace() {
+    const url = `${window.location.origin}/biblioteca/documento/${doc.id}${activo ? `#${activo}` : ''}`;
     await navigator.clipboard.writeText(url);
-    toast.success('Enlace del documento copiado');
+    toast.success('Enlace copiado.');
   }
 
-  function askLexiaAboutDoc() {
-    // Redirige al chat con el documento pre-cargado como contexto.
-    // El chat crea nueva conversación y usa el titulo/tipo/número como
-    // prompt inicial.
-    const prompt = encodeURIComponent(
-      `Sobre el documento "${doc.number || doc.title}" (${doc.type}), quiero preguntar:`,
-    );
-    window.location.href = `/chat?new=1&q=${prompt}`;
+  function preguntar() {
+    const sobre = articuloActual ? `el ${articuloActual.articulo} de ` : '';
+    const nombre = acto ? tituloDeActo(acto) : doc.number || doc.title;
+    window.location.href = `/chat?new=1&q=${encodeURIComponent(`Sobre ${sobre}«${nombre}», quiero preguntar: `)}`;
   }
+
+  const aprobacion = acto?.documentos.find((d) => d.rol === 'aprueba');
+  const modificaciones = acto?.documentos.filter((d) => d.rol === 'modificacion' || d.rol === 'rectificacion') ?? [];
 
   return (
-    <>
-      <div className="border-b border-border bg-card/70 backdrop-blur-sm sticky top-14 z-10">
-        {/* Feedback César 30/06/2026: aprovechar el espacio a la izquierda.
-            Full width con padding responsivo, mismo que library-view. */}
-        <div className="w-full max-w-none px-4 sm:px-6 lg:px-10 xl:px-14 flex items-center justify-between gap-4 py-3">
-          <Button asChild variant="ghost" size="sm">
+    <div className="lector-norma">
+      {/* Barra superior: volver, dónde estoy y acciones */}
+      <div className="no-imprimir sticky top-14 z-20 border-b border-border bg-card/90 backdrop-blur-sm">
+        <div className="flex w-full items-center gap-2 px-4 py-2 sm:px-6 lg:px-10">
+          <Button asChild variant="ghost" size="sm" className="shrink-0">
             <Link href={volverHref}>
               <ArrowLeft className="h-4 w-4" />
-              {volverHref.startsWith('/chat')
-                ? 'Volver a la conversación'
-                : volverHref.includes('?')
-                  ? 'Volver a la búsqueda'
-                  : 'Volver'}
+              <span className="hidden sm:inline">
+                {volverHref.startsWith('/chat') ? 'Volver a la conversación' : volverHref.includes('?') ? 'Volver a la búsqueda' : 'Volver a la biblioteca'}
+              </span>
             </Link>
           </Button>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground truncate">
-              {doc.number || doc.type}
-            </p>
-            {activeHeadingText && (
-              <motion.p
-                key={activeHeadingText}
-                initial={{ opacity: 0, y: -2 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2 }}
-                className="text-xs font-semibold text-brand-700 dark:text-brand-400 truncate"
-              >
-                <span className="text-muted-foreground font-normal">Leyendo · </span>
-                {activeHeadingText}
-              </motion.p>
-            )}
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" onClick={copyDocumentLink} aria-label="Copiar enlace">
-                  <Link2 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Copiar enlace del documento</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={askLexiaAboutDoc}
-                  className="text-brand-700 dark:text-brand-400"
+          {hayIndice && (
+            <Button variant="ghost" size="sm" className="shrink-0 lg:hidden" onClick={() => setIndiceMovil(true)}>
+              <ListTree className="h-4 w-4" /> Índice
+            </Button>
+          )}
+          <nav className="hidden min-w-0 flex-1 items-center gap-1 overflow-hidden text-[12px] text-muted-foreground md:flex" aria-label="Ubicación en la norma">
+            {ruta.map((e, i) => (
+              <span key={e.id} className="flex min-w-0 items-center gap-1">
+                {i > 0 && <ChevronRight className="h-3 w-3 shrink-0 opacity-60" />}
+                <button
+                  type="button"
+                  onClick={() => irA(e.id)}
+                  className={cn('truncate hover:text-foreground', i === ruta.length - 1 && 'font-semibold text-foreground')}
+                  title={e.texto}
                 >
-                  <MessageSquare className="h-4 w-4" />
-                  <span className="hidden sm:inline">Preguntar a A-LexIA</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Preguntar a A-LexIA sobre este documento</TooltipContent>
-            </Tooltip>
-            {doc.source_url && (
+                  {e.esArticulo ? e.articulo : e.nivel === 1 ? nombreCorto(e).replace(/^(el|la) /, '').replace(/^\w/, (c) => c.toUpperCase()) : e.texto.replace(/ — .*/, '').slice(0, 28)}
+                </button>
+              </span>
+            ))}
+          </nav>
+          <div className="ml-auto flex shrink-0 items-center gap-1">
+            <Button variant="ghost" size="sm" onClick={preguntar} className="text-brand-700 dark:text-brand-400">
+              <MessageSquare className="h-4 w-4" />
+              <span className="hidden xl:inline">Preguntar a A-LexIA</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => toast.info('Selecciona el texto que quieras resaltar y elige un color.')}
+              title="Resaltar: selecciona un texto del documento"
+            >
+              <Highlighter className="h-4 w-4" />
+              <span className="hidden xl:inline">Resaltar</span>
+            </Button>
+            {fuente && (
               <Button asChild variant="ghost" size="sm">
-                <a href={doc.source_url} target="_blank" rel="noreferrer">
+                <a href={fuente} target="_blank" rel="noreferrer" title="Abrir la fuente oficial">
                   <ExternalLink className="h-4 w-4" />
-                  <span className="hidden sm:inline">Fuente</span>
+                  <span className="hidden sm:inline">Fuente oficial</span>
                 </a>
               </Button>
             )}
-            <Button
-              variant={saved ? 'default' : 'outline'}
-              size="sm"
-              onClick={toggleSave}
-            >
-              {saved ? (
-                <>
-                  <Star className="h-4 w-4 fill-current" />
-                  <span className="hidden sm:inline">Guardado</span>
-                </>
-              ) : (
-                <>
-                  <Star className="h-4 w-4" />
-                  <span className="hidden sm:inline">Guardar</span>
-                </>
-              )}
+            <Button variant="ghost" size="sm" onClick={() => window.print()} title="Imprimir" className="hidden sm:inline-flex">
+              <Printer className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={copiarEnlace} title="Copiar enlace" aria-label="Copiar enlace">
+              <Link2 className="h-4 w-4" />
+            </Button>
+            <Button variant={saved ? 'default' : 'outline'} size="sm" onClick={toggleSave}>
+              <Star className={cn('h-4 w-4', saved && 'fill-current')} />
+              <span className="hidden sm:inline">{saved ? 'Guardado' : 'Guardar'}</span>
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="w-full max-w-none px-4 sm:px-6 lg:px-10 xl:px-14 py-8 grid grid-cols-12 gap-6">
-        {/* TOC sidebar (left) — solo aparece si hay items.
-            Feedback César 30/06/2026: aprovechar más ancho de pantalla.
-            Reducido de col-span-3 a col-span-2 para dar más espacio al contenido. */}
-        {toc.length > 0 && (
-          <aside className="hidden lg:block col-span-2">
-            <Card className="p-4 sticky top-32">
-              <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                <ListTree className="h-3.5 w-3.5" />
-                Contenido
-              </h2>
-              <ul className="space-y-0.5 max-h-[60vh] overflow-y-auto scrollbar-thin">
-                {toc.map((item) => {
-                  const isActive = activeHeadingId === item.id;
-                  return (
-                    <li key={item.id}>
-                      <a
-                        href={`#${item.id}`}
-                        className={cn(
-                          'block py-1 text-xs leading-relaxed transition-colors border-l-2 pl-2 -ml-0.5 rounded-r',
-                          item.level === 1 ? 'font-semibold' : '',
-                          item.level === 2 && 'pl-4',
-                          item.level >= 3 && 'pl-6',
-                          isActive
-                            ? 'border-brand-500 bg-brand-50/60 dark:bg-brand-950/40 text-brand-700 dark:text-brand-400'
-                            : 'border-transparent text-muted-foreground hover:text-brand-700 dark:hover:text-brand-400 hover:border-brand-300',
-                        )}
-                      >
-                        {item.text}
-                      </a>
-                    </li>
-                  );
-                })}
-              </ul>
-            </Card>
-          </aside>
-        )}
-
-        {/* Main content — expande cuando no hay TOC */}
-        {/* El ancho del texto depende de cuántas columnas laterales
-            quedan: sin el panel de resumen, el documento se queda con
-            lo que sobra en vez de dejar un hueco. */}
-        <main
-          className={cn(
-            'col-span-12 min-w-0',
-            toc.length > 0
-              ? conPanelDeResumen
-                ? 'lg:col-span-7'
-                : 'lg:col-span-10'
-              : conPanelDeResumen
-                ? 'lg:col-span-9'
-                : 'lg:col-span-12',
-          )}
-        >
-          <motion.header
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="mb-8"
-          >
-            <Badge variant="outline" className={cn('mb-3', meta.bg, meta.color)}>
-              <span
-                className="inline-block h-1.5 w-1.5 rounded-full mr-1"
-                style={{ backgroundColor: meta.tagColor }}
-              />
+      <div className="w-full px-4 py-6 sm:px-6 lg:px-10">
+        {/* Cabecera del documento */}
+        <header className="mb-6 max-w-5xl">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className={cn('border-transparent', meta.bg, meta.color)}>
+              <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: meta.tagColor }} />
               {meta.label}
-              {doc.date && (
-                <>
-                  <span className="opacity-50 mx-1">·</span>
-                  {formatDate(doc.date)}
-                </>
-              )}
             </Badge>
-            <h1 className="font-semibold text-3xl sm:text-4xl tracking-tight text-balance">
-              {doc.title}
-            </h1>
-            {doc.summary && (
-              <p className="mt-3 text-muted-foreground leading-relaxed">
-                {doc.summary}
-              </p>
+            {(acto?.entidad || (doc.metadata?.entidad as string | undefined)) && (
+              <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {acto?.entidad || (doc.metadata?.entidad as string)}
+              </span>
             )}
-            {/* Banner de aviso para "Buscador Interpretativo" — son índices
-                sin texto normativo, solo hipervínculos a opiniones. Sin este
-                aviso, el usuario abre esperando leer el Reglamento y solo
-                ve la lista de títulos de artículo. */}
-            {(doc.title?.toLowerCase().includes('buscador interpretativo') ||
-              doc.title?.toLowerCase().includes('buscador de opiniones organizadas por artículo')) && (
-              <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50/70 dark:border-amber-900/50 dark:bg-amber-950/30 p-4 text-sm">
-                <div className="flex gap-3">
-                  <span className="text-lg">ℹ</span>
-                  <div className="flex-1">
-                    <p className="font-medium text-amber-900 dark:text-amber-200">
-                      Este documento es un índice de opiniones, no el texto normativo.
-                    </p>
-                    <p className="mt-1 text-amber-800 dark:text-amber-300/90 leading-relaxed">
-                      Es el buscador oficial del DTN-OECE que lista los títulos de cada artículo
-                      con hipervínculos hacia las opiniones vinculadas. Para leer el <strong>texto
-                      completo</strong> del Reglamento y de la Ley 32069, consulta el documento{' '}
-                      <em>"Ley N° 32069 + DS N° 009-2025-EF (texto íntegro El Peruano)"</em>.
-                    </p>
-                  </div>
-                </div>
+            {acto ? (
+              <Vigencia desde={acto.vigente_desde} hasta={acto.vigente_hasta} derogada={acto.derogada} />
+            ) : (
+              doc.date && <span className="text-xs text-muted-foreground">{formatDate(doc.date)}</span>
+            )}
+          </div>
+          <h1 className="text-balance text-2xl font-semibold tracking-tight sm:text-3xl">
+            {acto ? acto.numero : doc.title}
+            {acto?.titulo && <span className="block text-lg font-medium text-foreground/80 sm:text-xl">{acto.titulo}</span>}
+          </h1>
+          {acto && (
+            <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12.5px] text-muted-foreground">
+              {aprobacion && (
+                <span>
+                  Aprobada mediante <span className="font-medium text-foreground/80">{aprobacion.nombre}</span>
+                  {aprobacion.fecha && ` (${formatDate(aprobacion.fecha)})`}
+                </span>
+              )}
+              {modificaciones.length > 0 && (
+                <span>
+                  {modificaciones.length === 1 ? 'Modificada por ' : 'Modificaciones: '}
+                  {modificaciones.map((m, i) => (
+                    <span key={m.nombre}>
+                      {i > 0 && '; '}
+                      <span className="font-medium text-foreground/80">{m.nombre.replace(/^Resoluci[óo]n /, 'Res. ')}</span>
+                      {m.fecha && ` (${formatDate(m.fecha)})`}
+                    </span>
+                  ))}
+                </span>
+              )}
+            </p>
+          )}
+          {acto?.nota && <p className="mt-1.5 text-[12.5px] text-amber-800 dark:text-amber-300">{acto.nota}</p>}
+          {/* Las piezas del acto: el texto original, el actualizado, las resoluciones… */}
+          {partes.length > 1 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {partes.map((p) => (
+                <Link
+                  key={p.id}
+                  href={`/biblioteca/documento/${p.id}${volverParam ? `?volver=${encodeURIComponent(volverParam)}` : ''}`}
+                  className={cn(
+                    'rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors',
+                    p.id === doc.id
+                      ? 'border-brand-500 bg-brand-50 text-brand-800 dark:bg-brand-950/50 dark:text-brand-300'
+                      : 'border-border text-muted-foreground hover:border-brand-300 hover:text-foreground',
+                  )}
+                >
+                  {p.etiqueta}
+                  {p.fecha && <span className="ml-1 opacity-70">· {formatDate(p.fecha)}</span>}
+                </Link>
+              ))}
+            </div>
+          )}
+          {!partes.length && parteEtiqueta && <p className="mt-2 text-[12.5px] text-muted-foreground">{parteEtiqueta}</p>}
+        </header>
+
+        <div className="flex gap-6">
+          {hayIndice && indiceVisible && (
+            <aside className="no-imprimir hidden w-[310px] shrink-0 lg:block">
+              <div className="sticky top-[7.75rem] h-[calc(100vh-9rem)]">
+                <IndiceDeNorma
+                  encabezados={encabezados}
+                  activo={activo}
+                  onIr={irA}
+                  onOcultar={() => setIndiceVisible(false)}
+                  resaltados={annotations}
+                  onIrAResaltado={irAResaltado}
+                  onBorrarResaltado={borrarResaltado}
+                  busqueda={{
+                    consulta,
+                    onConsulta: setConsulta,
+                    coincidencias: coincidencias.length,
+                    actual,
+                    onSiguiente: () => irACoincidencia(actual + 1),
+                    onAnterior: () => irACoincidencia(actual - 1),
+                  }}
+                />
+              </div>
+            </aside>
+          )}
+
+          <main className="min-w-0 flex-1">
+            {hayIndice && !indiceVisible && (
+              <Button variant="outline" size="sm" className="no-imprimir mb-3 hidden lg:inline-flex" onClick={() => setIndiceVisible(true)}>
+                <PanelLeftOpen className="h-4 w-4" /> Mostrar índice
+              </Button>
+            )}
+
+            {navArticulos && navArticulos.total > 1 && (
+              <div className="no-imprimir sticky top-[7.25rem] z-10 mb-3 flex items-center justify-between gap-2 rounded-lg border border-border bg-card/95 px-2 py-1.5 text-[12px] backdrop-blur-sm">
+                <button
+                  type="button"
+                  disabled={!navArticulos.anterior}
+                  onClick={() => navArticulos.anterior && irA(navArticulos.anterior.id)}
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 font-medium hover:bg-secondary disabled:opacity-40"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" /> {navArticulos.anterior?.articulo ?? 'Anterior'}
+                </button>
+                <span className="truncate font-semibold text-foreground">
+                  {articuloActual?.articulo}
+                  <span className="ml-1 font-normal text-muted-foreground">
+                    · {navArticulos.posicion} de {navArticulos.total}
+                    {articuloActual?.parte && porId.get(articuloActual.parte) && porId.get(articuloActual.parte)!.id !== articuloActual.id
+                      ? ` en ${nombreCorto(porId.get(articuloActual.parte)!)}`
+                      : ''}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  disabled={!navArticulos.siguiente}
+                  onClick={() => navArticulos.siguiente && irA(navArticulos.siguiente.id)}
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 font-medium hover:bg-secondary disabled:opacity-40"
+                >
+                  {navArticulos.siguiente?.articulo ?? 'Siguiente'} <ChevronRight className="h-3.5 w-3.5" />
+                </button>
               </div>
             )}
-          </motion.header>
 
-          <article
-            ref={contentRef}
-            className="prose-lexia select-text"
-          >
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeRaw]}
-              components={{
-                h1: ({ children }) => {
-                  const id = slugifyChildren(children);
-                  return (
-                    <h1 id={id} className="font-semibold scroll-mt-32 group/heading relative">
-                      {children}
-                      <HeadingActions id={id} title={String(children)} />
-                    </h1>
-                  );
-                },
-                h2: ({ children }) => {
-                  const id = slugifyChildren(children);
-                  return (
-                    <h2 id={id} className="scroll-mt-32 group/heading relative">
-                      {children}
-                      <HeadingActions id={id} title={String(children)} />
-                    </h2>
-                  );
-                },
-                h3: ({ children }) => (
-                  <h3 id={slugifyChildren(children)} className="scroll-mt-32">
-                    {children}
-                  </h3>
-                ),
-                mark: ({ children, ...props }) => {
-                  const color = (props as { 'data-color'?: string })['data-color'] || 'yellow';
-                  const bg =
-                    color === 'green'
-                      ? 'bg-emerald-200/70 dark:bg-emerald-500/40'
-                      : color === 'blue'
-                        ? 'bg-sky-200/70 dark:bg-sky-500/40'
-                        : 'bg-yellow-200/70 dark:bg-yellow-500/40';
-                  return (
-                    <mark className={`${bg} rounded px-0.5 -mx-0.5`}>
-                      {children}
-                    </mark>
-                  );
-                },
-              }}
-            >
-              {renderedContent}
-            </ReactMarkdown>
-          </article>
-        </main>
+            {cabecera && <FichaDeOpinion cabecera={cabecera} numero={doc.number || doc.title} />}
 
-        {/* Columna derecha: resumen (cuando toca) y los resaltados del
-            usuario. Si no hay ni lo uno ni lo otro, no se pinta. */}
-        <aside
-          className={cn(
-            'hidden space-y-5 lg:block',
-            conPanelDeResumen ? 'col-span-3' : 'col-span-2',
-          )}
-        >
-          {/* Resumen IA generado + Documentos relacionados.
-              Bug reportado César 08/07/2026: cuando el panel derecho es
-              más alto que el viewport visible, la parte inferior queda
-              inaccesible (sticky no scrollea internamente). Fix:
-              max-h + overflow-y-auto en el propio sticky. Ahora se
-              puede scrollear dentro del panel para ver todas las
-              preguntas + relacionados + mis resaltados sin perder la
-              vista fija al hacer scroll del documento principal. */}
-          <div className="sticky top-32 space-y-5 max-h-[calc(100vh-8rem)] overflow-y-auto scrollbar-thin pr-1">
-            {conPanelDeResumen && (
-              <SummaryPanel
-                documentId={doc.id}
-                docType={doc.type}
-                initialSummary={initialSummary}
-                initialGeneratedAt={initialSummaryGeneratedAt}
-                initialModel={initialSummaryModel}
-                rawText={doc.raw_text || undefined}
-                savedAt={saved ? new Date().toISOString() : null}
-                sectionAnchors={sectionAnchors}
-              />
-            )}
-            {/* Mis resaltados */}
-          <Card className="p-4">
-            <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-              <Highlighter className="h-3.5 w-3.5" />
-              Mis resaltados
-              <span className="ml-auto font-mono text-[10px] tabular-nums">
-                {annotations.length}
-              </span>
-            </h2>
-            {annotations.length === 0 ? (
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Selecciona texto del documento para resaltarlo. Se guarda automáticamente.
+            {!resaltadoNativo && annotations.length > 0 && (
+              <p className="no-imprimir mb-3 text-[12px] text-muted-foreground">
+                Tu navegador no puede pintar los resaltados dentro del texto; los ves en la pestaña «Mis resaltados» del índice.
               </p>
-            ) : (
-              <ul className="space-y-2 max-h-[60vh] overflow-y-auto scrollbar-thin">
-                {annotations.map((a) => (
-                  <li
-                    key={a.id}
-                    className="group rounded-md border border-border p-2 hover:border-brand-400 transition-colors"
-                  >
-                    <div
-                      className={cn(
-                        'h-1 w-full rounded-full mb-1.5',
-                        HIGHLIGHT_COLORS[a.color] || HIGHLIGHT_COLORS.yellow,
-                      )}
-                    />
-                    <p className="text-[11px] leading-relaxed line-clamp-3 italic">
-                      "{a.highlighted_text}"
-                    </p>
-                    <div className="mt-1 flex justify-end">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={() => deleteAnnotation(a.id)}
-                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
-                            aria-label="Eliminar resaltado"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>Eliminar</TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </li>
-                ))}
-              </ul>
             )}
-          </Card>
-          </div>
-        </aside>
+
+            <article ref={contentRef} className="lexia-norma select-text">
+              {secciones.map((s) => (
+                <SeccionDeNorma key={s.id} seccion={s} />
+              ))}
+            </article>
+          </main>
+        </div>
       </div>
 
-      {toolbar && (
-        <HighlightToolbar
-          x={toolbar.x}
-          y={toolbar.y}
-          onPick={createHighlight}
-          onClose={() => setToolbar(null)}
-        />
-      )}
+      {/* Índice en el teléfono */}
+      <Sheet open={indiceMovil} onOpenChange={setIndiceMovil}>
+        <SheetContent side="left" className="w-[88vw] max-w-sm p-3">
+          <SheetHeader>
+            <SheetTitle className="text-sm">Índice</SheetTitle>
+          </SheetHeader>
+          <div className="mt-2 h-[calc(100vh-5rem)]">
+            <IndiceDeNorma
+              encabezados={encabezados}
+              activo={activo}
+              onIr={irA}
+              resaltados={annotations}
+              onIrAResaltado={irAResaltado}
+              onBorrarResaltado={borrarResaltado}
+              busqueda={{
+                consulta,
+                onConsulta: setConsulta,
+                coincidencias: coincidencias.length,
+                actual,
+                onSiguiente: () => irACoincidencia(actual + 1),
+                onAnterior: () => irACoincidencia(actual - 1),
+              }}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {toolbar && <HighlightToolbar x={toolbar.x} y={toolbar.y} onPick={crearResaltado} onClose={() => setToolbar(null)} />}
 
       <SaveToFolderDialog
         documentId={savingDialog ? doc.id : null}
@@ -680,240 +642,109 @@ export function DocumentViewer({
         }}
         onFolderCreated={(f) => setFolders((prev) => [...prev, f])}
       />
-    </>
+    </div>
   );
 }
 
-// ──────────────────────────────────────────────────────────────
-// Helpers
-// ──────────────────────────────────────────────────────────────
-
-interface TocItem {
-  id: string;
-  level: number;
-  text: string;
-  /** Índice de arranque del match dentro del markdown crudo, útil para
-   *  inyectar anclas antes de secciones detectadas en texto plano
-   *  (no headings markdown). */
-  offset?: number;
+function nombreCorto(e: Encabezado): string {
+  if (/^REGLAMENTO/i.test(e.texto)) return 'el Reglamento';
+  if (/^DECRETO SUPREMO/i.test(e.texto)) return 'el decreto supremo';
+  if (/^LEY/i.test(e.texto)) return 'la Ley';
+  return e.etiqueta.slice(0, 30);
 }
 
-/**
- * Mapea el `key` de cada pregunta del SummaryPanel al anchor id de la
- * sección del documento que responde esa pregunta. Se usa para hacer
- * las questions del sidebar clickeables — César 08/07/2026: pedía un
- * índice sticky que acompañe siempre en pronunciamientos, para poder
- * saltar de cuestionamientos a conclusiones sin scrollear.
- *
- * Cada question key tiene una lista de patrones (regex sobre el texto
- * del heading) por orden de preferencia. Se elige el PRIMER TocItem
- * que matchee alguno de los patrones.
- */
-const QUESTION_KEY_TO_SECTION_HINTS: Record<string, RegExp[]> = {
-  sumilla: [/sumilla/i, /materia/i],
-  de_que_trata: [/sumilla/i, /materia/i, /asunto/i, /antecedente/i],
-  asunto: [/asunto/i, /materia/i, /sumilla/i],
-  antecedentes: [/antecedente/i, /hechos/i],
-  cuestionamientos: [/cuestionamiento/i, /consulta/i, /petitorio/i, /materia/i],
-  consultas_formuladas: [/consulta/i, /cuestionamiento/i, /materia/i],
-  normativa_aplicada: [
-    /normativa/i,
-    /marco\s+normativo/i,
-    /fundamento/i,
-    /base\s+legal/i,
-    /an[áa]lisis/i,
-  ],
-  normativa_desarrolla: [/normativa/i, /marco\s+normativo/i, /fundamento/i],
-  puntos_controvertidos: [/controvertid/i, /puntos/i, /an[áa]lisis/i],
-  criterio: [/criterio/i, /an[áa]lisis/i, /fundamento/i],
-  que_criterio_establece: [/criterio/i, /an[áa]lisis/i, /fundamento/i],
-  decisiones: [/decisi/i, /resuelve/i, /pronunciamiento/i],
-  resolucion: [/resuelve/i, /decisi/i, /parte\s+resolutiva/i],
-  inconsistencias: [/inconsisten/i, /observa/i, /omisi/i],
-  modificaciones: [/modifica/i, /reformul/i, /disposi/i],
-  disposiciones: [/disposi/i, /regla/i, /norma/i],
-  obligaciones: [/obligaci/i, /disposi/i],
-  conclusion: [/conclusi/i, /parte\s+final/i],
-  conclusiones: [/conclusi/i, /parte\s+final/i],
-  que_establece: [/establece/i, /disposi/i, /norma/i],
-  a_quien_afecta: [/afecta/i, /alcance/i, /aplicaci/i],
-};
-
-/**
- * Devuelve `{ questionKey → anchorId }` recorriendo los patrones para
- * cada key y eligiendo el primer TocItem que matchea. Si no hay match
- * queda ausente y la question no será clickeable.
- */
-export function mapQuestionKeysToAnchors(
-  questionKeys: string[],
-  toc: TocItem[],
-): Record<string, string> {
-  const map: Record<string, string> = {};
-  if (toc.length === 0) return map;
-  for (const key of questionKeys) {
-    const hints = QUESTION_KEY_TO_SECTION_HINTS[key];
-    if (!hints) continue;
-    for (const re of hints) {
-      const item = toc.find((t) => re.test(t.text));
-      if (item) {
-        map[key] = item.id;
-        break;
-      }
-    }
-  }
-  return map;
-}
-
-function extractToc(markdown: string): TocItem[] {
-  const items: TocItem[] = [];
-  const seen = new Set<string>();
-
-  // Trunca un heading largo a su parte "canónica" para la TOC.
-  // Los PDFs a veces pegan texto del cuerpo al heading porque el extractor
-  // no reconoció el salto. Truncamos hasta el primer "." o coma si la
-  // longitud excede 80 chars, con fallback a 120.
-  const trimHeading = (raw: string): string => {
-    const clean = raw.replace(/\s+/g, ' ').trim();
-    if (clean.length <= 80) return clean;
-    // Buscar primer punto o "." que cierre una frase corta
-    const cutIdx = clean.slice(0, 100).search(/[.]\s|:\s/);
-    if (cutIdx > 15 && cutIdx < 100) return clean.slice(0, cutIdx + 1);
-    // Fallback: cortar en 120 chars sin partir palabra
-    if (clean.length > 120) {
-      const trunc = clean.slice(0, 120);
-      const lastSpace = trunc.lastIndexOf(' ');
-      return (lastSpace > 60 ? trunc.slice(0, lastSpace) : trunc) + '…';
-    }
-    return clean;
-  };
-
-  // 1. Headings markdown estándar (# H1, ## H2, ### H3)
-  const reMd = /^(#{1,3})\s+(.+)$/gm;
-  let m: RegExpExecArray | null;
-  while ((m = reMd.exec(markdown))) {
-    const level = m[1].length;
-    const text = trimHeading(m[2]);
-    const id = slugify(text);
-    if (!seen.has(id)) {
-      seen.add(id);
-      items.push({ id, level, text, offset: m.index });
-    }
-  }
-
-  // 2. Si no hay headings markdown, detectar patrones del texto plano:
-  //    - Romanos: "I. ANTECEDENTES", "II. ANÁLISIS"
-  //    - Numerados: "1. ANTECEDENTES", "2. ANÁLISIS"
-  //    - Mayúsculas: "CUESTIONAMIENTO N° 1", "PETITORIO"
-  if (items.length === 0) {
-    // Los pronunciamientos y opiniones vienen usualmente sin saltos de
-    // línea claros (todo en un solo párrafo). Por eso los patrones NO
-    // usan ^/$/m — buscamos inline con un lookbehind sencillo (borde
-    // de palabra + espacio) para no matchear en medio de una palabra.
-    const KEYWORDS = 'CUESTIONAMIENTOS?|ANTECEDENTES|AN[ÁA]LISIS|CONCLUSIONES?|PETITORIO|FUNDAMENTOS?|FUNDAMENTACI[ÓO]N|RESUELVE|SUMILLA|MATERIA|HECHOS|DECISI[ÓO]N|PARTE\\s+RESOLUTIVA|MARCO\\s+NORMATIVO|NORMATIVA\\s+APLICABLE';
-    const patterns: Array<{ re: RegExp; level: number }> = [
-      // Con línea propia (formato ideal, poco frecuente en pronunciamientos)
-      { re: /^\s*(I{1,4}|IV|V|VI{1,3}|IX|X)\.\s+([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s,:\-]{3,80})$/gm, level: 1 },
-      { re: /^\s*(\d{1,2})\.\s+([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑa-záéíóúñ\s,:\-]{3,80})$/gm, level: 2 },
-      // Inline: "1. ANTECEDENTES", "2. CUESTIONAMIENTOS", "4. CONCLUSIONES"
-      // — matchea en medio de párrafo continuo que es como vienen los
-      // pronunciamientos OECE extraídos de PDF.
-      { re: new RegExp(`\\s(\\d{1,2})\\.\\s+(${KEYWORDS})\\b`, 'g'), level: 2 },
-      // Inline sin numeración: "CUESTIONAMIENTO N° 1", "PETITORIO", etc.
-      { re: new RegExp(`\\s(${KEYWORDS}|CUESTIONAMIENTO\\s+N[\\.°º]?\\s*\\d+)\\b`, 'g'), level: 1 },
-    ];
-
-    for (const { re, level } of patterns) {
-      let mm: RegExpExecArray | null;
-      while ((mm = re.exec(markdown))) {
-        const text = (mm[2] ? `${mm[1]}. ${mm[2]}` : mm[1] || mm[0]).trim();
-        const id = slugify(text);
-        if (id.length < 3) continue;
-        if (seen.has(id)) continue;
-        seen.add(id);
-        items.push({ id, level, text, offset: mm.index });
-      }
-    }
-  }
-
-  // Ordenamos por posición en el documento — los patrones no-markdown
-  // no vienen en orden porque ejecutamos regex separados.
-  items.sort((a, b) => (a.offset ?? 0) - (b.offset ?? 0));
-
-  // Dedup de secciones muy próximas (mismo bloque capturado por 2
-  // patrones distintos, ej: "1. ANTECEDENTES" por patrón numerado +
-  // "ANTECEDENTES" por patrón keyword). Nos quedamos con el primero.
-  const deduped: TocItem[] = [];
-  let lastOffset = -100;
-  for (const it of items) {
-    const off = it.offset ?? 0;
-    if (off - lastOffset < 30) continue;
-    deduped.push(it);
-    lastOffset = off;
-  }
-
-  // Limit a 30 items para no saturar
-  return deduped.slice(0, 30);
-}
-
-/**
- * Inyecta anclas invisibles `<span id="..."></span>` antes de cada
- * TocItem cuyo offset se conoce. Sirve para secciones detectadas en
- * texto plano (ej: "CUESTIONAMIENTO N° 1") que NO son headings
- * markdown y por lo tanto no tienen un elemento con id en el DOM.
- *
- * Sin esto, la TOC izquierda muestra el ítem pero al clickear el hash
- * no lleva a ningún lado. Con esto, las anclas quedan disponibles para
- * navegación por hash y para el auto-scroll desde el SummaryPanel
- * (feedback César 08/07/2026).
- */
-function injectSectionAnchors(text: string, toc: TocItem[]): string {
-  if (toc.length === 0) return text;
-  // Insertamos de atrás hacia adelante para no descuadrar los offsets.
-  const withOffsets = toc
-    .filter((t) => typeof t.offset === 'number')
-    .sort((a, b) => (b.offset ?? 0) - (a.offset ?? 0));
-  let out = text;
-  for (const item of withOffsets) {
-    // Si el ancla ya está en el markdown (heading con id automático)
-    // no necesitamos inyectar nada. Detectamos heurísticamente si el
-    // texto en el offset comienza con "#": entonces el ReactMarkdown
-    // components.h* ya asigna el id.
-    const chunk = out.slice(item.offset!, item.offset! + 4);
-    if (/^#{1,3}\s/.test(chunk)) continue;
-    // Inyectar un span invisible con id + una línea en blanco para no
-    // romper el flujo del markdown.
-    const anchor = `\n<span id="${item.id}" class="scroll-mt-32" aria-hidden="true"></span>\n\n`;
-    out = out.slice(0, item.offset!) + anchor + out.slice(item.offset!);
-  }
-  return out;
-}
-
-/**
- * Botones que aparecen al hover sobre un heading (Artículo X, Título Y).
- * Permiten: copiar el link permanente (ancla) y preguntar a A-LexIA
- * específicamente sobre ese artículo. Feedback de César 30/06/2026:
- * "faltan botones de copiar cita / preguntar a A-LexIA sobre este
- * artículo" en la vista de detalle de documento.
- */
-function HeadingActions({ id, title }: { id: string; title: string }) {
-  async function copyAnchor() {
-    const url = window.location.href.split('#')[0] + '#' + id;
-    await navigator.clipboard.writeText(url);
-    toast.success('Enlace al artículo copiado');
-  }
-
-  function askAbout() {
-    const clean = title.replace(/\s+/g, ' ').trim();
-    const prompt = encodeURIComponent(`Explícame en detalle: ${clean}`);
-    window.location.href = `/chat?new=1&q=${prompt}`;
-  }
-
+/** La cabecera de una opinión, como en el documento original. */
+function FichaDeOpinion({ cabecera, numero }: { cabecera: CabeceraDeOpinion; numero: string }) {
+  const filas: Array<[string, string | null]> = [
+    ['Solicitante', cabecera.solicitante],
+    ['Asunto', cabecera.asunto],
+    ['Referencia', cabecera.referencia],
+  ];
   return (
-    <span className="inline-flex ml-2 gap-1.5 align-middle opacity-40 hover:opacity-100 group-hover/heading:opacity-90 transition-opacity">
+    <section className="mb-6 rounded-xl border border-border bg-card p-5 text-[14px] leading-relaxed">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          {cabecera.lugarFecha && <p className="text-[13px] text-muted-foreground">{cabecera.lugarFecha}</p>}
+          <p className="font-semibold uppercase tracking-wide">{numero}</p>
+        </div>
+        {(cabecera.expediente || cabecera.td) && (
+          <div className="text-right text-[12.5px] font-semibold">
+            {cabecera.expediente && <p>Expediente N° {cabecera.expediente}</p>}
+            {cabecera.td && <p>T.D. N° {cabecera.td}</p>}
+          </div>
+        )}
+      </div>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
+        {filas
+          .filter(([, v]) => v)
+          .map(([k, v]) => (
+            <div key={k} className="contents">
+              <dt className="font-semibold uppercase tracking-wide text-[12.5px] text-foreground/80">{k}</dt>
+              <dd className="text-justify">: {v}</dd>
+            </div>
+          ))}
+      </dl>
+    </section>
+  );
+}
+
+/**
+ * Una sección: su encabezado y su texto. Se pinta por separado y no se
+ * vuelve a pintar si no cambia (memo): los resaltados y la búsqueda se
+ * dibujan encima sin tocarla.
+ */
+const SeccionDeNorma = memo(function SeccionDeNorma({ seccion }: { seccion: Seccion }) {
+  const e = seccion.encabezado;
+  return (
+    <section id={seccion.id} data-seccion={seccion.id} className={cn('seccion-norma', e && `nivel-${Math.min(e.nivel, 5)}`)}>
+      {e && <EncabezadoDeNorma e={e} />}
+      {seccion.cuerpo && (
+        <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer">{children}</a> }}>
+          {seccion.cuerpo}
+        </ReactMarkdown>
+      )}
+    </section>
+  );
+});
+
+function EncabezadoDeNorma({ e }: { e: Encabezado }) {
+  const Etiqueta = (`h${Math.min(e.nivel + 1, 6)}` as unknown) as 'h2';
+  // «TÍTULO II — ACTORES INVOLUCRADOS…»: el número arriba, el nombre abajo.
+  const partes = e.texto.split(' — ');
+  if (e.esArticulo) {
+    const m = /^(Art[íi]culo\s+(?:\d+[A-Za-z°º]*|[IVXLC]+))[.\-–:\s]*(.*)$/i.exec(e.texto);
+    return (
+      <Etiqueta className="encabezado-norma articulo group/heading">
+        <span className="articulo-numero">{m ? m[1] : e.texto}</span>
+        {m && m[2] && <span className="articulo-titulo">{m[2]}</span>}
+        <AccionesDeArticulo id={e.id} texto={e.texto} />
+      </Etiqueta>
+    );
+  }
+  return (
+    <Etiqueta className="encabezado-norma">
+      {partes.length > 1 ? (
+        <>
+          <span className="block">{partes[0]}</span>
+          <span className="block encabezado-nombre">{partes.slice(1).join(' — ')}</span>
+        </>
+      ) : (
+        e.texto
+      )}
+    </Etiqueta>
+  );
+}
+
+function AccionesDeArticulo({ id, texto }: { id: string; texto: string }) {
+  return (
+    <span data-no-indexar className="no-imprimir ml-2 inline-flex gap-1 align-middle opacity-0 transition-opacity group-hover/heading:opacity-90">
       <button
         type="button"
-        onClick={copyAnchor}
-        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:text-brand-700 hover:bg-brand-50 dark:hover:text-brand-400 dark:hover:bg-brand-950/40 transition-colors"
+        onClick={async () => {
+          await navigator.clipboard.writeText(`${window.location.href.split('#')[0]}#${id}`);
+          toast.success('Enlace al artículo copiado.');
+        }}
+        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-brand-50 hover:text-brand-700"
         aria-label="Copiar enlace al artículo"
         title="Copiar enlace al artículo"
       >
@@ -921,8 +752,10 @@ function HeadingActions({ id, title }: { id: string; title: string }) {
       </button>
       <button
         type="button"
-        onClick={askAbout}
-        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:text-brand-700 hover:bg-brand-50 dark:hover:text-brand-400 dark:hover:bg-brand-950/40 transition-colors"
+        onClick={() => {
+          window.location.href = `/chat?new=1&q=${encodeURIComponent(`Explícame en detalle: ${texto}`)}`;
+        }}
+        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-brand-50 hover:text-brand-700"
         aria-label="Preguntar a A-LexIA sobre este artículo"
         title="Preguntar a A-LexIA sobre este artículo"
       >
@@ -930,84 +763,4 @@ function HeadingActions({ id, title }: { id: string; title: string }) {
       </button>
     </span>
   );
-}
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80);
-}
-
-function slugifyChildren(children: React.ReactNode): string {
-  function txt(n: React.ReactNode): string {
-    if (typeof n === 'string' || typeof n === 'number') return String(n);
-    if (Array.isArray(n)) return n.map(txt).join('');
-    if (n && typeof n === 'object' && 'props' in (n as unknown as Record<string, unknown>)) {
-      const props = (n as unknown as { props: { children?: React.ReactNode } }).props;
-      return txt(props.children);
-    }
-    return '';
-  }
-  return slugify(txt(children));
-}
-
-/** Compute character offsets of a Range within a container. */
-function getSelectionOffsets(
-  container: HTMLElement,
-  range: Range,
-): { start: number; end: number } | null {
-  let start = 0;
-  let end = 0;
-  let found = false;
-
-  function walk(node: Node, offset: number): { offset: number; done: boolean } {
-    if (node.nodeType === Node.TEXT_NODE) {
-      const length = (node.textContent || '').length;
-      if (node === range.startContainer) {
-        start = offset + range.startOffset;
-      }
-      if (node === range.endContainer) {
-        end = offset + range.endOffset;
-        found = true;
-      }
-      return { offset: offset + length, done: false };
-    }
-    let cur = offset;
-    for (const child of Array.from(node.childNodes)) {
-      const r = walk(child, cur);
-      cur = r.offset;
-      if (found) return { offset: cur, done: true };
-    }
-    return { offset: cur, done: false };
-  }
-
-  walk(container, 0);
-  if (!found) return null;
-  return { start, end };
-}
-
-/**
- * Render markdown with non-overlapping highlight spans.
- * We approximate by replacing exact text matches in the markdown source —
- * para la demo es suficiente y se ve correcto en el render.
- */
-function renderWithHighlights(text: string, annotations: UserAnnotation[]): string {
-  if (annotations.length === 0) return text;
-  let out = text;
-  // Sort by length desc so we don't break longer highlights with shorter overlapping ones
-  const sorted = [...annotations].sort(
-    (a, b) => b.highlighted_text.length - a.highlighted_text.length,
-  );
-  for (const a of sorted) {
-    const needle = a.highlighted_text.trim();
-    if (needle.length < 4) continue;
-    const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
-    const re = new RegExp(escaped, 'g');
-    out = out.replace(re, (match) => `<mark data-color="${a.color}">${match}</mark>`);
-  }
-  return out;
 }

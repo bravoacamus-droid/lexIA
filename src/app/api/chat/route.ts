@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { idsOcultos } from '@/lib/normativa/ocultos';
 import { streamText, generateText } from 'ai';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
@@ -821,6 +822,14 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
       // Si el usuario nombró un documento, su contenido va PRIMERO y no
       // compite por el cupo: es lo que pidió. El resto del pool queda
       // como contexto complementario.
+      // Lo derogado, vencido o retirado de la biblioteca tampoco se cita
+      // (documento 11 de César, 30/09/2026; ver lib/normativa/ocultos).
+      {
+        const ocultos = await idsOcultos(supabase);
+        for (let i = combined.length - 1; i >= 0; i--) {
+          if (ocultos.has(combined[i].document_id)) combined.splice(i, 1);
+        }
+      }
       const presupuesto = panoramic ? Math.min(MAX_CHUNKS + 17, 32) : MAX_CHUNKS;
       const finalMaxChunks = Math.max(presupuesto - chunksCitados.length, 6);
       let reranked = rerankChunks(combined, lastUser.content, finalMaxChunks);

@@ -28,7 +28,8 @@ export type NormativeDocType =
   | 'guia'
   | 'lineamiento'
   | 'codigo_etica'
-  | 'resolucion';
+  | 'resolucion'
+  | 'preguntas_frecuentes';
 
 interface ClassifyRule {
   type: NormativeDocType;
@@ -71,12 +72,19 @@ export const CLASSIFICATION_RULES: ClassifyRule[] = [
     textPattern: /\btupa\b|texto\s+único\s+de\s+procedimientos/i,
     label: 'TUPA',
   },
+  // Las preguntas frecuentes van en su propia categoría, no entre las
+  // guías (documento 11 de César, 30/09/2026).
+  {
+    type: 'preguntas_frecuentes',
+    urlPattern: /preguntas[-_]frecuentes|\bfaq\b/i,
+    textPattern: /preguntas\s+frecuentes|\bfaq\b/i,
+    label: 'Preguntas frecuentes',
+  },
   {
     type: 'guia',
-    urlPattern:
-      /\bguia[-_]|guia\.pdf|preguntas[-_]frecuentes|tablero[-_]normativo|\bfaq\b/i,
-    textPattern: /^gu[ií]a|preguntas\s+frecuentes|tablero\s+normativo|\bfaq\b/i,
-    label: 'Guía / FAQ / Tablero',
+    urlPattern: /\bguia[-_]|guia\.pdf|tablero[-_]normativo/i,
+    textPattern: /^gu[ií]a|tablero\s+normativo/i,
+    label: 'Guía / Tablero',
   },
   {
     type: 'manual_seace',

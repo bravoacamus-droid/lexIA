@@ -223,7 +223,8 @@ export function clasificarParte(numero: string | null, titulo?: string | null): 
 /**
  * Los tipos que se presentan agrupados. El resto —opiniones,
  * resoluciones del Tribunal, pronunciamientos— son documentos únicos y
- * agruparlos por título los escondería unos dentro de otros.
+ * agruparlos por título los escondería unos dentro de otros. Un texto
+ * con acto (`acto_clave`) se agrupa siempre, sea del tipo que sea.
  */
 export const TIPOS_CON_PARTES = new Set([
   'directiva',
@@ -231,7 +232,38 @@ export const TIPOS_CON_PARTES = new Set([
   'codigo_etica',
   'bases_estandar',
   'directiva_entidad',
+  'resolucion',
+  'guia',
 ]);
+
+/**
+ * El acto normativo tal como lo guarda la base (tabla normative_acts),
+ * armado con el «Tablero normativo» del OECE: número y título oficiales,
+ * las resoluciones que lo aprueban o modifican y su vigencia.
+ */
+export interface ActoInfo {
+  clave: string;
+  tipo: string;
+  entidad: string | null;
+  numero: string;
+  titulo: string | null;
+  url: string | null;
+  documentos: Array<{
+    rol: 'aprueba' | 'modificacion' | 'rectificacion' | 'anexo' | 'otro';
+    nombre: string;
+    fecha: string | null;
+    url: string | null;
+  }>;
+  vigente_desde: string | null;
+  vigente_hasta: string | null;
+  derogada: boolean;
+  nota: string | null;
+}
+
+/** «Directiva N° 0002-2025-EF/54.01 - Disposiciones para…» */
+export function tituloDeActo(a: Pick<ActoInfo, 'numero' | 'titulo'>): string {
+  return a.titulo ? `${a.numero} - ${a.titulo}` : a.numero;
+}
 
 export interface DocumentoAgrupable {
   id: string;
@@ -239,7 +271,15 @@ export interface DocumentoAgrupable {
   number: string | null;
   title: string;
   date: string | null;
-  metadata?: { package_folder?: string | null; entidad?: string | null } | null;
+  acto_clave?: string | null;
+  metadata?: {
+    package_folder?: string | null;
+    entidad?: string | null;
+    parte_rol?: string | null;
+    parte_etiqueta?: string | null;
+    parte_fecha?: string | null;
+    parte_url?: string | null;
+  } | null;
 }
 
 export interface ActoNormativo<D extends DocumentoAgrupable> {
@@ -248,12 +288,33 @@ export interface ActoNormativo<D extends DocumentoAgrupable> {
   titulo: string;
   tipo: string;
   fecha: string | null;
-  /** El documento que se abre al pulsar el acto: el texto de la norma. */
+  /** El documento que se abre al pulsar el acto: el texto vigente. */
   principal: D;
   /** Todas las piezas, la principal incluida, ya ordenadas. */
   partes: Array<{ doc: D; parte: ParteDeActo }>;
   /** Las piezas que son normativa —no anexos—: lo que César llama «fuentes». */
   fuentes: number;
+  /** Los datos oficiales del acto, si los hay. */
+  info: ActoInfo | null;
+}
+
+const PAPEL_DE_ROL: Record<string, PapelDeParte> = {
+  norma: 'norma',
+  aprueba: 'aprueba',
+  modificacion: 'modificatoria',
+  rectificacion: 'modificatoria',
+  anexo: 'anexo',
+  otro: 'otro',
+};
+
+/** La parte según lo que dejó anotado la base (scripts/biblioteca-actos.ts). */
+function parteAnotada(d: DocumentoAgrupable): ParteDeActo | null {
+  const m = d.metadata;
+  if (!m?.parte_rol || !m.parte_etiqueta) return null;
+  const papel = PAPEL_DE_ROL[m.parte_rol] ?? 'otro';
+  // Dentro del texto de la norma: el original antes que el actualizado.
+  const sub = papel === 'norma' && /^Texto actualizado/.test(m.parte_etiqueta) ? 0.5 : 0;
+  return { papel, etiqueta: m.parte_etiqueta, resolucion: null, orden: ORDEN[papel] + sub };
 }
 
 /**
@@ -261,18 +322,24 @@ export interface ActoNormativo<D extends DocumentoAgrupable> {
  * orden de llegada. Los tipos que no se agrupan salen como actos de una
  * sola pieza, así quien pinta la lista no tiene que distinguir casos.
  */
-export function agruparEnActos<D extends DocumentoAgrupable>(docs: D[]): Array<ActoNormativo<D>> {
+export function agruparEnActos<D extends DocumentoAgrupable>(
+  docs: D[],
+  actos: Record<string, ActoInfo> = {},
+): Array<ActoNormativo<D>> {
   const porClave = new Map<string, ActoNormativo<D>>();
   const orden: string[] = [];
 
   for (const d of docs) {
-    const agrupa = TIPOS_CON_PARTES.has(d.type);
-    const clave = agrupa
-      ? `${d.type}::${(d.metadata?.package_folder || d.title).trim().toLowerCase()}`
-      : `solo::${d.id}`;
+    const info = d.acto_clave ? actos[d.acto_clave] ?? null : null;
+    const agrupa = !!d.acto_clave || TIPOS_CON_PARTES.has(d.type);
+    const clave = d.acto_clave
+      ? `acto::${d.acto_clave}`
+      : agrupa
+        ? `${d.type}::${(d.metadata?.package_folder || d.title).trim().toLowerCase()}`
+        : `solo::${d.id}`;
 
     const parte = agrupa
-      ? clasificarParte(d.number, d.title)
+      ? parteAnotada(d) ?? clasificarParte(d.number, d.title)
       : { papel: 'norma' as const, etiqueta: 'Texto de la norma', resolucion: null, orden: 0 };
 
     const ya = porClave.get(clave);
@@ -280,26 +347,35 @@ export function agruparEnActos<D extends DocumentoAgrupable>(docs: D[]): Array<A
       orden.push(clave);
       porClave.set(clave, {
         clave,
-        titulo: d.title,
+        titulo: info ? tituloDeActo(info) : d.title,
         tipo: d.type,
-        fecha: d.date,
+        fecha: info?.vigente_desde ?? d.date,
         principal: d,
         partes: [{ doc: d, parte }],
         fuentes: 0,
+        info,
       });
       continue;
     }
     ya.partes.push({ doc: d, parte });
-    // La fecha del acto es la más antigua de sus piezas: la de origen.
-    if (d.date && (!ya.fecha || d.date < ya.fecha)) ya.fecha = d.date;
+    // Sin datos oficiales, la fecha del acto es la más antigua de sus piezas.
+    if (!info && d.date && (!ya.fecha || d.date < ya.fecha)) ya.fecha = d.date;
   }
 
   const salida: Array<ActoNormativo<D>> = [];
   for (const clave of orden) {
     const acto = porClave.get(clave)!;
-    acto.partes.sort((a, b) => a.parte.orden - b.parte.orden || a.parte.etiqueta.localeCompare(b.parte.etiqueta));
-    // Se abre por el texto de la norma; si no lo hay, por la primera pieza.
-    acto.principal = (acto.partes.find((p) => p.parte.papel === 'norma') ?? acto.partes[0]).doc;
+    const fechaDe = (x: D) => x.metadata?.parte_fecha ?? x.date ?? '';
+    acto.partes.sort(
+      (a, b) =>
+        a.parte.orden - b.parte.orden ||
+        fechaDe(a.doc).localeCompare(fechaDe(b.doc)) ||
+        a.parte.etiqueta.localeCompare(b.parte.etiqueta),
+    );
+    // Se abre por el texto vigente: el actualizado más reciente si lo hay;
+    // si no, el texto de la norma; si no, la primera pieza.
+    const normas = acto.partes.filter((p) => p.parte.papel === 'norma');
+    acto.principal = (normas[normas.length - 1] ?? acto.partes[0]).doc;
     acto.fuentes = acto.partes.filter((p) => p.parte.papel !== 'anexo').length;
     salida.push(acto);
   }

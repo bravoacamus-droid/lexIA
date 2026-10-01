@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn, getDocTypeMeta, formatDate } from '@/lib/utils';
 import { HighlightedText } from '@/components/app/library/highlighted-text';
 import { PasajesPorTermino, type PasajeDeTermino } from '@/components/app/library/pasajes-por-termino';
-import { clasificarParte, nombreDePapel } from '@/lib/normativa/actos';
+import { clasificarParte, nombreDePapel, TIPOS_CON_PARTES } from '@/lib/normativa/actos';
 import { getSummarySnippet } from '@/lib/ai/document-summary';
 import type { NormativeDocType } from '@/lib/supabase/types';
 
@@ -28,6 +28,8 @@ interface DocumentMini {
   summary: string | null;
   date: string | null;
   source_url: string | null;
+  /** Lo que anotó la biblioteca de esta pieza (scripts/biblioteca-actos.ts). */
+  metadata?: { parte_etiqueta?: string | null; parte_url?: string | null } | null;
   /** Resumen IA generado (si existe). Puede venir en formato v1
    * (`de_que_trata`) o v2 (`questions[]` con preguntas específicas por
    * tipo de documento — opinion/pronunciamiento/resolucion_tce/directiva). */
@@ -103,6 +105,7 @@ export function DocumentCard({
     <motion.article
       whileHover={{ y: -2 }}
       transition={{ duration: 0.15 }}
+      data-ancla={document.id}
       className="group rounded-xl border border-border bg-card p-5 hover:border-brand-400 hover:shadow-md transition-all"
     >
       <div className="flex items-start justify-between gap-3 mb-2">
@@ -121,9 +124,12 @@ export function DocumentCard({
               limpiaban el nombre del archivo. Ahora lo decide el mismo
               clasificador que usa la tarjeta de acto, así que las dos
               nombran igual. */}
-          {document.number && (
+          {/* Solo en los tipos que se arman por piezas. En una opinión o
+              una resolución del Tribunal el «número» es su identificador,
+              y el clasificador lo leía como «Resolución que la aprueba». */}
+          {(document.metadata?.parte_etiqueta || (document.number && TIPOS_CON_PARTES.has(document.type))) && (
             <span className="truncate text-xs text-muted-foreground">
-              {etiquetaDePieza(document.number, document.title)}
+              {document.metadata?.parte_etiqueta ?? etiquetaDePieza(document.number!, document.title)}
             </span>
           )}
           {document.date && (
@@ -253,9 +259,9 @@ export function DocumentCard({
       )}
 
       <div className="mt-3 flex items-center justify-end gap-2">
-        {document.source_url && (
+        {(document.source_url || document.metadata?.parte_url) && (
           <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
-            <a href={document.source_url} target="_blank" rel="noreferrer">
+            <a href={(document.source_url || document.metadata?.parte_url)!} target="_blank" rel="noreferrer">
               <ExternalLink className="h-3 w-3" />
               Fuente original
             </a>

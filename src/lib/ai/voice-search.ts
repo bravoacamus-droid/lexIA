@@ -10,6 +10,7 @@
  * consulta la BD y devuelve fragmentos textuales relevantes con su
  * cita normativa correspondiente.
  */
+import { idsOcultos } from '@/lib/normativa/ocultos';
 import { createAdminClient } from '@/lib/supabase/server';
 import { embedOne } from '@/lib/ai/embeddings';
 import { expandLegalQuery, tipoDeFoco } from '@/lib/ai/query-expansion';
@@ -357,6 +358,11 @@ export async function searchNormativa(
   if (vecinos.length > 0) {
     rows = mergeNeighbors(rows as never, vecinos as never) as typeof rows;
   }
+
+  // Lo derogado, vencido o retirado de la biblioteca no se cita en voz
+  // (documento 11 de César, 30/09/2026; ver lib/normativa/ocultos).
+  const ocultos = await idsOcultos(admin);
+  rows = rows.filter((r) => !ocultos.has(r.document_id));
 
   return rows.map((r) => {
     const numberPart = r.doc_number ? ` ${r.doc_number}` : '';

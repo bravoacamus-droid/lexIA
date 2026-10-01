@@ -158,6 +158,31 @@ export const DOC_TYPE_META: Record<
     bg: 'bg-orange-100 dark:bg-orange-950',
     tagColor: '#EA580C',
   },
+  // Documento 11 de César (30/09/2026): categorías propias.
+  bases_estandar: {
+    label: 'Bases estándar',
+    color: 'text-sky-700 dark:text-sky-300',
+    bg: 'bg-sky-100 dark:bg-sky-950',
+    tagColor: '#0369A1',
+  },
+  preguntas_frecuentes: {
+    label: 'Preguntas frecuentes',
+    color: 'text-lime-700 dark:text-lime-300',
+    bg: 'bg-lime-100 dark:bg-lime-950',
+    tagColor: '#4D7C0F',
+  },
+  nota_tecnica: {
+    label: 'Nota técnica',
+    color: 'text-fuchsia-700 dark:text-fuchsia-300',
+    bg: 'bg-fuchsia-100 dark:bg-fuchsia-950',
+    tagColor: '#A21CAF',
+  },
+  directiva_entidad: {
+    label: 'Directiva de entidad',
+    color: 'text-cyan-700 dark:text-cyan-300',
+    bg: 'bg-cyan-100 dark:bg-cyan-950',
+    tagColor: '#0E7490',
+  },
 };
 
 export function getDocTypeMeta(type: string) {

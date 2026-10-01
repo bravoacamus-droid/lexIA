@@ -1,0 +1,67 @@
+[
+  {
+    "url": "https://cdn.www.gob.pe/uploads/document/file/7814390/6594506-rd0006_2025ef5401.pdf?v=1742596530",
+    "fuente": "https://www.gob.pe/institucion/mef/normas-legales/6594506-0006-2025-ef-54-01",
+    "tipo": "resolucion",
+    "acto": "Resolución Directoral N° 0006-2025-EF/54.01",
+    "pieza": "Resolución Directoral N° 0006-2025-EF/54.01",
+    "entidad": "DGA",
+    "fecha": "2025-03-19",
+    "nota": "Documento 11 de César (30/09/2026): resoluciones directorales que deben estar en la biblioteca."
+  },
+  {
+    "url": "https://cdn.www.gob.pe/uploads/document/file/10253388/143382-guia-para-el-abastecimiento-en-situacion-de-emergencia.pdf",
+    "tipo": "guia",
+    "acto": "Guía para el abastecimiento en situación de emergencia",
+    "pieza": "Texto de la guía",
+    "entidad": "DGA",
+    "fecha": "2026-07-02",
+    "nota": "Documento 11 de César (30/09/2026): ingresar dentro de las guías."
+  },
+  {
+    "url": "https://cdn.www.gob.pe/uploads/document/file/5623613/4984570-directiva-n-017-2023-cg-gmpl.pdf?v=1703890234",
+    "tipo": "directiva",
+    "acto": "Directiva N° 017-2023-CG/GMPL - Ejecución de obras públicas por administración directa",
+    "pieza": "Resolución de Contraloría N° 432-2023-CG y Directiva N° 017-2023-CG/GMPL",
+    "entidad": "Contraloría",
+    "fecha": "2023-12-22",
+    "nota": "Documento 11 de César (30/09/2026): directiva de la Contraloría, obras por administración directa."
+  },
+  {
+    "url": "https://cdn.www.gob.pe/uploads/document/file/7525012/6397562-directiva-para-la-ejecucion-presupuestaria.pdf?v=1737564088",
+    "tipo": "directiva",
+    "acto": "Directiva N° 0001-2024-EF/50.01 - Directiva para la Ejecución Presupuestaria",
+    "pieza": "Resolución Directoral N° 0009-2024-EF/50.01 y Directiva N° 0001-2024-EF/50.01",
+    "entidad": "DGPP",
+    "fecha": "2024-02-09",
+    "nota": "Documento 11 de César (30/09/2026): directiva de la DGPP (gestión de planeamiento y presupuesto)."
+  },
+  {
+    "url": "https://cdn.www.gob.pe/uploads/document/file/8485094/7037100-rd0007_2025ef6301.pdf?v=1755106557",
+    "fuente": "https://www.gob.pe/institucion/mef/normas-legales/7037100-0007-2025-ef-63-01",
+    "tipo": "nota_tecnica",
+    "acto": "Nota Técnica - Características de software, hardware, entorno de datos comunes y otros recursos tecnológicos para la adopción de BIM",
+    "pieza": "Resolución Directoral N° 0007-2025-EF/63.01",
+    "entidad": "DGPMI",
+    "fecha": "2025-08-13"
+  },
+  {
+    "url": "https://cdn.www.gob.pe/uploads/document/file/8485095/7037100-nota_tecnica_rd0007_2025ef6301.pdf?v=1755106656",
+    "fuente": "https://www.gob.pe/institucion/mef/normas-legales/7037100-0007-2025-ef-63-01",
+    "tipo": "nota_tecnica",
+    "acto": "Nota Técnica - Características de software, hardware, entorno de datos comunes y otros recursos tecnológicos para la adopción de BIM",
+    "pieza": "Texto de la nota técnica",
+    "entidad": "DGPMI",
+    "fecha": "2025-08-13"
+  },
+  {
+    "url": "https://www.mef.gob.pe/contenidos/inv_publica/docs/Metodologias_Generales_PI/Lineamientos_IOARR.pdf",
+    "archivo": "data/cache/pdfs/lineamientos-ioarr.pdf",
+    "tipo": "lineamiento",
+    "acto": "Lineamientos para la identificación y registro de las Inversiones de Optimización, de Ampliación Marginal, de Rehabilitación y de Reposición (IOARR)",
+    "pieza": "Texto de los lineamientos (novena versión, junio de 2025)",
+    "entidad": "DGPMI",
+    "fecha": "2025-06-01",
+    "nota": "Documento 11 de César (30/09/2026): ingresar dentro de los lineamientos."
+  }
+]

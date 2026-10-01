@@ -1,3 +1,4 @@
+import { vincularActo } from '@/lib/normativa/vincular-acto';
 import { createHash } from 'node:crypto';
 import { extractText, getDocumentProxy } from 'unpdf';
 import { createClient } from '@supabase/supabase-js';
@@ -265,6 +266,18 @@ export async function ingestPdfFromUrl(opts: {
       return { inserted: false, reason: `insert chunks: ${chunkErr.message}` };
     }
   }
+
+  // Si la norma ya tiene su acto (directivas y lineamientos del tablero
+  // del OECE), entra dentro de él y no como una copia suelta
+  // (documento 11 de César, 30/09/2026).
+  await vincularActo(supabase, {
+    id: (inserted as { id: string }).id,
+    type: finalType,
+    title: norma.title,
+    number: norma.number,
+    source_url: opts.fichaUrl ?? opts.url,
+    metadata: norma.metadata as Record<string, unknown>,
+  }).catch((e) => console.error('[ingest] no se pudo vincular el acto:', (e as Error).message));
 
   return {
     inserted: true,
