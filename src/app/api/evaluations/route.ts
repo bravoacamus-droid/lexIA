@@ -10,8 +10,10 @@ const createSchema = z
   .object({
     title: z.string().min(2).max(160),
     bases_file_path: z.string().min(1),
+    /** Las Bases partidas por el navegador para poder subirlas (Storage: 50 MB). */
+    bases_partes: z.array(z.string().min(1)).max(20).optional(),
     offer_files: z
-      .array(z.object({ name: z.string(), path: z.string() }))
+      .array(z.object({ name: z.string(), path: z.string(), partes: z.array(z.string().min(1)).max(20).optional() }))
       .max(5)
       .optional()
       .default([]),
@@ -78,6 +80,7 @@ export async function POST(req: Request) {
       status: 'pending',
       bases_file_path: parsed.data.bases_file_path,
       offer_files: parsed.data.offer_files as never,
+      bases_partes: parsed.data.bases_partes?.length ? parsed.data.bases_partes : null,
       mode: parsed.data.mode,
     } as never)
     .select('id, title, status, created_at, mode')

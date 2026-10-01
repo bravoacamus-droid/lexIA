@@ -75,6 +75,73 @@ export async function extractPdfText(
   return { text, pages };
 }
 
+/** El texto de cada página, por separado. */
+export async function textoPorPagina(buffer: ArrayBuffer | Buffer): Promise<string[]> {
+  const data =
+    buffer instanceof Buffer
+      ? new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength)
+      : new Uint8Array(buffer);
+  const pdf = await getDocumentProxy(data);
+  const result = await extractText(pdf, { mergePages: false });
+  return (result.text as unknown as string[]).map((t) => String(t));
+}
+
+/**
+ * Las páginas que, dentro de un PDF con texto, son en realidad imágenes.
+ *
+ * Las Bases del CPA 004-2025-OEDI tienen texto, pero el Capítulo III —el
+ * requerimiento y los requisitos de calificación, 41 páginas— está
+ * escaneado: de cada hoja solo sale el encabezado que el sistema imprime
+ * encima («CONCURSO PÚBLICO ABREVIADO DE SERVICIOS BASES INTEGRADAS…»,
+ * 203 caracteres). El evaluador leyó «0 requisitos de calificación» y no
+ * calificó a nadie (30/09/2026). Lo mismo pasa con las ofertas: anexos en
+ * texto y constancias escaneadas.
+ *
+ * Se quita el comienzo que se repite en muchas páginas —el encabezado— y
+ * se marca la página a la que no le queda casi nada. Devuelve números de
+ * página empezando en 1.
+ */
+export function paginasSinTexto(paginas: string[]): number[] {
+  const limpias = paginas.map((t) => t.replace(/\s+/g, ' ').trim());
+  const prefijos = new Map<string, number>();
+  for (const t of limpias) {
+    if (t.length < 80) continue;
+    const p = t.slice(0, 80);
+    prefijos.set(p, (prefijos.get(p) ?? 0) + 1);
+  }
+  // Cada encabezado común, entero: lo que comparten todas las páginas que
+  // empiezan igual (el número de página, al final, ya difiere).
+  const encabezados = [...prefijos.entries()]
+    .filter(([, n]) => n >= Math.max(3, paginas.length * 0.2))
+    .map(([p]) => {
+      let comun: string | null = null;
+      for (const t of limpias) {
+        if (!t.startsWith(p)) continue;
+        if (comun === null) {
+          comun = t;
+          continue;
+        }
+        let k = 0;
+        while (k < comun.length && k < t.length && comun[k] === t[k]) k++;
+        comun = comun.slice(0, k);
+      }
+      return comun ?? p;
+    });
+
+  const marcadas: number[] = [];
+  limpias.forEach((t, i) => {
+    let resto = t;
+    for (const e of encabezados) {
+      if (resto.startsWith(e)) {
+        resto = resto.slice(e.length).replace(/^\s*\d{1,4}\b/, '');
+        break;
+      }
+    }
+    if (resto.trim().length < 120) marcadas.push(i + 1);
+  });
+  return marcadas;
+}
+
 /**
  * Heurística para detectar PDFs sin texto extraíble.
  *

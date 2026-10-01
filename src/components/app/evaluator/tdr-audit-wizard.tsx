@@ -154,7 +154,7 @@ export function TdrAuditWizard() {
                 Sube el TDR / EETT a auditar
               </h2>
               <p className="text-sm text-muted-foreground">
-                El documento ya redactado, en Word o PDF (hasta 100 MB). A-LexIA lo audita
+                El documento ya redactado, en Word o PDF (hasta 50 MB). A-LexIA lo audita
                 completo y después te propone una versión mejorada. Súbelo en{' '}
                 <strong className="text-foreground">Word</strong> si quieres recibirla con
                 control de cambios sobre tu propio documento.

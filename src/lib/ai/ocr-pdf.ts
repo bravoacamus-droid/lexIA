@@ -191,6 +191,85 @@ export async function transcribirPdfEscaneado(
 }
 
 /**
+ * Un solo intento sobre un tramo de un PDF ya subido a Gemini.
+ *
+ * Es la pieza de la evaluación por pasos (`evaluacion/ejecucion.ts`):
+ * allí cada tramo es una unidad de trabajo que se guarda al terminar, se
+ * reintenta en otra vuelta si falla y corre en paralelo con los demás.
+ * Una oferta escaneada de 140 páginas, tramo tras tramo, no cabía en los
+ * trece minutos que una función puede durar (César, 30/09/2026).
+ */
+export async function transcribirTramo(
+  uri: string,
+  desde: number,
+  fin: number,
+  opciones: { tiempoMs?: number } = {},
+): Promise<{ texto: string; filtrado: boolean }> {
+  const { text, finishReason } = await generateText({
+    model: chatModel,
+    messages: [
+      {
+        role: 'user',
+        content: [
+          { type: 'file', data: uri, mimeType: 'application/pdf' },
+          { type: 'text', text: `${INSTRUCCION}\n\nRango: páginas ${desde} a ${fin}.` },
+        ],
+      },
+    ],
+    temperature: 0,
+    abortSignal: AbortSignal.timeout(opciones.tiempoMs ?? 180_000),
+  });
+  const texto = text.trim();
+  return { texto, filtrado: !texto && finishReason === 'content-filter' };
+}
+
+export { TRAMO as PAGINAS_POR_TRAMO, MAX_PAGINAS as MAX_PAGINAS_OCR };
+
+/**
+ * Transcribe las páginas `desde`–`fin` de un PDF que en lo demás tiene
+ * texto: se sacan a un PDF propio y se sube solo eso.
+ *
+ * Pedirle un rango al modelo sobre el PDF entero no sirve aquí: no lo
+ * respeta bien (ver `transcribirPaginaPorPagina`), y en un documento
+ * mixto un desfase mezclaría texto escaneado con el que ya se leyó.
+ * Devuelve el texto con la numeración del documento original.
+ */
+export async function transcribirPaginasSueltas(
+  buffer: Buffer,
+  desde: number,
+  fin: number,
+  nombre: string,
+): Promise<string> {
+  const origen = await PDFDocument.load(buffer, { ignoreEncryption: true });
+  const hoja = await PDFDocument.create();
+  const copias = await hoja.copyPages(
+    origen,
+    Array.from({ length: fin - desde + 1 }, (_, i) => desde - 1 + i),
+  );
+  copias.forEach((p) => hoja.addPage(p));
+  const archivo = await uploadFileToGemini(
+    Buffer.from(await hoja.save()),
+    'application/pdf',
+    `${nombre}-p${desde}-${fin}.pdf`,
+  );
+  try {
+    const total = fin - desde + 1;
+    const r = await transcribirTramo(archivo.uri, 1, total);
+    if (r.texto) {
+      return r.texto.replace(/=== Página (\d+) ===/g, (_, n) => `=== Página ${Number(n) + desde - 1} ===`);
+    }
+    if (r.filtrado) {
+      const hojas = await transcribirPaginaPorPagina(buffer, desde, fin, nombre);
+      if (hojas.fallidas > 0) throw new Error(`${hojas.fallidas} página(s) bloqueadas por el filtro`);
+      return hojas.texto;
+    }
+    return '';
+  } finally {
+    await deleteGeminiFile(archivo.name).catch(() => {});
+  }
+}
+
+/**
  * Transcribe un rango página por página, cada una subida como un PDF de
  * una sola hoja. Es el recurso cuando el filtro de recitación bloquea el
  * tramo completo. Si una hoja sola sigue bloqueada, se parte en franjas
@@ -198,7 +277,7 @@ export async function transcribirPdfEscaneado(
  * un texto publicado (la página 10 de la Resolución 5193-2026-TCP-S6 solo
  * pasó así).
  */
-async function transcribirPaginaPorPagina(
+export async function transcribirPaginaPorPagina(
   buffer: Buffer,
   desde: number,
   hasta: number,

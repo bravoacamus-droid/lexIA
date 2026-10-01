@@ -27,6 +27,7 @@ interface UploadedFile {
   name: string;
   path: string;
   size: number;
+  partes?: string[];
 }
 
 const STEPS = [
@@ -74,7 +75,8 @@ export function EvaluatorWizard({
         body: JSON.stringify({
           title: title.trim(),
           bases_file_path: bases.path,
-          offer_files: offers.map((o) => ({ name: o.name, path: o.path })),
+          bases_partes: bases.partes,
+          offer_files: offers.map((o) => ({ name: o.name, path: o.path, partes: o.partes })),
           mode,
         }),
       });
@@ -83,12 +85,21 @@ export function EvaluatorWizard({
         throw new Error(j.error || 'No se pudo crear la evaluación');
       }
       const { evaluation } = await createRes.json();
+
+      // La evaluación por etapas se sigue en su propia página: la pantalla
+      // de allí la pone en marcha, muestra el avance real que se guarda en
+      // la fila y la retoma si se recarga. Antes se quedaba aquí, y al
+      // recargar /evaluador/nuevo se volvía al paso 1 (César, 30/09/2026).
+      if (porEtapas) {
+        router.replace(`${resultPathPrefix}/${evaluation.id}`);
+        return;
+      }
+
       setStep('processing');
       // Fire-and-forget; el componente Processing consulta el estado.
       // La evaluación por etapas tarda minutos —una oferta escaneada son
       // noventa segundos solo de transcripción—, así que no se espera.
-      const ruta = porEtapas ? 'etapas' : 'process';
-      fetch(`/api/evaluations/${evaluation.id}/${ruta}`, { method: 'POST' }).catch(() => null);
+      fetch(`/api/evaluations/${evaluation.id}/process`, { method: 'POST' }).catch(() => null);
 
       // Polling para detectar fin
       const pollId = setInterval(async () => {
@@ -218,8 +229,9 @@ export function EvaluatorWizard({
                   Sube las Bases Integradas
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  PDF con los requisitos del proceso (hasta 100 MB). A-LexIA extraerá los
-                  requisitos de calificación automáticamente.
+                  PDF con los requisitos del proceso. A-LexIA extraerá los requisitos
+                  de calificación automáticamente. Si pasa de 45 MB, se divide solo antes
+                  de subirlo.
                 </p>
               </div>
 
@@ -229,6 +241,7 @@ export function EvaluatorWizard({
                 onChange={setBases}
                 accept="application/pdf"
                 label="Arrastra las Bases o haz click"
+                dividir
               />
 
               <div className="mt-7 flex items-center justify-between">
@@ -260,8 +273,8 @@ export function EvaluatorWizard({
                     Sube las ofertas
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    Sube hasta 5 ofertas en PDF. Cada una será evaluada contra los requisitos
-                    extraídos.
+                    Sube hasta 5 ofertas en PDF, escaneadas o no. Cada una será evaluada
+                    contra los requisitos extraídos.
                   </p>
                 </div>
                 <span className="shrink-0 inline-flex items-center justify-center h-6 px-2 rounded-md bg-secondary text-xs font-mono">
@@ -285,6 +298,7 @@ export function EvaluatorWizard({
                         </p>
                         <p className="text-[11px] text-muted-foreground">
                           {(o.size / 1024 / 1024).toFixed(2)} MB
+                          {o.partes && o.partes.length > 1 ? ` · subida en ${o.partes.length} partes` : ''}
                         </p>
                       </div>
                     </div>
@@ -307,6 +321,7 @@ export function EvaluatorWizard({
                     label={`Agregar oferta ${offers.length + 1}`}
                     accept="application/pdf"
                     compact
+                    dividir
                   />
                 )}
               </div>

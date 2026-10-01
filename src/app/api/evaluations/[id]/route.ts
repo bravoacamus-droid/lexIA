@@ -14,7 +14,9 @@ export async function GET(_req: Request, ctx: { params: { id: string } }) {
   const { data, error } = await supabase
     .from('evaluations')
     .select(
-      'id, title, status, bases_file_path, offer_files, result, created_at, completed_at, user_id',
+      // El progreso completo lleva los textos leídos; a la pantalla solo
+      // le hace falta su resumen.
+      'id, title, status, bases_file_path, offer_files, result, created_at, completed_at, user_id, resumen:progreso->resumen',
     )
     .eq('id', ctx.params.id)
     .maybeSingle();

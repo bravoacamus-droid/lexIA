@@ -76,9 +76,20 @@ export interface LecturaBases {
   advertencias: string[];
 }
 
-/** Cuánto texto de cada documento se le da al modelo por llamada. */
-const TOPE_BASES = 120_000;
-const TOPE_OFERTA = 200_000;
+/**
+ * Cuánto texto de cada documento se le da al modelo por llamada.
+ *
+ * Eran 120 000 y 200 000. Con las páginas escaneadas ya transcritas, las
+ * Bases del CPA 004-2025-OEDI pasan de 200 000 caracteres y el corte se
+ * llevaba el Capítulo III y el IV: el modelo avisó «el documento se
+ * encuentra incompleto a partir de la página 43» y devolvió cero
+ * factores. Una oferta de 140 páginas transcrita ronda los 300 000, y el
+ * final —constancias, anexos— es justo lo que se pierde al cortar. El
+ * modelo admite un millón de tokens: estos topes son unos 100 000 y
+ * 150 000.
+ */
+const TOPE_BASES = 400_000;
+const TOPE_OFERTA = 600_000;
 
 const recortar = (t: string, tope: number) =>
   t.length > tope ? `${t.slice(0, tope)}\n\n[…documento recortado…]` : t;
@@ -488,21 +499,30 @@ export async function evaluarProcedimiento(args: {
       }
     }
 
-    const evaluacion = etapas.find((e) => e.etapa === 'evaluacion' && !e.omitida);
-    const ultimaSuperada = [...etapas].reverse().find((e) => !e.omitida);
-
-    postores.push({
-      postor: oferta.postor,
-      etapas,
-      puntajeTecnico: evaluacion?.puntaje,
-      resultadoFinal: cortado
-        ? `No admitido en ${cortado.etapa}`
-        : ultimaSuperada?.resultado === 'subsanable'
-          ? 'Sujeto a subsanación'
-          : 'Evaluado',
-    });
+    postores.push(cerrarPostor(oferta.postor, etapas));
   }
 
   ordenarPorPuntaje(postores);
   return { bases, postores };
+}
+
+/**
+ * Lo que queda de un postor cuando ya se recorrieron sus etapas: el
+ * puntaje técnico y dónde se quedó. Lo usa también la ejecución por
+ * pasos (`ejecucion.ts`), que evalúa cada etapa en una llamada aparte.
+ */
+export function cerrarPostor(postor: string, etapas: ResultadoEtapa[]): ResultadoPostor {
+  const evaluacion = etapas.find((e) => e.etapa === 'evaluacion' && !e.omitida);
+  const ultimaSuperada = [...etapas].reverse().find((e) => !e.omitida);
+  const cortada = etapas.find((e) => !e.omitida && !avanza(e.resultado));
+  return {
+    postor,
+    etapas,
+    puntajeTecnico: evaluacion?.puntaje,
+    resultadoFinal: cortada
+      ? `No admitido en ${cortada.etapa}`
+      : ultimaSuperada?.resultado === 'subsanable'
+        ? 'Sujeto a subsanación'
+        : 'Evaluado',
+  };
 }

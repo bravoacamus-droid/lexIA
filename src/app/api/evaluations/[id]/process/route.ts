@@ -88,7 +88,7 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
 
   const { data: evalData, error: evalErr } = await supabase
     .from('evaluations')
-    .select('id, bases_file_path, offer_files, user_id, status, mode')
+    .select('id, bases_file_path, bases_partes, offer_files, user_id, status, mode')
     .eq('id', ctx.params.id)
     .maybeSingle();
 
@@ -98,7 +98,8 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
   const ev = evalData as {
     id: string;
     bases_file_path: string;
-    offer_files: Array<{ name: string; path: string }>;
+    bases_partes: string[] | null;
+    offer_files: Array<{ name: string; path: string; partes?: string[] }>;
     user_id: string;
     status: string;
     mode: EvalMode | null;
@@ -276,10 +277,9 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
 
   try {
     // 1. Download Bases + Offers from Storage (admin client to bypass RLS on Storage policies)
-    const basesBlob = await downloadFromStorage(admin, ev.bases_file_path);
     // extractPdfText lanza PdfHasNoTextError automáticamente si detecta
     // que el PDF de Bases es escaneado (sin texto).
-    const fullBasesText = (await extractPdfText(basesBlob)).text;
+    const fullBasesText = await textoDePartes(admin, ev.bases_partes?.length ? ev.bases_partes : [ev.bases_file_path]);
 
     // Smart trimming: si las Bases son grandes (>40K chars), extraer SOLO los
     // capítulos relevantes para no saturar al LLM.
@@ -336,8 +336,7 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
     const offerEvaluations: OfferEvaluation[] = await Promise.all(
       offers.map(async (o) => {
         try {
-          const blob = await downloadFromStorage(admin, o.path);
-          const fullOfferText = (await extractPdfText(blob)).text;
+          const fullOfferText = await textoDePartes(admin, o.partes?.length ? o.partes : [o.path]);
 
           // Estrategia adaptativa según tamaño de la oferta:
           // - <=80K chars (~50 pág): enviar completa
@@ -519,6 +518,18 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
       { status: isOcrIssue ? 422 : 500 },
     );
   }
+}
+
+/**
+ * El texto de un PDF que el navegador pudo haber partido para subirlo
+ * (Storage no acepta más de 50 MB): las partes, en orden, una tras otra.
+ */
+async function textoDePartes(admin: ReturnType<typeof createAdminClient>, paths: string[]) {
+  const textos: string[] = [];
+  for (const path of paths) {
+    textos.push((await extractPdfText(await downloadFromStorage(admin, path))).text);
+  }
+  return textos.join('\n\n');
 }
 
 async function downloadFromStorage(admin: ReturnType<typeof createAdminClient>, path: string) {

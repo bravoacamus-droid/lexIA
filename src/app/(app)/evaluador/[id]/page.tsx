@@ -48,6 +48,8 @@ export default async function EvaluationPage({ params }: Props) {
         title={ev.title}
         status={ev.status as 'pending' | 'processing' | 'failed'}
         offers={ev.offer_files || []}
+        porEtapas
+        creada={ev.created_at}
       />
     );
   }

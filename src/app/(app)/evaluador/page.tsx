@@ -13,6 +13,7 @@ import {
 } from '@/components/app/seccion/piezas';
 import { RoleGateBlocked, isRoleAllowed } from '@/components/app/role-gate';
 import type { ProfileRole } from '@/lib/auth/session';
+import { EliminarEvaluacion } from '@/components/app/evaluator/eliminar-evaluacion';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Evaluación de ofertas' };
@@ -111,8 +112,11 @@ export default async function EvaluatorListPage() {
       ) : (
         <div className="space-y-3">
           {list.map((ev) => (
-            <Link key={ev.id} href={`/evaluador/${ev.id}`}>
-              <Card className="p-5 hover:border-brand-400 hover:shadow-md hover:-translate-y-0.5 transition-all">
+            // El botón de eliminar va fuera del enlace: dentro, el clic en
+            // el diálogo burbujearía hasta él y abriría la evaluación.
+            <div key={ev.id} className="relative">
+            <Link href={`/evaluador/${ev.id}`}>
+              <Card className="p-5 pr-14 hover:border-brand-400 hover:shadow-md hover:-translate-y-0.5 transition-all">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1.5">
@@ -132,6 +136,10 @@ export default async function EvaluatorListPage() {
                 </div>
               </Card>
             </Link>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <EliminarEvaluacion id={ev.id} titulo={ev.title} />
+            </div>
+            </div>
           ))}
         </div>
       )}

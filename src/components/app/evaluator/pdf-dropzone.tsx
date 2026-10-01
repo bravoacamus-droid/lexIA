@@ -13,6 +13,56 @@ interface UploadedFile {
   name: string;
   path: string;
   size: number;
+  /**
+   * Cuando el PDF pasó del límite de Storage y se subió partido: las
+   * rutas de cada parte, en orden. `path` es la primera.
+   */
+  partes?: string[];
+}
+
+/**
+ * Lo más que Storage acepta por archivo. El bucket dice 100 MB, pero el
+ * límite del proyecto manda y es 50: un PDF de 68,8 MB volvía con «The
+ * object exceeded the maximum allowed size» (César, 30/09/2026).
+ */
+const LIMITE_STORAGE = 50 * 1024 * 1024;
+/** Por encima de esto se parte, con margen para lo que pdf-lib añade al reescribir. */
+const UMBRAL_PARTIR = 45 * 1024 * 1024;
+const TAMANO_PARTE = 40 * 1024 * 1024;
+
+/**
+ * Parte un PDF en piezas que quepan en Storage, por páginas y sin tocar
+ * su contenido. Si una pieza sale todavía grande —un escaneo con páginas
+ * más pesadas que otras—, se vuelve a partir por la mitad.
+ */
+async function partirPdf(file: File, alAvanzar: (texto: string) => void): Promise<Blob[]> {
+  const { PDFDocument } = await import('pdf-lib');
+  alAvanzar('Abriendo el PDF…');
+  const origen = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true });
+  const total = origen.getPageCount();
+
+  async function armar(desde: number, hasta: number): Promise<Blob[]> {
+    const doc = await PDFDocument.create();
+    const indices = Array.from({ length: hasta - desde + 1 }, (_, i) => desde + i);
+    const paginas = await doc.copyPages(origen, indices);
+    paginas.forEach((pg) => doc.addPage(pg));
+    const bytes = await doc.save();
+    if (bytes.byteLength > UMBRAL_PARTIR) {
+      if (hasta === desde) throw new Error(`la página ${desde + 1} sola pesa más de 45 MB`);
+      const medio = Math.floor((desde + hasta) / 2);
+      return [...(await armar(desde, medio)), ...(await armar(medio + 1, hasta))];
+    }
+    return [new Blob([bytes as Uint8Array<ArrayBuffer>], { type: 'application/pdf' })];
+  }
+
+  const piezas = Math.max(2, Math.ceil(file.size / TAMANO_PARTE));
+  const porPieza = Math.ceil(total / piezas);
+  const partes: Blob[] = [];
+  for (let desde = 0; desde < total; desde += porPieza) {
+    alAvanzar(`Dividiendo en partes (${Math.min(desde + porPieza, total)} de ${total} páginas)…`);
+    partes.push(...(await armar(desde, Math.min(desde + porPieza, total) - 1)));
+  }
+  return partes;
 }
 
 interface Props {
@@ -28,6 +78,12 @@ interface Props {
   tipos?: Record<string, string[]>;
   compact?: boolean;
   maxSize?: number;
+  /**
+   * Partir en el navegador los PDF que pasan del límite de Storage. Solo
+   * donde quien lee después sabe juntar las partes (`partes`): la
+   * evaluación de ofertas.
+   */
+  dividir?: boolean;
 }
 
 interface UploadStats {
@@ -59,7 +115,7 @@ function formatSpeed(bps: number): string {
  * autenticándose con el access_token de la sesión actual.
  */
 async function uploadWithProgress(
-  file: File,
+  file: Blob,
   path: string,
   accessToken: string,
   onProgress: (stats: UploadStats) => void,
@@ -110,7 +166,7 @@ async function uploadWithProgress(
     xhr.setRequestHeader(
       'Content-Type',
       file.type ||
-        (/\.docx$/i.test(file.name)
+        (file instanceof File && /\.docx$/i.test(file.name)
           ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
           : 'application/pdf'),
     );
@@ -129,10 +185,13 @@ export function PdfDropzone({
   accept = 'application/pdf',
   tipos,
   compact = false,
-  maxSize = 100 * 1024 * 1024,
+  dividir = false,
+  maxSize = dividir ? 400 * 1024 * 1024 : LIMITE_STORAGE,
 }: Props) {
   const [uploading, setUploading] = useState(false);
   const [stats, setStats] = useState<UploadStats | null>(null);
+  const [preparando, setPreparando] = useState<string | null>(null);
+  const [parte, setParte] = useState<{ actual: number; total: number } | null>(null);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
 
   const onDrop = useCallback(
@@ -141,13 +200,27 @@ export function PdfDropzone({
       if (!file) return;
       if (file.size > maxSize) {
         toast.error(
-          `El archivo es demasiado grande (max ${formatBytes(maxSize)})`,
+          `El archivo pesa ${formatBytes(file.size)} y aquí se aceptan hasta ${formatBytes(maxSize)}. Comprímelo (por ejemplo, en ilovepdf.com/es/comprimir_pdf) y vuelve a subirlo.`,
         );
         return;
       }
       setUploading(true);
       setStats({ loaded: 0, total: file.size, speedBps: 0, etaSeconds: null });
       try {
+        const esPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+        let piezas: Blob[] = [file];
+        if (dividir && file.size > UMBRAL_PARTIR) {
+          if (!esPdf) throw new Error('demasiado_grande');
+          setPreparando('Preparando el archivo…');
+          try {
+            piezas = await partirPdf(file, setPreparando);
+          } catch (e) {
+            throw new Error(`No se pudo dividir el PDF: ${(e as Error).message}`);
+          } finally {
+            setPreparando(null);
+          }
+        }
+
         const supabase = createClient();
         const {
           data: { session },
@@ -157,11 +230,26 @@ export function PdfDropzone({
         }
 
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const path = `${session.user.id}/${folder}/${Date.now()}-${safeName}`;
-
-        await uploadWithProgress(file, path, session.access_token, (s) => {
-          setStats(s);
-        });
+        const base = `${session.user.id}/${folder}/${Date.now()}-${safeName}`;
+        const rutas: string[] = [];
+        const totalBytes = piezas.reduce((s, b) => s + b.size, 0);
+        let previos = 0;
+        for (let i = 0; i < piezas.length; i++) {
+          const ruta = piezas.length > 1 ? base.replace(/(\.pdf)?$/i, `-parte${i + 1}.pdf`) : base;
+          if (piezas.length > 1) setParte({ actual: i + 1, total: piezas.length });
+          await uploadWithProgress(piezas[i], ruta, session.access_token, (s) => {
+            const loaded = previos + s.loaded;
+            setStats({
+              loaded,
+              total: totalBytes,
+              speedBps: s.speedBps,
+              etaSeconds: s.speedBps > 0 ? (totalBytes - loaded) / s.speedBps : null,
+            });
+          });
+          previos += piezas[i].size;
+          rutas.push(ruta);
+        }
+        const path = rutas[0];
 
         // Completar al 100% (si la última muestra del progress no llegó a 100)
         setStats({
@@ -171,22 +259,27 @@ export function PdfDropzone({
           etaSeconds: 0,
         });
 
-        onChange({ name: file.name, path, size: file.size });
-        toast.success('Archivo subido');
+        onChange({ name: file.name, path, size: file.size, ...(rutas.length > 1 ? { partes: rutas } : {}) });
+        toast.success(rutas.length > 1 ? `Archivo subido en ${rutas.length} partes` : 'Archivo subido');
       } catch (err) {
         const msg = (err as Error).message;
         if (msg === 'no_session') {
           toast.error('Tu sesión expiró. Recarga la página.');
+        } else if (msg === 'demasiado_grande' || /maximum allowed size/i.test(msg)) {
+          toast.error(
+            `El archivo pesa ${formatBytes(file.size)} y Storage acepta hasta ${formatBytes(LIMITE_STORAGE)}. Comprímelo (por ejemplo, en ilovepdf.com/es/comprimir_pdf) y vuelve a subirlo.`,
+          );
         } else {
           toast.error(`No se pudo subir: ${msg.slice(0, 80)}`);
         }
       } finally {
         setUploading(false);
         setStats(null);
+        setParte(null);
         xhrRef.current = null;
       }
     },
-    [folder, maxSize, onChange],
+    [folder, maxSize, onChange, dividir],
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -210,7 +303,8 @@ export function PdfDropzone({
           <div className="min-w-0">
             <p className="font-medium text-sm truncate">{value.name}</p>
             <p className="text-[11px] text-muted-foreground">
-              {formatBytes(value.size)} · Listo para evaluar
+              {formatBytes(value.size)}
+              {value.partes && value.partes.length > 1 ? ` · subido en ${value.partes.length} partes` : ''} · Listo para evaluar
             </p>
           </div>
         </div>
@@ -242,12 +336,17 @@ export function PdfDropzone({
       )}
     >
       <input {...getInputProps()} />
-      {uploading && stats ? (
+      {uploading && preparando ? (
+        <div className="flex items-center justify-center gap-2">
+          <Loader2 className="h-5 w-5 text-brand-600 dark:text-brand-400 animate-spin" />
+          <p className="font-medium text-sm">{preparando}</p>
+        </div>
+      ) : uploading && stats ? (
         <div className="w-full max-w-md mx-auto">
           <div className="flex items-center justify-center gap-2 mb-3">
             <Loader2 className="h-5 w-5 text-brand-600 dark:text-brand-400 animate-spin" />
             <p className="font-medium text-sm">
-              Subiendo…{' '}
+              {parte ? `Subiendo parte ${parte.actual} de ${parte.total}…` : 'Subiendo…'}{' '}
               <span className="font-mono text-brand-700 dark:text-brand-400">
                 {percent.toFixed(0)}%
               </span>
