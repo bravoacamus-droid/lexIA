@@ -20,6 +20,13 @@ import {
   seleccionarFragmentos,
 } from '@/lib/ai/referencia-documento';
 import { detectarEnumeracion } from '@/lib/ai/enumeracion';
+import { marcarParteDeNorma } from '@/lib/ai/parte-de-norma';
+import {
+  analizarConsultaDeCriterio,
+  bloqueDeCriterio,
+  elegirFragmentosDeCriterio,
+  type DocumentoDeCriterio,
+} from '@/lib/ai/consulta-de-criterio';
 import { rewriteToLegalQueries } from '@/lib/ai/query-rewrite';
 import { fetchNeighborChunks, mergeNeighbors } from '@/lib/ai/neighbor-chunks';
 import {
@@ -290,6 +297,11 @@ export async function POST(req: Request) {
   // entera. Por eso el chat devolvía resoluciones de numeración parecida
   // y afirmaba que la pedida no estaba, teniéndola cargada con 22
   // fragmentos. Reportado por César el 17/08/2026.
+  // Si se pregunta si se puede exigir algo, se sabe con una llamada corta
+  // al modelo rápido. Se lanza ya, en paralelo con lo demás, y se espera
+  // más abajo (ver lib/ai/consulta-de-criterio.ts).
+  const criterioPromesa = analizarConsultaDeCriterio(lastUser.content);
+
   const referencias = detectarReferencias(lastUser.content);
   const chunksCitados: HybridSearchRow[] = [];
   if (referencias.length > 0) {
@@ -431,6 +443,78 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
       }
       console.log('[chat] enumeracion', { frase, documentos, hay_mas: filas[0]?.hay_mas });
     }
+  }
+
+  /**
+   * Preguntas por una exigencia («¿se puede pedir ser partner?»): el OECE
+   * y el Tribunal la han resuelto en sentidos distintos, y la respuesta
+   * tiene que poner delante TODOS los documentos que la tratan, no los
+   * dos que más se parezcan a la pregunta (César, 01/10/2026). Se traen
+   * por frase literal, como la búsqueda avanzada de la biblioteca.
+   */
+  let avisoCriterio = '';
+  const criterio = enumeracion ? null : await criterioPromesa;
+  if (criterio) {
+    const CASUISTICA = ['pronunciamiento', 'opinion', 'resolucion_tce', 'acuerdo_sala_plena'];
+    const TOPE_DOCUMENTOS = 14;
+    type Tratado = {
+      document_id: string;
+      doc_type: NormativeDocType;
+      doc_number: string | null;
+      doc_title: string;
+      doc_date: string | null;
+      menciones: number;
+      fragmentos: Array<{ id: string; indice: number; contenido: string }> | null;
+    };
+    // Los que TRATAN la exigencia —ordenados por cuántos fragmentos la
+    // nombran—, no los más recientes que la mencionan de paso. El término
+    // principal primero; los sinónimos solo completan si faltan: «distribuidor
+    // autorizado» aparece en cualquier resolución sobre catálogos y, puesto a
+    // la par, llenaba los cupos con casos que no venían al caso.
+    const porDocumento = new Map<string, Tratado & { termino: string }>();
+    for (const [i, termino] of criterio.terminos.entries()) {
+      if (i > 0 && porDocumento.size >= 6) break;
+      const { data, error } = await supabase.rpc('documentos_que_tratan', {
+        frase: termino,
+        tipos: CASUISTICA,
+        tope: TOPE_DOCUMENTOS,
+      });
+      if (error) console.error('[chat] documentos_que_tratan falló:', error.message);
+      for (const f of (data ?? []) as Tratado[]) {
+        if (porDocumento.size >= TOPE_DOCUMENTOS) break;
+        if (!porDocumento.has(f.document_id)) porDocumento.set(f.document_id, { ...f, termino });
+      }
+    }
+    // Al modelo, del más reciente al más antiguo: así ve primero el criterio vigente.
+    const elegidos = [...porDocumento.values()].sort((a, b) => (b.doc_date ?? '').localeCompare(a.doc_date ?? ''));
+    for (const f of elegidos) {
+      const piezas = elegirFragmentosDeCriterio(f.fragmentos ?? [], f.termino);
+      for (const pieza of piezas) {
+        if (chunksCitados.some((c) => c.chunk_id === pieza.id)) continue;
+        chunksCitados.push({
+          chunk_id: pieza.id,
+          document_id: f.document_id,
+          content: pieza.contenido,
+          doc_title: f.doc_title,
+          doc_type: f.doc_type,
+          doc_number: f.doc_number,
+          similarity: 1,
+        });
+      }
+    }
+    const documentos: DocumentoDeCriterio[] = elegidos.map((f) => ({
+      tipo: f.doc_type,
+      numero: f.doc_number,
+      titulo: f.doc_title,
+      fecha: f.doc_date,
+      termino: f.termino,
+    }));
+    avisoCriterio = bloqueDeCriterio(criterio, documentos);
+    console.log('[chat] criterio', {
+      exigencia: criterio.exigencia,
+      terminos: criterio.terminos,
+      documentos: documentos.length,
+    });
   }
 
   let sources: ChatSource[] = [];
@@ -1205,6 +1289,10 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
     await recordUsage(user.id, 'chat_message');
   }
 
+  // Ley o Reglamento: en el texto íntegro de El Peruano son un solo
+  // documento, y el modelo atribuía a la Ley artículos del Reglamento.
+  await marcarParteDeNorma(supabase, sources);
+
   // 4. Build prompt — el perfil del usuario ajusta el tono y los énfasis.
   //    Las Q&A del balotario (si hay) se pasan como material adicional
   //    para que el modelo produzca respuestas alineadas con el criterio
@@ -1219,7 +1307,8 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
     // Cuando la pregunta pedía enumerar casos, el modelo tiene que saber
     // cuántos documentos se le han traído y que hay más: si no, contesta
     // como si esos fueran todos los que existen.
-    avisoEnumeracion;
+    avisoEnumeracion +
+    avisoCriterio;
   const trimmedHistory = messages.slice(-MAX_HISTORY);
 
   // 5. Stream

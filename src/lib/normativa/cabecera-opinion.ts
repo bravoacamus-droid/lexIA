@@ -17,6 +17,7 @@
  *   ASUNTO      : …
  *   REFERENCIA  : …
  */
+import { sinConstancias } from './constancias';
 
 export interface CabeceraDeOpinion {
   lugarFecha: string | null;
@@ -32,7 +33,7 @@ const RX_CONSTANCIA =
   /(?:P[áa]g(?:ina)?\.?\s*\d+\s*de\s*\d+\s*)?Esta es una copia aut[ée]ntica imprimible[\s\S]{0,1200}?(?:validador\.xhtml|ingresando la siguiente clave:\s*\S+)/gi;
 
 export function sinConstanciaDeFirma(texto: string): string {
-  return texto.replace(RX_CONSTANCIA, ' ').replace(/[ \t]{2,}/g, ' ');
+  return sinConstancias(texto.replace(RX_CONSTANCIA, ' '));
 }
 
 export function separarCabeceraDeOpinion(raw: string): { cabecera: CabeceraDeOpinion | null; resto: string } {

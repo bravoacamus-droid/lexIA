@@ -16,6 +16,7 @@
  *   - overlapChars: 200 (~100 tokens)
  *   - maxChars: 2800 (límite duro para evitar chunks gigantes)
  */
+import { sinConstancias } from '../normativa/constancias';
 
 export interface ChunkOptions {
   targetChars?: number;
@@ -172,8 +173,11 @@ export function chunkText(text: string, options: ChunkOptions = {}): Chunk[] {
   const overlap = options.overlapChars ?? DEFAULT_OVERLAP;
   const max = options.maxChars ?? DEFAULT_MAX;
 
-  // Normalización: tipos de salto + espacios excesivos
-  const clean = text
+  // Normalización: tipos de salto + espacios excesivos. Y fuera las
+  // constancias de firma digital que los PDF oficiales repiten en cada
+  // página: pegadas al articulado, pesan en la búsqueda como el texto de
+  // la norma (ver lib/normativa/constancias.ts).
+  const clean = sinConstancias(text)
     .replace(/\r\n/g, '\n')
     .replace(/[ \t]+/g, ' ')
     .replace(/\n[ ]+/g, '\n')

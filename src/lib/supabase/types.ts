@@ -96,6 +96,13 @@ export interface ChatSource {
    * texto entero a la base para el cajón lateral.
    */
   parcial?: boolean;
+  /**
+   * Qué norma es, cuando el documento junta dos: el texto íntegro de El
+   * Peruano trae la Ley N° 32069 y su Reglamento en un solo documento,
+   * y el modelo citaba como «artículo 44 de la Ley» lo que era del
+   * Reglamento. Solo va al prompt.
+   */
+  parte?: string;
 }
 
 export interface ChatMessage {

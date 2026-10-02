@@ -279,7 +279,8 @@ ${qaBlock ? 'Aunque no hay fragmentos normativos directos, tienes el criterio OE
   // de régimen derogado.
   const context = chunks
     .map((c, i) => {
-      const header = `[${i + 1}] ${etiquetaFuente(c)} — ${formatDocLabel(c)}`;
+      const articulos = articulosDelFragmento(c);
+      const header = `[${i + 1}] ${etiquetaFuente(c)} — ${formatDocLabel(c)}${articulos ? `\nArtículos en este fragmento: ${articulos} (al usar un dato de aquí, di de qué artículo sale)` : ''}`;
       const body =
         c.snippet.length > snippetLimit
           ? c.snippet.slice(0, snippetLimit) + '\n[…]'
@@ -320,6 +321,34 @@ ${qaBlock}
 Cita cada fragmento por su número entre corchetes [N]. Si los fragmentos no responden la pregunta, dilo honestamente y sugiere verificar en el portal del OECE.`;
 }
 
+/**
+ * Los artículos que empiezan dentro de un fragmento de norma: «19, 20,
+ * 21, 22». Solo el número: el título ya está en el texto, y al extraerlo
+ * del PDF no lleva punto final, así que no se sabe dónde termina.
+ *
+ * Un fragmento junta varios artículos cortos, y el modelo tomaba el dato
+ * bien pero no decía de qué artículo era: la fecha de cierre de la
+ * segunda fase de la programación multianual salía sin «artículo 21 de
+ * la Directiva N° 0007-2025-EF/54.01» (César, 01/10/2026). Se probó
+ * pedirlo con una regla más en el prompt y bajó otra pregunta del banco
+ * del 63 % al 25 %; esto es un dato, no una instrucción.
+ */
+const TIPOS_CON_ARTICULADO = new Set([
+  'ley', 'reglamento', 'directiva', 'lineamiento', 'resolucion', 'directiva_entidad', 'codigo_etica', 'nota_tecnica',
+]);
+function articulosDelFragmento(c: ChatSource): string {
+  if (!TIPOS_CON_ARTICULADO.has(c.doc_type)) return '';
+  const vistos = new Set<string>();
+  const lista: string[] = [];
+  for (const m of c.snippet.matchAll(/(?:^|[\s.])Art[íi]culo\s+(\d{1,3}(?:-[A-Z])?)\s*[.\-–°º]+\s*([A-ZÁÉÍÓÚÑ][^.\n]{2,80})/g)) {
+    if (vistos.has(m[1])) continue;
+    vistos.add(m[1]);
+    lista.push(m[1]);
+    if (lista.length >= 12) break;
+  }
+  return lista.join(', ');
+}
+
 function formatDocLabel(c: ChatSource): string {
   const typeLabel: Record<string, string> = {
     ley: 'Ley',
@@ -330,9 +359,22 @@ function formatDocLabel(c: ChatSource): string {
     resolucion_tce: 'Resolución TCE',
     acuerdo_sala_plena: 'Acuerdo de Sala Plena',
   };
+  // Del texto íntegro de la Ley y el Reglamento: qué norma es este fragmento.
+  if (c.parte) return `${c.parte} — fragmento del texto íntegro publicado en El Peruano`;
   const t = typeLabel[c.doc_type] || c.doc_type;
-  const num = c.doc_number ? ` ${c.doc_number}` : '';
-  return `${t}${num} — ${c.doc_title}`;
+  // En las normas con partes, `doc_number` guarda la pieza —«Texto de la
+  // norma», «Resolución que aprueba la directiva»— y el número va en el
+  // título. Escrito como número salía «Directiva Texto de la norma», y el
+  // modelo lo copiaba al citar. La pieza va detrás, como aclaración.
+  //
+  // Solo cambia eso. Quitar el número repetido cuando ya está en el
+  // título bajó del 63 % al 25 % la pregunta del estado de cuenta
+  // recortado, que debe nombrar la Resolución N° 00165-2026-TCP-S2:
+  // repetido, el modelo lo nombra más (medido el 01/10/2026, 8 vueltas).
+  const numero = c.doc_number?.trim() ?? '';
+  if (!numero) return `${t} — ${c.doc_title}`;
+  const esNumero = /\d+\s*-\s*\d{4}|N[°º.]\s*\d/.test(numero);
+  return esNumero ? `${t} ${numero} — ${c.doc_title}` : `${t} — ${c.doc_title} (${numero.toLowerCase()})`;
 }
 
 export const SUGGESTIONS_SYSTEM_PROMPT = `Eres un asistente que genera EXACTAMENTE 3 preguntas de seguimiento muy breves y específicas, basadas en una conversación sobre Contrataciones del Estado peruano.

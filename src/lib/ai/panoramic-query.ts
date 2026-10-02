@@ -39,6 +39,21 @@
 export function isPanoramicQuery(query: string): boolean {
   const q = query.toLowerCase().trim();
 
+  // Una pregunta por un DATO —un plazo, una fecha, un monto— no es
+  // panorámica aunque empiece por «cuáles son». Y tratarla como tal la
+  // estropea: en modo panorámico cada fragmento llega al modelo cortado
+  // a 1200 caracteres, y el dato puede estar más abajo. Medido con
+  // «¿cuáles son los plazos de la segunda fase de la programación
+  // multianual…?»: el artículo 21 de la Directiva N° 0007-2025-EF/54.01
+  // empieza en el carácter 1800 de su fragmento, el modelo no lo veía y
+  // contestaba que no hay fecha general (César, 01/10/2026).
+  if (
+    /\b(?:plazos?|fechas?|hasta\s+(?:qu[ée]\s+(?:d[íi]a|fecha|momento)|cu[áa]ndo)|cu[áa]nto\s+tiempo|cu[áa]ntos\s+d[íi]as|montos?|porcentajes?|topes?)\b/.test(q) &&
+    !/\b(res[uú]me(?:me)?|res[uú]men|panorama|visi[óo]n general|todo\s+(?:sobre|respecto|acerca))\b/.test(q)
+  ) {
+    return false;
+  }
+
   const PANORAMIC_PATTERNS = [
     /\b(res[uú]me(?:me)?|res[uú]men)\b/,
     /\bexpl[íi]ca(?:me)?\b.{0,20}\btodo\b/,
