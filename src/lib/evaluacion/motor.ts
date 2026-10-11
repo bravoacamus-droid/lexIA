@@ -28,10 +28,12 @@
 import { generateText } from 'ai';
 import { chatModel } from '@/lib/ai/gemini';
 import { parseJsonLoose } from '@/lib/ai/json-suelto';
+import { casosParaFicha } from './jurisprudencia';
 import { criteriosDe } from './criterios.generado';
 import { PROMPT_LEER_BASES, PROMPT_POR_ETAPA } from './prompts';
 import {
   ETAPAS,
+  ETIQUETA_RESULTADO,
   avanza,
   ordenarPorPuntaje,
   resultadoDeFichas,
@@ -59,6 +61,8 @@ export interface LecturaBases {
     objeto?: string;
     denominacion?: string;
     cuantia?: string;
+    /** La cuantía en número, para el rechazo y la negociación (art. 132). */
+    cuantiaMonto?: number;
   };
   admision: ExigenciaBases[];
   calificacion: ExigenciaBases[];
@@ -71,7 +75,18 @@ export interface LecturaBases {
    * y los técnicos sumaban 200. Son dos etapas distintas, y el acta de
    * César también las separa.
    */
-  evaluacionEconomica: { puntajeMaximo?: number; formula?: string } | null;
+  evaluacionEconomica: {
+    puntajeMaximo?: number;
+    formula?: string;
+    /**
+     * Artículo 74 del Reglamento: simultánea (la económica es un factor
+     * más) o posterior (solo para quien alcanza el puntaje técnico
+     * mínimo, y el total es C1 × técnico + C2 × económico, art. 75.3).
+     */
+    tipo?: 'simultanea' | 'posterior';
+    coeficienteTecnico?: number;
+    coeficienteEconomico?: number;
+  } | null;
   puntajeTecnicoMinimo: number | null;
   advertencias: string[];
 }
@@ -87,9 +102,15 @@ export interface LecturaBases {
  * final —constancias, anexos— es justo lo que se pierde al cortar. El
  * modelo admite un millón de tokens: estos topes son unos 100 000 y
  * 150 000.
+ *
+ * La oferta subió de 600 000 a 1 500 000 (unos 400 000 tokens) con el CP
+ * SER-SM-6-2026: una oferta de 496 páginas transcrita da 820 000
+ * caracteres, y la de dos tomos, 890 000. Cortada en 600 000, al
+ * Consorcio Mega se le dio por «no presentado» el equipamiento y los
+ * locales, que estaban en el segundo tomo.
  */
 const TOPE_BASES = 400_000;
-const TOPE_OFERTA = 600_000;
+export const TOPE_OFERTA = 1_500_000;
 
 const recortar = (t: string, tope: number) =>
   t.length > tope ? `${t.slice(0, tope)}\n\n[…documento recortado…]` : t;
@@ -140,9 +161,22 @@ export async function leerBases(textoBases: string): Promise<LecturaBases> {
   const factores = todos.filter((e) => !esEconomico(e));
   const economicoEnLista = todos.find(esEconomico);
   const economicoDeclarado = crudo?.evaluacionEconomica ?? null;
+  const numero = (v: unknown) => {
+    const n = typeof v === 'number' ? v : Number(String(v ?? '').replace(/[^\d.]/g, ''));
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  };
+  if (economicoDeclarado) {
+    const e = economicoDeclarado as Record<string, unknown>;
+    economicoDeclarado.tipo = e.tipo === 'simultanea' || e.tipo === 'posterior' ? e.tipo : undefined;
+    economicoDeclarado.coeficienteTecnico = numero(e.coeficienteTecnico);
+    economicoDeclarado.coeficienteEconomico = numero(e.coeficienteEconomico);
+    economicoDeclarado.puntajeMaximo = numero(e.puntajeMaximo);
+  }
+  const procedimiento = { ...(crudo?.procedimiento ?? {}) };
+  procedimiento.cuantiaMonto = numero((crudo?.procedimiento as Record<string, unknown> | undefined)?.cuantiaMonto);
 
   return {
-    procedimiento: crudo?.procedimiento ?? {},
+    procedimiento,
     admision: lista(crudo?.admision),
     calificacion: lista(crudo?.calificacion),
     factores,
@@ -226,6 +260,8 @@ export async function evaluarEtapa(args: {
   textoOferta: string;
   nombrePostor: string;
   textoBases: string;
+  /** Quién es el postor y, si es consorcio, sus integrantes (`identificacion.ts`). */
+  identificacion?: string;
 }): Promise<ResultadoEtapa> {
   const { etapa, exigencias, textoOferta, nombrePostor } = args;
 
@@ -240,6 +276,7 @@ export async function evaluarEtapa(args: {
   }
 
   const criterios = criteriosParaEtapa(etapa, exigencias);
+  const casosGuia = casosDeLaGuiaParaEtapa(etapa, exigencias);
   const listaRequisitos = exigencias
     .map(
       (e, i) =>
@@ -254,11 +291,11 @@ export async function evaluarEtapa(args: {
 ${listaRequisitos}
 
 ${criterios}
-
+${casosGuia}
 ═══════════════════════════════════════════════════════
 OFERTA DEL POSTOR: ${nombrePostor}
 ═══════════════════════════════════════════════════════
-${recortar(textoOferta, TOPE_OFERTA)}
+${args.identificacion ? `${args.identificacion}\n\n` : ''}${recortar(textoOferta, TOPE_OFERTA)}
 
 Evalúa la etapa y devuelve el JSON.`;
 
@@ -313,20 +350,120 @@ finales. Sé más breve en los textos si hace falta para cerrarlo.`,
 
   const fichas = normalizarFichas(crudo?.fichas, exigencias, etapa);
 
-  const resultado = resultadoDeFichas(fichas);
+  return cerrarEtapa({
+    etapa,
+    fichas,
+    resultado: 'cumple',
+    subsanaciones: Array.isArray(crudo?.subsanaciones) ? crudo.subsanaciones.map(String) : [],
+    fundamento: String(crudo?.fundamento ?? '').trim(),
+  });
+}
+
+/**
+ * El resultado, el puntaje, las subsanaciones y el fundamento de una
+ * etapa, recalculados desde sus fichas.
+ *
+ * Se llama al evaluarla y otra vez después del contraste
+ * jurisprudencial, que puede cambiar fichas. Y es lo que mantiene la
+ * etapa coherente consigo misma. Documento 13 de César (10/10/2026): el
+ * fundamento de la admisión de un consorcio decía que la omisión del
+ * Anexo N° 1 era subsanable, la ficha decía que no, y la carta de
+ * subsanación pedía subsanar la legalización de la promesa a un postor
+ * que ya estaba no admitido.
+ *   · Si alguna ficha no cumple, la etapa no cumple y no se pide
+ *     subsanar nada: quien no sigue en el procedimiento no subsana.
+ *   · Si se subsana, se pide solo lo de las fichas subsanables.
+ *   · El fundamento de una etapa desfavorable se escribe desde las
+ *     fichas, no se toma del modelo, que es donde aparecía la
+ *     contradicción.
+ */
+export function cerrarEtapa(e: ResultadoEtapa): ResultadoEtapa {
+  if (e.omitida) return e;
+  const fichas = e.fichas;
+  const resultado = e.etapa === 'evaluacion' ? 'cumple' : resultadoDeFichas(fichas);
   const puntaje =
-    etapa === 'evaluacion'
+    e.etapa === 'evaluacion'
       ? fichas.reduce((s, f) => s + (typeof f.puntaje === 'number' ? f.puntaje : 0), 0)
       : undefined;
 
-  return {
-    etapa,
-    fichas,
-    resultado: etapa === 'evaluacion' ? 'cumple' : resultado,
-    puntaje,
-    subsanaciones: Array.isArray(crudo?.subsanaciones) ? crudo.subsanaciones.map(String) : [],
-    fundamento: String(crudo?.fundamento ?? '').trim(),
+  // La oración que dice el defecto, no la primera: el hallazgo suele
+  // abrir con «El Consorcio X, integrado por…», y cortando en el primer
+  // punto el fundamento quedaba en «integrado por Arabya Contratistas
+  // Generales S.A.C.» (CP SER-SM-6-2026). Solo se corta tras un punto
+  // precedido de minúsculas, para no partir «S.A.C.» ni «E.I.R.L.».
+  const primeraFrase = (t: string) => {
+    const limpio = t.replace(/\s+/g, ' ').trim();
+    const oraciones = limpio.split(/(?<=[a-záéíóúñ0-9)\]»"]{2}[.;])\s+(?=[A-ZÁÉÍÓÚÑ«(¿])/);
+    const defecto = oraciones.find((o) =>
+      /no (?:cumple|acredita|present|se (?:acredita|advierte|encuentra|consigna|verifica|precisa|identifica)|consta|permite|garantiza|coincide)|omit|falta|carece|incumpl|contradic|incongruen|condicionad|sin (?:precisar|acreditar|indicar)/i.test(o),
+    );
+    const elegida = defecto ?? oraciones[0] ?? limpio;
+    return elegida.length > 400 ? `${elegida.slice(0, 400).replace(/\s\S*$/, '')}…` : elegida;
   };
+  const listar = (fs: FichaRequisito[]) =>
+    fs.map((f) => `${f.requisito}: ${primeraFrase(f.hallazgo || f.documentoPresentado || '')}`).join(' ');
+
+  let subsanaciones: string[] = [];
+  let fundamento = e.fundamento;
+  if (resultado === 'no_cumple') {
+    const fallan = fichas.filter((f) => f.resultado === 'no_cumple');
+    fundamento = `${ETIQUETA_RESULTADO[e.etapa].no_cumple}. ${listar(fallan)}`;
+  } else if (resultado === 'subsanable') {
+    const observadas = fichas.filter((f) => f.resultado === 'subsanable');
+    const clave = (t: string) =>
+      new Set((t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').match(/[a-z]{5,}/g) ?? []));
+    // De lo que propuso el modelo, solo lo que corresponde a una ficha
+    // subsanable; si nada corresponde, se arma desde las fichas.
+    subsanaciones = (e.subsanaciones ?? []).filter((s) => {
+      const p = clave(s);
+      return observadas.some((f) => [...clave(`${f.requisito} ${f.hallazgo}`)].filter((w) => p.has(w)).length >= 2);
+    });
+    if (subsanaciones.length === 0) {
+      subsanaciones = observadas.map((f) => `${f.requisito}: ${primeraFrase(f.hallazgo)}`);
+    }
+    fundamento = `${ETIQUETA_RESULTADO[e.etapa].subsanable}. ${listar(observadas)}`;
+  } else if (resultado === 'revision_humana') {
+    const dudosas = fichas.filter((f) => f.resultado === 'revision_humana');
+    fundamento = `${ETIQUETA_RESULTADO[e.etapa].revision_humana}: ${listar(dudosas)}`;
+  }
+
+  return { ...e, resultado, puntaje, subsanaciones, fundamento };
+}
+
+/**
+ * Los casos de la guía de César (documento del 10/10/2026) que más se
+ * parecen a cada requisito de la etapa, para que el modelo conozca las
+ * controversias antes de evaluar. El contraste posterior
+ * (`jurisprudencia.ts`) los vuelve a mirar ficha por ficha, con la
+ * biblioteca.
+ */
+function casosDeLaGuiaParaEtapa(etapa: Etapa, exigencias: ExigenciaBases[]): string {
+  const vistos = new Set<number>();
+  const bloques: string[] = [];
+  for (const e of exigencias) {
+    const ficha = {
+      requisito: e.requisito,
+      reglaBases: e.reglaBases,
+      hallazgo: '',
+      documentoPresentado: e.documento ?? '',
+    } as FichaRequisito;
+    const casos = casosParaFicha(etapa, ficha, 4).filter((c) => !vistos.has(c.caso));
+    if (casos.length === 0) continue;
+    casos.forEach((c) => vistos.add(c.caso));
+    bloques.push(
+      `### ${e.requisito}\n` +
+        casos
+          .map((c) => `· ${c.resolucion}: ${c.cuestionamiento.slice(0, 280)} → ${c.resolvio.slice(0, 420)}`)
+          .join('\n'),
+    );
+  }
+  if (bloques.length === 0) return '';
+  return `
+═══════════════════════════════════════════════════════
+CASOS DE LA GUÍA DEL TRIBUNAL (muestra; no son todos los criterios)
+═══════════════════════════════════════════════════════
+${bloques.join('\n\n')}
+`;
 }
 
 const RESULTADOS: Resultado[] = ['cumple', 'subsanable', 'no_cumple', 'revision_humana'];

@@ -3,7 +3,12 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { embedOne } from '@/lib/ai/embeddings';
 import type { NormativeDocType } from '@/lib/supabase/types';
-import { buscarConTodasLasPalabras } from '@/lib/busqueda/todas-las-palabras';
+import { buscarConTodasLasPalabras, variantesDeTermino } from '@/lib/busqueda/todas-las-palabras';
+import {
+  buscarPorNumero,
+  reconocerNumeroDeDocumento,
+  type DocumentoPorNumero,
+} from '@/lib/busqueda/numero-de-documento';
 import { actosDe, idsOcultos } from '@/lib/normativa/ocultos';
 
 export const runtime = 'nodejs';
@@ -204,6 +209,66 @@ export async function POST(req: Request) {
   // ──────────────────────────────────────────────────────────────
   if (isMultiTag) {
     try {
+      // Un chip que es un número de documento («9056-2026», «N° 09056-
+      // 2026-TCP-S3») se busca por su número, no como palabra: César
+      // escribía el número, pulsaba Enter y no aparecía la resolución
+      // (documento 13, 10/10/2026). Ver lib/busqueda/numero-de-documento.
+      const porNumero: DocumentoPorNumero[] = [];
+      const indicesDePalabras: number[] = [];
+      for (let i = 0; i < multiTags.length; i++) {
+        const ref = reconocerNumeroDeDocumento(multiTags[i]);
+        const hallados =
+          ref?.soloNumero ? await buscarPorNumero(supabase, ref, { tipo: type ?? null, indiceDeConsulta: i }) : [];
+        if (hallados.length > 0) porNumero.push(...hallados.filter((h) => !porNumero.some((p) => p.document_id === h.document_id)));
+        // Un número que no está en la biblioteca sigue buscándose como
+        // palabra, como antes.
+        else indicesDePalabras.push(i);
+      }
+
+      if (porNumero.length > 0) {
+        const palabras = indicesDePalabras.map((i) => multiTags[i]);
+        // Con número y palabras, los chips siguen sumándose («todas»): el
+        // documento de ese número, con los pasajes donde aparece cada
+        // palabra; si alguna no está, no se muestra.
+        let resultados = porNumero.map((d) => ({ ...d, pasajes: [] as Array<{ termino: number; texto: string; chunkIndex: number }> }));
+        if (palabras.length > 0) {
+          const { data: frags, error: eFrag } = await supabase.rpc('fragmentos_con_palabras', {
+            p_documentos: porNumero.map((d) => d.document_id),
+            p_terminos: palabras.map(variantesDeTermino),
+            p_por_termino: 3,
+          });
+          if (eFrag) throw new Error(eFrag.message);
+          for (const f of (frags ?? []) as Array<{ document_id: string; termino: number; chunk_index: number; fragmento: string }>) {
+            const r = resultados.find((x) => x.document_id === f.document_id);
+            r?.pasajes.push({
+              termino: indicesDePalabras[f.termino - 1],
+              texto: f.fragmento.replace(/\s+/g, ' ').trim(),
+              chunkIndex: f.chunk_index,
+            });
+          }
+          resultados = resultados
+            .filter((r) => indicesDePalabras.every((i) => r.pasajes.some((p) => p.termino === i)))
+            .map((r) => ({
+              ...r,
+              matchedCount: multiTags.length,
+              matchedQueries: multiTags.map((_t, i) => i),
+              chunkCount: r.pasajes.length,
+              topChunkContent: r.pasajes[0]?.texto.replace(/[⟦⟧]/g, '') ?? r.topChunkContent,
+            }));
+        }
+        return NextResponse.json({
+          mode: 'search',
+          modo: 'todas',
+          porNumero: true,
+          results: offset === 0 ? resultados.slice(0, Math.min(limit, 50)) : [],
+          total: resultados.length,
+          offset,
+          hasMore: false,
+          queries: multiTags,
+          multiTag: true,
+        });
+      }
+
       const { total, resultados } = await buscarConTodasLasPalabras(
         supabase,
         multiTags,
@@ -247,6 +312,37 @@ export async function POST(req: Request) {
   // retrocompat: si no envías `queries`, usamos [query].
   // ──────────────────────────────────────────────────────────────
   const activeQueries = isMultiTag ? multiTags : [trimmed];
+
+  // ──────────────────────────────────────────────────────────────
+  // ¿La consulta nombra un documento por su número?
+  //
+  // «9056-2026», «Resolución 9056-2026», «N° 09056-2026-TCP-S3»,
+  // «D000054-2026». César (documento 13, 10/10/2026): «al poner enter
+  // solo el número y año de la resolución no ubica la norma consultada».
+  // Por significado no se encuentra nunca —para un vector «9056» y «9065»
+  // son lo mismo—, así que se busca por el número normalizado y ese
+  // documento va primero. Si la consulta no es más que el número, se
+  // responde ya, sin gastar la búsqueda por significado (6-8 s).
+  // ──────────────────────────────────────────────────────────────
+  let porNumero: DocumentoPorNumero[] = [];
+  const referencia = reconocerNumeroDeDocumento(trimmed);
+  if (referencia) {
+    try {
+      porNumero = await buscarPorNumero(supabase, referencia, { tipo: type ?? null });
+    } catch (e) {
+      // Si falla, queda la búsqueda de siempre.
+      console.error('[search] por número:', (e as Error).message);
+    }
+    if (referencia.soloNumero && porNumero.length > 0) {
+      return NextResponse.json({
+        mode: 'search',
+        porNumero: true,
+        results: porNumero.slice(0, Math.min(limit, 50)),
+        queries: activeQueries,
+        multiTag: false,
+      });
+    }
+  }
 
   // Embedding por query en paralelo
   let queryEmbeddings: Array<number[] | null>;
@@ -403,9 +499,11 @@ export async function POST(req: Request) {
       }),
     }));
 
+  // Lo hallado por número va delante de lo hallado por significado.
+  const delNumero = new Set(porNumero.map((d) => d.document_id));
   return NextResponse.json({
     mode: 'search',
-    results,
+    results: [...porNumero, ...results.filter((r) => !delNumero.has(r.document_id))].slice(0, Math.min(limit, 50)),
     queries: activeQueries,
     multiTag: isMultiTag,
   });

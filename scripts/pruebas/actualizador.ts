@@ -10,7 +10,13 @@
  * confunda una resolución del Tribunal con una directoral.
  */
 import { classifyByPattern } from '../../src/lib/scraping/classifier';
-import { claveDeResolucion, fechaDeExpedicion, numeroDeResolucion } from '../../src/lib/scraping/resoluciones';
+import {
+  claveDeResolucion,
+  decidirSigla,
+  encabezadoDeResolucion,
+  fechaDeExpedicion,
+  numeroDeResolucion,
+} from '../../src/lib/scraping/resoluciones';
 import { correlativoDe, entidadDe, fechaDeTexto, normalizarDocumento, regimenDe } from '../../src/lib/scraping/normalizar';
 
 let fallos = 0;
@@ -27,7 +33,21 @@ comprobar('del título', desdeTitulo?.numero === '8010' && desdeTitulo.sala === 
 comprobar('del número de la carga manual', claveDeResolucion('Resolución N° 8493-2026-S2')?.sala === 'S2');
 comprobar('de la URL del PDF', claveDeResolucion('https://cdn.www.gob.pe/x/8559206-resolucion-n-8472-2026-tcp-s6.pdf')?.numero === '8472');
 comprobar('del régimen anterior (TCE)', claveDeResolucion('Resolución N.° 2914-2025-TCE-S1')?.numero === '2914');
-comprobar('todas dan el mismo número normalizado', numeroDeResolucion(desdeTitulo!) === 'Resolución N° 8010-2026-S1');
+comprobar('el número normalizado lleva la sigla (César, doc. 13)', numeroDeResolucion(desdeTitulo!) === 'Resolución N° 8010-2026-TCP-S1', numeroDeResolucion(desdeTitulo!));
+comprobar('la sigla, de la ficha y del título', desdeFicha?.sigla === 'TCP' && claveDeResolucion('Resolución N.° 2914-2025-TCE-S1')?.sigla === 'TCE');
+comprobar('«TCE-TCP-S6»: vale la sigla pegada a la sala', claveDeResolucion('Resolución Nº 04069-2025-TCE-TCP-S6')?.sigla === 'TCP');
+
+console.log('\nLa sigla, del encabezado de la propia resolución');
+const enc = (t: string) => encabezadoDeResolucion(t);
+comprobar('encabezado normal', JSON.stringify(enc('Tribunal de Contrataciones Públicas Resolución Nº 09056-2026-TCP-S3 Página 1 de 12')) === JSON.stringify({ numero: '9056', anio: 2026, sigla: 'TCP', sala: 'S3', membrete: 'TCP' }), enc('Tribunal de Contrataciones Públicas Resolución Nº 09056-2026-TCP-S3 Página 1'));
+comprobar('«Nº 0 5128-2025-TCP-S1»', enc('Tribunal de Contrataciones Públicas Resolución Nº 0 5128-2025-TCP-S1 Página 1')?.numero === '5128');
+comprobar('«Nº 6290 2026-TCP-S2»', enc('Tribunal de Contrataciones del Estado Resolución Nº 6290 2026-TCP-S2 Página 1')?.numero === '6290');
+comprobar('«5206-2025 TCP- S4»', enc('Tribunal de Contrataciones Públicas Resolución Nº 5206-2025 TCP- S4 Sumilla')?.sala === 'S4');
+comprobar('texto mal decodificado («P˙blicas», «ResoluciÛn N∫»)', enc('Tribunal de Contrataciones P˙blicas ResoluciÛn N∫ 0593-2026-TCP- S5 P·gina 1')?.sigla === 'TCP');
+comprobar('no confunde «12019-2025» con el año 2019', enc('Resolución Nº 12019-2025-TCP-S1')?.numero === '12019');
+comprobar('encabezado y ficha de acuerdo: segura aunque el membrete diga otra', !decidirSigla('Tribunal de Contrataciones Públicas Resolución Nº 1437-2026-TCE-S4', 'TCE').dudosa);
+comprobar('el texto se contradice: desempata la ficha', decidirSigla('Tribunal de Contrataciones Públicas Resolución Nº 03094-2025-TCE-S6', 'TCP').sigla === 'TCP');
+comprobar('texto coherente contra la ficha: gana el texto, dudosa', (() => { const d = decidirSigla('Tribunal de Contrataciones del Estado Resolución Nº 3302-2025-TCE-S3', 'TCP'); return d.sigla === 'TCE' && d.dudosa; })());
 comprobar(
   'la fecha de expedición es la última del año de la numeración',
   fechaDeExpedicion('Visto el 3 de enero de 2025… Lima, 12 de agosto de 2026', 2026) === '2026-08-12',
@@ -42,7 +62,7 @@ const resol = normalizarDocumento({
   fichaUrl: 'https://www.gob.pe/institucion/oece/normas-legales/8638398-8797-2026-tcp-s1',
   texto: 'Texto de la resolución. Lima, 19 de setiembre de 2026.',
 });
-comprobar('resolución: número y título de la biblioteca', resol.number === 'Resolución N° 8797-2026-S1' && resol.title === 'Resolución N° 8797-2026-S1 (Tribunal de Contrataciones)', resol);
+comprobar('resolución: número y título de la biblioteca', resol.number === 'Resolución N° 8797-2026-TCP-S1' && resol.title === 'Resolución N° 8797-2026-TCP-S1 (Tribunal de Contrataciones)', resol);
 comprobar('resolución: la fecha es la de la firma, no la de publicación', resol.date === '2026-09-19', resol.date);
 comprobar('resolución: año, correlativo, sala y entidad', resol.metadata.anio === '2026' && resol.metadata.correlativo === '8797' && resol.metadata.sala === 'S1' && resol.metadata.entidad === 'OECE');
 comprobar('resolución: régimen', resol.applicable_law.join() === 'ley_32069');

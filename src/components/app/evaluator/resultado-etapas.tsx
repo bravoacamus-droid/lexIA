@@ -31,6 +31,13 @@ import {
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import {
   ETIQUETA_RESULTADO,
@@ -41,6 +48,8 @@ import {
   type ResultadoPostor,
 } from '@/lib/evaluacion/etapas';
 import type { LecturaBases } from '@/lib/evaluacion/motor';
+import type { EtapasFinales } from '@/lib/evaluacion/economica';
+import { SegundaEvaluacion, type RondaGuardada } from '@/components/app/evaluator/segunda-evaluacion';
 import { tieneQueSubsanar } from '@/lib/evaluacion/observados';
 
 export interface ResultadoEtapas {
@@ -48,6 +57,12 @@ export interface ResultadoEtapas {
   postores: ResultadoPostor[];
   transcritas?: string[];
   ilegibles?: Array<{ nombre: string; motivo: string }>;
+  /** Etapas 4 a 7, desde octubre de 2026 (`economica.ts`). */
+  finales?: EtapasFinales;
+  /** Archivos que eran otro tomo de una oferta y se evaluaron junto con ella. */
+  tomos?: Array<{ archivo: string; postor: string }>;
+  /** Segundas evaluaciones (subsanación, rechazo, negociación). */
+  rondas?: RondaGuardada[];
 }
 
 const ETAPAS: Etapa[] = ['admision', 'calificacion', 'evaluacion'];
@@ -172,6 +187,7 @@ function Postor({ postor }: { postor: ResultadoPostor }) {
         {postor.prelacion === 1 && <Trophy className="h-5 w-5 shrink-0 text-amber-500" />}
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium text-slate-900">{postor.postor}</p>
+          <Integrantes postor={postor} />
           <p className="text-xs text-slate-500">{postor.resultadoFinal}</p>
         </div>
         <div className="flex shrink-0 items-center gap-4">
@@ -280,20 +296,58 @@ export function ResultadoEtapasView({
                 Descargar acta en Word
               </a>
             </Button>
-            {observados.map((p) => (
-              <Button key={p.postor} asChild variant="outline">
+            {/*
+              La carta, solo a quien tiene algo que subsanar y sigue en el
+              procedimiento. Con uno, el botón; con varios, se elige a cuál;
+              con ninguno, no hay carta que generar (documento 13 de César).
+            */}
+            {observados.length === 0 ? (
+              <Button
+                variant="outline"
+                disabled
+                title="Ningún postor que siga en el procedimiento tiene observaciones subsanables: no corresponde carta de subsanación."
+              >
+                <Mail className="mr-2 h-4 w-4" />
+                Sin carta de subsanación
+              </Button>
+            ) : observados.length === 1 ? (
+              <Button asChild variant="outline">
                 <a
-                  href={`/api/evaluations/${id}/carta?postor=${encodeURIComponent(p.postor)}`}
+                  href={`/api/evaluations/${id}/carta?postor=${encodeURIComponent(observados[0].postor)}`}
                   download
-                  title={`Carta que notifica a ${p.postor} lo que debe subsanar`}
+                  title={`Carta que notifica a ${observados[0].postor} lo que debe subsanar`}
                 >
                   <Mail className="mr-2 h-4 w-4" />
-                  {observados.length === 1 ? 'Carta de subsanación' : `Carta de subsanación · ${p.postor}`}
+                  Carta de subsanación
                 </a>
               </Button>
-            ))}
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    <Mail className="mr-2 h-4 w-4" />
+                    Carta de subsanación
+                    <ChevronDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="max-w-sm">
+                  <DropdownMenuLabel>¿A qué postor?</DropdownMenuLabel>
+                  {observados.map((p) => (
+                    <DropdownMenuItem key={p.postor} asChild>
+                      <a href={`/api/evaluations/${id}/carta?postor=${encodeURIComponent(p.postor)}`} download>
+                        {p.postor}
+                      </a>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
+        <p className="mt-2 text-xs text-slate-500">
+          El acta y las cartas se arman con el resultado ya guardado: descargarlas no vuelve a evaluar ni consume
+          consultas.
+        </p>
 
         {resultado.transcritas && resultado.transcritas.length > 0 && (
           <p className="mt-4 flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900">
@@ -303,6 +357,16 @@ export function ResultadoEtapasView({
                 ? `La oferta de ${resultado.transcritas[0]} venía escaneada y se transcribió para poder leerla.`
                 : `${resultado.transcritas.length} ofertas venían escaneadas y se transcribieron para poder leerlas.`}{' '}
               Conviene contrastar contra el original lo que dependa de un dato exacto.
+            </span>
+          </p>
+        )}
+
+        {resultado.tomos && resultado.tomos.length > 0 && (
+          <p className="mt-3 flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+            <FileText className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              {resultado.tomos.map((t) => `«${t.archivo}» es otro tomo de la oferta de ${t.postor}`).join('; ')}: se
+              evaluaron juntos, como una sola oferta.
             </span>
           </p>
         )}
@@ -334,6 +398,13 @@ export function ResultadoEtapasView({
                 <th className="px-4 py-2 font-medium">Admisión</th>
                 <th className="px-4 py-2 font-medium">Calificación</th>
                 <th className="px-4 py-2 text-right font-medium">Puntaje técnico</th>
+                {resultado.finales && (
+                  <>
+                    <th className="px-4 py-2 text-right font-medium">Oferta económica</th>
+                    <th className="px-4 py-2 text-right font-medium">Puntaje económico</th>
+                    <th className="px-4 py-2 text-right font-medium">Puntaje total</th>
+                  </>
+                )}
                 <th className="px-4 py-2 text-right font-medium">Prelación</th>
               </tr>
             </thead>
@@ -342,7 +413,10 @@ export function ResultadoEtapasView({
                 const et = (e: Etapa) => p.etapas.find((x) => x.etapa === e);
                 return (
                   <tr key={p.postor} className="border-b last:border-0">
-                    <td className="px-4 py-3 font-medium text-slate-900">{p.postor}</td>
+                    <td className="px-4 py-3 font-medium text-slate-900">
+                      {p.postor}
+                      <Integrantes postor={p} />
+                    </td>
                     {(['admision', 'calificacion'] as Etapa[]).map((e) => {
                       const etapa = et(e);
                       return (
@@ -362,6 +436,19 @@ export function ResultadoEtapasView({
                         <span className="font-semibold text-slate-900">{p.puntajeTecnico ?? 0}</span>
                       )}
                     </td>
+                    {resultado.finales && (
+                      <>
+                        <td className="px-4 py-3 text-right tabular-nums text-slate-700">
+                          {p.ofertaEconomica && p.accedeEconomica !== false
+                            ? `S/ ${p.ofertaEconomica.monto.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`
+                            : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums text-slate-700">{p.puntajeEconomico ?? '—'}</td>
+                        <td className="px-4 py-3 text-right tabular-nums font-semibold text-slate-900">
+                          {p.puntajeTotal ?? '—'}
+                        </td>
+                      </>
+                    )}
                     <td className="px-4 py-3 text-right">
                       {p.prelacion ? (
                         <span
@@ -397,6 +484,14 @@ export function ResultadoEtapasView({
               {ganadores.map((g) => g.postor).join(' y ')}, con {ganadores[0].puntajeTecnico} puntos.
               El desempate se resuelve conforme a las Bases y al Reglamento.
             </p>
+          ) : resultado.finales ? (
+            <p className="text-slate-700">
+              <span className="font-medium">Propuesta de buena pro:</span>{' '}
+              {resultado.finales.buenaPro.postor ? (
+                <span className="font-medium text-slate-900">{resultado.finales.buenaPro.postor}. </span>
+              ) : null}
+              {resultado.finales.buenaPro.fundamento}
+            </p>
           ) : (
             <p className="text-slate-700">
               Primer lugar del orden de prelación:{' '}
@@ -409,6 +504,10 @@ export function ResultadoEtapasView({
           )}
         </div>
       </Card>
+
+      {resultado.finales && <EtapasSiguientes finales={resultado.finales} />}
+
+      <SegundaEvaluacion id={id} postores={postores} finales={resultado.finales} rondas={resultado.rondas} />
 
       <div className="space-y-3">
         <h3 className="text-sm font-semibold text-slate-800">Detalle por postor</h3>
@@ -429,10 +528,66 @@ export function ResultadoEtapasView({
       )}
 
       <p className="text-xs text-slate-500">
-        La evaluación económica y el desempate no se asignan automáticamente: los consigna el comité
-        conforme a las Bases. Los puntos marcados como <Badge variant="secondary">revisión humana</Badge>{' '}
-        tampoco: son aquellos en que el análisis no alcanzó una conclusión suficientemente segura.
+        {resultado.finales
+          ? 'La evaluación económica, el orden de prelación y la propuesta de buena pro se calculan con las reglas de las Bases y del Reglamento; el comité las revisa y decide. '
+          : 'La evaluación económica y el desempate no se asignan automáticamente: los consigna el comité conforme a las Bases. '}
+        Los puntos marcados como <Badge variant="secondary">revisión humana</Badge> son aquellos en que el análisis no
+        alcanzó una conclusión suficientemente segura: los decide el comité.
       </p>
     </div>
+  );
+}
+
+/** Los integrantes de un consorcio y su participación, debajo de su nombre. */
+function Integrantes({ postor }: { postor: ResultadoPostor }) {
+  if (!postor.consorcio || postor.consorcio.length === 0) return null;
+  return (
+    <p className="mt-0.5 text-xs font-normal text-slate-500">
+      {postor.consorcio.map((c) => `${c.nombre}${c.participacion ? ` (${c.participacion})` : ''}`).join(' · ')}
+    </p>
+  );
+}
+
+/**
+ * Las etapas 4 a 7 que pidió César: cómo se calculó la económica y lo
+ * que corresponde —o no— en rechazo, negociación y buena pro.
+ */
+function EtapasSiguientes({ finales }: { finales: EtapasFinales }) {
+  const filas: Array<{ etapa: string; texto: string; aviso?: boolean }> = [
+    { etapa: '4. Evaluación económica', texto: finales.metodo },
+    {
+      etapa: '5. Rechazo de oferta',
+      texto:
+        finales.rechazo.length === 0
+          ? 'No corresponde: ninguna oferta quedó sustancialmente por debajo de la cuantía.'
+          : finales.rechazo.map((r) => `${r.postor}: ${r.fundamento}`).join(' '),
+      aviso: finales.rechazo.length > 0,
+    },
+    {
+      etapa: '6. Negociación',
+      texto: finales.negociacion
+        ? `${finales.negociacion.postor}: ${finales.negociacion.fundamento}`
+        : 'No corresponde: la oferta del mejor puntaje total no supera la cuantía.',
+      aviso: !!finales.negociacion,
+    },
+    {
+      etapa: '7. Otorgamiento de la buena pro',
+      texto: `${finales.buenaPro.postor ? `${finales.buenaPro.postor}. ` : ''}${finales.buenaPro.fundamento}`,
+    },
+  ];
+  return (
+    <Card className="overflow-hidden">
+      <div className="border-b bg-slate-50 px-4 py-3">
+        <h3 className="text-sm font-semibold text-slate-800">Evaluación económica, rechazo, negociación y buena pro</h3>
+      </div>
+      <dl className="divide-y text-sm">
+        {filas.map((f) => (
+          <div key={f.etapa} className="grid gap-1 px-4 py-3 sm:grid-cols-[220px_1fr]">
+            <dt className="font-medium text-slate-800">{f.etapa}</dt>
+            <dd className={cn('text-slate-700', f.aviso && 'text-amber-900')}>{f.texto}</dd>
+          </div>
+        ))}
+      </dl>
+    </Card>
   );
 }

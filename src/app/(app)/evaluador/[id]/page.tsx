@@ -23,7 +23,7 @@ export default async function EvaluationPage({ params }: Props) {
   const { data } = await supabase
     .from('evaluations')
     .select(
-      'id, title, status, offer_files, result, created_at, completed_at, user_id',
+      'id, title, status, offer_files, result, created_at, completed_at, user_id, iniciada:progreso->>iniciada',
     )
     .eq('id', params.id)
     .maybeSingle();
@@ -36,6 +36,8 @@ export default async function EvaluationPage({ params }: Props) {
     offer_files: Array<{ name: string }> | null;
     result: unknown;
     created_at: string;
+    /** Inicio de la ronda en curso, si es una segunda evaluación. */
+    iniciada?: string | null;
     completed_at: string | null;
     user_id: string;
   };
@@ -49,7 +51,7 @@ export default async function EvaluationPage({ params }: Props) {
         status={ev.status as 'pending' | 'processing' | 'failed'}
         offers={ev.offer_files || []}
         porEtapas
-        creada={ev.created_at}
+        creada={ev.iniciada ?? ev.created_at}
       />
     );
   }

@@ -42,11 +42,13 @@ const TRAMO = 15;
 /**
  * Tope de páginas que se transcriben.
  *
- * Una oferta larga son doscientas o trescientas páginas: catorce o
- * veinte llamadas. Más allá, el coste deja de compensar frente a pedirle
- * al usuario el documento en otro formato.
+ * Era 300, y se cortaba sin aviso: una de las ofertas del CP
+ * SER-SM-6-2026 de César tenía 496 páginas y las 196 últimas no se
+ * leyeron nunca (10/10/2026). Las ofertas de obras y servicios con
+ * equipamiento pasan holgadamente de 300. Con mil, una oferta así es
+ * una sola; y la que pase de mil se avisa, no se corta en silencio.
  */
-const MAX_PAGINAS = 300;
+const MAX_PAGINAS = 1000;
 
 export interface PdfTranscrito {
   texto: string;
@@ -101,84 +103,42 @@ export async function transcribirPdfEscaneado(
   const { pages } = await extractPdfText(Buffer.from(buffer), { detectScanned: false });
   const hasta = Math.min(pages, maxPaginas);
 
-  const archivo = await uploadFileToGemini(buffer, 'application/pdf', nombre);
-
   const partes: string[] = [];
   let tramosVacios = 0;
   let tramosFallidos = 0;
 
-  try {
-    for (let desde = 1; desde <= hasta; desde += TRAMO) {
-      const fin = Math.min(desde + TRAMO - 1, hasta);
-      // Se reintenta antes de darlo por perdido. Un tramo que falla no
-      // es una página en blanco: es un corte de la API, y antes se
-      // anotaba como vacío y se seguía. Una oferta escaneada de la que
-      // solo se transcribían dos tramos llegaba al evaluador como si
-      // fuera la oferta entera, y el acta decía "ausencia total de la
-      // propuesta y documentos de acreditación del personal clave"
-      // sobre documentos que sí estaban. Observación de César
-      // (setiembre de 2026): "el postor sí adjuntó las constancias de
-      // trabajo por lo que sí debió ser calificada".
-      let logrado = '';
-      let hubaError = false;
-      let filtrado = false;
-      for (let intento = 1; intento <= REINTENTOS_TRAMO; intento++) {
-        try {
-          const { text, finishReason } = await generateText({
-            model: chatModel,
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  { type: 'file', data: archivo.uri, mimeType: 'application/pdf' },
-                  { type: 'text', text: `${INSTRUCCION}\n\nRango: páginas ${desde} a ${fin}.` },
-                ],
-              },
-            ],
-            temperature: 0,
-          });
-          logrado = text.trim();
-          if (logrado.length > 0) break;
-          // RECITATION: Google corta la respuesta cuando lo transcrito se
-          // parece a un texto publicado en internet —una resolución del
-          // Tribunal lo es—. Repetir la misma petición da lo mismo.
-          if (finishReason === 'content-filter') {
-            filtrado = true;
-            break;
-          }
-        } catch (e) {
-          hubaError = true;
-          console.error(
-            `[ocr] ${nombre}: tramo ${desde}-${fin}, intento ${intento}: ${(e as Error).message.slice(0, 110)}`,
-          );
-        }
+  for (let desde = 1; desde <= hasta; desde += TRAMO) {
+    const fin = Math.min(desde + TRAMO - 1, hasta);
+    // Cada tramo va en un PDF propio con solo sus páginas. Subir el PDF
+    // entero y pedirle un rango hacía que Gemini procesara el documento
+    // completo en cada llamada —lento y caro con 500 páginas— y que
+    // devolviera tramos enteros como «[página sin texto legible]» que de
+    // a pocas páginas sí se leen (oferta del CP SER-SM-6-2026, documento
+    // 13 de César, 10/10/2026).
+    //
+    // Se reintenta antes de darlo por perdido. Un tramo que falla no es
+    // una página en blanco: es un corte de la API, y antes se anotaba
+    // como vacío y se seguía. Una oferta escaneada de la que solo se
+    // transcribían dos tramos llegaba al evaluador como si fuera la
+    // oferta entera (César, setiembre de 2026).
+    let r: { texto: string; fallidas: number } | null = null;
+    for (let intento = 1; intento <= REINTENTOS_TRAMO && !r; intento++) {
+      try {
+        r = await transcribirSubPdf(buffer, desde, fin, nombre);
+      } catch (e) {
+        console.error(`[ocr] ${nombre}: tramo ${desde}-${fin}, intento ${intento}: ${(e as Error).message.slice(0, 110)}`);
         if (intento < REINTENTOS_TRAMO) await esperar(1500 * intento);
       }
-      if (!logrado && filtrado) {
-        // Página por página, cada una en un PDF propio: un tramo corto
-        // pasa el filtro, y pedir un rango sobre el PDF entero no sirve
-        // porque el modelo no respeta bien el rango (medido con la
-        // Resolución 5193-2026-TCP-S6: pedida la página 3, transcribía
-        // la 1). Así entraron la 5193 y la 5235, que antes quedaban en
-        // «0 caracteres» contadas como páginas en blanco.
-        const r = await transcribirPaginaPorPagina(buffer, desde, fin, nombre);
-        logrado = r.texto;
-        if (r.fallidas > 0) tramosFallidos++;
-      }
-      if (logrado.length > 0) {
-        partes.push(logrado);
-      } else if (hubaError || filtrado) {
-        // La API no pudo con él: eso es una pérdida de contenido.
-        tramosFallidos++;
-      } else {
-        // El modelo respondió y no había nada que transcribir: un
-        // separador, una carátula en blanco. No es una pérdida.
-        tramosVacios++;
-      }
     }
-  } finally {
-    // El archivo se borra solo a las 48 h, pero la cuota es compartida.
-    await deleteGeminiFile(archivo.name).catch(() => {});
+    if (r?.texto) partes.push(r.texto);
+    if (!r || r.fallidas > 0) {
+      // La API no pudo con él, o el filtro bloqueó páginas: pérdida de contenido.
+      tramosFallidos++;
+    } else if (!r.texto) {
+      // El modelo respondió y no había nada que transcribir: un
+      // separador, una carátula en blanco. No es una pérdida.
+      tramosVacios++;
+    }
   }
 
   return {
@@ -204,7 +164,7 @@ export async function transcribirTramo(
   desde: number,
   fin: number,
   opciones: { tiempoMs?: number } = {},
-): Promise<{ texto: string; filtrado: boolean }> {
+): Promise<{ texto: string; filtrado: boolean; cortado: boolean }> {
   const { text, finishReason } = await generateText({
     model: chatModel,
     messages: [
@@ -217,10 +177,24 @@ export async function transcribirTramo(
       },
     ],
     temperature: 0,
+    // Sin tope explícito, la respuesta se cortaba a unos 8 000 tokens: un
+    // tramo de quince páginas densas de la oferta de un consorcio llegó
+    // hasta la página 43 de 45, y las dos que faltaban eran la promesa de
+    // consorcio y el Anexo N° 3. El acta dijo «omisión total» de ambos.
+    maxTokens: 32_000,
     abortSignal: AbortSignal.timeout(opciones.tiempoMs ?? 180_000),
   });
   const texto = text.trim();
-  return { texto, filtrado: !texto && finishReason === 'content-filter' };
+  return { texto, filtrado: !texto && finishReason === 'content-filter', cortado: finishReason === 'length' };
+}
+
+/**
+ * La última página que la transcripción marca («=== Página N ===»). Si
+ * es menor que la última pedida, el tramo vino incompleto.
+ */
+export function ultimaPaginaMarcada(texto: string): number | null {
+  const ns = [...texto.matchAll(/=== P[áa]gina (\d+) ===/g)].map((m) => Number(m[1]));
+  return ns.length > 0 ? Math.max(...ns) : null;
 }
 
 export { TRAMO as PAGINAS_POR_TRAMO, MAX_PAGINAS as MAX_PAGINAS_OCR };
@@ -240,6 +214,22 @@ export async function transcribirPaginasSueltas(
   fin: number,
   nombre: string,
 ): Promise<string> {
+  const r = await transcribirSubPdf(buffer, desde, fin, nombre);
+  if (r.fallidas > 0) throw new Error(`${r.fallidas} página(s) bloqueadas por el filtro`);
+  return r.texto;
+}
+
+/**
+ * Lo mismo que `transcribirPaginasSueltas`, pero sin lanzar cuando el
+ * filtro de recitación bloquea páginas: devuelve lo que se leyó y
+ * cuántas se perdieron. Lanza solo si la API falla.
+ */
+async function transcribirSubPdf(
+  buffer: Buffer,
+  desde: number,
+  fin: number,
+  nombre: string,
+): Promise<{ texto: string; fallidas: number }> {
   const origen = await PDFDocument.load(buffer, { ignoreEncryption: true });
   const hoja = await PDFDocument.create();
   const copias = await hoja.copyPages(
@@ -256,17 +246,62 @@ export async function transcribirPaginasSueltas(
     const total = fin - desde + 1;
     const r = await transcribirTramo(archivo.uri, 1, total);
     if (r.texto) {
-      return r.texto.replace(/=== Página (\d+) ===/g, (_, n) => `=== Página ${Number(n) + desde - 1} ===`);
+      const texto = limpiarArtefactos(
+        r.texto.replace(/=== Página (\d+) ===/g, (_, n) => `=== Página ${Number(n) + desde - 1} ===`),
+      );
+      return total > 1 ? releerPaginasVacias(buffer, texto, desde, fin, nombre) : { texto, fallidas: 0 };
     }
-    if (r.filtrado) {
-      const hojas = await transcribirPaginaPorPagina(buffer, desde, fin, nombre);
-      if (hojas.fallidas > 0) throw new Error(`${hojas.fallidas} página(s) bloqueadas por el filtro`);
-      return hojas.texto;
-    }
-    return '';
+    if (r.filtrado) return transcribirPaginaPorPagina(buffer, desde, fin, nombre);
+    return { texto: '', fallidas: 0 };
   } finally {
     await deleteGeminiFile(archivo.name).catch(() => {});
   }
+}
+
+/** Lo que el modelo a veces añade y no está en la página. */
+function limpiarArtefactos(texto: string): string {
+  return texto.replace(/^[ \t]*==\s*(?:Start|End) of OCR[^=\n]*==[ \t]*\n?/gim, '');
+}
+
+/**
+ * Si una página vino vacía o solo con su número de folio.
+ *
+ * Algunos escaneos traen una capa de texto con solo el folio estampado.
+ * En un tramo de quince páginas el modelo copia esa capa en vez de leer
+ * la imagen, y devuelve «215» donde hay un diploma del Colegio de
+ * Ingenieros; pedida sola, la misma página se lee entera (Consorcio Mega,
+ * CP SER-SM-6-2026: quince páginas con los documentos del residente).
+ */
+export function paginaVacia(trozo: string): boolean {
+  return (
+    trozo
+      .replace(/=== P[áa]gina \d+ ===|\[p[áa]gina sin texto legible\]|==\s*(?:Start|End) of OCR[^=\n]*==/gi, '')
+      .replace(/^\s*(?:folio\s*)?\d{1,4}\s*$/gim, '')
+      .trim().length < 30
+  );
+}
+
+async function releerPaginasVacias(
+  buffer: Buffer,
+  texto: string,
+  desde: number,
+  fin: number,
+  nombre: string,
+): Promise<{ texto: string; fallidas: number }> {
+  const trozos = texto.split(/(?==== P[áa]gina \d+ ===)/);
+  let fallidas = 0;
+  for (let i = 0; i < trozos.length; i++) {
+    const n = Number(/^=== P[áa]gina (\d+) ===/.exec(trozos[i])?.[1]);
+    if (!Number.isFinite(n) || n < desde || n > fin || !paginaVacia(trozos[i])) continue;
+    try {
+      const r = await transcribirSubPdf(buffer, n, n, nombre);
+      fallidas += r.fallidas;
+      if (r.texto && !paginaVacia(r.texto)) trozos[i] = `${r.texto.trim()}\n\n`;
+    } catch {
+      // Queda como vino: vale más el tramo que la página.
+    }
+  }
+  return { texto: trozos.join('').trim(), fallidas };
 }
 
 /**

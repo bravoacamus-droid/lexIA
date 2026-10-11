@@ -10,10 +10,11 @@
  */
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { actaADocx } from '@/lib/evaluacion/acta';
+import { actaADocx, type DatosActa } from '@/lib/evaluacion/acta';
 import { nombreDeArchivo, cabeceraDescarga } from '@/lib/descargas/nombre-archivo';
 import type { LecturaBases } from '@/lib/evaluacion/motor';
 import type { ResultadoPostor } from '@/lib/evaluacion/etapas';
+import type { EtapasFinales } from '@/lib/evaluacion/economica';
 
 export const runtime = 'nodejs';
 
@@ -34,7 +35,7 @@ export async function GET(_req: Request, ctx: { params: { id: string } }) {
   const fila = data as {
     user_id: string;
     title: string | null;
-    result: { bases?: LecturaBases; postores?: ResultadoPostor[] } | null;
+    result: { bases?: LecturaBases; postores?: ResultadoPostor[]; finales?: EtapasFinales; rondas?: DatosActa['rondas'] } | null;
   };
   if (fila.user_id !== user.id) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
@@ -47,7 +48,12 @@ export async function GET(_req: Request, ctx: { params: { id: string } }) {
   }
 
   const denominacion = guardado.bases.procedimiento?.denominacion ?? fila.title ?? 'Procedimiento';
-  const buffer = await actaADocx({ bases: guardado.bases, postores: guardado.postores });
+  const buffer = await actaADocx({
+    bases: guardado.bases,
+    postores: guardado.postores,
+    finales: guardado.finales,
+    rondas: guardado.rondas,
+  });
 
   const nombre = `${nombreDeArchivo(`Acta de evaluación — ${denominacion}`, 'Acta de evaluación')}.docx`;
   return new NextResponse(new Uint8Array(buffer), {

@@ -131,6 +131,14 @@ export interface FichaRequisito {
   /** Solo en la etapa de evaluación. */
   puntaje?: number;
   puntajeMaximo?: number;
+  /** Ya pasó por el contraste jurisprudencial (`jurisprudencia.ts`). */
+  contrastada?: boolean;
+  /**
+   * Ya se revisó ítem por ítem (`verificacion.ts`). Lo que encontró son
+   * hechos de la oferta con su folio: el contraste puede añadir
+   * jurisprudencia, pero no borrarlos.
+   */
+  verificada?: boolean;
 }
 
 /** Lo que sale de una etapa para un postor. */
@@ -161,6 +169,13 @@ export interface ResultadoPostor {
   prelacion?: number;
   /** Dónde se quedó: la última etapa que superó. */
   resultadoFinal: string;
+  /** Etapas 4 a 7 (`economica.ts`). */
+  accedeEconomica?: boolean;
+  ofertaEconomica?: { monto: number; moneda: string; cita: string };
+  puntajeEconomico?: number;
+  puntajeTotal?: number;
+  /** Decisión de rechazo de la oferta económica en la segunda evaluación (art. 132.5). */
+  rechazo?: { rechazada: boolean; fundamento: string };
 }
 
 /**

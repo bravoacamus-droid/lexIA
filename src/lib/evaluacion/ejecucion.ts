@@ -31,9 +31,33 @@ import {
   transcribirPaginaPorPagina,
   transcribirPaginasSueltas,
   transcribirTramo,
+  ultimaPaginaMarcada,
 } from '@/lib/ai/ocr-pdf';
-import { cerrarPostor, evaluarEtapa, leerBases, type LecturaBases } from './motor';
-import { ETAPAS, NOMBRE_ETAPA, avanza, ordenarPorPuntaje, type Etapa, type ResultadoEtapa } from './etapas';
+import { cerrarEtapa, cerrarPostor, evaluarEtapa, leerBases, type LecturaBases } from './motor';
+import { bloqueDeIdentificacion, identificarPostor, type IdentificacionPostor } from './identificacion';
+import { contrastarFicha, fichasAContrastar } from './jurisprudencia';
+import { claseDeVerificacion, verificarFicha } from './verificacion';
+import { revisarCertificaciones } from './certificaciones';
+import { etapasFinales, leerOfertaEconomica, type EtapasFinales, type OfertaEconomica } from './economica';
+import {
+  NOMBRE_TIPO_RONDA,
+  aplicarRevision,
+  revisarNegociacion,
+  revisarRechazo,
+  revisarSubsanacion,
+  sinSubsanar,
+  type RevisionPostor,
+  type TipoDocumentoRonda,
+} from './ronda';
+import {
+  ETAPAS,
+  NOMBRE_ETAPA,
+  avanza,
+  ordenarPorPuntaje,
+  type Etapa,
+  type ResultadoEtapa,
+  type ResultadoPostor,
+} from './etapas';
 import { construirActa } from './acta';
 import { razonSocialDeLaOferta } from './postor';
 
@@ -70,15 +94,23 @@ type LecturaParte =
     };
 
 interface Documento {
-  rol: 'bases' | 'oferta';
+  /** «anexo»: un documento de la segunda evaluación (subsanación, rechazo, negociación). */
+  rol: 'bases' | 'oferta' | 'anexo';
   nombre: string;
   partes: string[];
   lecturas: Array<LecturaParte | null>;
-  estado: 'leyendo' | 'listo' | 'ilegible';
+  /** «fusionado»: era otro tomo de la oferta de otro documento y se evalúa junto con ella. */
+  estado: 'leyendo' | 'listo' | 'ilegible' | 'fusionado';
+  /** Si se fusionó: en qué documento (índice en `documentos`). */
+  fusionadoEn?: number;
   texto?: string;
   transcrito?: boolean;
   motivo?: string;
   postor?: string;
+  /** Quién presenta la oferta, leído de la promesa de consorcio (`identificacion.ts`). */
+  identificacion?: IdentificacionPostor | null;
+  /** El monto de su oferta económica (`economica.ts`); null si no se pudo leer. */
+  ofertaEconomica?: OfertaEconomica | null;
 }
 
 export interface LineaResumen {
@@ -96,6 +128,8 @@ export interface ResumenProgreso {
 
 export interface Progreso {
   version: 1;
+  /** Ya se buscaron tomos de una misma oferta entre los archivos (`fusionarTomos`). */
+  tomosRevisados?: boolean;
   vueltas: number;
   documentos: Documento[];
   lectura?: LecturaBases;
@@ -104,13 +138,124 @@ export interface Progreso {
   fallos: Record<string, number>;
   errores: Record<string, string>;
   resumen?: ResumenProgreso;
+  /** Segunda evaluación: solo los documentos nuevos (`ronda.ts`). */
+  ronda?: EstadoRonda;
+  /** Cuándo empezó esta evaluación (o esta ronda), para el reloj de la pantalla. */
+  iniciada?: string;
 }
+
+interface EstadoRonda {
+  numero: number;
+  /** Cada documento nuevo: su lugar en `documentos`, de qué postor es y de qué tipo. */
+  documentos: Array<{ indice: number; postor: string; tipo: TipoDocumentoRonda }>;
+  noSubsanaron: string[];
+  /** La revisión de cada postor afectado; null si no pudo hacerse. */
+  revisados: Record<string, RevisionPostor | null>;
+}
+
+/** Lo que se guardó de la primera evaluación. */
+interface ResultadoGuardado {
+  version: string;
+  bases: LecturaBases;
+  postores: ResultadoPostor[];
+  finales?: EtapasFinales;
+  rondas?: Array<Record<string, unknown>>;
+  [clave: string]: unknown;
+}
+
+const afectadosDe = (r: EstadoRonda) => [...new Set([...r.documentos.map((d) => d.postor), ...r.noSubsanaron])];
+
+/**
+ * El progreso de una segunda evaluación, listo para que el ejecutor lo
+ * recorra. Lo llama la ruta que recibe los documentos.
+ */
+export function prepararRonda(args: {
+  numero: number;
+  documentos: Array<{ postor: string; tipo: TipoDocumentoRonda; nombre: string; path: string; partes?: string[] }>;
+  noSubsanaron: string[];
+}): Progreso {
+  return {
+    version: 1,
+    vueltas: 0,
+    iniciada: new Date().toISOString(),
+    tomosRevisados: true,
+    documentos: args.documentos.map((d) => {
+      const partes = d.partes?.length ? d.partes : [d.path];
+      return { rol: 'anexo', nombre: d.nombre, partes, lecturas: partes.map(() => null), estado: 'leyendo' };
+    }),
+    etapas: [],
+    fallos: {},
+    errores: {},
+    ronda: {
+      numero: args.numero,
+      documentos: args.documentos.map((d, indice) => ({ indice, postor: d.postor, tipo: d.tipo })),
+      noSubsanaron: args.noSubsanaron,
+      revisados: {},
+    },
+  };
+}
+
+/** La revisión de un postor en la segunda evaluación, con lo que cambió. */
+async function revisarPostorRonda(
+  previo: ResultadoGuardado,
+  nombre: string,
+  documentos: Array<{ doc: Documento; tipo: TipoDocumentoRonda }>,
+  ronda: EstadoRonda,
+): Promise<RevisionPostor> {
+  const postor = previo.postores.find((x) => x.postor === nombre);
+  if (!postor) throw new Error(`No hay un postor «${nombre}» en la primera evaluación`);
+  const rev: RevisionPostor = { cambios: [] };
+  const texto = (tipo: TipoDocumentoRonda) =>
+    documentos
+      .filter((x) => x.tipo === tipo && x.doc.estado === 'listo')
+      .map((x) => `=== ${x.doc.nombre} ===\n${x.doc.texto}`)
+      .join('\n\n');
+  for (const x of documentos.filter((x) => x.doc.estado === 'ilegible')) {
+    rev.cambios.push(`No se pudo leer «${x.doc.nombre}» (${NOMBRE_TIPO_RONDA[x.tipo]}): ${x.doc.motivo ?? ''}`);
+  }
+
+  const anteriores = new Map(postor.etapas.flatMap((e) => e.fichas.map((f) => [f.id, f] as const)));
+  if (ronda.noSubsanaron.includes(nombre)) {
+    rev.fichas = sinSubsanar(postor);
+  }
+  const subsanacion = texto('subsanacion');
+  if (subsanacion) {
+    rev.fichas = { ...(rev.fichas ?? {}), ...(await revisarSubsanacion({ postor, textoDocumento: subsanacion })) };
+  }
+  for (const [id, f] of Object.entries(rev.fichas ?? {})) {
+    const antes = anteriores.get(id);
+    rev.cambios.push(
+      `«${f.requisito}»: ${antes ? ETIQUETA_FICHA[antes.resultado] : '—'} → ${ETIQUETA_FICHA[f.resultado]}. ${f.hallazgo.split(' (Observación original')[0]}`,
+    );
+  }
+  const rechazo = texto('rechazo');
+  if (rechazo) {
+    rev.rechazo = await revisarRechazo({ postor, textoDocumento: rechazo, cuantia: previo.bases.procedimiento.cuantiaMonto });
+    rev.cambios.push(`Oferta económica ${rev.rechazo.rechazada ? 'RECHAZADA' : 'no rechazada'}: ${rev.rechazo.fundamento}`);
+  }
+  const negociacion = texto('negociacion');
+  if (negociacion) {
+    rev.negociacion = await revisarNegociacion({ postor, textoDocumento: negociacion });
+    rev.cambios.push(
+      `Negociación: ${rev.negociacion.acepta ? 'acepta' : 'no acepta'}${rev.negociacion.monto ? ` (monto ${rev.negociacion.monto.toLocaleString('es-PE')})` : ''}. ${rev.negociacion.fundamento}`,
+    );
+  }
+  return rev;
+}
+
+const ETIQUETA_FICHA: Record<string, string> = {
+  cumple: 'cumple',
+  subsanable: 'sujeto a subsanación',
+  no_cumple: 'no cumple',
+  revision_humana: 'para revisión del comité',
+};
 
 interface Fila {
   bases_file_path: string | null;
   bases_partes: string[] | null;
   offer_files: Array<{ name: string; path: string; partes?: string[] }> | null;
   progreso: Progreso | null;
+  result: ResultadoGuardado | null;
 }
 
 export type Desenlace =
@@ -165,9 +310,115 @@ function enTramos(paginas: number[]): Array<[number, number]> {
   return rangos;
 }
 
-const desdesDe = (l: LecturaOcr) => l.rangos.map((r) => r[0]);
-const finDe = (l: LecturaOcr, desde: number) => l.rangos.find((r) => r[0] === desde)?.[1] ?? desde;
-const paginasDe = (l: LecturaOcr) => l.rangos.reduce((s, [a, b]) => s + b - a + 1, 0);
+/**
+ * Cada tramo se guarda por su rango completo, «16-30». Por su primera
+ * página no alcanza: una página que se reintenta sola puede ser la
+ * primera de su tramo (la 16 de 16-30) y compartiría la clave.
+ */
+const claveRango = (r: [number, number]) => `${r[0]}-${r[1]}`;
+const paginasDe = (l: LecturaOcr) => {
+  const vistas = new Set<number>();
+  for (const [a, b] of l.rangos) for (let n = a; n <= b; n++) vistas.add(n);
+  return vistas.size;
+};
+
+/** Las páginas de un texto transcrito, por su marca «=== Página N ===». */
+function paginasDelTexto(t: string, destino: Map<number, string>, sueltos: string[]) {
+  for (const trozo of t.split(/(?==== P[áa]gina \d+ ===)/)) {
+    const n = Number(/=== P[áa]gina (\d+) ===/.exec(trozo)?.[1]);
+    if (!Number.isFinite(n)) {
+      if (trozo.trim()) sueltos.push(trozo.trim());
+      continue;
+    }
+    const previo = destino.get(n);
+    if (!previo || trozo.trim().length > previo.length) destino.set(n, trozo.trim());
+  }
+}
+
+/**
+ * Si un tramo vino incompleto —la respuesta se cortó antes de la última
+ * página pedida—, lo que falta se pide como un tramo nuevo en vez de
+ * perderse. La última página marcada se descarta y se vuelve a pedir:
+ * puede haber quedado a medias. Documento 13 de César: la promesa de
+ * consorcio y el Anexo N° 3 de un postor estaban en las dos páginas que
+ * se perdieron así, y el acta dijo «omisión total».
+ */
+/**
+ * Las páginas que un tramo devolvió «en blanco» se piden otra vez, de a
+ * una.
+ *
+ * Cuando la transcripción de un tramo falla, el modelo a veces rellena
+ * sus páginas con «[página sin texto legible]». En el CP SER-SM-6-2026
+ * pasó con tramos enteros de quince páginas —16-30, 46-60, 76-90 de una
+ * oferta—, y con ellos se fueron el Anexo N° 3 y la promesa de consorcio
+ * de un postor, que el acta dio por omitidos (documento 13 de César).
+ * Pedidas de a tres seguían perdiéndose; de a una salieron todas salvo
+ * las que de verdad eran separadores. Así que: lo que el tramo sí leyó se
+ * queda, y cada página en blanco se vuelve a pedir sola. Una página sola
+ * que vuelve en blanco se acepta: puede ser una foto o una hoja vacía.
+ */
+function reintentarPaginasEnBlanco(l: LecturaOcr, rango: [number, number], texto: string): string {
+  const [desde, fin] = rango;
+  if (fin <= desde) return texto;
+  const paginas = texto.split(/(?==== P[áa]gina \d+ ===)/);
+  const enBlanco: number[] = [];
+  const quedan = paginas.filter((x) => {
+    const n = Number(/=== P[áa]gina (\d+) ===/.exec(x)?.[1]);
+    // Vacía también la que trae solo el número de folio, a veces envuelto
+    // en «==Start of OCR for page 5== 215 ==End of OCR for page 5==»: así
+    // vinieron quince páginas del Consorcio Mega con el diploma y los
+    // certificados del residente, y el acta dijo que no los presentó.
+    const vacia =
+      Number.isFinite(n) &&
+      x
+        .replace(/=== P[áa]gina \d+ ===|\[p[áa]gina sin texto legible\]|==\s*(?:Start|End) of OCR[^=\n]*==/gi, '')
+        .replace(/^\s*(?:folio\s*)?\d{1,4}\s*$/gim, '')
+        .trim().length < 30;
+    if (vacia && n >= desde && n <= fin) enBlanco.push(n);
+    return !vacia;
+  });
+  if (enBlanco.length === 0) return texto;
+  for (const n of enBlanco) {
+    if (!l.rangos.some((r) => r[0] === n && r[1] === n)) l.rangos.push([n, n]);
+  }
+  console.warn(`[evaluacion] tramo ${desde}-${fin}: ${enBlanco.length} página(s) en blanco, se piden de a una`);
+  return quedan.join('').trim();
+}
+
+/** Devuelve el texto que queda y el rango al que corresponde (puede achicarse). */
+function completarTramo(
+  l: LecturaOcr,
+  rango: [number, number],
+  texto: string,
+): { texto: string; rango: [number, number] } {
+  const [desde, fin] = rango;
+  const ultima = ultimaPaginaMarcada(texto);
+  if (ultima === null || ultima >= fin || ultima <= desde) return { texto, rango };
+  const corte = texto.search(new RegExp(`=== P[áa]gina ${ultima} ===`));
+  const i = l.rangos.findIndex((r) => r[0] === desde && r[1] === fin);
+  if (i < 0) return { texto, rango };
+  const nuevo: [number, number] = [desde, ultima - 1];
+  l.rangos.splice(i, 1, nuevo, [ultima, fin]);
+  console.warn(`[evaluacion] tramo ${desde}-${fin} llegó hasta la página ${ultima}: se piden ${ultima}-${fin} aparte`);
+  return { texto: corte > 0 ? texto.slice(0, corte).trim() : texto, rango: nuevo };
+}
+
+/**
+ * Los PDF ya descargados en esta vuelta: cada tramo necesita el PDF de su
+ * parte para sacar sus páginas, y bajarlo de nuevo por cada tramo serían
+ * gigas por oferta. Se guardan los últimos pocos.
+ */
+const PDF_EN_MEMORIA = new Map<string, Promise<Buffer>>();
+function descargarUnaVez(cliente: SupabaseClient, path: string): Promise<Buffer> {
+  let p = PDF_EN_MEMORIA.get(path);
+  if (!p) {
+    p = descargar(cliente, path);
+    p.catch(() => PDF_EN_MEMORIA.delete(path));
+    PDF_EN_MEMORIA.set(path, p);
+    while (PDF_EN_MEMORIA.size > 6) PDF_EN_MEMORIA.delete(PDF_EN_MEMORIA.keys().next().value!);
+  }
+  return p;
+}
 
 async function descargar(cliente: SupabaseClient, path: string): Promise<Buffer> {
   const { data, error } = await cliente.storage.from('uploads').download(path);
@@ -208,15 +459,17 @@ async function leerParte(cliente: SupabaseClient, d: Documento, k: number): Prom
     return { tipo: 'ocr', paginas, rangos: enTramos(sinTexto), textoPaginas: textos, tramos: {} };
   }
 
-  // Escaneo completo: se sube una vez y se transcribe por tramos.
-  const archivo = await uploadFileToGemini(buffer, 'application/pdf', d.nombre);
+  // Escaneo completo: se transcribe por tramos, cada uno desde un PDF con
+  // solo sus páginas (`transcribirPaginasSueltas`). Antes se subía el PDF
+  // entero una vez y se pedía cada tramo por rango: Gemini procesa el
+  // archivo COMPLETO en cada llamada —una oferta de 500 páginas son más de
+  // cien mil tokens de entrada por tramo, y por cada página reintentada—.
+  // Así se agotó el crédito prepago en una prueba (10/10/2026), y los
+  // tramos además volvían en blanco con más frecuencia.
   return {
     tipo: 'ocr',
     paginas,
     rangos: enTramos(Array.from({ length: paginas }, (_, i) => i + 1)),
-    uri: archivo.uri,
-    archivo: archivo.name,
-    subido: new Date().toISOString(),
     tramos: {},
   };
 }
@@ -226,8 +479,8 @@ function parteResuelta(p: Progreso, di: number, k: number): boolean {
   const l = p.documentos[di].lecturas[k];
   if (!l) return (p.fallos[`leer:${di}:${k}`] ?? 0) >= INTENTOS;
   if (l.tipo === 'texto') return true;
-  return desdesDe(l).every(
-    (d) => l.tramos[d] !== undefined || (p.fallos[`tramo:${di}:${k}:${d}`] ?? 0) >= INTENTOS,
+  return l.rangos.every(
+    (r) => l.tramos[claveRango(r)] !== undefined || (p.fallos[`tramo:${di}:${k}:${claveRango(r)}`] ?? 0) >= INTENTOS,
   );
 }
 
@@ -258,7 +511,7 @@ function cerrarDocumentos(p: Progreso): Documento[] {
       } else {
         transcrito = true;
         intentadas += paginasDe(l);
-        perdidos += desdesDe(l).filter((desde) => l.tramos[desde] === undefined).length;
+        perdidos += l.rangos.filter((r) => l.tramos[claveRango(r)] === undefined).length;
         // Cuando el PDF se partió para subirlo, cada parte numera
         // desde 1: se devuelve la numeración del documento original.
         const renumerar = (t: string) =>
@@ -266,18 +519,32 @@ function cerrarDocumentos(p: Progreso): Documento[] {
             ? t.replace(/=== Página (\d+) ===/g, (_, n) => `=== Página ${Number(n) + desplazamiento} ===`)
             : t;
         if (!l.textoPaginas) {
-          for (const desde of desdesDe(l)) {
-            const t = l.tramos[desde];
-            if (t) trozos.push(renumerar(t));
+          // Por número de página: una página reintentada sola llega en su
+          // propio tramo, después del tramo del que salió.
+          const porPagina = new Map<number, string>();
+          const sueltos: string[] = [];
+          for (const r of l.rangos) {
+            const t = l.tramos[claveRango(r)];
+            if (t) paginasDelTexto(t, porPagina, sueltos);
           }
+          const ordenado = [...porPagina.entries()].sort((a, b) => a[0] - b[0]).map((x) => x[1]);
+          const unido = [...sueltos, ...ordenado].join('\n\n');
+          if (unido) trozos.push(renumerar(unido));
         } else {
           // Mixto: página por página, la transcripción en el lugar de
           // las escaneadas y el texto en las demás.
           const textoPaginas = l.textoPaginas;
+          const transcritas = new Map<number, string>();
+          const sueltos: string[] = [];
+          for (const r of l.rangos) {
+            const t = l.tramos[claveRango(r)];
+            if (t) paginasDelTexto(t, transcritas, sueltos);
+          }
+          if (sueltos.length) trozos.push(renumerar(sueltos.join('\n\n')));
           for (let n = 1; n <= l.paginas; n++) {
-            const rango = l.rangos.find(([a, b]) => n >= a && n <= b);
-            if (rango) {
-              const t = n === rango[0] ? l.tramos[rango[0]] : '';
+            const enRango = l.rangos.some(([a, b]) => n >= a && n <= b);
+            if (enRango) {
+              const t = transcritas.get(n);
               if (t) trozos.push(renumerar(t));
               continue;
             }
@@ -324,6 +591,84 @@ function cerrarDocumentos(p: Progreso): Documento[] {
   return cerrados;
 }
 
+/**
+ * Junta los archivos que son tomos de una misma oferta.
+ *
+ * En el CP SER-SM-6-2026 un consorcio presentó su oferta en dos PDF
+ * («tomo 01» y «tomo 02») y se subieron como dos ofertas: el sistema
+ * evaluó dos postores, uno sin los anexos de admisión —que estaban en el
+ * otro tomo— y otro sin el equipamiento —que estaba en el segundo—
+ * (documento 13 de César, 10/10/2026). Cuando dos archivos identifican al
+ * mismo postor —el mismo consorcio, o los mismos integrantes por RUC—, el
+ * segundo se suma al primero y se evalúan como una sola oferta.
+ *
+ * Se hace una vez, cuando ya están identificados todos.
+ */
+function fusionarTomos(p: Progreso): void {
+  if (p.tomosRevisados) return;
+  // Una evaluación que ya empezó a evaluar etapas no se rehace.
+  if (p.etapas.some((e) => e && e.length > 0)) {
+    p.tomosRevisados = true;
+    return;
+  }
+  const ofertas = p.documentos.slice(1);
+  const pendientes = ofertas.some(
+    (d) => d.estado === 'leyendo' || (d.estado === 'listo' && d.identificacion === undefined),
+  );
+  if (pendientes) return;
+  // Dos claves por archivo: el nombre y, si los hay, los RUC. Un tomo
+  // puede traer la promesa con los RUC y el otro solo el nombre del
+  // consorcio en sus carátulas (los dos tomos de CONSORCIO MEGA en el CP
+  // SER-SM-6-2026): basta con que coincida una.
+  const claves = (d: Documento): string[] => {
+    const id = d.identificacion;
+    if (!id) return [];
+    const salida = [
+      `nombre:${id.nombre
+        .toUpperCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .replace(/[^A-Z0-9]/g, '')}`,
+    ];
+    const rucs = id.integrantes.map((x) => (x.ruc ?? '').replace(/\D/g, '')).filter((x) => x.length === 11);
+    if (id.esConsorcio && rucs.length >= 2) salida.push(`ruc:${rucs.sort().join('+')}`);
+    if (!id.esConsorcio && id.ruc && id.ruc.replace(/\D/g, '').length === 11) salida.push(`ruc:${id.ruc.replace(/\D/g, '')}`);
+    return salida;
+  };
+  const primero = new Map<string, number>();
+  ofertas.forEach((d, i) => {
+    if (d.estado !== 'listo') return;
+    const ks = claves(d);
+    if (ks.length === 0) return;
+    const indice = i + 1;
+    const destino = ks.map((k) => primero.get(k)).find((x) => x !== undefined);
+    if (destino === undefined) {
+      for (const k of ks) primero.set(k, indice);
+      return;
+    }
+    const principal = p.documentos[destino];
+    // Cada tomo numera sus páginas desde 1: la «página 96» del segundo
+    // tomo no es la del primero. Se le dice al modelo, para que cite el
+    // tomo junto con la página (César citó «folio 96 del tomo 2»).
+    const tomo = (principal.texto?.match(/^=== TOMO \d+/gm)?.length ?? 0) + 2;
+    principal.texto = `${principal.texto}
+
+=== TOMO ${tomo}: ${d.nombre} — desde aquí la numeración de páginas vuelve a empezar; cita estas páginas como «tomo ${tomo}, página N» ===
+
+${d.texto}`;
+    principal.transcrito = principal.transcrito || d.transcrito;
+    // Si el principal no traía la composición del consorcio y este sí, se la queda.
+    if (!principal.identificacion?.esConsorcio && d.identificacion?.esConsorcio) {
+      principal.identificacion = { ...d.identificacion, nombre: principal.identificacion?.nombre ?? d.identificacion.nombre };
+    }
+    for (const k of ks) if (!primero.has(k)) primero.set(k, destino);
+    d.estado = 'fusionado';
+    d.fusionadoEn = destino;
+    console.info(`[evaluacion] ${d.nombre} es otro tomo de la oferta de ${principal.postor}: se evalúan juntos`);
+  });
+  p.tomosRevisados = true;
+}
+
 interface Unidad {
   clave: string;
   correr: () => Promise<void>;
@@ -334,13 +679,13 @@ function exigenciasDe(lectura: LecturaBases, etapa: Etapa) {
 }
 
 /** Lo que se puede hacer ahora, en orden de prioridad. */
-function unidades(p: Progreso, cliente: SupabaseClient): Unidad[] {
+function unidades(p: Progreso, cliente: SupabaseClient, previo: ResultadoGuardado | null): Unidad[] {
   const lista: Unidad[] = [];
   const agotada = (clave: string) => (p.fallos[clave] ?? 0) >= INTENTOS;
   const bases = p.documentos[0];
 
   // Las Bases primero: sin ellas no hay nada que evaluar.
-  if (bases.estado === 'listo' && !p.lectura && !agotada('lectura')) {
+  if (!p.ronda && bases.estado === 'listo' && !p.lectura && !agotada('lectura')) {
     lista.push({
       clave: 'lectura',
       correr: async () => {
@@ -366,21 +711,21 @@ function unidades(p: Progreso, cliente: SupabaseClient): Unidad[] {
         return;
       }
       if (l.tipo !== 'ocr') return;
-      for (const desde of desdesDe(l)) {
-        const clave = `tramo:${di}:${k}:${desde}`;
-        if (l.tramos[desde] !== undefined || agotada(clave)) continue;
+      for (const rango of [...l.rangos]) {
+        const [desde, fin] = rango;
+        const kr = claveRango(rango);
+        const clave = `tramo:${di}:${k}:${kr}`;
+        if (l.tramos[kr] !== undefined || agotada(clave)) continue;
         lista.push({
           clave,
           correr: async () => {
-            const fin = finDe(l, desde);
+            const guardar = (t: string) => {
+              const c = completarTramo(l, rango, t);
+              l.tramos[claveRango(c.rango)] = reintentarPaginasEnBlanco(l, c.rango, c.texto);
+            };
             if (!l.uri) {
               // Mixto: solo esas páginas, en un PDF propio.
-              l.tramos[desde] = await transcribirPaginasSueltas(
-                await descargar(cliente, d.partes[k]),
-                desde,
-                fin,
-                d.nombre,
-              );
+              guardar(await transcribirPaginasSueltas(Buffer.from(await descargarUnaVez(cliente, d.partes[k])), desde, fin, d.nombre));
               return;
             }
             if (!l.subido || Date.now() - Date.parse(l.subido) > VIDA_ARCHIVO_MS) {
@@ -389,16 +734,16 @@ function unidades(p: Progreso, cliente: SupabaseClient): Unidad[] {
             }
             const r = await transcribirTramo(l.uri, desde, fin);
             if (r.texto) {
-              l.tramos[desde] = r.texto;
+              guardar(r.texto);
             } else if (r.filtrado) {
               // El filtro de recitación corta el tramo entero; hoja por
               // hoja suele pasar (ver ocr-pdf.ts).
               const hojas = await transcribirPaginaPorPagina(await descargar(cliente, d.partes[k]), desde, fin, d.nombre);
               if (hojas.fallidas > 0) throw new Error(`${hojas.fallidas} página(s) bloqueadas por el filtro`);
-              l.tramos[desde] = hojas.texto;
+              l.tramos[kr] = hojas.texto;
             } else {
               // El modelo respondió y no había nada: una carátula en blanco.
-              l.tramos[desde] = '';
+              l.tramos[kr] = '';
             }
           },
         });
@@ -406,11 +751,59 @@ function unidades(p: Progreso, cliente: SupabaseClient): Unidad[] {
     });
   });
 
+  // Segunda evaluación: cada postor afectado, cuando sus documentos están leídos.
+  if (p.ronda && previo) {
+    const ronda = p.ronda;
+    for (const nombre of afectadosDe(ronda)) {
+      if (ronda.revisados[nombre] !== undefined) continue;
+      const suyos = ronda.documentos
+        .filter((x) => x.postor === nombre)
+        .map((x) => ({ doc: p.documentos[x.indice], tipo: x.tipo }));
+      if (suyos.some((x) => x.doc.estado === 'leyendo')) continue;
+      const clave = `revisar:${nombre}`;
+      if (agotada(clave)) {
+        ronda.revisados[nombre] = null;
+        continue;
+      }
+      lista.push({
+        clave,
+        correr: async () => {
+          ronda.revisados[nombre] = await revisarPostorRonda(previo, nombre, suyos, ronda);
+        },
+      });
+    }
+  }
+
+  // Quién es cada postor, antes de evaluarlo: el nombre del consorcio y
+  // sus integrantes salen de la promesa (documento 13 de César).
+  if (!p.ronda) p.documentos.slice(1).forEach((d, i) => {
+    if (d.estado !== 'listo' || d.identificacion !== undefined) return;
+    const clave = `identificar:${i}`;
+    if (agotada(clave)) {
+      d.identificacion = null;
+      return;
+    }
+    lista.push({
+      clave,
+      correr: async () => {
+        const id = await identificarPostor(d.texto!);
+        if (!id) throw new Error('sin identificación');
+        d.identificacion = id;
+        d.postor = id.nombre;
+      },
+    });
+  });
+
   // Cada postor recorre sus etapas en orden; los postores, a la vez.
-  if (p.lectura) {
+  if (p.lectura && !p.ronda) {
     const lectura = p.lectura;
     p.documentos.slice(1).forEach((d, i) => {
       if (d.estado !== 'listo') return;
+      // Sin saber aún si es consorcio, no se evalúa: la admisión depende de
+      // ello. Y no hasta que estén identificadas TODAS: dos archivos pueden
+      // ser tomos de la misma oferta y hay que juntarlos antes (ver
+      // `fusionarTomos`).
+      if (d.identificacion === undefined || !p.tomosRevisados) return;
       const hechas = (p.etapas[i] ??= []);
       if (hechas.length >= ETAPAS.length) return;
       const etapa = ETAPAS[hechas.length];
@@ -431,13 +824,62 @@ function unidades(p: Progreso, cliente: SupabaseClient): Unidad[] {
       lista.push({
         clave,
         correr: async () => {
-          const r = await evaluarEtapa({
+          const identificacion = bloqueDeIdentificacion(d.identificacion);
+          const provisional = await evaluarEtapa({
             etapa,
             exigencias: exigenciasDe(lectura, etapa),
             textoOferta: d.texto!,
             nombrePostor: d.postor!,
             textoBases: bases.texto!,
+            identificacion,
           });
+          // Equipamiento, personal clave e infraestructura, ítem por ítem
+          // (verificacion.ts): en una sola ficha el modelo daba un «cumple»
+          // general sin mirar cada máquina ni cada certificado.
+          const verificadas =
+            etapa === 'calificacion'
+              ? await Promise.all(
+                  provisional.fichas.map(async (f) => {
+                    const clase = claseDeVerificacion(f.requisito, f.reglaBases);
+                    if (!clase) return f;
+                    try {
+                      return await verificarFicha({
+                        clase,
+                        ficha: f,
+                        textoOferta: d.texto!,
+                        nombrePostor: d.postor!,
+                        identificacion,
+                        propios: d.identificacion?.integrantes.map((x) => x.nombre),
+                        textoBases: bases.texto!,
+                      });
+                    } catch (e) {
+                      console.warn(`[evaluacion] verificación de «${f.requisito}» omitida:`, (e as Error).message.slice(0, 160));
+                      return f;
+                    }
+                  }),
+                )
+              : provisional.fichas;
+          // Contraste con la guía de César y con la biblioteca: Ley,
+          // Reglamento, bases estándar, Tribunal y OECE (jurisprudencia.ts).
+          const aContrastar = new Set(fichasAContrastar(etapa, verificadas).map((f) => f.id));
+          const contrastadas = await Promise.all(
+            verificadas.map(async (f) =>
+              aContrastar.has(f.id)
+                ? (await contrastarFicha({ cliente, etapa, ficha: f, nombrePostor: d.postor!, identificacion })).ficha
+                : f,
+            ),
+          );
+          // Factores de certificación de un consorcio: los certificados de
+          // cada integrante, contados por código (certificaciones.ts).
+          const fichas =
+            etapa === 'evaluacion' && d.identificacion?.esConsorcio
+              ? await revisarCertificaciones(
+                  contrastadas,
+                  d.texto!,
+                  d.identificacion.integrantes.map((x) => x.nombre),
+                ).catch(() => contrastadas)
+              : contrastadas;
+          const r = cerrarEtapa({ ...provisional, fichas });
           if (hechas.length !== ETAPAS.indexOf(etapa)) return;
           hechas.push(r);
           if (!avanza(r.resultado)) {
@@ -459,19 +901,52 @@ function unidades(p: Progreso, cliente: SupabaseClient): Unidad[] {
     });
   }
 
+  // Etapa 4: el monto de la oferta económica de quien sigue en carrera,
+  // en cuanto termina su evaluación técnica.
+  if (!p.ronda) p.documentos.slice(1).forEach((d, i) => {
+    if (d.estado !== 'listo' || d.ofertaEconomica !== undefined) return;
+    const hechas = p.etapas[i] ?? [];
+    if (hechas.length < ETAPAS.length) return;
+    if (hechas.some((e) => !e.omitida && e.resultado === 'no_cumple' && e.etapa !== 'evaluacion')) return;
+    const clave = `monto:${i}`;
+    if (agotada(clave)) {
+      d.ofertaEconomica = null;
+      return;
+    }
+    lista.push({
+      clave,
+      correr: async () => {
+        d.ofertaEconomica = await leerOfertaEconomica(d.texto!);
+      },
+    });
+  });
+
   // Primero lo que destraba más: leer las Bases y evaluar a un postor
   // cuya oferta ya está lista (así su evaluación corre mientras se
   // transcriben las demás); después, leer y transcribir.
   const orden = (u: Unidad) =>
-    u.clave === 'lectura' ? 0 : u.clave.startsWith('etapa:') ? 1 : u.clave.startsWith('leer:') ? 2 : 3;
+    u.clave === 'lectura' || u.clave.startsWith('identificar:') || u.clave.startsWith('revisar:')
+      ? 0
+      : u.clave.startsWith('etapa:')
+        ? 1
+        : u.clave.startsWith('leer:')
+          ? 2
+          : 3;
   return lista.sort((x, y) => orden(x) - orden(y));
 }
 
 function terminado(p: Progreso): boolean {
+  if (p.ronda) return afectadosDe(p.ronda).every((n) => p.ronda!.revisados[n] !== undefined);
   if (!p.lectura) return false;
-  return p.documentos.slice(1).every(
-    (d, i) => d.estado === 'ilegible' || (d.estado === 'listo' && (p.etapas[i]?.length ?? 0) >= ETAPAS.length),
-  );
+  return p.documentos.slice(1).every((d, i) => {
+    if (d.estado === 'ilegible' || d.estado === 'fusionado') return true;
+    if (d.estado !== 'listo') return false;
+    const hechas = p.etapas[i] ?? [];
+    if (hechas.length < ETAPAS.length) return false;
+    const cortado = hechas.some((e) => !e.omitida && e.resultado === 'no_cumple' && e.etapa !== 'evaluacion');
+    // Quien sigue en carrera necesita su monto leído (o el intento agotado).
+    return cortado || d.ofertaEconomica !== undefined;
+  });
 }
 
 function resumir(p: Progreso, enCurso: Set<string>): ResumenProgreso {
@@ -492,21 +967,37 @@ function resumir(p: Progreso, enCurso: Set<string>): ResumenProgreso {
       if (!l) return;
       hechos += 1;
       if (l.tipo === 'ocr') {
-        const desdes = desdesDe(l);
-        total += desdes.length;
-        for (const desde of desdes) {
-          paginasTotales += finDe(l, desde) - desde + 1;
-          if (l.tramos[desde] !== undefined) {
+        total += l.rangos.length;
+        // Las páginas reintentadas solas se cuentan una vez, por la página.
+        const leidas = new Set<number>();
+        const todas = new Set<number>();
+        for (const r of l.rangos) {
+          for (let n = r[0]; n <= r[1]; n++) todas.add(n);
+          if (l.tramos[claveRango(r)] !== undefined) {
             hechos += 1;
-            paginasLeidas += finDe(l, desde) - desde + 1;
+            for (let n = r[0]; n <= r[1]; n++) leidas.add(n);
           }
         }
+        paginasTotales += todas.size;
+        paginasLeidas += leidas.size;
       }
     });
     const fraccion = d.estado === 'leyendo' ? hechos / Math.max(1, total) : 1;
     avanceDocs += fraccion;
-    const titulo = d.rol === 'bases' ? 'Bases Integradas' : `Oferta ${di}: ${d.postor ?? nombreDesdeArchivo(d.nombre)}`;
-    if (d.estado === 'listo') {
+    const deRonda = p.ronda?.documentos.find((x) => x.indice === di);
+    const titulo =
+      d.rol === 'bases'
+        ? 'Bases Integradas'
+        : deRonda
+          ? `${NOMBRE_TIPO_RONDA[deRonda.tipo]} de ${deRonda.postor} (${d.nombre})`
+          : `Oferta ${di}: ${d.postor ?? nombreDesdeArchivo(d.nombre)}`;
+    if (d.estado === 'fusionado') {
+      const otro = typeof d.fusionadoEn === 'number' ? p.documentos[d.fusionadoEn] : null;
+      lineas.push({
+        texto: `${d.nombre} — es otro tomo de la oferta de ${otro?.postor ?? otro?.nombre ?? 'otro postor'}: se evalúa junto con ella`,
+        estado: 'hecho',
+      });
+    } else if (d.estado === 'listo') {
       lineas.push({ texto: `${titulo}${d.transcrito ? ' — escaneo transcrito' : ' — leída'}`, estado: 'hecho' });
     } else if (d.estado === 'ilegible') {
       lineas.push({ texto: `${titulo} — no se pudo leer`, estado: 'error' });
@@ -518,6 +1009,29 @@ function resumir(p: Progreso, enCurso: Set<string>): ResumenProgreso {
       if (!paso) paso = texto;
     }
   });
+
+  // Segunda evaluación: los documentos ya están arriba; aquí, cada postor.
+  if (p.ronda) {
+    const afectados = afectadosDe(p.ronda);
+    let revisados = 0;
+    for (const n of afectados) {
+      const r = p.ronda.revisados[n];
+      if (r !== undefined) revisados++;
+      const enMarcha = enCurso.has(`revisar:${n}`);
+      const texto =
+        r === undefined
+          ? `${n} — ${enMarcha ? 'evaluando' : 'por evaluar'} lo presentado sobre lo observado en la primera acta`
+          : r === null
+            ? `${n} — no se pudo evaluar: queda a cargo del comité`
+            : `${n} — evaluado`;
+      lineas.push({ texto, estado: r === undefined ? (enMarcha ? 'en_curso' : 'pendiente') : r === null ? 'error' : 'hecho' });
+      if (enMarcha && !paso) paso = texto;
+    }
+    const porcentaje = Math.round(
+      100 * (0.6 * (avanceDocs / Math.max(1, p.documentos.length)) + 0.4 * (revisados / Math.max(1, afectados.length))),
+    );
+    return { paso: paso || 'Armando el resultado', porcentaje: Math.min(99, porcentaje), lineas, actualizado: new Date().toISOString() };
+  }
 
   const bases = p.documentos[0];
   if (p.lectura) {
@@ -536,7 +1050,7 @@ function resumir(p: Progreso, enCurso: Set<string>): ResumenProgreso {
   let etapasHechas = 0;
   let etapasTotales = 0;
   p.documentos.slice(1).forEach((d, i) => {
-    if (d.estado === 'ilegible') return;
+    if (d.estado === 'ilegible' || d.estado === 'fusionado') return;
     const hechas = p.etapas[i] ?? [];
     etapasTotales += ETAPAS.length;
     etapasHechas += hechas.length;
@@ -574,6 +1088,62 @@ function borrarArchivosGemini(d: Documento) {
   }
 }
 
+/**
+ * El cierre de una segunda evaluación: aplica las revisiones sobre el
+ * resultado guardado, recalcula económica, prelación y acta, y anota la
+ * ronda en el historial. Las ofertas no se vuelven a leer.
+ */
+async function cerrarRonda(
+  cliente: SupabaseClient,
+  id: string,
+  p: Progreso,
+  previo: ResultadoGuardado,
+  cola: Promise<void>,
+): Promise<Desenlace> {
+  const ronda = p.ronda!;
+  const postores = previo.postores.map((x) => {
+    const rev = ronda.revisados[x.postor];
+    return rev ? aplicarRevision(x, rev) : x;
+  });
+  ordenarPorPuntaje(postores);
+  const montos = new Map(postores.map((x) => [x.postor, x.ofertaEconomica ?? null] as const));
+  const finales = etapasFinales(postores, montos, previo.bases);
+  const rondas = [
+    ...(previo.rondas ?? []),
+    {
+      numero: ronda.numero,
+      fecha: new Date().toISOString(),
+      documentos: ronda.documentos.map((x) => ({
+        postor: x.postor,
+        tipo: x.tipo,
+        archivo: p.documentos[x.indice]?.nombre,
+      })),
+      noSubsanaron: ronda.noSubsanaron,
+      cambios: afectadosDe(ronda).map((n) => ({
+        postor: n,
+        cambios: ronda.revisados[n]?.cambios ?? ['No se pudo completar la revisión de este postor: queda a cargo del comité.'],
+      })),
+    },
+  ];
+  const acta = construirActa({ bases: previo.bases, postores, finales, rondas: rondas as never });
+  const resultado = { ...previo, postores, finales, acta, rondas, generado: new Date().toISOString() };
+  p.documentos.forEach(borrarArchivosGemini);
+  const resumen = { ...resumir(p, new Set()), porcentaje: 100, paso: 'Segunda evaluación terminada' };
+  await cola;
+  const { error: e } = await cliente
+    .from('evaluations')
+    .update({
+      status: 'done',
+      result: resultado,
+      completed_at: new Date().toISOString(),
+      progreso: { version: 1, resumen },
+      corriendo_hasta: null,
+    })
+    .eq('id', id);
+  if (e) throw new Error(`No se pudo guardar el resultado de la segunda evaluación: ${e.message}`);
+  return { estado: 'done' };
+}
+
 /** Una espera que se puede cancelar: si no, cada vuelta del bucle deja un temporizador vivo. */
 function dormir(ms: number): { promesa: Promise<void>; cancelar: () => void } {
   let t: ReturnType<typeof setTimeout> | undefined;
@@ -599,7 +1169,7 @@ export async function avanzarEvaluacion(
   const inicio = Date.now();
   const { data, error } = await cliente
     .from('evaluations')
-    .select('bases_file_path, bases_partes, offer_files, progreso')
+    .select('bases_file_path, bases_partes, offer_files, progreso, result')
     .eq('id', id)
     .maybeSingle();
   if (error || !data) throw new Error(`No se encontró la evaluación: ${error?.message ?? id}`);
@@ -618,15 +1188,23 @@ export async function avanzarEvaluacion(
     // unidad lo cambie mientras la escritura viaja.
     const foto = JSON.parse(JSON.stringify(p));
     cola = cola.then(async () => {
-      const { error: e } = await cliente
-        .from('evaluations')
-        .update({
-          progreso: foto,
-          corriendo_hasta: new Date(Date.now() + TURNO_SEGUNDOS * 1000).toISOString(),
-          ...extra,
-        })
-        .eq('id', id);
-      if (e) console.error('[evaluacion] no se pudo guardar el avance', e.message);
+      // Con cinco ofertas transcritas el progreso pesa varios megabytes, y
+      // Supabase a veces responde un 520 de Cloudflare a la primera (medido
+      // con el CP SER-SM-6-2026). Si el que falla es el guardado final, la
+      // evaluación terminada se perdería: se reintenta.
+      for (let intento = 1; intento <= 3; intento++) {
+        const { error: e } = await cliente
+          .from('evaluations')
+          .update({
+            progreso: foto,
+            corriendo_hasta: new Date(Date.now() + TURNO_SEGUNDOS * 1000).toISOString(),
+            ...extra,
+          })
+          .eq('id', id);
+        if (!e) return;
+        console.error(`[evaluacion] no se pudo guardar el avance (intento ${intento})`, e.message.slice(0, 120));
+        if (intento < 3) await new Promise((r) => setTimeout(r, 2000 * intento));
+      }
     });
     return cola;
   };
@@ -651,22 +1229,23 @@ export async function avanzarEvaluacion(
     for (const d of cerrarDocumentos(p)) {
       if (d.estado !== 'leyendo') borrarArchivosGemini(d);
     }
+    fusionarTomos(p);
     const bases = p.documentos[0];
-    if (bases.estado === 'ilegible') {
+    if (!p.ronda && bases.estado === 'ilegible') {
       return fallar(`No se pudieron leer las Bases Integradas. ${bases.motivo ?? ''}`.trim(), 'bases_ilegibles');
     }
     if (!p.lectura && (p.fallos.lectura ?? 0) >= INTENTOS) {
       return fallar(`No se pudo identificar qué exigen las Bases. ${p.errores.lectura ?? ''}`.trim(), 'lectura_bases');
     }
     const ofertas = p.documentos.slice(1);
-    if (ofertas.length > 0 && ofertas.every((d) => d.estado === 'ilegible')) {
+    if (!p.ronda && ofertas.length > 0 && ofertas.every((d) => d.estado === 'ilegible')) {
       return fallar(ofertas.map((d) => `${d.nombre}: ${d.motivo}`).join(' · '), 'ofertas_ilegibles');
     }
     if (terminado(p)) break;
 
     const ahora = Date.now();
     if (ahora - inicio < plazoMs) {
-      for (const u of unidades(p, cliente)) {
+      for (const u of unidades(p, cliente, fila.result)) {
         if (enCurso.size >= PARALELO) break;
         if (enCurso.has(u.clave)) continue;
         const promesa = u
@@ -707,21 +1286,43 @@ export async function avanzarEvaluacion(
     return { estado: 'continuar', paso: p.resumen?.paso ?? '' };
   }
 
+  if (p.ronda) return cerrarRonda(cliente, id, p, fila.result!, cola);
+
   const lectura = p.lectura!;
   const ofertas = p.documentos.slice(1);
   const postores = ofertas
-    .map((d, i) => (d.estado === 'listo' ? cerrarPostor(d.postor!, p.etapas[i]) : null))
+    .map((d, i) => {
+      if (d.estado !== 'listo') return null;
+      const postor = cerrarPostor(d.postor!, p.etapas[i]);
+      if (d.identificacion?.esConsorcio) {
+        postor.consorcio = d.identificacion.integrantes.map((x) => ({
+          nombre: x.nombre,
+          participacion: x.participacion,
+        }));
+      }
+      return postor;
+    })
     .filter((x): x is NonNullable<typeof x> => x !== null);
   ordenarPorPuntaje(postores);
-  const acta = construirActa({ bases: lectura, postores });
+  // Etapas 4 a 7: económica, rechazo, negociación y buena pro.
+  const montos = new Map<string, OfertaEconomica | null>();
+  ofertas.forEach((d) => {
+    if (d.estado === 'listo' && d.postor) montos.set(d.postor, d.ofertaEconomica ?? null);
+  });
+  const finales = etapasFinales(postores, montos, lectura);
+  const acta = construirActa({ bases: lectura, postores, finales });
   const resultado = {
     version: 'etapas-1',
     generado: new Date().toISOString(),
     bases: lectura,
     postores,
+    finales,
     acta,
     transcritas: ofertas.filter((d) => d.estado === 'listo' && d.transcrito).map((d) => d.postor!),
     ilegibles: ofertas.filter((d) => d.estado === 'ilegible').map((d) => ({ nombre: d.nombre, motivo: d.motivo ?? '' })),
+    tomos: ofertas
+      .filter((d) => d.estado === 'fusionado' && typeof d.fusionadoEn === 'number')
+      .map((d) => ({ archivo: d.nombre, postor: p.documentos[d.fusionadoEn!].postor ?? p.documentos[d.fusionadoEn!].nombre })),
   };
 
   // El progreso pesa (lleva los textos completos); hecho el resultado, se
@@ -736,6 +1337,16 @@ export async function avanzarEvaluacion(
       result: resultado,
       completed_at: new Date().toISOString(),
       progreso: { version: 1, resumen },
+      // Los textos leídos se conservan aparte (migración 0085): la segunda
+      // evaluación y cualquier revisión los necesitan, y volver a
+      // transcribir cuesta minutos y no da el mismo texto.
+      textos: {
+        bases: p.documentos[0]?.texto ?? null,
+        ofertas: p.documentos
+          .slice(1)
+          .filter((d) => d.estado === 'listo')
+          .map((d) => ({ archivo: d.nombre, postor: d.postor ?? null, texto: d.texto ?? '' })),
+      },
       corriendo_hasta: null,
     })
     .eq('id', id);

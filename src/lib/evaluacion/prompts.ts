@@ -247,6 +247,22 @@ También compara los documentos entre sí: RUC, razón social,
 representantes, fechas, firmas, integrantes, porcentajes y domicilios.
 Una incongruencia se analiza; no descarta por sí sola.
 
+ANTES DE DECLARAR QUE UN DOCUMENTO NO SE PRESENTÓ, búscalo en TODA la
+oferta: por su título, por su número de anexo y por su contenido. Las
+ofertas llegan escaneadas y transcritas: un anexo puede venir sin
+rótulo, con el título cortado o con otra numeración, y la legalización
+notarial de una firma aparece como un sello o una certificación del
+notario («certifico», «legalizo», «notario») en la misma hoja o en la
+siguiente. Solo después de esa búsqueda se afirma una omisión, diciendo
+dónde se buscó. Observación de César (10/10/2026): se declaró no
+admitido a un consorcio por omitir el Anexo N° 1 y no legalizar la
+promesa, y ambos estaban en la oferta.
+
+COHERENCIA: si concluyes que un defecto NO es subsanable, no lo
+describas como subsanable en ninguna otra parte ni lo pongas en
+"subsanaciones". Y si la oferta queda no admitida, "subsanaciones" va
+vacío: no se pide subsanar a quien ya no sigue en el procedimiento.
+
 RESULTADO DE LA ETAPA: "cumple" (admitida) si todos los requisitos están
 satisfechos; "subsanable" si hay defectos jurídicamente subsanables;
 "no_cumple" (no admitida) solo ante incumplimiento sustancial e
@@ -275,6 +291,15 @@ postor. Nunca empieces buscando una causal de descarte.
   documento que la acredita, conformidad, comprobante y pago,
   trazabilidad, participación en consorcio, duplicidad y traslapes.
   Calcula el monto finalmente computable y muestra el cálculo.
+  CONSORCIO POSTOR: su experiencia es la SUMA de la experiencia de sus
+  integrantes. El porcentaje de participación en el consorcio que
+  postula AHORA no reduce nada: una contratación que un integrante
+  ejecutó solo se computa al 100 %. Solo cuando la contratación se
+  ejecutó en un consorcio ANTERIOR se toma el porcentaje de las
+  obligaciones que ese integrante tuvo en AQUEL consorcio (promesa o
+  contrato de consorcio de entonces). Aplicar el porcentaje del
+  consorcio actual es un error de cálculo, y deja fuera a postores que
+  sí cumplen.
   Atiende los casos especiales: contratos mixtos, prestaciones
   múltiples, falta de desglose, ejecución parcial, ampliaciones,
   adicionales, deductivos, liquidaciones, contratos privados y doble
@@ -287,7 +312,48 @@ postor. Nunca empieces buscando una causal de descarte.
   fecha, participante y periodo exigido.
 · EQUIPAMIENTO E INFRAESTRUCTURA — cantidad, características,
   capacidad, propiedad o posesión, disponibilidad, compromiso y
-  documentación.
+  documentación. Lo que César observó en un acta real (10/10/2026), y
+  hay que mirar SIEMPRE:
+  - Cada componente exigido se acredita. Si las Bases piden
+    «motoniveladora de 170-200 HP con ripper (desgarrador y
+    escarificador)», acreditar la motoniveladora no acredita el ripper:
+    busca el accesorio en el compromiso, la factura y la ficha técnica.
+  - Coteja las características del MISMO equipo en todos sus
+    documentos (compromiso, factura, tarjeta, ficha técnica). Si una
+    dice 171-195 HP y la ficha del modelo 170-190 HP, o 191 HP frente a
+    un máximo de 190, dilo con folio y analiza si impide tener certeza
+    de lo ofertado.
+  - Compromiso de alquiler: quién lo emite (razón social, representante,
+    membrete y firma deben ser de la misma empresa: si el texto nombra a
+    una empresa y el membrete y la firma a otra, señálalo), su fecha y
+    si es FIRME. Un compromiso sujeto a «disponibilidad de stock»,
+    «aprobación de crédito» u otra condición futura e incierta no
+    garantiza la disponibilidad (Resolución N° 3362-2021-TCE-S3).
+  - Infraestructura con ubicación: si las Bases piden un lugar o una
+    distancia (p. ej. local a no menos de 30 km de otro, o en la zona de
+    ejecución), el documento debe permitir verificarlo —distrito,
+    provincia, departamento—; un nombre de localidad suelto no basta.
+  - Lo que no puedas resolver con la oferta (si el emisor tenía
+    actividades suspendidas ante la SUNAT, por ejemplo) no lo afirmes:
+    déjalo como verificación para el comité.
+· EXPERIENCIA DEL POSTOR, CÓMO SE ACREDITA — según las bases estándar:
+  hasta veinte contrataciones, con copia simple de (i) contratos u
+  órdenes y su conformidad, constancia de prestación o liquidación, o
+  (ii) comprobantes de pago cuya cancelación se acredite documental y
+  fehacientemente (constancia de depósito, nota de abono, reporte de
+  estado de cuenta u otro documento de una entidad del sistema
+  financiero que acredite el abono, cancelación en el propio
+  comprobante, o comprobante de retención electrónico de la SUNAT por
+  la retención del IGV). La experiencia con PRIVADOS se acredita
+  obligatoriamente por la vía (ii): un contrato con conformidad no
+  basta. Aplica lo que digan las Bases del procedimiento si difieren.
+· EXPERIENCIA DEL PERSONAL CLAVE — comprueba que los documentos permitan
+  computar OBJETIVAMENTE el tiempo exigido en la experiencia específica
+  que piden las Bases: cargo, periodo, funciones y de qué obra o
+  servicio proviene. La Resolución N.° 08305-2026-TCP-S2 exigió que se
+  detalle de qué obras o servicios proviene la experiencia: no basta
+  consignar la cantidad de años. Si los certificados no lo detallan,
+  dilo expresamente en el hallazgo, con ese criterio.
 · CONSORCIO — integrantes, participación, obligaciones, porcentaje,
   experiencia atribuible y coherencia entre obligaciones y experiencia.
 
@@ -405,15 +471,22 @@ REGLAS:
   suman, dilo en "advertencias".
 · Indica el puntaje técnico mínimo para acceder a la evaluación
   económica, si las Bases lo fijan.
+· De la evaluación económica: si es SIMULTÁNEA (la oferta económica es
+  un factor más de los 100 puntos) o POSTERIOR (se evalúa después de la
+  técnica, con su propio puntaje), y en ese caso los coeficientes de
+  ponderación C1 (técnica) y C2 (económica) que fijen las Bases, como
+  números (0.80 y 0.20, por ejemplo). Y la fórmula tal como la escriben.
+· La cuantía (valor estimado o referencial) del procedimiento, como
+  texto en "cuantia" y como número en soles en "cuantiaMonto".
 
 Devuelve EXCLUSIVAMENTE este JSON, sin markdown:
 
 {
-  "procedimiento": { "entidad": "", "numero": "", "objeto": "", "denominacion": "", "cuantia": "" },
+  "procedimiento": { "entidad": "", "numero": "", "objeto": "", "denominacion": "", "cuantia": "", "cuantiaMonto": 0 },
   "admision": [{ "id": "snake_case", "requisito": "", "reglaBases": "numeral y exigencia", "documento": "" }],
   "calificacion": [{ "id": "snake_case", "requisito": "", "reglaBases": "numeral y exigencia con cifras", "documento": "" }],
   "factores": [{ "id": "snake_case", "factor": "", "reglaBases": "criterio de asignación", "documento": "", "puntajeMaximo": 0 }],
-  "evaluacionEconomica": { "puntajeMaximo": 0, "formula": "cómo se asigna el puntaje económico" },
+  "evaluacionEconomica": { "puntajeMaximo": 0, "formula": "cómo se asigna el puntaje económico", "tipo": "simultanea|posterior", "coeficienteTecnico": null, "coeficienteEconomico": null },
   "puntajeTecnicoMinimo": null,
   "advertencias": []
 }`;

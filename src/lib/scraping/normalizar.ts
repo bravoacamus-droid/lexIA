@@ -11,7 +11,13 @@
  * DTN») y nada más, y lo que traía quedaba fuera de orden y de los
  * filtros. Aquí están las reglas, una sola vez, para los dos.
  */
-import { claveDeResolucion, fechaDeExpedicion, numeroDeResolucion } from './resoluciones';
+import {
+  claveDeResolucion,
+  decidirSigla,
+  encabezadoDeResolucion,
+  fechaDeExpedicion,
+  numeroDeResolucion,
+} from './resoluciones';
 
 /** Entrada en vigor de la Ley N.° 32069: lo anterior es de la N.° 30225. */
 export const VIGENCIA_32069 = '2025-04-22';
@@ -113,6 +119,14 @@ export function normalizarDocumento(d: {
       claveDeResolucion(d.textoEnlace ?? '') ??
       claveDeResolucion(d.url);
     if (clave) {
+      // La sigla (TCP o TCE) la pone la propia resolución en su
+      // encabezado; la de la ficha o la URL solo desempata o suple cuando
+      // aún no hay texto (César, documento 13, 10/10/2026). Igual con la
+      // sala: hay fichas cuya URL termina en «-tcp-s» sin número.
+      const sigla = d.texto ? decidirSigla(d.texto, clave.sigla) : null;
+      const enc = d.texto ? encabezadoDeResolucion(d.texto) : null;
+      if (clave.sala === 'S?' && enc?.sala && enc.numero === clave.numero) clave.sala = enc.sala;
+      clave.sigla = sigla?.sigla ?? clave.sigla ?? null;
       const number = numeroDeResolucion(clave);
       const firma = fechaDeExpedicion(d.texto, clave.anio);
       const fecha = firma ?? (d.fechaFicha?.startsWith(String(clave.anio)) ? d.fechaFicha : null);
@@ -127,6 +141,8 @@ export function normalizarDocumento(d: {
           anio: String(clave.anio),
           correlativo: clave.numero.padStart(4, '0'),
           sala: clave.sala,
+          sigla: clave.sigla ?? undefined,
+          sigla_origen: sigla?.origen ?? (clave.sigla ? 'ficha de gob.pe' : undefined),
           fecha_origen: firma ? 'firma del documento' : fecha ? 'publicación en gob.pe' : 'año del número',
           pages: d.paginas,
         },

@@ -9,6 +9,7 @@ import {
 } from '@/lib/scraping/classifier';
 import { limpiarTexto, normalizarDocumento } from '@/lib/scraping/normalizar';
 import { variantesDeFicha } from '@/lib/scraping/discover';
+import { claveDeResolucion, variantesDeNumeroDeResolucion } from '@/lib/scraping/resoluciones';
 
 const UA = 'Mozilla/5.0 (compatible; A-LexIA-Bot/1.0; +https://lexia.pe/bot)';
 
@@ -85,11 +86,17 @@ export async function ingestPdfFromUrl(opts: {
     fichaUrl: opts.fichaUrl,
     texto: '',
   });
+  // Una resolución se busca con y sin sigla, y con las dos siglas: la
+  // definitiva sale del texto, que aún no se ha descargado, y en la
+  // transición de 2025 la ficha y el PDF no siempre coinciden (ver
+  // decidirSigla en resoluciones.ts).
+  const claveRes = finalType === 'resolucion_tce' ? claveDeResolucion(previo.number) : null;
+  const numeros = claveRes ? variantesDeNumeroDeResolucion(claveRes) : [previo.number];
   const { data: porNumero } = await supabase
     .from('normative_documents')
     .select('id')
     .eq('type', finalType)
-    .eq('number', previo.number)
+    .in('number', numeros)
     .limit(1);
   if ((porNumero ?? []).length > 0) {
     return { inserted: false, reason: 'ya existe (número)', yaExiste: true, finalType, reclassified: classified.reclassified };

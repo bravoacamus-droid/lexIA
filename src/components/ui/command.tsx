@@ -21,12 +21,19 @@ const Command = React.forwardRef<
 ));
 Command.displayName = CommandPrimitive.displayName;
 
-interface CommandDialogProps extends React.ComponentProps<typeof Dialog> {}
+interface CommandDialogProps extends React.ComponentProps<typeof Dialog> {
+  /**
+   * Para controlar el elemento resaltado (`value`/`onValueChange`): la
+   * paleta lo lleva al documento hallado por número cuando llega la
+   * respuesta, para que Enter lo abra.
+   */
+  commandProps?: React.ComponentPropsWithoutRef<typeof CommandPrimitive>;
+}
 
-const CommandDialog = ({ children, ...props }: CommandDialogProps) => (
+const CommandDialog = ({ children, commandProps, ...props }: CommandDialogProps) => (
   <Dialog {...props}>
     <DialogContent className="overflow-hidden p-0 max-w-2xl">
-      <Command className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-4 [&_[cmdk-item]_svg]:w-4">
+      <Command {...commandProps} className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-4 [&_[cmdk-item]_svg]:w-4">
         {children}
       </Command>
     </DialogContent>

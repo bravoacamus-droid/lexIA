@@ -29,6 +29,7 @@ import { extractText, getDocumentProxy } from 'unpdf';
 import { generateText } from 'ai';
 import { chunkText } from '../src/lib/ingestion/chunker';
 import { fastModel } from '../src/lib/ai/gemini';
+import { claveDeResolucion, decidirSigla, numeroDeResolucion } from '../src/lib/scraping/resoluciones';
 
 loadEnv({ path: join(process.cwd(), '.env.local'), override: true });
 
@@ -474,6 +475,20 @@ async function main() {
           ? 'publicación en gob.pe'
           : 'año del número';
 
+      // El número oficial lleva la sigla del Tribunal —TCP o TCE— y se
+      // lee del encabezado de la propia resolución; la del censo (ficha
+      // de gob.pe) solo desempata. Antes se guardaba sin ella
+      // («Resolución N° 8493-2026-S2») y el buscador no encontraba lo
+      // que César copiaba de la resolución (documento 13, 10/10/2026).
+      const deLaFicha = claveDeResolucion(r.url)?.sigla ?? claveDeResolucion(r.titulo)?.sigla ?? null;
+      const sigla = decidirSigla(raw, deLaFicha);
+      const numero = numeroDeResolucion({
+        numero: String(Number(r.numero.split('-')[0])),
+        anio: r.anio,
+        sala: r.sala,
+        sigla: sigla.sigla,
+      });
+
       const chunks = chunkText(raw);
       const embeddings = await embedBatch(chunks.map((c) => c.content));
 
@@ -481,8 +496,8 @@ async function main() {
         .from('normative_documents')
         .insert({
           type: 'resolucion_tce',
-          number: `Resolución N° ${r.numero}-${r.sala}`,
-          title: `Resolución N° ${r.numero}-${r.sala} (Tribunal de Contrataciones)`,
+          number: numero,
+          title: `${numero} (Tribunal de Contrataciones)`,
           raw_text: raw,
           date: fecha || `${r.anio}-01-01`,
           source_url: r.url,
@@ -493,6 +508,8 @@ async function main() {
             anio: String(r.anio),
             correlativo: r.numero.split('-')[0].padStart(4, '0'),
             sala: r.sala,
+            sigla: sigla.sigla ?? undefined,
+            sigla_origen: sigla.origen ?? undefined,
             fecha_origen: origenFecha,
             // Deja rastro de que el texto vino de OCR y no de la capa
             // del PDF, por si hay que revisar su fidelidad después.

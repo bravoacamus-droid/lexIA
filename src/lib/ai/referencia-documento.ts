@@ -40,8 +40,11 @@ export interface ReferenciaDocumento {
    * Sufijo de sala o dirección: "S2", "DTN", "OSCE-DGR". Puede faltar.
    *
    * Se le quita el acrónimo del Tribunal cuando precede a la sala: la
-   * gente escribe "TCP-S2" y la biblioteca guarda "S2". Lo que no se
-   * toca es un sufijo con significado propio, como "OSCE-DGR".
+   * sala se compara con `includes`, y así "TCE-S2" encuentra también una
+   * resolución que la biblioteca guarde como "…-TCP-S2" (desde el
+   * 10/10/2026 el número lleva la sigla; en la transición de 2025 el PDF
+   * y la ficha de gob.pe no siempre coinciden). Lo que no se toca es un
+   * sufijo con significado propio, como "OSCE-DGR".
    */
   sufijo: string | null;
   /** Tipo deducido de la palabra que precede al número, si la hay. */

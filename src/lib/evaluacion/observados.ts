@@ -39,6 +39,9 @@ export function loObservado(p: ResultadoPostor): Observado[] {
   const fuera: Observado[] = [];
   for (const e of p.etapas) {
     if (e.omitida) continue;
+    // Una etapa sin nada subsanable no pide nada, aunque el modelo haya
+    // dejado frases sueltas en «subsanaciones».
+    if (e.resultado !== 'subsanable' && !e.fichas.some((f) => f.resultado === 'subsanable')) continue;
     const sueltas = [...(e.subsanaciones ?? [])];
 
     for (const f of e.fichas) {
@@ -74,6 +77,16 @@ export function loObservado(p: ResultadoPostor): Observado[] {
 }
 
 /** ¿Hay algo que notificar? Si no, no se genera carta. */
+/**
+ * ¿Hay que pedirle a este postor que subsane?
+ *
+ * No a quien ya quedó fuera. Documento 13 de César (10/10/2026): un
+ * consorcio no admitido por omitir el Anexo N° 1 recibía igual la carta
+ * pidiéndole subsanar la legalización de su promesa: «ya no tendría
+ * razón de solicitar la subsanación si, por otra observación,
+ * corresponde calificar como NO ADMITIDA».
+ */
 export function tieneQueSubsanar(p: ResultadoPostor): boolean {
+  if (p.etapas.some((e) => !e.omitida && e.resultado === 'no_cumple' && e.etapa !== 'evaluacion')) return false;
   return loObservado(p).length > 0;
 }

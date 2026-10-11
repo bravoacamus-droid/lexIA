@@ -48,6 +48,7 @@ import {
   type ResultadoPostor,
 } from './etapas';
 import type { ExigenciaBases, LecturaBases } from './motor';
+import type { EtapasFinales } from './economica';
 import type { CeldaCuadro, Pieza } from '../documentos/piezas';
 import { aRomano } from '../documentos/numeracion';
 import { piezasAMarkdown } from '../documentos/markdown';
@@ -79,6 +80,16 @@ export interface DatosActa {
     modalidad?: string;
     comite?: Array<{ nombre: string; cargo: string; condicion?: string }>;
   };
+  /** Etapas 4 a 7: económica, rechazo, negociación y buena pro (`economica.ts`). */
+  finales?: EtapasFinales;
+  /** Las segundas evaluaciones: subsanación, rechazo, negociación (`ronda.ts`). */
+  rondas?: Array<{
+    numero: number;
+    fecha: string;
+    noSubsanaron?: string[];
+    documentos?: Array<{ postor: string; tipo: string; archivo?: string }>;
+    cambios: Array<{ postor: string; cambios: string[] }>;
+  }>;
 }
 
 const etapaDe = (p: ResultadoPostor, e: Etapa) => p.etapas.find((x) => x.etapa === e);
@@ -185,7 +196,7 @@ function observados(p: ResultadoPostor, e: Etapa): Array<{ requisito: string; mo
   return (et.subsanaciones ?? []).map((s) => ({ requisito: s, motivo: '' }));
 }
 
-export function piezasDelActa({ bases, postores, sesion }: DatosActa): Pieza[] {
+export function piezasDelActa({ bases, postores, sesion, finales, rondas }: DatosActa): Pieza[] {
   const proc = bases.procedimiento;
   const s = sesion ?? {};
   const piezas: Pieza[] = [];
@@ -477,11 +488,18 @@ export function piezasDelActa({ bases, postores, sesion }: DatosActa): Pieza[] {
     }
   }
 
-  // ── Económica ── El comité la hace a mano: los montos no los conoce el sistema.
-  const accedenEco = postores.filter((x) => {
-    const et = etapaDe(x, 'evaluacion');
-    return et && !et.omitida;
-  });
+  // ── Económica ── Con los montos leídos de cada oferta y la fórmula de
+  // las Bases (`economica.ts`); sin ellos, para que el comité la complete.
+  const accedenEco = postores.filter((x) =>
+    typeof x.accedeEconomica === 'boolean'
+      ? x.accedeEconomica
+      : (() => {
+          const et = etapaDe(x, 'evaluacion');
+          return !!et && !et.omitida;
+        })(),
+  );
+  const soles = (n?: number) =>
+    typeof n === 'number' ? n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '[Indicar el monto]';
   apartado('EVALUACIÓN ECONÓMICA DE LAS OFERTAS');
   parrafo(
     'Acto seguido, se procede con la evaluación económica de las ofertas que cumplieron las condiciones establecidas para acceder a esta etapa. Previo a la asignación de puntaje económica, se realiza la verificación del cumplimiento de la oferta económica.',
@@ -492,7 +510,9 @@ export function piezasDelActa({ bases, postores, sesion }: DatosActa): Pieza[] {
       texto:
         `Según las Bases Integradas, la evaluación económica otorga hasta ${
           bases.evaluacionEconomica.puntajeMaximo ?? HUECO
-        } puntos. ${bases.evaluacionEconomica.formula ?? ''} El comité consigna los montos ofertados y aplica la fórmula de las Bases.`.trim(),
+        } puntos. ${bases.evaluacionEconomica.formula ?? ''} ${
+          finales ? finales.metodo : 'El comité consigna los montos ofertados y aplica la fórmula de las Bases.'
+        }`.trim(),
     });
   }
   piezas.push({
@@ -503,17 +523,17 @@ export function piezasDelActa({ bases, postores, sesion }: DatosActa): Pieza[] {
       [
         gris('N.º'),
         gris('Nombre o razón social del postor'),
-        gris('Monto ofertado sin IGV (S/)'),
-        gris('Monto ofertado con IGV (S/)'),
+        gris('Monto ofertado (S/)'),
+        gris('Puntaje económico'),
         gris('¿Documento observado?'),
       ],
       ...(accedenEco.length > 0 ? accedenEco : [{ postor: '[Razón social / Consorcio]' } as ResultadoPostor]).map(
         (x, i) => [
           llana(String(i + 1).padStart(2, '0')),
           llana(x.postor),
-          llana('[Indicar el monto]'),
-          llana('[Indicar el monto]'),
-          llana(NI),
+          llana(soles(x.ofertaEconomica?.monto)),
+          llana(typeof x.puntajeEconomico === 'number' ? String(x.puntajeEconomico) : HUECO),
+          llana(finales?.rechazo.some((r) => r.postor === x.postor) ? SI : finales ? NO : NI),
         ],
       ),
     ],
@@ -528,23 +548,65 @@ export function piezasDelActa({ bases, postores, sesion }: DatosActa): Pieza[] {
     1,
     'Declaración sobre la exigencia de un monto sustancialmente por debajo de la cuantía y/o subsanación',
   );
-  piezas.push({ clase: 'nota', texto: '[Seleccione y consigne únicamente el supuesto que corresponda:]' });
-  parrafo('**No se requirió justificación y/o subsanación**');
-  parrafo(
-    `El ${EVALUADOR} deja constancia de que no se requirió [justificación / subsanación] durante la etapa de evaluación económica, al no haberse identificado documentación o información susceptible de justificación y/o subsanación conforme a las Bases y la normativa aplicable.`,
-  );
-  parrafo('**Se requirió y evaluó la subsanación**');
-  parrafo(
-    `El ${EVALUADOR} requirió la [justificación / subsanación] de la oferta económica presentada por el siguiente postor: ${HUECO}`,
-  );
+  if (finales && finales.rechazo.length === 0) {
+    parrafo(
+      `El ${EVALUADOR} deja constancia de que no se identificaron ofertas sustancialmente por debajo de la cuantía de la contratación que justifiquen solicitar la descripción a detalle de su composición (art. 132.5 del Reglamento).`,
+    );
+  } else if (finales) {
+    parrafo(
+      'Las siguientes ofertas se encuentran por debajo de la cuantía de la contratación. Corresponde al comité decidir si solicita la descripción a detalle de su composición antes de resolver sobre su rechazo:',
+    );
+    piezas.push({ clase: 'lista', marca: 'vineta', elementos: finales.rechazo.map((r) => `**${r.postor}**: ${r.fundamento}`) });
+  } else {
+    piezas.push({ clase: 'nota', texto: '[Seleccione y consigne únicamente el supuesto que corresponda:]' });
+    parrafo('**No se requirió justificación y/o subsanación**');
+    parrafo(
+      `El ${EVALUADOR} deja constancia de que no se requirió [justificación / subsanación] durante la etapa de evaluación económica, al no haberse identificado documentación o información susceptible de justificación y/o subsanación conforme a las Bases y la normativa aplicable.`,
+    );
+    parrafo('**Se requirió y evaluó la subsanación**');
+    parrafo(
+      `El ${EVALUADOR} requirió la [justificación / subsanación] de la oferta económica presentada por el siguiente postor: ${HUECO}`,
+    );
+  }
   subapartado(ver, 2, 'Resultado de la evaluación económica');
   parrafo('Concluida la evaluación individual de la evaluación económica, se obtiene el siguiente resultado:');
   piezas.push({
     clase: 'tabla',
     columnas: ['N.º', 'Nombre o razón social del postor', 'Ítem(s) / Lote(s)', '¿Oferta económica rechazada?'],
     conContenido: accedenEco.length,
-    filas: accedenEco.map((x, i) => [String(i + 1), x.postor, '[Ítem / Lote]', NI]),
+    filas: accedenEco.map((x, i) => [String(i + 1), x.postor, '[Ítem / Lote]', finales ? NO : NI]),
   });
+  if (finales?.negociacion) {
+    apartado('NEGOCIACIÓN');
+    parrafo(finales.negociacion.fundamento);
+  }
+
+  // ── Segunda evaluación ── Lo que llegó después de la primera acta
+  // (documento 13 de César): solo esos documentos, sobre lo ya evaluado.
+  for (const r of rondas ?? []) {
+    apartado(
+      `EVALUACIÓN DE LOS DOCUMENTOS PRESENTADOS CON POSTERIORIDAD (SESIÓN ${r.numero + 1}, ${new Date(r.fecha).toLocaleDateString('es-PE')})`,
+    );
+    parrafo(
+      `El ${EVALUADOR} evalúa los documentos de subsanación, rechazo de oferta y/o negociación recibidos con posterioridad a la primera evaluación, sin volver a evaluar las ofertas, sobre los resultados de la primera acta:`,
+    );
+    if (r.documentos && r.documentos.length > 0) {
+      piezas.push({
+        clase: 'tabla',
+        columnas: ['Postor', 'Documento', 'Tipo'],
+        filas: r.documentos.map((d) => [d.postor, d.archivo ?? '—', d.tipo]),
+        conContenido: r.documentos.length,
+      });
+    }
+    if (r.noSubsanaron && r.noSubsanaron.length > 0) {
+      parrafo(`No presentaron la subsanación requerida dentro del plazo: ${r.noSubsanaron.join(', ')}.`);
+    }
+    piezas.push({
+      clase: 'lista',
+      marca: 'vineta',
+      elementos: r.cambios.flatMap((c) => c.cambios.map((x) => `**${c.postor}**: ${x}`)),
+    });
+  }
 
   // ── Resultado consolidado general ──
   apartado('RESULTADO CONSOLIDADO DE LA EVALUACIÓN DE OFERTAS');
@@ -559,8 +621,9 @@ export function piezasDelActa({ bases, postores, sesion }: DatosActa): Pieza[] {
       'Resultado de la Admisión',
       'Resultado de la Calificación',
       'Puntaje técnico',
+      'Puntaje económico',
       'Puntaje total obtenido + bonificación',
-      'Orden de prelación según puntaje técnico',
+      'Orden de prelación',
     ],
     conContenido: postores.length,
     filas: postores.map((x, i) => [
@@ -569,7 +632,8 @@ export function piezasDelActa({ bases, postores, sesion }: DatosActa): Pieza[] {
       resultadoEnActa(x, 'admision'),
       resultadoEnActa(x, 'calificacion'),
       etapaDe(x, 'evaluacion')?.omitida ? 'No evaluado' : String(x.puntajeTecnico ?? 0),
-      '[Indicar puntaje obtenido]',
+      typeof x.puntajeEconomico === 'number' ? String(x.puntajeEconomico) : '—',
+      typeof x.puntajeTotal === 'number' ? String(x.puntajeTotal) : '[Indicar puntaje obtenido]',
       x.prelacion ? String(x.prelacion) : '—',
     ]),
   });
@@ -593,8 +657,11 @@ export function piezasDelActa({ bases, postores, sesion }: DatosActa): Pieza[] {
       'De acuerdo con los resultados de la admisión, calificación y evaluación de ofertas se otorga la buena pro del presente procedimiento de selección, al siguiente postor:',
     );
     parrafo(
-      `El primer lugar del orden de prelación corresponde a **${ganador.postor}**, con ${ganador.puntajeTecnico} puntos técnicos.`,
+      typeof ganador.puntajeTotal === 'number'
+        ? `El primer lugar del orden de prelación corresponde a **${ganador.postor}**, con ${ganador.puntajeTotal} puntos totales (${ganador.puntajeTecnico} técnicos y ${ganador.puntajeEconomico} económicos).`
+        : `El primer lugar del orden de prelación corresponde a **${ganador.postor}**, con ${ganador.puntajeTecnico} puntos técnicos.`,
     );
+    if (finales?.buenaPro.fundamento) parrafo(finales.buenaPro.fundamento);
     piezas.push({
       clase: 'tabla',
       columnas: [
@@ -605,7 +672,15 @@ export function piezasDelActa({ bases, postores, sesion }: DatosActa): Pieza[] {
         'Oferta > al valor referencial',
       ],
       conContenido: 1,
-      filas: [['1', ganador.postor, '[Ítem / Lote]', '[Indicar el monto]', NI]],
+      filas: [
+        [
+          '1',
+          ganador.postor,
+          '[Ítem / Lote]',
+          soles(ganador.ofertaEconomica?.monto),
+          finales ? (finales.negociacion?.postor === ganador.postor ? SI : NO) : NI,
+        ],
+      ],
     });
   }
 
