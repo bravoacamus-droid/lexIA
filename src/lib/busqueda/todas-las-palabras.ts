@@ -88,7 +88,54 @@ export function variantesDeTermino(termino: string): string {
     for (const base of [t, conTilde]) for (const n of numeros(base)) formas.add(n);
   }
   for (const f of Array.from(formas)) formas.add(sinTildes(f));
-  return Array.from(formas).join('|');
+  for (const f of Array.from(formas)) for (const c of conYSinCeros(f)) formas.add(c);
+  return Array.from(formas).slice(0, MAX_FORMAS).join('|');
+}
+
+/** Ancho al que se rellenan los correlativos: «D000054», «005325». */
+const ANCHO_DE_RELLENO = 6;
+/** Tope de formas por término: cada una es un OR más en la tsquery. */
+const MAX_FORMAS = 48;
+
+/**
+ * Las formas de un término con y sin ceros a la izquierda en cada número.
+ *
+ * César, documento 14 (16/10/2026): con los chips «servicios similares»,
+ * «obras» y «5325» salía «Sin resultados»; con «05325» aparecía la
+ * Resolución N° 5325-2026-TCP-S6. El PDF dice «Nº 05325-2026-TCP-S6» y
+ * es_exacto guarda «05325» tal cual: para el índice, «5325» y «05325»
+ * son palabras distintas. El abogado no tiene por qué saber con cuántos
+ * ceros se escribió el correlativo en ese PDF (las resoluciones usan
+ * cinco cifras, las opiniones seis, los pronunciamientos ninguna).
+ *
+ * Por eso cada número suelto se busca sin ceros y rellenado hasta seis
+ * cifras: «5325» → 5325|05325|005325, y «05325» → lo mismo. No se tocan:
+ *   - los números pegados a letras («S6», «D000054»): son otra palabra;
+ *   - el año detrás de un guion o barra («-2026»), que nunca lleva ceros;
+ *   - los números de más de seis cifras (un RUC, un monto).
+ */
+function conYSinCeros(forma: string): string[] {
+  const numero = /(?<![\p{L}\d])\d+(?![\p{L}\d])/gu;
+  // De derecha a izquierda: así, cambiar el largo de un número no mueve
+  // la posición de los que quedan por variar («3» en «anexo 3 y 4»).
+  const hallados = Array.from(forma.matchAll(numero)).reverse();
+  let formas = [forma];
+  for (const m of hallados) {
+    const cifras = m[0];
+    const inicio = m.index ?? 0;
+    const antes = forma.slice(Math.max(0, inicio - 1), inicio);
+    if (cifras.length > ANCHO_DE_RELLENO) continue;
+    if (/[-–/]/.test(antes) && /^(19|20)\d{2}$/.test(cifras)) continue;
+    const base = cifras.replace(/^0+(?=\d)/, '');
+    const anchos: string[] = [base];
+    for (let ancho = base.length + 1; ancho <= ANCHO_DE_RELLENO; ancho++) anchos.push(base.padStart(ancho, '0'));
+    const siguientes: string[] = [];
+    for (const f of formas) {
+      for (const a of anchos) siguientes.push(f.slice(0, inicio) + a + f.slice(inicio + cifras.length));
+    }
+    formas = siguientes.slice(0, MAX_FORMAS);
+  }
+  return formas;
 }
 
 /**

@@ -869,14 +869,18 @@ function unidades(p: Progreso, cliente: SupabaseClient, previo: ResultadoGuardad
                 : f,
             ),
           );
-          // Factores de certificación de un consorcio: los certificados de
-          // cada integrante, contados por código (certificaciones.ts).
+          // Factores de certificación (ISO): si la ficha no dio el puntaje
+          // y los certificados están en la oferta, se vuelven a puntuar con
+          // la regla de las Bases (certificaciones.ts).
           const fichas =
-            etapa === 'evaluacion' && d.identificacion?.esConsorcio
+            etapa === 'evaluacion'
               ? await revisarCertificaciones(
                   contrastadas,
                   d.texto!,
-                  d.identificacion.integrantes.map((x) => x.nombre),
+                  d.identificacion?.esConsorcio && d.identificacion.integrantes.length
+                    ? d.identificacion.integrantes.map((x) => x.nombre)
+                    : [d.postor!],
+                  bases.texto ?? '',
                 ).catch(() => contrastadas)
               : contrastadas;
           const r = cerrarEtapa({ ...provisional, fichas });

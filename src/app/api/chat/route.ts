@@ -28,6 +28,15 @@ import {
   type DocumentoDeCriterio,
 } from '@/lib/ai/consulta-de-criterio';
 import { rewriteToLegalQueries } from '@/lib/ai/query-rewrite';
+import {
+  temaDeLaPregunta,
+  buscarFuentesDelTema,
+  elegirParaElModelo,
+  fragmentosParaElModelo,
+  comoFuentesRelacionadas,
+  bloqueDelTema,
+  type FuentesDelTema,
+} from '@/lib/ai/fuentes-del-tema';
 import { fetchNeighborChunks, mergeNeighbors } from '@/lib/ai/neighbor-chunks';
 import {
   isPanoramicQuery,
@@ -303,6 +312,29 @@ export async function POST(req: Request) {
   const criterioPromesa = analizarConsultaDeCriterio(lastUser.content);
 
   const referencias = detectarReferencias(lastUser.content);
+
+  // Las fuentes de la biblioteca que tratan el tema: los documentos que
+  // contienen a la vez las expresiones del problema, como en la búsqueda
+  // avanzada (César, documento 14, 16/10/2026: la respuesta se apoyaba en
+  // dos documentos y en la biblioteca había 74). Se lanza ya —la llamada
+  // al modelo rápido y las consultas tardan de 2 a 8 s— y se espera donde
+  // hace falta, en paralelo con la búsqueda por parecido. Si la pregunta
+  // nombra un documento por su número, lo que quiere es ese documento.
+  // Ver lib/ai/fuentes-del-tema.ts.
+  const fuentesDelTemaPromesa: Promise<FuentesDelTema | null> =
+    referencias.length > 0
+      ? Promise.resolve(null)
+      : temaDeLaPregunta(lastUser.content)
+          .then((tema) =>
+            tema
+              ? buscarFuentesDelTema(supabase, tema, { ley: lawFilter?.length === 1 ? lawFilter[0] : null })
+              : null,
+          )
+          .catch((e: Error) => {
+            // No poder buscarlas no es que no existan: queda en el registro.
+            console.error('[chat] fuentes del tema no se pudieron buscar:', e.message);
+            return null;
+          });
   const chunksCitados: HybridSearchRow[] = [];
   if (referencias.length > 0) {
     // Se limita a dos documentos por turno: pedir tres o más resúmenes a
@@ -976,6 +1008,56 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
           }
         }
       }
+      // FUENTES DEL TEMA — los documentos que contienen las
+      //     expresiones del problema, no los que más se parecen a la
+      //     pregunta. Con la de César del 16/10/2026 (experiencia en un
+      //     servicio acreditada con contratos de obra), la búsqueda por
+      //     parecido trajo 17 documentos —una directiva de homologación
+      //     entre ellos— y la respuesta citó dos; con «servicios
+      //     similares» + «obras similares» hay 74 que tratan el punto.
+      //     Se AÑADEN unos pocos, con el fragmento donde se decide, sin
+      //     quitar plaza a nada: con la consulta de criterio activa, que
+      //     ya trae los suyos, menos. Van aquí, después de los cupos de
+      //     facetas y de norma, porque esos sustituyen a los ÚLTIMOS del
+      //     ranking y se los llevarían.
+      {
+        const fuentesDelTema = await fuentesDelTemaPromesa;
+        if (fuentesDelTema) {
+          // Los que ya llegan al modelo (lo que el rerank dejó, más lo pedido
+          // por su número) no se repiten: la plaza es para documentos nuevos.
+          const presentes = new Set(reranked.map((c) => c.document_id));
+          const elegidos = elegirParaElModelo(fuentesDelTema.documentos, criterio ? 4 : 8, presentes);
+          try {
+            const piezas = await fragmentosParaElModelo(supabase, elegidos, [
+              ...fuentesDelTema.terminos,
+              ...fuentesDelTema.objeto,
+            ]);
+            const yaEsta = new Set(reranked.map((c) => c.chunk_id));
+            for (const p of piezas) {
+              if (yaEsta.has(p.id)) continue;
+              reranked.push({
+                chunk_id: p.id,
+                document_id: p.document_id,
+                content: p.content,
+                doc_title: p.doc.titulo,
+                doc_type: p.doc.tipo,
+                doc_number: p.doc.numero,
+                similarity: 1,
+              });
+            }
+            console.log('[chat] fuentes_del_tema', {
+              terminos: fuentesDelTema.terminos,
+              total: fuentesDelTema.total,
+              listados: fuentesDelTema.documentos.length,
+              al_modelo: elegidos.length,
+              fragmentos: piezas.length,
+            });
+          } catch (e) {
+            console.error('[chat] fragmentos del tema no se pudieron leer:', (e as Error).message);
+          }
+        }
+      }
+
       // COSIDO DE FRAGMENTOS VECINOS — regla general (ver
       // neighbor-chunks.ts). El troceado parte los documentos por
       // tamaño, no por unidad normativa, así que artículos, tablas y
@@ -1269,6 +1351,28 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
     }
   }
 
+  // La lista «Otras fuentes de la biblioteca sobre este tema»: los
+  // documentos del tema que no están ya entre las fuentes. No van al
+  // prompt —el modelo solo recibe el aviso de que existen— y se guardan
+  // con el mensaje DETRÁS de las demás, para no mover la numeración [N].
+  let fuentesRelacionadas: ChatSource[] = [];
+  let avisoTema = '';
+  {
+    const fuentesDelTema = await fuentesDelTemaPromesa;
+    if (fuentesDelTema) {
+      const presentes = new Set(sources.map((s) => s.doc_id));
+      fuentesRelacionadas = comoFuentesRelacionadas(fuentesDelTema, presentes);
+      const leidos = fuentesDelTema.documentos.filter((d) => presentes.has(d.document_id));
+      // Dónde está cada uno entre las fuentes: el [N] que debe escribir.
+      const posiciones = new Map<string, number[]>();
+      sources.forEach((s, i) => posiciones.set(s.doc_id, [...(posiciones.get(s.doc_id) ?? []), i + 1]));
+      // Por jerarquía la Ley va primero en la lista, pero no es «lo que han
+      // resuelto el Tribunal y el OECE»: a esa sección van los casos.
+      const casos = leidos.filter((d) => !['ley', 'reglamento', 'bases_estandar', 'directiva', 'lineamiento'].includes(d.tipo));
+      if (leidos.length > 0) avisoTema = bloqueDelTema(fuentesDelTema, leidos, posiciones, !criterio && casos.length >= 2);
+    }
+  }
+
   // 3. Persistir el mensaje de usuario (idempotent: only if último mensaje no es el mismo)
   const { data: existingUserMsg } = await supabase
     .from('chat_messages')
@@ -1308,7 +1412,8 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
     // cuántos documentos se le han traído y que hay más: si no, contesta
     // como si esos fueran todos los que existen.
     avisoEnumeracion +
-    avisoCriterio;
+    avisoCriterio +
+    avisoTema;
   const trimmedHistory = messages.slice(-MAX_HISTORY);
 
   // 5. Stream
@@ -1338,7 +1443,7 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
         conversation_id: conversationId,
         role: 'assistant',
         content: text,
-        sources: sources as never,
+        sources: [...sources, ...fuentesRelacionadas] as never,
       } as never);
 
       // Auto-generar título si la conversación aún no tiene

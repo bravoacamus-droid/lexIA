@@ -336,17 +336,30 @@ Contrasta la ficha y devuelve el JSON.`;
     // con las dos lecturas a la vista.
     let final = resultado;
     let conflicto = String(o.conflicto ?? '').trim();
-    if (ficha.verificada && ficha.resultado !== 'cumple' && resultado === 'cumple') {
+    // Lo verificado por código no se invierte en el contraste, en ningún
+    // sentido. Pasó al revés que antes: la experiencia del Consorcio Mega,
+    // contada contratación por contratación (S/ 5,8 millones), salió «no
+    // cumple» porque el contraste le aplicó a un servicio la regla del
+    // Acuerdo de Sala Plena 002-2023 para obras. Si el contraste discrepa,
+    // la ficha pasa al comité con las dos lecturas y el hallazgo verificado
+    // se conserva.
+    const discrepa =
+      ficha.verificada &&
+      resultado !== ficha.resultado &&
+      ((ficha.resultado === 'cumple' && resultado !== 'cumple') || (ficha.resultado !== 'cumple' && resultado === 'cumple'));
+    if (discrepa) {
       final = 'revision_humana';
       conflicto = [
         conflicto,
-        `La verificación ítem por ítem encontró: ${ficha.hallazgo.replace(/\s+/g, ' ').slice(0, 900)}. La jurisprudencia contrastada sugiere que cumple: ${String(o.hallazgo ?? '').slice(0, 600)}`,
+        `La verificación del requisito concluyó «${ficha.resultado === 'cumple' ? 'cumple' : 'no cumple'}»: ${ficha.hallazgo.replace(/\s+/g, ' ').slice(0, 900)}. La lectura de la jurisprudencia concluye otra cosa: ${String(o.hallazgo ?? '').slice(0, 600)}`,
       ]
         .filter(Boolean)
         .join(' ');
     }
     const detalle = ficha.verificada ? ficha.hallazgo.match(/Detalle: [\s\S]*$/)?.[0] : undefined;
-    let hallazgo = String(o.hallazgo ?? '').trim() || ficha.hallazgo;
+    // En una ficha verificada, el hallazgo es el de la verificación; el
+    // contraste aporta jurisprudencia y, si discrepa, el conflicto.
+    let hallazgo = ficha.verificada ? ficha.hallazgo : String(o.hallazgo ?? '').trim() || ficha.hallazgo;
     // El detalle ítem por ítem es el de la verificación, no uno reescrito:
     // el contraste devolvió el suyo con «siete volquetes» ya corregidos.
     if (detalle) hallazgo = `${hallazgo.replace(/\s*Detalle: [\s\S]*$/, '')} ${detalle}`;

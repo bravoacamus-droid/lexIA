@@ -69,14 +69,23 @@ export interface BasesPreparadas {
   indice: Map<string, number[]>;
 }
 
+/**
+ * El texto tal como lo usa el cotejo: espacios colapsados y sin las
+ * llamadas de nota pegadas. Exportado porque las posiciones de los
+ * hallazgos se cuentan sobre este texto y, para saber en qué página cae
+ * cada una, hay que aplicar lo mismo a cada página (`ubicacion.ts`).
+ */
+export function aplanarBases(texto: string): string {
+  return texto.replace(/\s+/g, ' ').replace(/(\p{L})\d{1,2}(?=[\s:.,;)]|$)/gu, '$1 ');
+}
+
 export function prepararBases(texto: string): BasesPreparadas {
-  const plano = texto.replace(/\s+/g, ' ');
   const lista: string[] = [];
   const inicios: number[] = [];
   const re = /[\p{L}\p{N}]+/gu;
   // Se recorre el texto plano para saber dónde empieza cada palabra; la
   // normalización se aplica palabra a palabra, igual que en `palabras`.
-  const limpio = plano.replace(/(\p{L})\d{1,2}(?=[\s:.,;)]|$)/gu, '$1 ');
+  const limpio = aplanarBases(texto);
   for (const m of limpio.matchAll(re)) {
     lista.push(m[0].toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''));
     inicios.push(m.index ?? 0);

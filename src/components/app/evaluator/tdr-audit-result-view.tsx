@@ -365,12 +365,28 @@ export function TdrAuditResultView({ id, title, result, completedAt, origen }: P
                               Normas que invoca · se comprueban al generar la versión mejorada
                             </p>
                             <div className="flex flex-wrap gap-1.5">
-                              {h.fundamento_normativo.map((f, i) => (
-                                <Badge key={i} variant="outline" className="text-[11px]">
-                                  {f.norma}
-                                </Badge>
-                              ))}
+                              {h.fundamento_normativo
+                                .filter((f) => !f.articulo || f.articulo.length <= 40)
+                                .map((f, i) => (
+                                  <Badge key={i} variant="outline" className="text-[11px]">
+                                    {f.norma}
+                                  </Badge>
+                                ))}
                             </div>
+                            {/* Lo que trae la biblioteca (Tribunal, Sala Plena,
+                                OECE) llega con su criterio: se lee, no cabe
+                                en una etiqueta. */}
+                            {h.fundamento_normativo.some((f) => f.articulo && f.articulo.length > 40) && (
+                              <ul className="mt-2 space-y-1.5">
+                                {h.fundamento_normativo
+                                  .filter((f) => f.articulo && f.articulo.length > 40)
+                                  .map((f, i) => (
+                                    <li key={i} className="text-[12.5px] leading-relaxed text-foreground/85">
+                                      <span className="font-semibold">{f.norma}</span> — {f.articulo}
+                                    </li>
+                                  ))}
+                              </ul>
+                            )}
                           </div>
                         )}
                       </div>

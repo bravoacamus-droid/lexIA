@@ -122,7 +122,7 @@ function ChunkSheetContent({
       <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin px-8 py-6">
         <div className="flex items-center justify-between gap-2 mb-3">
           <div className="text-[10px] uppercase tracking-widest font-semibold text-brand-600 dark:text-brand-400">
-            Fragmento citado
+            {chunk.relacionada ? 'Pasaje donde trata el tema' : 'Fragmento citado'}
           </div>
           {focus && (
             <div className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950/50 px-2 py-0.5 text-[10px] font-mono font-semibold text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900">
@@ -154,7 +154,9 @@ function ChunkSheetContent({
         </div>
 
         <p className="mt-6 text-xs text-muted-foreground leading-relaxed">
-          {focus
+          {chunk.relacionada
+            ? 'Este documento no se citó en la respuesta: es uno de los de la biblioteca que contienen las mismas expresiones. '
+            : focus
             ? `Se destacó automáticamente el fragmento que corresponde a "${focus}" citado en la respuesta. `
             : 'Este es el fragmento que sustenta la afirmación que estaba citada en la respuesta de A-LexIA. '}
           Para revisar el documento completo, abre el visor de la biblioteca.
@@ -175,7 +177,17 @@ function ChunkSheetContent({
                 ? window.location.pathname
                 : '/chat',
             )}&resaltar=${encodeURIComponent(
-              (focus || chunk.snippet.replace(/\s+/g, ' ').trim().slice(0, 80)),
+              (focus ||
+                // El pasaje de una fuente del tema empieza con «…» y une
+                // dos trozos con « … »: el visor busca el texto literal, así
+                // que se le pasa el primer trozo, sin los puntos.
+                (chunk.relacionada
+                  ? chunk.snippet.replace(/^…\s*/, '').split(/\s*…\s*/)[0]
+                  : chunk.snippet
+                )
+                  .replace(/\s+/g, ' ')
+                  .trim()
+                  .slice(0, 80)),
             )}`}
             onClick={onClose}
           >

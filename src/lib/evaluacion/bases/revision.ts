@@ -23,6 +23,7 @@ import { auditarCitas, type BuscarEnBiblioteca } from '@/lib/normativa/citas';
 import { ubicarCita } from '@/lib/evaluacion/mejora/texto';
 import type { BuscarSustento } from '@/lib/evaluacion/mejora/sustento';
 import type { CapituloDeLasBases } from './capitulos';
+import { ubicarEnCapitulo, type PaginasDeLasBases } from './ubicacion';
 import type { HallazgoBases, Severidad, TipoHallazgoBases } from './tipos';
 
 const TIPOS: TipoHallazgoBases[] = [
@@ -46,6 +47,7 @@ const FORMA = `
       "severidad": "critico" | "alto" | "medio" | "bajo",
       "titulo": "<una línea>",
       "numeral": "<numeral de las bases, p. ej. 3.2 o 2.2.1.1; vacío si no lo tiene>",
+      "literal": "<literal dentro del numeral tal como lo rotulan las bases, p. ej. B. o g); varios: g), h) y i); vacío si no lo tiene>",
       "enLasBases": "<texto de las bases copiado literalmente, una o dos oraciones>",
       "enElEstandar": "<lo que dice el estándar o su instrucción en ese punto>",
       "analisis": "<dos a cuatro oraciones: por qué es un problema>",
@@ -183,6 +185,16 @@ export interface PeticionDeRevision {
   buscarSustento: BuscarSustento;
   buscarEnBiblioteca?: BuscarEnBiblioteca;
   alUsar?: (uso: { entrada: number; salida: number }) => void;
+  /** Dónde empieza cada página, para la columna «Página». Sin ella (Word), va vacía. */
+  paginas?: PaginasDeLasBases;
+}
+
+/** El modelo no pudo revisar el capítulo (las dos pasadas fallaron). */
+export class RevisionFallida extends Error {
+  constructor(readonly capitulo: string) {
+    super(`No se pudo revisar el ${capitulo}`);
+    this.name = 'RevisionFallida';
+  }
 }
 
 /** Palabras de un texto, para comparar dos hallazgos. */
@@ -240,10 +252,17 @@ export async function revisarCapitulo(p: PeticionDeRevision): Promise<HallazgoBa
         return Array.isArray(crudo.hallazgos) ? (crudo.hallazgos as Record<string, unknown>[]) : [];
       } catch (e) {
         console.error('[bases] una pasada de la revisión falló:', c.rotulo, (e as Error).message);
-        return [] as Record<string, unknown>[];
+        return null;
       }
     }),
-  );
+  ).then((ps) => {
+    // Si fallan las dos pasadas, el capítulo NO se revisó: no es lo mismo
+    // que «sin hallazgos». El 16/10/2026 se acabó el saldo de Gemini a
+    // mitad de una prueba y la evaluación salió «sin hallazgos» en la
+    // sección específica, como si las bases estuvieran bien.
+    if (ps.every((x) => x === null)) throw new RevisionFallida(c.rotulo);
+    return ps.map((x) => x ?? []);
+  });
 
   const salida: HallazgoBases[] = [];
   let n = 0;
@@ -290,6 +309,22 @@ export async function revisarCapitulo(p: PeticionDeRevision): Promise<HallazgoBa
     }
     n += 1;
     salida.push({ ...candidato, id: `${c.rotulo.replace(/\s+/g, '-').toLowerCase()}-${n}` });
+  }
+
+  // Numeral, literal y página: del texto de las bases, no del modelo. El
+  // literal que él proponga solo vale si existe en ese numeral.
+  for (const h of salida) {
+    const crudo = pasadas.flat().find((x) => texto(x, 'enLasBases') === h.enLasBases && texto(x, 'titulo') === h.titulo);
+    const u = ubicarEnCapitulo({
+      hallazgo: { ...h, literal: crudo ? texto(crudo, 'literal') : '' },
+      capitulo: c.bases,
+      desde: c.desde,
+      paginas: p.paginas,
+    });
+    h.numeral = u.numeral;
+    h.literal = u.literal;
+    if (u.pagina) h.pagina = u.pagina;
+    if (u.paginaArchivo) h.paginaArchivo = u.paginaArchivo;
   }
 
   // Las citas se auditan al final, una vez por hallazgo que queda.

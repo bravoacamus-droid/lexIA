@@ -22,6 +22,18 @@ function propuesta(h: HallazgoBases, para: Destinatario): string {
   return `**${tipo}.** ${h.paraElProveedor.solicitud}`;
 }
 
+/**
+ * Las resoluciones, acuerdos y opiniones de la biblioteca, con su
+ * criterio. La Ley y el Reglamento ya van en la norma.
+ */
+function sustentoDeLaBiblioteca(h: HallazgoBases): string {
+  const otras = (h.fuentes ?? []).filter((f) => f.tipo !== 'ley' && f.tipo !== 'reglamento');
+  if (otras.length === 0) return '';
+  return ` Sustento en la biblioteca: ${otras
+    .map((f) => `**${f.numero}**: ${f.criterio.length > 360 ? `${f.criterio.slice(0, 360)}…` : f.criterio}`)
+    .join(' ')}`;
+}
+
 function cuadro(hallazgos: HallazgoBases[], para: Destinatario, desde: number): Pieza {
   return {
     clase: 'cuadro',
@@ -38,10 +50,13 @@ function cuadro(hallazgos: HallazgoBases[], para: Destinatario, desde: number): 
       ],
       ...hallazgos.map((h, i) => [
         celda(String(desde + i)),
-        celda(`${h.capitulo}${h.numeral ? `, numeral ${h.numeral}` : ''}\n${TEXTO_TIPO[h.tipo]} · ${SEVERIDAD[h.severidad]}`),
+        celda(
+          `${h.capitulo}${h.numeral ? `, numeral ${h.numeral}` : ''}${h.literal ? `, literal ${h.literal}` : ''}` +
+            `${h.pagina ? `, página ${h.pagina}` : ''}\n${TEXTO_TIPO[h.tipo]} · ${SEVERIDAD[h.severidad]}`,
+        ),
         celda(h.enLasBases || '(no figura en las bases)'),
         celda(
-          `**${h.titulo}.** ${h.analisis}${h.enElEstandar ? ` El estándar dice: «${h.enElEstandar.slice(0, 500)}${h.enElEstandar.length > 500 ? '…' : ''}».` : ''}${h.norma ? ` (${h.norma})` : ''}${h.avisos.length ? ` Cita por verificar: ${h.avisos.map((a) => a.cita).join('; ')}.` : ''}`,
+          `**${h.titulo}.** ${h.analisis}${h.enElEstandar ? ` El estándar dice: «${h.enElEstandar.slice(0, 500)}${h.enElEstandar.length > 500 ? '…' : ''}».` : ''}${h.norma ? ` (${h.norma})` : ''}${sustentoDeLaBiblioteca(h)}${h.avisos.length ? ` Cita por verificar: ${h.avisos.map((a) => a.cita).join('; ')}.` : ''}`,
         ),
         celda(propuesta(h, para)),
       ]),

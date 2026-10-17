@@ -103,6 +103,19 @@ export interface ChatSource {
    * Reglamento. Solo va al prompt.
    */
   parte?: string;
+  /**
+   * No la leyó el modelo: es de la lista «Otras fuentes de la biblioteca
+   * sobre este tema» (lib/ai/fuentes-del-tema.ts, documento 14 de César,
+   * 16/10/2026). Va detrás de las demás para no mover la numeración [N].
+   * El primer elemento de la lista lleva las expresiones buscadas y el
+   * total, para el enlace a la búsqueda avanzada.
+   */
+  relacionada?: {
+    fecha: string | null;
+    linea: string | null;
+    terminos?: string[];
+    total?: number;
+  };
 }
 
 export interface ChatMessage {

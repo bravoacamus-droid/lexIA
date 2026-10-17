@@ -13,7 +13,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { GENERATOR_MODEL_ID } from '@/lib/ai/gemini';
 import { recordAiUsage } from '@/lib/ai/usage-log';
 import { evaluarBases, listaDeEstandares } from '@/lib/evaluacion/bases/evaluar';
-import { leerBases } from '@/lib/evaluacion/bases/leer';
+import { cacheEnEvaluacion, camposDeLaLectura, leerBases } from '@/lib/evaluacion/bases/leer';
 import { buscadorDeSustento } from '@/lib/evaluacion/mejora/sustento';
 import { cargarEvaluacionDeBases } from '@/lib/evaluacion/bases/cargar';
 
@@ -32,12 +32,13 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
 
   const inicio = Date.now();
   const uso = { entrada: 0, salida: 0 };
-  const leidas = await leerBases(createAdminClient(), c.ev.bases_file_path);
+  const admin = createAdminClient();
+  const leidas = await leerBases(admin, c.ev.bases_file_path, { cache: cacheEnEvaluacion(admin, c.ev.id) });
   const resultado = await evaluarBases({
-    texto: leidas.texto,
-    origen: leidas.origen,
+    ...camposDeLaLectura(leidas),
     estandarId: pedido.data.estandarId,
     buscarSustento: buscadorDeSustento(c.supabase),
+    cliente: c.supabase,
     alUsar: (u) => {
       uso.entrada += u.entrada;
       uso.salida += u.salida;

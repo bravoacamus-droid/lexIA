@@ -115,7 +115,7 @@ export async function analizarConsultaDeCriterio(
  * tachado y en el texto extraído se lee como vigente—; la supresión
  * definitiva está en el del medio. El chat lo contó al revés.
  */
-const DECISION =
+export const DECISION =
   /\b(?:no\s+acoger|acoger|acoge|suprim|supresi[óo]n|corresponde|dispone|disponer|declar|resuelve|resolvi[óo]|se\s+adecuar|dejar[áa]?\s+sin\s+efecto|este\s+(?:Organismo|Colegiado)|en\s+ese\s+sentido|por\s+lo\s+que)/gi;
 
 export function elegirFragmentosDeCriterio<T extends { indice: number; contenido: string }>(

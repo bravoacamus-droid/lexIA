@@ -32,6 +32,11 @@ export interface CapituloDeLasBases {
   estandar: string;
   /** El texto de las bases para ese capítulo. */
   bases: string;
+  /**
+   * Dónde empieza `bases` dentro del texto preparado de las bases
+   * completas: con eso, una cita del capítulo dice su página.
+   */
+  desde: number;
 }
 
 const ROMANOS: Record<string, number> = { I: 1, II: 2, III: 3, IV: 4, V: 5, VI: 6, VII: 7 };
@@ -129,12 +134,14 @@ export function partirEnCapitulos(
       .filter(({ c }) => ROMANOS[c.rotulo.replace(/^CAP[IÍ]TULO\s+/i, '').trim().toUpperCase()] === a.numero);
     if (variantes.length === 0) return;
     const mejor = variantes.sort((x, y) => (casan.get(y.i) ?? 0) - (casan.get(x.i) ?? 0))[0];
+    const tramo = b.texto.slice(a.caracter, fin);
     salida.push({
       numero: a.numero,
       rotulo: `CAPÍTULO ${ROMANO[a.numero]}`,
       titulo: mejor.c.titulo,
       estandar: mejor.c.texto,
-      bases: b.texto.slice(a.caracter, fin).trim(),
+      bases: tramo.trim(),
+      desde: a.caracter + (tramo.length - tramo.trimStart().length),
     });
   });
   void palabraEn;

@@ -21,7 +21,8 @@ import { parseJsonLoose } from '@/lib/ai/json-suelto';
 import { textoDelWord } from '@/lib/evaluacion/mejora/control-de-cambios';
 import { origenDe } from '@/lib/evaluacion/mejora/fuente';
 import { evaluarBases } from '@/lib/evaluacion/bases/evaluar';
-import { leerBases } from '@/lib/evaluacion/bases/leer';
+import { cacheEnEvaluacion, camposDeLaLectura, leerBases } from '@/lib/evaluacion/bases/leer';
+import { reforzarAuditoria } from '@/lib/evaluacion/auditoria-tdr';
 import { buscadorDeSustento } from '@/lib/evaluacion/mejora/sustento';
 import { GENERATOR_MODEL_ID } from '@/lib/ai/gemini';
 
@@ -123,11 +124,13 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
     const inicio = Date.now();
     const uso = { entrada: 0, salida: 0 };
     try {
-      const leidas = await leerBases(admin, ev.bases_file_path);
+      // Las páginas escaneadas se transcriben y se guardan en la propia
+      // evaluación, para que reevaluar o armar el pliego no lo repitan.
+      const leidas = await leerBases(admin, ev.bases_file_path, { cache: cacheEnEvaluacion(admin, ev.id) });
       const resultado = await evaluarBases({
-        texto: leidas.texto,
-        origen: leidas.origen,
+        ...camposDeLaLectura(leidas),
         buscarSustento: buscadorDeSustento(supabase),
+        cliente: supabase,
         alUsar: (u) => {
           uso.entrada += u.entrada;
           uso.salida += u.salida;
@@ -207,9 +210,26 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
         metadata: { evaluation_id: ev.id, step: 'audit' },
       });
 
-      const parsed = parseJsonLoose<Omit<TdrAuditResult, 'resumen_ejecutivo'>>(
+      const auditado = parseJsonLoose<Omit<TdrAuditResult, 'resumen_ejecutivo'>>(
         auditRes.text,
       );
+      // La biblioteca (Tribunal, Sala Plena, OECE) para cada hallazgo y el
+      // control de obras como servicios similares (documento 14 de César).
+      // Si algo falla, queda la auditoría tal como vino.
+      const parsed = await reforzarAuditoria(supabase, fullTdrText, auditado, (u) => {
+        void recordAiUsage({
+          userId: ev.user_id,
+          feature: 'evaluation_tdr_audit',
+          model: GENERATOR_MODEL_ID,
+          inputTokens: u.entrada,
+          outputTokens: u.salida,
+          latencyMs: 0,
+          metadata: { evaluation_id: ev.id, step: 'biblioteca' },
+        });
+      }).catch((e) => {
+        console.error('[tdr-audit] refuerzo con la biblioteca falló:', (e as Error).message);
+        return auditado;
+      });
 
       // Resumen ejecutivo con prompt aparte
       const summaryRes = await generateText({

@@ -27,14 +27,25 @@ import type { FichaRequisito, Resultado } from './etapas';
 import { TOPE_OFERTA } from './motor';
 import { contarUnidades, plano, revisarLocales, revisarUnidades, tablaDeEquipos, tipoDeEquipo } from './equipos';
 import { cargosDeBases, comprobarPersonal, observacionDeCargo } from './personal';
+import { verificarExperiencia } from './experiencia';
 
-type Clase = 'equipamiento' | 'personal' | 'infraestructura';
+type Clase = 'equipamiento' | 'personal' | 'infraestructura' | 'experiencia';
 
 export function claseDeVerificacion(requisito: string, regla: string): Clase | null {
   const t = `${requisito} ${regla}`;
   if (/equipamiento|maquinaria|equipo estrat/i.test(t)) return 'equipamiento';
   if (/infraestructura|local(es)? de|almac[ée]n|taller/i.test(t)) return 'infraestructura';
-  if (/experiencia/i.test(requisito) && /personal|residente|especialista|jefe|profesional/i.test(t)) return 'personal';
+  // Los nombres de las fichas varían: «El postor debe acreditar un monto
+  // facturado…» es la experiencia del postor; «Un (01) Ingeniero… con
+  // experiencia de 02 años» con regla «Responsable de la ejecución del
+  // servicio» es personal clave (servicio de estructura metálica de Socos).
+  if (/monto facturado|experiencia del postor|postor en la especialidad/i.test(t)) return 'experiencia';
+  if (
+    /experiencia/i.test(t) &&
+    /personal|residente|especialista|jefe|profesional|responsable|ingenier|t[ée]cnico|soldad|operari|supervisor|coordinador/i.test(t) &&
+    !/formaci[óo]n acad[ée]mica/i.test(requisito)
+  )
+    return 'personal';
   return null;
 }
 
@@ -49,7 +60,7 @@ Reglas comunes:
 · El resultado de la ficha es el peor de sus ítems.
 · Lo que no se pueda comprobar con la oferta (el estado del RUC del emisor ante la SUNAT, por ejemplo) se anota como verificación para el comité, sin darlo por cierto.`;
 
-const INSTRUCCIONES: Record<Clase, string> = {
+const INSTRUCCIONES: Record<Exclude<Clase, 'experiencia'>, string> = {
   equipamiento: `Verificas el EQUIPAMIENTO ESTRATÉGICO de una oferta, ÍTEM POR ÍTEM: un ítem por cada equipo exigido (y por cada unidad si las Bases piden varias).
 
 QUÉ SE EXIGE PARA CALIFICAR: las características del equipo que fija el requisito de calificación (cantidad, tipo, potencia, capacidad, antigüedad, accesorios) y su "Acreditación" (por lo general, documentos que sustenten la propiedad, la posesión, el compromiso de compraventa o alquiler). Los documentos de vigencia que el requerimiento técnico pide para la EJECUCIÓN —SOAT, certificado de inspección técnica vehicular, tarjeta única de circulación, licencia de conducir, certificado de operatividad o de operador— NO se exigen en la oferta, salvo que la "Acreditación" del requisito de calificación los pida expresamente: exigir lo que la acreditación no pide es exigir un requisito no previsto. Si faltan, puedes anotarlo como dato para la ejecución, sin que el ítem deje de cumplir por eso.
@@ -308,6 +319,7 @@ const ENCABEZADO: Record<Clase, RegExp> = {
   equipamiento: /EQUIPAMIENTO\s+ESTRAT[ÉE]GICO/g,
   infraestructura: /INFRAESTRUCTURA\s+ESTRAT[ÉE]GICA/g,
   personal: /EXPERIENCIA\s+DEL\s+PERSONAL\s+CLAVE/g,
+  experiencia: /EXPERIENCIA\s+DEL\s+POSTOR\s+EN\s+LA\s+ESPECIALIDAD/g,
 };
 const ACREDITACION = /Acreditaci[óo]n\s*:/i;
 
@@ -355,6 +367,21 @@ function separarVigencia(
 /** Observaciones que dicen que faltan unidades. */
 const DE_CANTIDAD = /falta(?:n)?\s+(?:acreditar\s+)?\d|se\s+acredita(?:n)?\s+(?:solo\s+|únicamente\s+)?\d+\s+de\s+\d+|cantidad\s+(?:exigida|insuficiente)|unidades?\s+(?:exigidas|faltantes)|frente\s+a\s+las?\s+\d+\s+(?:solicitad|requerid|exigid)|solo\s+se\s+acredita/i;
 
+/**
+ * Si la ficha es de un solo cargo («Especialista en Estructuras»), solo
+ * ese cargo; si no se reconoce ninguno, todos.
+ */
+function cargosDeLaFicha<T extends { cargo: string }>(cargos: T[], ficha: FichaRequisito): T[] {
+  const t = plano(`${ficha.requisito} ${ficha.reglaBases}`);
+  const suyos = cargos.filter((c) =>
+    plano(c.cargo)
+      .split(' ')
+      .filter((w) => w.length >= 6)
+      .some((w) => t.includes(w)),
+  );
+  return suyos.length ? suyos : cargos;
+}
+
 export async function verificarFicha(args: {
   clase: Clase;
   ficha: FichaRequisito;
@@ -367,7 +394,18 @@ export async function verificarFicha(args: {
   textoBases?: string;
 }): Promise<FichaRequisito> {
   const extracto = args.textoBases ? extractoDeBases(args.textoBases, args.clase) : '';
-  const { ficha, clase } = args;
+  // La experiencia del postor tiene su propia revisión (experiencia.ts).
+  if (args.clase === 'experiencia') {
+    return verificarExperiencia({
+      ficha: args.ficha,
+      textoOferta: args.textoOferta,
+      extracto,
+      textoBases: args.textoBases ?? '',
+      nombrePostor: args.nombrePostor,
+    });
+  }
+  const { ficha } = args;
+  const clase = args.clase;
   const avisos = clase === 'personal' ? [] : avisosDeCondicion(args.textoOferta);
   const opcionales =
     clase === 'equipamiento'
@@ -389,7 +427,7 @@ export async function verificarFicha(args: {
   const deLocales = clase === 'infraestructura' ? revisarLocales(args.textoOferta).catch(() => []) : Promise.resolve([]);
   const delPersonal =
     clase === 'personal' && extracto
-      ? comprobarPersonal(args.textoOferta, cargosDeBases(extracto)).catch(() => [])
+      ? comprobarPersonal(args.textoOferta, cargosDeLaFicha(cargosDeBases(extracto), ficha)).catch(() => [])
       : Promise.resolve([]);
   const peticion = {
     model: chatModel,

@@ -2,6 +2,9 @@
  * La evaluación de bases: lo que se guarda y se muestra.
  */
 import type { Aviso } from '@/lib/normativa/citas';
+import type { FuenteCitada } from './fuentes';
+
+export type { FuenteCitada };
 
 /**
  * Lo que dice César que hay que detectar: «omisiones, modificaciones
@@ -36,20 +39,48 @@ export interface HallazgoBases {
   capitulo: string;
   /** «3.2», «2.2.1.1», o vacío si no se identifica. */
   numeral: string;
+  /**
+   * «B.», «g)», «g), h), i) y j)» — el literal de las bases dentro del
+   * numeral. Vacío si el numeral no se desagrega. Lo pide la columna
+   * «Literal» del formato de consultas (documento 14 de César). Las
+   * evaluaciones anteriores al 16/10/2026 no lo traen.
+   */
+  literal?: string;
+  /**
+   * La página de las bases donde está lo observado: la impresa en la hoja
+   * si las bases la llevan, si no la del archivo PDF. Vacía si las bases
+   * vinieron en Word.
+   */
+  pagina?: string;
+  /** La página del archivo PDF, para abrirlo ahí. */
+  paginaArchivo?: number;
   /** Lo que dicen las bases, copiado de ellas. */
   enLasBases: string;
   /** Lo que dice la bases estándar en ese sitio, cuando aplica. */
   enElEstandar?: string;
   /** Por qué es un problema. */
   analisis: string;
-  /** La norma que se vulnera o que lo sustenta. */
+  /**
+   * La norma que se vulnera o que lo sustenta, en el orden de César: Ley,
+   * Reglamento, bases estándar, resoluciones del Tribunal, Sala Plena,
+   * opiniones y pronunciamientos del OECE.
+   */
   norma: string;
+  /**
+   * Lo que la biblioteca de A-LexIA trae para esta observación, cada
+   * fuente con su criterio (`biblioteca.ts`). Solo documentos que están
+   * en la biblioteca: el número sale de su fila, no del modelo.
+   */
+  fuentes?: FuenteCitada[];
   /** Para el proveedor: qué formular y qué pedir. */
   paraElProveedor: { tipo: 'consulta' | 'observacion'; solicitud: string };
   /** Para quien elabora o revisa las bases: qué corregir antes de publicar. */
   paraLaEntidad: string;
-  /** Del cotejo con el estándar o de la revisión del capítulo. */
-  origen: 'cotejo' | 'revision';
+  /**
+   * Del cotejo con el estándar, de la revisión del capítulo, o de un
+   * control propio (las obras como servicios similares, `similares-obras.ts`).
+   */
+  origen: 'cotejo' | 'revision' | 'control';
   avisos: Aviso[];
 }
 
@@ -71,4 +102,13 @@ export interface ResultadoBases {
   capitulosRevisados: string[];
   hallazgos: HallazgoBases[];
   resumen: string;
+  /**
+   * De dónde sale la columna «Página»: del número impreso en las hojas,
+   * de la página del archivo, o de ninguna (un Word).
+   */
+  paginacion?: 'impresa' | 'archivo' | 'sin_paginas';
+  /** Páginas escaneadas que se leyeron transcribiendo la imagen. */
+  transcritas?: number[];
+  /** Páginas escaneadas que no se pudieron leer: lo que digan no se revisó. */
+  ilegibles?: number[];
 }

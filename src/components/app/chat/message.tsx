@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { normalizarMarkdownModelo } from '@/lib/markdown/normalizar-modelo';
@@ -15,6 +16,9 @@ import {
   ThumbsUp,
   ThumbsDown,
   Share2,
+  Library,
+  ChevronDown,
+  Search,
 } from 'lucide-react';
 import { CaritaCompanero } from '@/components/marca/companero';
 import { Button } from '@/components/ui/button';
@@ -46,6 +50,10 @@ export function ChatMessageView({
   onRegenerate,
 }: MsgProps) {
   const [feedback, setFeedback] = useState<'up' | 'down' | null>(null);
+  // Las que leyó el modelo, numeradas [N], y las del tema, que van
+  // detrás y se listan aparte (lib/ai/fuentes-del-tema.ts).
+  const citables = useMemo(() => message.sources.filter((s) => !s.relacionada), [message.sources]);
+  const relacionadas = useMemo(() => message.sources.filter((s) => s.relacionada), [message.sources]);
 
   if (message.role === 'user') {
     return (
@@ -78,17 +86,22 @@ export function ChatMessageView({
         <div className="prose-lexia">
           <AssistantMarkdown
             content={message.content}
-            sources={message.sources}
+            sources={citables}
+            textuales={message.sources}
             isStreaming={isStreaming}
             onCitationClick={onCitationClick}
           />
         </div>
 
-        {message.sources.length > 0 && !isStreaming && (
+        {citables.length > 0 && !isStreaming && (
           <SourcesPanel
-            sources={message.sources}
+            sources={citables}
             onCitationClick={onCitationClick}
           />
+        )}
+
+        {relacionadas.length > 0 && !isStreaming && (
+          <FuentesDelTemaPanel fuentes={relacionadas} onCitationClick={onCitationClick} />
         )}
 
         {!isStreaming && (
@@ -168,14 +181,22 @@ function ActionButton({
 
 interface AssistantMdProps {
   content: string;
+  /** Las numeradas: [N] es sources[N - 1]. */
   sources: ChatSource[];
+  /**
+   * Contra las que se enlazan las menciones escritas («Resolución N.°
+   * 8067-2026-TCP-S3»): también las del tema, que el modelo no leyó pero
+   * pueden aparecer nombradas dentro de un fragmento que sí leyó.
+   */
+  textuales?: ChatSource[];
   isStreaming?: boolean;
   onCitationClick: (src: ChatSource, focus?: string | null) => void;
 }
 
 function AssistantMarkdown({
-  content,
+  content: contenido,
   sources,
+  textuales = sources,
   isStreaming,
   onCitationClick,
 }: AssistantMdProps) {
@@ -188,6 +209,7 @@ function AssistantMarkdown({
   // ("125.2") y la fuente (con 125.1 + 125.2 + 125.3) se contradecían.
   const sentinel = '⟨LEXC⟩';
   const { transformed, focusByN } = useMemo(() => {
+    const content = separarCitasAgrupadas(contenido);
     const focusByN: Record<number, string | null> = {};
     const re = /\[(\d+)\]/g;
     let m: RegExpExecArray | null;
@@ -207,7 +229,7 @@ function AssistantMarkdown({
       ),
       focusByN,
     };
-  }, [content]);
+  }, [contenido]);
 
   return (
     <ReactMarkdown
@@ -215,21 +237,21 @@ function AssistantMarkdown({
       components={{
         // Custom text component to inject citation chips
         p: ({ children }) => (
-          <p>{renderWithCitations(children, sources, sentinel, onCitationClick, focusByN)}</p>
+          <p>{renderWithCitations(children, sources, sentinel, onCitationClick, focusByN, textuales)}</p>
         ),
         li: ({ children }) => (
-          <li>{renderWithCitations(children, sources, sentinel, onCitationClick, focusByN)}</li>
+          <li>{renderWithCitations(children, sources, sentinel, onCitationClick, focusByN, textuales)}</li>
         ),
         h1: ({ children }) => (
           <h1 className="font-semibold">
-            {renderWithCitations(children, sources, sentinel, onCitationClick, focusByN)}
+            {renderWithCitations(children, sources, sentinel, onCitationClick, focusByN, textuales)}
           </h1>
         ),
         h2: ({ children }) => (
-          <h2>{renderWithCitations(children, sources, sentinel, onCitationClick, focusByN)}</h2>
+          <h2>{renderWithCitations(children, sources, sentinel, onCitationClick, focusByN, textuales)}</h2>
         ),
         h3: ({ children }) => (
-          <h3>{renderWithCitations(children, sources, sentinel, onCitationClick, focusByN)}</h3>
+          <h3>{renderWithCitations(children, sources, sentinel, onCitationClick, focusByN, textuales)}</h3>
         ),
         blockquote: ({ children }) => (
           <blockquote className="border-l-4 border-brand-500 bg-brand-50/40 dark:bg-brand-950/30 pl-4 py-1 my-3 italic">
@@ -248,12 +270,30 @@ function AssistantMarkdown({
   );
 }
 
+/**
+ * «[15, 28, 31]» → «[15][28][31]».
+ *
+ * El modelo agrupa las citas en un solo corchete aunque se le pida lo
+ * contrario, y el chip solo reconoce [N]: la respuesta a César del
+ * 16/10/2026 sobre experiencia en obras traía «[15, 28, 31, 32]» como
+ * texto suelto, sin enlace, justo donde nombraba cuatro documentos.
+ */
+function separarCitasAgrupadas(texto: string): string {
+  return texto.replace(/\[(\d+(?:\s*[,;]\s*\d+)+)\]/g, (_m, grupo: string) =>
+    grupo
+      .split(/[,;]/)
+      .map((n) => `[${n.trim()}]`)
+      .join(''),
+  );
+}
+
 function renderWithCitations(
   children: React.ReactNode,
   sources: ChatSource[],
   sentinel: string,
   onClick: (src: ChatSource, focus?: string | null) => void,
   focusByN: Record<number, string | null> = {},
+  textuales: ChatSource[] = sources,
 ): React.ReactNode {
   // Procesa un string nodo: primero busca el sentinel ⟨LEXC⟩N⟨LEXC⟩ que
   // representa el chip [N] del modelo, luego dentro de los fragmentos
@@ -262,7 +302,7 @@ function renderWithCitations(
   function processString(s: string, baseKey: string | number): React.ReactNode {
     const parts = s.split(sentinel);
     if (parts.length < 2) {
-      return processTextualCitations(s, sources, baseKey, onClick);
+      return processTextualCitations(s, textuales, baseKey, onClick);
     }
     return parts.map((p, i) => {
       const key = `${baseKey}-${i}`;
@@ -310,7 +350,7 @@ function renderWithCitations(
           );
         }
       }
-      return processTextualCitations(p, sources, key, onClick);
+      return processTextualCitations(p, textuales, key, onClick);
     });
   }
 
@@ -449,6 +489,154 @@ function SourcesPanel({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/**
+ * «Otras fuentes de la biblioteca sobre este tema».
+ *
+ * César, documento 14 (16/10/2026): la respuesta sobre experiencia en
+ * servicios acreditada con contratos de obra citó dos documentos, y en
+ * la búsqueda avanzada había 74 que tratan el punto. Pidió que la
+ * consulta muestre todas las fuentes pertinentes, para un análisis
+ * mayor. Aquí van las que el modelo no leyó: agrupadas en el orden de
+ * jerarquía que él dio (la ruta ya las manda así), con su número y una
+ * línea de lo que dicen, y cada una se abre en el cajón lateral.
+ */
+const GRUPO_DEL_TEMA: Record<string, string> = {
+  ley: 'Ley y Reglamento',
+  reglamento: 'Ley y Reglamento',
+  bases_estandar: 'Bases estándar',
+  directiva: 'Directivas y lineamientos',
+  lineamiento: 'Directivas y lineamientos',
+  resolucion_tce: 'Resoluciones del Tribunal',
+  resolucion: 'Resoluciones del Tribunal',
+  acuerdo_sala_plena: 'Acuerdos de Sala Plena',
+  opinion: 'Opiniones y pronunciamientos del OECE',
+  pronunciamiento: 'Opiniones y pronunciamientos del OECE',
+};
+/** Cuántas se ven antes de «Mostrar las restantes»: decenas de golpe tapan la respuesta. */
+const VISIBLES_DEL_TEMA = 12;
+
+function fechaCorta(iso: string | null | undefined): string | null {
+  const m = iso?.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : null;
+}
+
+/** El pasaje llega con ⟦marcas⟧ alrededor de la expresión buscada: van en negrita. */
+function LineaConMarcas({ texto }: { texto: string }) {
+  const partes = texto.split(/⟦|⟧/);
+  return (
+    <>
+      {partes.map((p, i) =>
+        i % 2 === 1 ? (
+          <strong key={i} className="font-semibold text-foreground">
+            {p}
+          </strong>
+        ) : (
+          <span key={i}>{p}</span>
+        ),
+      )}
+    </>
+  );
+}
+
+function FuentesDelTemaPanel({
+  fuentes,
+  onCitationClick,
+}: {
+  fuentes: ChatSource[];
+  onCitationClick: (src: ChatSource) => void;
+}) {
+  const [todas, setTodas] = useState(false);
+  const cabecera = fuentes.find((f) => f.relacionada?.terminos)?.relacionada;
+  const terminos = cabecera?.terminos ?? [];
+  const total = cabecera?.total ?? fuentes.length;
+  const visibles = todas ? fuentes : fuentes.slice(0, VISIBLES_DEL_TEMA);
+
+  // Grupos consecutivos: la ruta ya las ordena por jerarquía.
+  const grupos: Array<{ titulo: string; items: ChatSource[] }> = [];
+  for (const f of visibles) {
+    const titulo = GRUPO_DEL_TEMA[f.doc_type] ?? 'Otros documentos';
+    const ultimo = grupos[grupos.length - 1];
+    if (ultimo && ultimo.titulo === titulo) ultimo.items.push(f);
+    else grupos.push({ titulo, items: [f] });
+  }
+
+  return (
+    <div className="mt-3 pt-3 border-t border-border" data-fuentes-del-tema>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 mb-1">
+        <p className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
+          <Library className="h-3.5 w-3.5" />
+          Otras fuentes de la biblioteca sobre este tema ({fuentes.length})
+        </p>
+        {terminos.length > 0 && (
+          <Link
+            href={`/buscador?q=${encodeURIComponent(terminos.join(','))}`}
+            className="inline-flex items-center gap-1 text-[11px] font-medium text-brand-700 hover:underline dark:text-brand-400"
+          >
+            <Search className="h-3 w-3" />
+            Ver los {total} en la búsqueda avanzada
+          </Link>
+        )}
+      </div>
+      {terminos.length > 0 && (
+        <p className="mb-2 text-[11px] text-muted-foreground">
+          Documentos que contienen{' '}
+          {terminos.map((t, i) => (
+            <span key={t}>
+              {i > 0 && (i === terminos.length - 1 ? ' y ' : ', ')}
+              <strong className="font-semibold text-foreground">«{t}»</strong>
+            </span>
+          ))}
+          , además de los citados arriba. Por jerarquía y, en cada grupo, del más reciente al más antiguo.
+        </p>
+      )}
+      <div className="space-y-3">
+        {grupos.map((g, gi) => (
+          <div key={`${g.titulo}-${gi}`}>
+            <p className="mb-1 text-[11px] font-semibold text-foreground/80">{g.titulo}</p>
+            <ul className="space-y-1">
+              {g.items.map((f) => {
+                const meta = getDocTypeMeta(f.doc_type);
+                const fecha = fechaCorta(f.relacionada?.fecha);
+                return (
+                  <li key={f.chunk_id}>
+                    <button
+                      type="button"
+                      onClick={() => onCitationClick(f)}
+                      className="group w-full rounded-md border border-transparent px-2 py-1.5 text-left transition-colors hover:border-border hover:bg-secondary/60"
+                    >
+                      <span className="flex flex-wrap items-baseline gap-x-2">
+                        <span className={cn('text-[12.5px] font-semibold group-hover:underline', meta.color)}>
+                          {f.doc_number || f.doc_title}
+                        </span>
+                        {fecha && <span className="text-[11px] text-muted-foreground">{fecha}</span>}
+                      </span>
+                      {f.relacionada?.linea && (
+                        <span className="mt-0.5 block line-clamp-2 text-[12px] leading-snug text-muted-foreground">
+                          <LineaConMarcas texto={f.relacionada.linea} />
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
+      {fuentes.length > VISIBLES_DEL_TEMA && (
+        <button
+          type="button"
+          onClick={() => setTodas((v) => !v)}
+          className="mt-2 inline-flex items-center gap-1 text-[12px] font-medium text-brand-700 hover:underline dark:text-brand-400"
+        >
+          <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', todas && 'rotate-180')} />
+          {todas ? 'Mostrar menos' : `Mostrar las ${fuentes.length - VISIBLES_DEL_TEMA} restantes`}
+        </button>
+      )}
     </div>
   );
 }

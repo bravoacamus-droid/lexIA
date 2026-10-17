@@ -12,11 +12,16 @@
  */
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { createAdminClient } from '@/lib/supabase/server';
 import { cargarEvaluacionDeBases } from '@/lib/evaluacion/bases/cargar';
+import { cacheEnEvaluacion, leerBases } from '@/lib/evaluacion/bases/leer';
+import { ubicarHallazgosGuardados } from '@/lib/evaluacion/bases/evaluar';
+import { NOMBRE_DE_FUENTE } from '@/lib/evaluacion/bases/biblioteca';
 import type { HallazgoBases } from '@/lib/evaluacion/bases/tipos';
 import type { Tramo } from '@/lib/consultas/tipos';
 
 export const runtime = 'nodejs';
+export const maxDuration = 120;
 
 const Pedido = z.object({ hallazgos: z.array(z.string().min(1).max(120)).min(1).max(60) });
 
@@ -24,7 +29,10 @@ function cuerpoDe(h: HallazgoBases): Tramo[] {
   const referencia: Tramo = {
     rotulo: 'Referencia',
     parrafos: [
-      `Sección ${h.seccion} de las bases, ${h.capitulo.replace(/^CAPÍTULO/, 'Capítulo')}${h.numeral ? `, numeral ${h.numeral}` : ''}.`,
+      `Sección ${h.seccion} de las bases, ${h.capitulo.replace(/^CAPÍTULO/, 'Capítulo')}` +
+        `${h.numeral ? `, numeral ${h.numeral}` : ''}` +
+        `${h.literal ? `, literal ${h.literal}` : ''}` +
+        `${h.pagina ? `, página ${h.pagina}` : ''}.`,
     ],
   };
   if (h.paraElProveedor.tipo === 'consulta') {
@@ -34,7 +42,7 @@ function cuerpoDe(h: HallazgoBases): Tramo[] {
     referencia,
     {
       rotulo: '1. Sustento Fáctico',
-      parrafos: [h.enLasBases ? `Las bases establecen: «${h.enLasBases}».` : '', h.analisis].filter(Boolean),
+      parrafos: [h.enLasBases ? `Las bases establecen: «${h.enLasBases.replace(/\.$/, '')}».` : '', h.analisis].filter(Boolean),
     },
     {
       rotulo: '2. Sustento Jurídico',
@@ -42,6 +50,17 @@ function cuerpoDe(h: HallazgoBases): Tramo[] {
         h.enElEstandar ? `Las bases estándar disponen: «${h.enElEstandar.slice(0, 700)}».` : '',
         h.norma ? `Se vulnera: ${h.norma}.` : '',
       ].filter(Boolean),
+      // Lo que trae la biblioteca, cada fuente con su criterio y en el
+      // orden de César (Ley, Reglamento, bases estándar, Tribunal, Sala
+      // Plena, OECE): es lo que el comité tiene que rebatir.
+      ...((h.fuentes ?? []).length
+        ? {
+            vinetas: (h.fuentes ?? []).map((f) => ({
+              titulo: f.tipo === 'ley' || f.tipo === 'reglamento' ? f.numero : `${f.numero} (${NOMBRE_DE_FUENTE[f.tipo]})`,
+              texto: f.criterio,
+            })),
+          }
+        : {}),
     },
     { rotulo: '3. Solicitud', parrafos: [h.paraElProveedor.solicitud] },
   ];
@@ -53,7 +72,27 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
   const pedido = Pedido.safeParse(await req.json().catch(() => null));
   if (!pedido.success) return NextResponse.json({ error: 'invalid_payload' }, { status: 400 });
 
-  const elegidos = c.ev.result.hallazgos.filter((h) => pedido.data.hallazgos.includes(h.id));
+  let hallazgos = c.ev.result.hallazgos;
+  // Una evaluación de antes del 16/10/2026 no trae literal ni página. Se
+  // ubican ahora, sin modelo, con lo que ya se había leído de las bases.
+  if (!c.ev.result.paginacion && hallazgos.some((h) => pedido.data.hallazgos.includes(h.id) && !h.pagina)) {
+    try {
+      const admin = createAdminClient();
+      const leidas = await leerBases(admin, c.ev.bases_file_path, {
+        cache: cacheEnEvaluacion(admin, c.ev.id),
+        transcribir: false,
+      });
+      hallazgos = await ubicarHallazgosGuardados(c.ev.result, leidas);
+      await c.supabase
+        .from('evaluations')
+        .update({ result: { ...c.ev.result, hallazgos } as never } as never)
+        .eq('id', c.ev.id);
+    } catch (e) {
+      console.error('[bases/consultas] no se pudieron ubicar los hallazgos:', (e as Error).message);
+    }
+  }
+
+  const elegidos = hallazgos.filter((h) => pedido.data.hallazgos.includes(h.id));
   if (elegidos.length === 0) return NextResponse.json({ error: 'sin_hallazgos' }, { status: 400 });
 
   const { data: pliego, error } = await c.supabase
@@ -77,6 +116,8 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
     tipo: h.paraElProveedor.tipo,
     seccion: h.seccion,
     numeral: h.numeral,
+    literal: h.literal ?? '',
+    pagina: h.pagina ?? '',
     cuerpo: cuerpoDe(h),
     norma_vulnerada: h.paraElProveedor.tipo === 'observacion' ? h.norma : '',
   }));

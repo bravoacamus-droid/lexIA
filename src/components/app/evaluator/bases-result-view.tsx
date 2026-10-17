@@ -35,6 +35,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RelativeTime } from '@/components/ui/relative-time';
 import { cn } from '@/lib/utils';
 import { TEXTO_TIPO, type HallazgoBases, type ResultadoBases, type Severidad } from '@/lib/evaluacion/bases/tipos';
+import { NOMBRE_DE_FUENTE } from '@/lib/evaluacion/bases/fuentes';
 
 type Lectura = 'proveedor' | 'entidad';
 
@@ -196,6 +197,8 @@ export function BasesResultView({
                 <MapPin className="h-3 w-3 shrink-0" />
                 {h.capitulo}
                 {h.numeral ? ` · numeral ${h.numeral}` : ''}
+                {h.literal ? ` · literal ${h.literal}` : ''}
+                {h.pagina ? ` · página ${h.pagina}` : ''}
               </p>
             </div>
             {abierto ? (
@@ -215,12 +218,40 @@ export function BasesResultView({
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Por qué</p>
               <p className="text-[13px] leading-relaxed text-foreground/90">{h.analisis}</p>
               {h.norma && (
-                <p className="mt-1.5 flex items-center gap-1 text-[12px] text-muted-foreground">
-                  <BookOpen className="h-3 w-3" />
+                <p className="mt-1.5 flex items-start gap-1 text-[12px] text-muted-foreground">
+                  <BookOpen className="mt-0.5 h-3 w-3 shrink-0" />
                   {h.norma}
                 </p>
               )}
             </div>
+            {/* Lo que trae la biblioteca para esta observación, en el orden
+                de César: Tribunal, Sala Plena, OECE. Cada número es el de un
+                documento de la biblioteca. */}
+            {(h.fuentes ?? []).some((f) => f.tipo !== 'ley' && f.tipo !== 'reglamento') && (
+              <div>
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Sustento en la biblioteca
+                </p>
+                <ul className="space-y-1.5">
+                  {(h.fuentes ?? [])
+                    .filter((f) => f.tipo !== 'ley' && f.tipo !== 'reglamento')
+                    .map((f) => (
+                      <li key={f.documentId} className="text-[12.5px] leading-relaxed text-foreground/85">
+                        <a
+                          href={`/biblioteca/documento/${f.documentId}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-semibold text-brand-700 underline-offset-2 hover:underline dark:text-brand-400"
+                        >
+                          {f.numero}
+                        </a>{' '}
+                        <span className="text-muted-foreground">· {NOMBRE_DE_FUENTE[f.tipo]}</span>
+                        <span className="block">{f.criterio}</span>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            )}
             {h.avisos.length > 0 && (
               <p className="flex items-start gap-1.5 rounded-md bg-amber-50 px-3 py-2 text-[12px] text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
