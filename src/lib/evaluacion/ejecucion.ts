@@ -55,11 +55,17 @@ import {
   avanza,
   ordenarPorPuntaje,
   type Etapa,
+  type FichaRequisito,
   type ResultadoEtapa,
   type ResultadoPostor,
 } from './etapas';
 import { construirActa } from './acta';
 import { razonSocialDeLaOferta } from './postor';
+import { PDFDocument } from 'pdf-lib';
+import type { LectorDePaginas } from './lectura-visual';
+import { esFichaDePrecio, revisarPrecio } from './precio';
+import { revisarErratas } from './erratas';
+import { revisarPlazo } from './plazo';
 
 /** Cuántas unidades corren a la vez. */
 const PARALELO = 8;
@@ -418,6 +424,57 @@ function descargarUnaVez(cliente: SupabaseClient, path: string): Promise<Buffer>
     while (PDF_EN_MEMORIA.size > 6) PDF_EN_MEMORIA.delete(PDF_EN_MEMORIA.keys().next().value!);
   }
   return p;
+}
+
+/**
+ * Los controles que van al final de cada etapa, después del contraste con
+ * la jurisprudencia, porque deciden con cuentas o con la imagen de la
+ * página (documento 15 de César, 17/10/2026):
+ *   · admisión: el precio del Anexo N° 6 cuadrado por código
+ *     (`precio.ts`) y las erratas confirmadas en la imagen (`erratas.ts`);
+ *   · evaluación: el inicio del cómputo del plazo ofertado (`plazo.ts`).
+ * Si alguno falla, la ficha queda como estaba.
+ */
+export async function controlesFinales(
+  etapa: Etapa,
+  fichas: FichaRequisito[],
+  textoOferta: string,
+  textoBases: string,
+  lector: LectorDePaginas | undefined,
+  nombre: string,
+): Promise<FichaRequisito[]> {
+  if (etapa === 'admision') {
+    const conPrecio = await Promise.all(
+      fichas.map((f) => (esFichaDePrecio(f) ? revisarPrecio(f, textoOferta, lector, nombre).catch(() => f) : f)),
+    );
+    return revisarErratas(conPrecio, textoOferta, lector, nombre).catch(() => conPrecio);
+  }
+  if (etapa === 'evaluacion') return fichas.map((f) => revisarPlazo(f, textoOferta, textoBases));
+  return fichas;
+}
+
+/**
+ * Para mirar la imagen de unas páginas de una oferta escaneada
+ * (`lectura-visual.ts`). Las páginas van con la numeración del documento
+ * entero, como en el texto («=== Página N ==="); si el PDF se partió para
+ * subirlo, cada página se busca en su parte. En una oferta con texto propio
+ * no hace falta: su texto es el del documento.
+ */
+function lectorDePaginas(cliente: SupabaseClient, d: Documento): LectorDePaginas | undefined {
+  if (!d.transcrito || d.partes.some((p) => !/\.pdf$/i.test(p))) return undefined;
+  return async (paginas) => {
+    const hoja = await PDFDocument.create();
+    let base = 0;
+    for (let k = 0; k < d.partes.length && paginas.some((n) => n > base); k++) {
+      const origen = await PDFDocument.load(await descargarUnaVez(cliente, d.partes[k]), { ignoreEncryption: true });
+      // Las páginas de la parte, del PDF mismo: la lectura puede no tenerlas.
+      const total = origen.getPageCount();
+      const locales = paginas.filter((n) => n > base && n <= base + total).map((n) => n - base - 1);
+      base += total;
+      if (locales.length) (await hoja.copyPages(origen, locales)).forEach((p) => hoja.addPage(p));
+    }
+    return hoja.getPageCount() ? Buffer.from(await hoja.save()) : null;
+  };
 }
 
 async function descargar(cliente: SupabaseClient, path: string): Promise<Buffer> {
@@ -825,6 +882,7 @@ function unidades(p: Progreso, cliente: SupabaseClient, previo: ResultadoGuardad
         clave,
         correr: async () => {
           const identificacion = bloqueDeIdentificacion(d.identificacion);
+          const lector = lectorDePaginas(cliente, d);
           const provisional = await evaluarEtapa({
             etapa,
             exigencias: exigenciasDe(lectura, etapa),
@@ -851,6 +909,7 @@ function unidades(p: Progreso, cliente: SupabaseClient, previo: ResultadoGuardad
                         identificacion,
                         propios: d.identificacion?.integrantes.map((x) => x.nombre),
                         textoBases: bases.texto!,
+                        lector,
                       });
                     } catch (e) {
                       console.warn(`[evaluacion] verificación de «${f.requisito}» omitida:`, (e as Error).message.slice(0, 160));
@@ -872,7 +931,7 @@ function unidades(p: Progreso, cliente: SupabaseClient, previo: ResultadoGuardad
           // Factores de certificación (ISO): si la ficha no dio el puntaje
           // y los certificados están en la oferta, se vuelven a puntuar con
           // la regla de las Bases (certificaciones.ts).
-          const fichas =
+          const certificadas =
             etapa === 'evaluacion'
               ? await revisarCertificaciones(
                   contrastadas,
@@ -883,6 +942,7 @@ function unidades(p: Progreso, cliente: SupabaseClient, previo: ResultadoGuardad
                   bases.texto ?? '',
                 ).catch(() => contrastadas)
               : contrastadas;
+          const fichas = await controlesFinales(etapa, certificadas, d.texto!, bases.texto ?? '', lector, d.postor!);
           const r = cerrarEtapa({ ...provisional, fichas });
           if (hechas.length !== ETAPAS.indexOf(etapa)) return;
           hechas.push(r);

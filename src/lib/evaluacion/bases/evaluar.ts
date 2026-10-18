@@ -41,6 +41,15 @@ import {
   obrasComoSimilares,
   precedentesEnLaBiblioteca,
 } from './similares-obras';
+import {
+  analisisDeDisponibilidad,
+  correccionDeDisponibilidad,
+  disponibilidadDelBien,
+  normaDeDisponibilidad,
+  precedentesDeDisponibilidad,
+  solicitudDeDisponibilidad,
+  TEMA_DISPONIBILIDAD,
+} from './disponibilidad-del-bien';
 import type { BuscarSustento } from '@/lib/evaluacion/mejora/sustento';
 import type { BuscarEnBiblioteca } from '@/lib/normativa/citas';
 import type { HallazgoBases, ResultadoBases } from './tipos';
@@ -223,6 +232,109 @@ export async function controlDeObrasComoSimilares(
   });
 }
 
+/**
+ * Lo que la revisión del modelo dijo sobre un tramo que ya cubre un
+ * control propio, y del mismo tema, se descarta: el control trae la norma
+ * y los precedentes, y no mezcla lo que sí puede pedirse.
+ */
+export function sinLoQueCubrenLosControles(
+  hallazgos: HallazgoBases[],
+  controles: Array<{ tramo: [number, number]; tema: RegExp }>,
+  texto: string,
+): HallazgoBases[] {
+  return hallazgos.filter((h) => {
+    if (!h.enLasBases) return true;
+    const o = texto.indexOf(h.enLasBases.slice(0, 80));
+    if (o < 0) return true;
+    return !controles.some(
+      (c) => c.tema.test(`${h.enLasBases} ${h.titulo} ${h.analisis}`) && solapan(c.tramo, [o, o + h.enLasBases.length]),
+    );
+  });
+}
+
+/** Bases estándar de bienes: ahí el objeto del contrato es siempre un bien. */
+const ESTANDARES_DE_BIENES = new Set(['be-1', 'be-2', 'be-3', 'be-4']);
+/** Las que sirven para bienes o para servicios (SIE, comparación de precios, no competitivo). */
+const ESTANDARES_MIXTOS = new Set(['be-17', 'be-18', 'be-19']);
+
+/** ¿El objeto de estas bases es un bien? */
+export function contrataUnBien(estandarId: string, texto: string): boolean {
+  if (ESTANDARES_DE_BIENES.has(estandarId)) return true;
+  if (!ESTANDARES_MIXTOS.has(estandarId)) return false;
+  const inicio = texto.slice(0, 20_000);
+  return /\b(?:adquisici[oó]n|suministro)\s+de\b|contrataci[oó]n\s+de\s+bienes|\bbienes\s+comunes\b/i.test(inicio) &&
+    !/contrataci[oó]n\s+del?\s+servicio|servicio\s+de\s+(?!transporte\s+de\s+bienes)/i.test(inicio.slice(0, 4000));
+}
+
+/** Lo que dice el estándar de la capacidad legal o de la admisión, sacado de sus capítulos. */
+function estandarDeDisponibilidad(capitulos: CapituloDeLasBases[], donde: 'calificacion' | 'admision'): string {
+  const todo = capitulos.map((c) => c.estandar).join('\n');
+  if (donde === 'admision') {
+    const m = todo.match(/En este literal no debe exigirse ningún documento vinculado a los requisitos de calificación[^⟧]*/);
+    return m ? `Documentos para la admisión de la oferta — instrucción para la Entidad: «${m[0].trim()}»` : 'Documentos para la admisión de la oferta: solo los previstos en las bases estándar.';
+  }
+  const requisito = todo.match(/CAPACIDAD LEGAL\s+Requisitos:\s*(\[[^\]]+\])/);
+  const instruccion = todo.match(/El requisito de capacidad legal únicamente es obligatorio[^⟧]*/);
+  return (
+    `CAPACIDAD LEGAL — Requisitos: ${requisito?.[1] ?? '[INCLUIR DE SER EL CASO, REQUISITOS RELACIONADOS A LA HABILITACIÓN PARA LLEVAR A CABO LA ACTIVIDAD ECONÓMICA MATERIA DE LA CONTRATACIÓN, CONFORME A LA NORMATIVA QUE REGULE EL OBJETO CONTRACTUAL]'}` +
+    (instruccion ? ` Instrucción para la Entidad: «${instruccion[0].trim()}»` : '')
+  );
+}
+
+/**
+ * El control de la disponibilidad o stock del bien exigido para calificar
+ * o admitir la oferta (`disponibilidad-del-bien.ts`, documento 15 de
+ * César).
+ */
+export async function controlDeDisponibilidadDelBien(
+  b: BasesPreparadas,
+  capitulos: CapituloDeLasBases[],
+  paginas: PaginasDeLasBases | undefined,
+  cliente: SupabaseClient | undefined,
+  procedimiento: string,
+): Promise<Array<HallazgoBases & { tramo: [number, number] }>> {
+  const encontradas = disponibilidadDelBien(b.texto);
+  if (encontradas.length === 0) return [];
+  const precedentes = cliente ? await precedentesDeDisponibilidad(cliente).catch(() => [] as FuenteCitada[]) : [];
+  const sinEquipamiento = !capitulos.some((c) => /EQUIPAMIENTO ESTRAT[ÉE]GICO/.test(c.estandar));
+  return encontradas.map((d, i) => {
+    const cap = capituloEn(capitulos, d.inicio);
+    const u = ubicarEnCapitulo({
+      hallazgo: { numeral: d.numeral, literal: d.literal, enLasBases: d.frase, titulo: '', analisis: '' },
+      capitulo: cap?.bases ?? b.texto,
+      desde: cap?.desde ?? 0,
+      paginas,
+      posicion: d.inicio - (cap?.desde ?? 0),
+    });
+    const literal = d.literal || u.literal;
+    return {
+      id: `control-disponibilidad-${i + 1}`,
+      tipo: 'exigencia_no_prevista',
+      severidad: 'critico',
+      titulo:
+        d.donde === 'calificacion'
+          ? `Se exige acreditar la disponibilidad del bien objeto de la contratación como requisito de calificación («${d.requisito}»)`
+          : 'Se exige acreditar la disponibilidad o el stock del bien para la admisión de la oferta',
+      seccion: 'Específica',
+      capitulo: cap ? `${cap.rotulo} — ${cap.titulo}` : 'Sección Específica',
+      numeral: d.numeral || u.numeral,
+      ...(literal ? { literal } : {}),
+      ...(u.pagina ? { pagina: u.pagina } : {}),
+      ...(u.paginaArchivo ? { paginaArchivo: u.paginaArchivo } : {}),
+      enLasBases: d.frase,
+      enElEstandar: estandarDeDisponibilidad(capitulos, d.donde),
+      analisis: analisisDeDisponibilidad({ ...d, literal }, precedentes, { sinEquipamiento }),
+      norma: normaDeDisponibilidad(d, procedimiento),
+      fuentes: ordenar(precedentes),
+      paraElProveedor: { tipo: 'observacion', solicitud: solicitudDeDisponibilidad(d) },
+      paraLaEntidad: correccionDeDisponibilidad(d),
+      origen: 'control',
+      avisos: [],
+      tramo: [d.inicio, d.hasta],
+    };
+  });
+}
+
 export async function evaluarBases(p: PeticionDeEvaluacion): Promise<ResultadoBases> {
   const b = prepararBases(p.texto);
   const ranking = identificarEstandar(b, ESTANDARES);
@@ -266,20 +378,26 @@ export async function evaluarBases(p: PeticionDeEvaluacion): Promise<ResultadoBa
   // Obras como servicios similares: un control propio, no el criterio del
   // modelo. Lo que la revisión haya dicho sobre esa misma frase se
   // reemplaza por el control, que trae los precedentes.
-  const deControl = ESTANDARES_DE_SERVICIOS.has(estandar.id)
+  const deObras = ESTANDARES_DE_SERVICIOS.has(estandar.id)
     ? await controlDeObrasComoSimilares(b, capitulos, paginas, p.cliente)
     : [];
-  const tramosDeControl = deControl
-    .map((h): [number, number] => {
-      const o = b.texto.indexOf(h.enLasBases.slice(0, 80));
-      return [o, o + h.enLasBases.length];
-    })
-    .filter((t) => t[0] >= 0);
-  const deLaRevision = porCapitulo.flat().filter((h) => {
-    if (!h.enLasBases || !/\bobras?\b/i.test(`${h.enLasBases} ${h.titulo}`)) return true;
-    const o = b.texto.indexOf(h.enLasBases.slice(0, 80));
-    return o < 0 || !tramosDeControl.some((t) => solapan(t, [o, o + h.enLasBases.length]));
-  });
+  // La disponibilidad o el stock del bien exigido para calificar o admitir
+  // (documento 15 de César): mismo trato. La revisión del modelo lo veía a
+  // veces, mezclado con la habilitación, que sí puede pedirse.
+  const deDisponibilidad = contrataUnBien(estandar.id, b.texto)
+    ? await controlDeDisponibilidadDelBien(b, capitulos, paginas, p.cliente, estandar.titulo)
+    : [];
+  const controles: Array<{ tramo: [number, number]; tema: RegExp }> = [
+    ...deObras
+      .map((h) => {
+        const o = b.texto.indexOf(h.enLasBases.slice(0, 80));
+        return { tramo: [o, o + h.enLasBases.length] as [number, number], tema: /\bobras?\b/i };
+      })
+      .filter((c) => c.tramo[0] >= 0),
+    ...deDisponibilidad.map((h) => ({ tramo: h.tramo, tema: TEMA_DISPONIBILIDAD })),
+  ];
+  const deLaRevision = sinLoQueCubrenLosControles(porCapitulo.flat(), controles, b.texto);
+  const deControl: HallazgoBases[] = [...deObras, ...deDisponibilidad.map(({ tramo: _tramo, ...h }) => h)];
 
   const hallazgos = [...deLaGeneral, ...deControl, ...deLaRevision].sort(
     (x, y) => (ORDEN[x.severidad] ?? 9) - (ORDEN[y.severidad] ?? 9),

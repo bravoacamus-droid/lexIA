@@ -25,6 +25,15 @@ import {
   obrasComoSimilares,
   precedentesEnLaBiblioteca,
 } from './bases/similares-obras';
+import { aplanarBases } from './bases/cotejo';
+import {
+  analisisDeDisponibilidad,
+  correccionDeDisponibilidad,
+  disponibilidadDelBien,
+  normaDeDisponibilidad,
+  precedentesDeDisponibilidad,
+  TEMA_DISPONIBILIDAD,
+} from './bases/disponibilidad-del-bien';
 
 /** La forma de un hallazgo de la auditoría (`process/route.ts`). */
 export interface HallazgoDeAuditoria {
@@ -58,6 +67,18 @@ function esServicio(a: AuditoriaDeRequerimiento, texto: string): boolean {
   }
   if (a.tipo_documento === 'EETT') return /\bservicio/.test(objeto.slice(0, 600));
   return true;
+}
+
+/**
+ * ¿Se contrata un bien? Unas especificaciones técnicas, o un documento
+ * cuyo objeto es una adquisición o un suministro, y no un servicio ni una
+ * obra.
+ */
+export function esBien(a: Pick<AuditoriaDeRequerimiento, 'tipo_documento' | 'objeto_inferido'>, texto: string): boolean {
+  if (a.tipo_documento === 'TDR') return false;
+  const objeto = `${a.objeto_inferido ?? ''} ${texto.slice(0, 3000)}`.toLowerCase();
+  if (/consultor[ií]a|ejecuci[óo]n\s+de\s+(?:la\s+)?obra|\bservicio\s+de\b|contrataci[óo]n\s+del\s+servicio/.test((a.objeto_inferido ?? '').toLowerCase())) return false;
+  return a.tipo_documento === 'EETT' || /adquisici[óo]n|suministro|\bbienes\b|especificaciones\s+t[ée]cnicas/.test(objeto);
 }
 
 const contar = (hs: HallazgoDeAuditoria[]) => ({
@@ -117,6 +138,50 @@ export async function reforzarAuditoria(
         (h) =>
           !(/\bobras?\b/i.test(`${h.titulo} ${h.extracto_literal}`) &&
             encontradas.some((o) => o.frase.includes(h.extracto_literal.slice(0, 50)) || h.extracto_literal.includes(o.expresion))),
+      );
+      hallazgos = [...nuevos, ...hallazgos];
+    }
+  }
+
+  // 1b. Disponibilidad o stock del bien exigido para calificar o admitir
+  // (documento 15 de César): control propio, como el de obras.
+  if (esBien(auditoria, texto)) {
+    const plano = aplanarBases(texto);
+    const encontradas = disponibilidadDelBien(plano);
+    if (encontradas.length > 0) {
+      const precedentes = await precedentesDeDisponibilidad(cliente).catch(() => []);
+      const nuevos: HallazgoDeAuditoria[] = encontradas.map((d, i) => ({
+        id: `disponibilidad_del_bien_${i + 1}`,
+        categoria: 'requisito_no_previsto',
+        severidad: 'critico',
+        titulo:
+          d.donde === 'calificacion'
+            ? `Se exige acreditar la disponibilidad del bien como requisito de calificación («${d.requisito}»)`
+            : 'Se exige acreditar la disponibilidad o el stock del bien para admitir la oferta',
+        ubicacion: [
+          d.numeral ? `Numeral ${d.numeral}` : '',
+          d.literal ? `literal ${d.literal}` : '',
+          d.donde === 'calificacion' ? `requisito de calificación «${d.requisito}»` : 'documentos para la admisión de la oferta',
+        ]
+          .filter(Boolean)
+          .join(', '),
+        extracto_literal: d.frase.length > 600 ? `${d.frase.slice(0, 600)}…` : d.frase,
+        descripcion: analisisDeDisponibilidad(d, precedentes),
+        recomendacion: correccionDeDisponibilidad(d),
+        fundamento_normativo: [
+          ...filasDeNorma(normaDeDisponibilidad(d)),
+          ...precedentes.map((p) => ({ norma: p.numero, articulo: `${NOMBRE_DE_FUENTE[p.tipo]}: ${p.criterio}` })),
+        ],
+      }));
+      // Lo que el auditor dijera sobre ese mismo requisito lo reemplaza el control.
+      const tramos = encontradas.map((d) => plano.slice(d.inicio, d.hasta));
+      hallazgos = hallazgos.filter(
+        (h) =>
+          !(TEMA_DISPONIBILIDAD.test(`${h.titulo} ${h.extracto_literal} ${h.descripcion}`) &&
+            tramos.some((t) => {
+              const cita = h.extracto_literal.replace(/\s+/g, ' ').replace(/…$/, '').trim().slice(0, 60);
+              return cita.length >= 20 && t.includes(cita);
+            })),
       );
       hallazgos = [...nuevos, ...hallazgos];
     }

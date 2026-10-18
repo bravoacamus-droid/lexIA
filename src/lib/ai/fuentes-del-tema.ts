@@ -146,6 +146,18 @@ export interface FuentesDelTema {
   /** Cuántos documentos de la biblioteca contienen todas las expresiones. */
   total: number;
   documentos: DocumentoDelTema[];
+  /**
+   * Solo en la consulta por la consecuencia de un defecto: los documentos
+   * que lee el modelo, ya elegidos y en orden, y las expresiones con que
+   * se eligen sus fragmentos (ver lib/ai/consulta-de-consecuencia.ts).
+   */
+  lectura?: {
+    ids: string[];
+    afectado: string[];
+    figura: string[];
+    elemento: string[];
+    porDocumento: number;
+  };
 }
 
 /** Páginas de la búsqueda: la consulta topa en 50 por llamada. */
@@ -226,11 +238,26 @@ export async function buscarFuentesDelTema(
     ...(total > POR_PAGINA * PAGINAS ? TIPOS_DE_CABECERA.map((t) => consulta(terminos, 0, t)) : []),
   ]);
   const ids = Array.from(new Set([...primera, ...resto.flat()].map((f) => f.document_id)));
+  // Si el objeto pasó a filtrar (arriba), ya va entre los términos.
+  return armarFuentesDelTema(supabase, ids, terminos, tema.objeto.filter((o) => !terminos.includes(o)), total);
+}
 
+/**
+ * La lista, ya con los documentos elegidos: su ficha, la línea del pasaje
+ * donde aparece cada expresión y los fragmentos que las contienen. La usa
+ * también la consulta por la consecuencia de un defecto de la oferta
+ * (lib/ai/consulta-de-consecuencia.ts), que elige los documentos de otra
+ * manera.
+ */
+export async function armarFuentesDelTema(
+  supabase: SupabaseClient,
+  ids: string[],
+  terminos: string[],
+  objeto: string[],
+  total: number,
+): Promise<FuentesDelTema> {
   // Los pasajes: uno por expresión y documento basta para la línea y para
   // saber dónde se decide; el objeto va detrás, como una expresión más.
-  // Si el objeto pasó a filtrar (arriba), ya va entre los términos.
-  const objeto = tema.objeto.filter((o) => !terminos.includes(o));
   const expresiones = [...terminos, ...objeto];
   const [{ data: docs, error: eDocs }, { data: frags, error: eFrags }, { data: primeros }] = await Promise.all([
     supabase
@@ -305,7 +332,7 @@ export async function buscarFuentesDelTema(
 
 function recortar(texto: string, largo: number): string {
   // El pasaje empieza a media frase y arrastra la paginación del PDF.
-  let t = texto.replace(/P[áa]gina\s+\d+\s+de\s+\d+/gi, ' ').replace(/\s+/g, ' ').trim();
+  let t = texto.replace(/\bP[áa]gina\s+\d+\s+de\s+\d+\b/gi, ' ').replace(/\s+/g, ' ').trim();
   if (/^[\p{Ll},;:.)”"]/u.test(t)) t = `…${t.replace(/^[,;:.)”"\s]+/, '')}`;
   if (t.length <= largo) return t;
   const corte = t.lastIndexOf(' ', largo);

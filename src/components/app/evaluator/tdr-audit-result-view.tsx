@@ -103,6 +103,7 @@ const CATEGORY_LABEL: Record<string, string> = {
   equipamiento_restrictivo: 'Equipamiento restrictivo',
   experiencia_restrictiva: 'Experiencia restrictiva',
   finalidad_publica_debil: 'Finalidad pública débil',
+  requisito_no_previsto: 'Requisito no previsto',
   otro: 'Otro',
 };
 

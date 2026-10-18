@@ -26,6 +26,7 @@
 import { generateText } from 'ai';
 import { fastModel } from '@/lib/ai/gemini';
 import { parseJsonLoose } from '@/lib/ai/json-suelto';
+import { razonSocialDeLaOferta } from './postor';
 
 export interface IntegranteConsorcio {
   nombre: string;
@@ -49,7 +50,8 @@ const SISTEMA = `Identificas al postor de una oferta presentada en un procedimie
 Devuelve SOLO este JSON, sin markdown:
 {"esConsorcio": true|false, "nombre": "", "ruc": "", "integrantes": [{"nombre": "", "ruc": "", "participacion": "", "obligaciones": ""}], "representanteComun": ""}
 
-- Si hay PROMESA DE CONSORCIO (o contrato de consorcio) del postor, es un consorcio: "nombre" es el nombre del consorcio tal como lo escribe la promesa («CONSORCIO MANTENIMIENTO VIAL AYACUCHO»), "integrantes" son TODAS las empresas o personas que lo conforman, con su RUC, su porcentaje de participación («60%») y un resumen breve de sus obligaciones, y "representanteComun" el nombre del representante común.
+- Solo la PROMESA DE CONSORCIO para ESTE procedimiento (el Anexo N° 4, dirigido a los evaluadores o al comité) hace consorcio al postor. Un contrato de consorcio de una contratación ANTERIOR —el que el postor adjunta para acreditar su experiencia— NO lo hace consorcio: en ese caso el postor se presenta solo.
+- Si es un consorcio: "nombre" es el nombre del consorcio tal como lo escribe la promesa («CONSORCIO MANTENIMIENTO VIAL AYACUCHO»), "integrantes" son TODAS las empresas o personas que lo conforman, con su RUC, su porcentaje de participación («60%») y un resumen breve de sus obligaciones, y "representanteComun" el nombre del representante común.
 - Si no, "esConsorcio" es false, "nombre" es la razón social del postor y "integrantes" va vacío.
 - No confundas al postor con terceros que aparecen en la oferta: clientes de su experiencia, proveedores que le alquilan equipos, bancos, aseguradoras, profesionales.
 - Copia nombres, RUC y porcentajes tal como figuran. Si un dato no está, déjalo vacío; no lo inventes.`;
@@ -96,7 +98,20 @@ export async function identificarPostor(texto: string): Promise<IdentificacionPo
         };
       })
       .filter((x) => x.nombre);
-    const esConsorcio = !!crudo.esConsorcio && integrantes.length >= 2;
+    const esConsorcio = !!crudo.esConsorcio && integrantes.length >= 2 && hayPromesaDeConsorcio(texto);
+    if (crudo.esConsorcio && !esConsorcio) {
+      // Documento 15 de César (17/10/2026): EDDU CONTRATISTAS S.A.C. se
+      // presentó sola y salió como «CONSORCIO EDDU», el consorcio con el que
+      // ejecutó en 2023 el contrato que trae como experiencia.
+      const propia = razonSocialDeLaOferta(texto);
+      const integrante = integrantes.find((i) => propia && plano(i.nombre) === plano(propia));
+      return {
+        nombre: propia ?? integrante?.nombre ?? nombre.replace(/^CONSORCIO\s+/i, ''),
+        esConsorcio: false,
+        ruc: integrante?.ruc,
+        integrantes: [],
+      };
+    }
     return {
       nombre: esConsorcio && !/consorcio/i.test(nombre) ? `CONSORCIO ${nombre}` : nombre,
       esConsorcio,
@@ -108,6 +123,23 @@ export async function identificarPostor(texto: string): Promise<IdentificacionPo
     console.warn('[evaluacion] no se pudo identificar al postor:', (e as Error).message.slice(0, 160));
     return null;
   }
+}
+
+const plano = (t: string) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+
+/**
+ * Si la oferta trae una promesa de consorcio para ESTE procedimiento: el
+ * Anexo N° 4, que va dirigido a los evaluadores o al comité. Un contrato de
+ * consorcio anterior («se procede a la suscripción y formalización del
+ * presente contrato de consorcio») no lo es.
+ */
+export function hayPromesaDeConsorcio(texto: string): boolean {
+  for (const m of texto.matchAll(/PROMESA\s+(?:FORMAL\s+)?DE\s+CONSORCIO/gi)) {
+    const ventana = texto.slice(Math.max(0, m.index! - 800), m.index! + 1500);
+    if (/formalizaci[óo]n\s+del\s+presente\s+contrato|contrato\s+de\s+consorcio/i.test(ventana) && !/EVALUADORES|COMIT[ÉE]/i.test(ventana)) continue;
+    if (/EVALUADORES|COMIT[ÉE]\s+DE\s+SELECCI|Se[ñn]ores|ANEXO\s+N?[°º.]?\s*0?4\b/i.test(ventana)) return true;
+  }
+  return false;
 }
 
 /** Para el prompt de cada etapa: quién es el postor y, si es consorcio, cómo se evalúa. */

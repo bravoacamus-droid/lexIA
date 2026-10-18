@@ -27,6 +27,8 @@ import { plano } from './equipos';
 
 interface Certificado {
   norma: string;
+  /** De qué trata: calidad, ambiental, antisoborno, seguridad o social. */
+  materia: string;
   titular: string;
   alcance: string;
   vigencia: string;
@@ -59,15 +61,16 @@ async function leer(texto: string): Promise<Certificado[]> {
       continue;
     }
     const n = trozo.match(/^=== P[áa]gina (\d+) ===/)?.[1];
-    if (n && /\biso\b|ntp.?iso|certificad[oa] de (?:registro|conformidad)/i.test(trozo) && /certific/i.test(trozo)) {
+    if (n && (/\biso\b|ntp.?iso|certificad[oa] de (?:registro|conformidad)/i.test(trozo) || SOCIAL.test(trozo)) && /certific|reconocimiento|registro/i.test(trozo)) {
       paginas.push(`##### ${tomo ? `tomo ${tomo}, ` : ''}página ${n}\n${trozo.slice(0, 4000)}`);
     }
   }
   if (paginas.length === 0) return [];
   const { text } = await generateText({
     model: chatModel,
-    system: `Lees páginas de una oferta. Lista cada CERTIFICADO de sistema de gestión (ISO 9001, ISO 14001, ISO 37001, ISO 45001 o sus NTP) que emite un organismo certificador a nombre de una empresa: la norma, la empresa TITULAR del certificado (razón social, tal como aparece), el ALCANCE (las actividades certificadas, copiadas, hasta 300 caracteres), la VIGENCIA (fechas de emisión y de vencimiento) y la página. No cuentes menciones de que un proveedor o un fabricante tiene una ISO.
-Devuelve SOLO JSON: {"certificados": [{"norma": "ISO 9001:2015", "titular": "", "alcance": "", "vigencia": "", "pagina": "la etiqueta tal como viene"}]}`,
+    system: `Lees páginas de una oferta. Lista cada CERTIFICADO de sistema de gestión (ISO 9001, ISO 14001, ISO 37001, ISO 45001 o sus NTP) y cada certificado o reconocimiento de SOSTENIBILIDAD SOCIAL (SA 8000, certificación o registro de buenas prácticas laborales, reconocimiento del Ministerio de Trabajo) que se emite a nombre de una empresa: la norma o estándar tal como lo escribe («SA 8000:2014», «Buenas prácticas laborales — SR 2030:2023», «Reconocimiento MTPE»), la empresa TITULAR (razón social, tal como aparece), el ALCANCE (lo que certifica: las actividades o, en los de buenas prácticas laborales, las prácticas que declara —salario justo, entornos seguros, igualdad de oportunidades, trabajo infantil y forzoso—, copiado, hasta 300 caracteres), quién lo emite y ante quién está acreditado, la VIGENCIA (fechas de emisión y de vencimiento) y la página. No cuentes menciones de que un proveedor o un fabricante tiene una ISO.
+"materia": "calidad", "ambiental", "antisoborno", "seguridad" o "social" (SA 8000, buenas prácticas laborales, responsabilidad social, reconocimiento del Ministerio de Trabajo), según lo que certifica y no según el número de la norma.
+Devuelve SOLO JSON: {"certificados": [{"norma": "ISO 9001:2015", "materia": "calidad", "titular": "", "alcance": "", "vigencia": "", "pagina": "la etiqueta tal como viene"}]}`,
     prompt: paginas.slice(0, 30).join('\n\n'),
     temperature: 0,
     maxTokens: 10_000,
@@ -76,6 +79,7 @@ Devuelve SOLO JSON: {"certificados": [{"norma": "ISO 9001:2015", "titular": "", 
   const o = parseJsonLoose(text) as { certificados?: Array<Record<string, unknown>> } | null;
   return (o?.certificados ?? []).map((c) => ({
     norma: String(c.norma ?? ''),
+    materia: String(c.materia ?? ''),
     titular: String(c.titular ?? ''),
     alcance: String(c.alcance ?? ''),
     vigencia: String(c.vigencia ?? ''),
@@ -93,13 +97,22 @@ function mismaEmpresa(a: string, b: string): boolean {
   return x.length > 0 && x.some((w) => y.has(w));
 }
 
-/** La norma que pide la ficha: 37001, 14001, 9001 o 45001. */
+/** Los certificados del factor de sostenibilidad social. */
+const SOCIAL = /SA\s*8000|buenas\s+pr[áa]cticas\s+laborales|responsabilidad\s+social|sostenibilidad\s+social/i;
+
+/**
+ * La norma que pide la ficha: 37001, 14001, 9001, 45001 o «social».
+ *
+ * La sostenibilidad social va primero: antes caía en 14001 por la palabra
+ * «sostenibilidad», y se habría puntuado con la ISO ambiental.
+ */
 function normaDe(f: FichaRequisito): string | null {
   const t = `${f.requisito} ${f.reglaBases}`;
+  if (/sostenibilidad\s+social|SA\s*8000|responsabilidad\s+social/i.test(f.requisito) || (/social/i.test(f.requisito) && SOCIAL.test(t))) return 'social';
   const m = t.match(/\b(37001|14001|9001|45001)\b/);
   if (m) return m[1];
   if (/antisoborno|integridad/i.test(t)) return '37001';
-  if (/ambiental|sostenib/i.test(t)) return '14001';
+  if (/ambiental/i.test(t)) return '14001';
   if (/calidad/i.test(t)) return '9001';
   if (/seguridad y salud/i.test(t)) return '45001';
   return null;
@@ -110,7 +123,95 @@ const ENCABEZADO_DEL_FACTOR: Record<string, RegExp> = {
   '9001': /GESTI[ÓO]N\s+DE\s+(?:LA\s+)?CALIDAD|SISTEMA\s+DE\s+GESTI[ÓO]N\s+DE\s+LA\s+CALIDAD/i,
   '14001': /SOSTENIBILIDAD\s+AMBIENTAL/i,
   '45001': /SEGURIDAD\s+Y\s+SALUD/i,
+  social: /SOSTENIBILIDAD\s+SOCIAL/i,
 };
+
+/** Si un certificado listado es de la norma del factor. */
+function esDeLaNorma(c: Certificado, norma: string): boolean {
+  if (norma === 'social') return /social/i.test(c.materia) || /8000|laboral|social|trabajo|MTPE/i.test(`${c.norma} ${c.alcance}`);
+  return c.norma.includes(norma);
+}
+
+/**
+ * El texto de la página de un certificado («página 60», «tomo 2, página
+ * 198»). Lo que certifica no siempre está en el «alcance»: el de buenas
+ * prácticas laborales de POZO HCJ (documento 15) lista sus actividades como
+ * alcance y las prácticas laborales —salario justo, entornos seguros…— en
+ * el cuerpo, y con solo el alcance se le negó el puntaje.
+ */
+export function paginaDelCertificado(texto: string, etiqueta: string, tope = 6000): string {
+  // «página 60», «pág. 60» o solo «60».
+  const n = etiqueta.match(/p[áa]g(?:ina)?\.?\s*(\d+)/i)?.[1] ?? etiqueta.match(/^\s*(\d{1,4})\s*$/)?.[1];
+  if (!n) return '';
+  const tomo = etiqueta.match(/tomo\s*(\d+)/i)?.[1];
+  const zona = tomo ? texto.split(/^=== TOMO \d+/m)[Number(tomo) - 1] ?? '' : texto.split(/^=== TOMO \d+/m)[0];
+  const m = zona.match(new RegExp(`=== P[áa]gina ${n} ===([\\s\\S]*?)(?==== P[áa]gina \\d+ ===|$)`));
+  // 6 000: el alcance del certificado de POZO HCJ ocupa casi toda la hoja y
+  // la vigencia va al final.
+  return m ? m[1].trim().slice(0, tope) : '';
+}
+
+/** Las prácticas que nombran las Bases estándar para la certificación en buenas prácticas laborales. */
+const PRACTICAS_LABORALES = [
+  /salario\s+justo/i,
+  /entornos?\s+de\s+trabajo\s+segur/i,
+  /igualdad\s+de\s+oportunidades/i,
+  /trabajo\s+infantil|trabajo\s+forzoso/i,
+];
+
+/**
+ * Si un certificado acredita la sostenibilidad social, por la forma que le
+ * corresponde. Las Bases estándar admiten tres: la SA 8000:2014 emitida por
+ * un organismo acreditado ante SAAS, el reconocimiento del Ministerio de
+ * Trabajo, o una certificación en buenas prácticas laborales vinculadas al
+ * salario justo, entornos seguros, igualdad de oportunidades y debida
+ * diligencia contra el trabajo infantil y forzoso.
+ *
+ * Por código y no por el modelo. César, documento 15: POZO HCJ trajo una
+ * certificación de buenas prácticas laborales con esas cuatro prácticas y
+ * se le negó el puntaje porque «no es SA 8000 acreditada ante SAAS» —la
+ * exigencia de otra forma—; vuelto a preguntar con la regla a la vista, el
+ * modelo lo negó otra vez y le dio el puntaje a una SA 8000 sin
+ * acreditación SAAS.
+ */
+export function formaSocial(
+  textoCertificado: string,
+  reglaBases: string,
+): { forma: 'sa8000' | 'mtpe' | 'buenas_practicas' | null; cumple: boolean; motivo: string } {
+  const t = textoCertificado;
+  if (/SA\s*8000/i.test(t)) {
+    const saas = /\bSAAS\b|Social\s+Accountability\s+Accreditation/i.test(t);
+    return {
+      forma: 'sa8000',
+      cumple: saas,
+      motivo: saas
+        ? 'certificado SA 8000 de un organismo acreditado ante SAAS'
+        : 'es un certificado SA 8000 y no consta que el organismo que lo emite esté acreditado ante SAAS, como exigen las Bases para esa forma',
+    };
+  }
+  if (/Ministerio\s+de\s+Trabajo|MTPE/i.test(t) && /reconocimiento/i.test(t)) {
+    const admite = /Ministerio\s+de\s+Trabajo/i.test(reglaBases);
+    return {
+      forma: 'mtpe',
+      cumple: admite,
+      motivo: admite ? 'reconocimiento del Ministerio de Trabajo, que las Bases admiten' : 'reconocimiento del Ministerio de Trabajo, que las Bases no prevén',
+    };
+  }
+  if (/buenas\s+pr[áa]cticas\s+laborales/i.test(t)) {
+    const admite = /buenas\s+pr[áa]cticas\s+laborales/i.test(reglaBases);
+    const temas = PRACTICAS_LABORALES.filter((r) => r.test(t)).length;
+    return {
+      forma: 'buenas_practicas',
+      cumple: admite && temas >= 3,
+      motivo: !admite
+        ? 'certificación en buenas prácticas laborales, que las Bases no prevén'
+        : temas >= 3
+          ? `certificación en buenas prácticas laborales vinculadas a las prácticas que nombran las Bases (salario justo, entornos de trabajo seguros, igualdad de oportunidades, trabajo infantil y forzoso: ${temas} de 4); a esta forma no se le exige la acreditación SAAS, que es de la SA 8000`
+          : `certificación en buenas prácticas laborales que no nombra las prácticas que exigen las Bases (${temas} de 4)`,
+    };
+  }
+  return { forma: null, cumple: false, motivo: 'no es un certificado de sostenibilidad social' };
+}
 
 /** El texto del factor en las Bases: evaluación, acreditación y puntajes. */
 function reglaDelFactor(textoBases: string, norma: string): string {
@@ -146,14 +247,35 @@ export async function revisarCertificaciones(
       if (!candidatas.includes(f)) return f;
       const norma = normaDe(f)!;
       const deLaNorma = certificados.filter(
-        (c) => c.norma.includes(norma) && titulares.some((t) => mismaEmpresa(t, c.titular)),
+        (c) => esDeLaNorma(c, norma) && titulares.some((t) => mismaEmpresa(t, c.titular)),
       );
       if (deLaNorma.length === 0) return f;
       const regla = reglaDelFactor(textoBases, norma);
+      if (norma === 'social') {
+        const juicios = deLaNorma.map((c) => ({ c, j: formaSocial(paginaDelCertificado(texto, c.pagina) || `${c.norma} ${c.alcance}`, regla || f.reglaBases) }));
+        const vale = juicios.find((x) => x.j.cumple);
+        if (!vale || typeof f.puntajeMaximo !== 'number') return f;
+        // La vigencia, de la página misma: la lista la confundía con el año
+        // del número de registro.
+        const vigencia =
+          paginaDelCertificado(texto, vale.c.pagina, Infinity).match(/vigencia\s+(?:desde\s+)?(?:el\s+)?([^.\n]{8,90})/i)?.[1]?.trim() ?? vale.c.vigencia;
+        return {
+          ...f,
+          puntaje: f.puntajeMaximo,
+          resultado: 'cumple',
+          naturalezaDefecto: 'ninguno',
+          confianza: 'alta',
+          verificada: true,
+          hallazgo:
+            `${vale.c.titular} presenta ${vale.c.norma} (${vale.c.pagina}${vigencia ? `, vigencia ${vigencia}` : ''}): ${vale.j.motivo}. ` +
+            `Las Bases admiten, para acreditar una práctica de sostenibilidad social, la SA 8000:2014 emitida por un organismo acreditado ante SAAS, el reconocimiento del Ministerio de Trabajo o la certificación en buenas prácticas laborales; basta una. Acredita una práctica: ${f.puntajeMaximo} puntos.` +
+            (juicios.length > 1 ? ` Otros certificados: ${juicios.filter((x) => x !== vale).map((x) => `${x.c.norma}, ${x.j.motivo}`).join('; ')}.` : ''),
+        } as FichaRequisito;
+      }
       try {
         const { text } = await generateText({
           model: chatModel,
-          system: `Asignas el puntaje de UN factor de evaluación que se acredita con certificados ISO. Aplica SOLO la regla de las Bases (evaluación, acreditación y escala de puntajes): alcance exigido, vigencia, organismo, y qué integrantes del consorcio deben tenerlo. Si las Bases piden un alcance específico solo para esta norma, exígelo; si no lo piden, no lo exijas. Los certificados listados ESTÁN en la oferta: no digas que faltan.
+          system: `Asignas el puntaje de UN factor de evaluación que se acredita con certificados. Aplica SOLO la regla de las Bases (evaluación, acreditación y escala de puntajes): alcance exigido, vigencia, organismo, y qué integrantes del consorcio deben tenerlo. Si las Bases piden un alcance específico solo para esta norma, exígelo; si no lo piden, no lo exijas. Si la «Acreditación» admite VARIAS formas (por ejemplo, un certificado SA 8000 emitido por un organismo acreditado ante SAAS, O el reconocimiento del Ministerio de Trabajo, O una certificación en buenas prácticas laborales vinculadas al salario justo, entornos de trabajo seguros…), basta UNA: evalúa cada certificado con los requisitos de la forma que le corresponde, no con los de otra (a una certificación de buenas prácticas laborales no se le exige la acreditación SAAS, que es de la SA 8000). Los certificados listados ESTÁN en la oferta: no digas que faltan.
 Devuelve SOLO JSON: {"puntaje": número, "hallazgo": "por qué ese puntaje, nombrando cada certificado con su titular, alcance, vigencia y página"}`,
           prompt: `FACTOR: ${f.requisito}
 REGLA RESUMIDA: ${f.reglaBases}
@@ -161,8 +283,11 @@ PUNTAJE MÁXIMO: ${f.puntajeMaximo ?? 'el que digan las Bases'}
 ${regla ? `TEXTO DE LAS BASES:\n${regla}\n` : ''}
 POSTOR / INTEGRANTES: ${titulares.join(' · ')}
 
-CERTIFICADOS ISO ${norma} EN LA OFERTA:
-${deLaNorma.map((c) => `· ${c.titular} — ${c.norma} — alcance: ${c.alcance || 'no indicado'} — vigencia: ${c.vigencia || 'no indicada'} — ${c.pagina}`).join('\n')}`,
+CERTIFICADOS ${norma === 'social' ? 'DE SOSTENIBILIDAD SOCIAL' : `ISO ${norma}`} EN LA OFERTA:
+${deLaNorma.map((c) => `· ${c.titular} — ${c.norma} — alcance: ${c.alcance || 'no indicado'} — vigencia: ${c.vigencia || 'no indicada'} — ${c.pagina}`).join('\n')}
+
+TEXTO DE LOS CERTIFICADOS (lo que certifican, quién los emite y ante quién están acreditados):
+${deLaNorma.map((c) => `##### ${c.pagina}\n${paginaDelCertificado(texto, c.pagina) || '(no se halló la página)'}`).join('\n\n')}`,
           temperature: 0,
           maxTokens: 1500,
           abortSignal: AbortSignal.timeout(90_000),

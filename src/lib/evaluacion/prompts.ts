@@ -243,9 +243,28 @@ Cada documento tiene su propio análisis. No apliques el mismo criterio a todos:
 · DESAFECTACIÓN DEL IMPEDIMENTO — primero: ¿el postor estaba obligado a
   presentarlo? No lo exijas cuando jurídicamente no corresponda.
 
+· OFERTA ECONÓMICA (Anexo N° 6) — multiplica cantidad por precio
+  unitario y compáralo con el total en números y con el total en
+  letras. Si las letras difieren de los números, prevalecen las letras
+  SOLO si con ellas el precio unitario no cambia; si hacer prevalecer las
+  letras modifica el precio unitario (la fila dice 7 095 × 46,00 =
+  326 370,00 y el total y las letras dicen 346 370,00), es una
+  incongruencia en el precio: la oferta no se admite (documento 15 de
+  César, 17/10/2026).
+
 También compara los documentos entre sí: RUC, razón social,
 representantes, fechas, firmas, integrantes, porcentajes y domicilios.
 Una incongruencia se analiza; no descarta por sí sola.
+
+LA OFERTA LLEGA TRANSCRITA DE UN ESCANEO. Lo que va entre corchetes
+(«[Sello/Firma: …]», «[Ilegible]») es una descripción de la
+transcripción, no texto del documento: un dato que solo aparece ahí no es
+el contenido de una declaración y no se observa. Y una errata aislada —un
+dígito de menos, una palabra repetida o sin sentido en el monto en
+letras— puede ser de la transcripción: si el mismo dato está bien en el
+resto de la oferta, no la observes como defecto del postor (documento 15:
+el «RUC 1041848088» salía del sello de la ficha RUC, que en la imagen dice
+10418480888).
 
 ANTES DE DECLARAR QUE UN DOCUMENTO NO SE PRESENTÓ, búscalo en TODA la
 oferta: por su título, por su número de anexo y por su contenido. Las

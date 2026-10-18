@@ -29,6 +29,7 @@ import { chatModel } from '@/lib/ai/gemini';
 import { parseJsonLoose } from '@/lib/ai/json-suelto';
 import type { FichaRequisito, Resultado } from './etapas';
 import { plano } from './equipos';
+import { preguntarALasPaginas, type LectorDePaginas } from './lectura-visual';
 
 type Objeto = 'servicio' | 'obra' | 'bien';
 
@@ -63,6 +64,13 @@ interface Contratacion {
   participacion: number;
   tieneModificaciones: boolean;
   sustentoModificaciones: string;
+  /** Lo que se descartó al revisarla: un cierre ilegible, pagos del SIAF. */
+  notas: string[];
+  /**
+   * Solo se descartó porque sus pagos se acreditan con el SIAF: con ellos
+   * se computaría. Va al comité, no se descalifica por eso (ver abajo).
+   */
+  soloPorSiaf: boolean;
 }
 
 /**
@@ -78,15 +86,76 @@ Devuelve SOLO JSON: {"esMype": false, "contrataciones": [{"n": "1", "cliente": "
 
 const REVISAR = `Revisas UNA contratación que un postor presenta como experiencia, con las páginas de sus documentos:
 · "tipo": "obra" si es un contrato de ejecución de obra (o su acta de recepción de obra, liquidación de obra, valorizaciones); "servicio" si es un contrato u orden de servicio; "bien" si es una compra de bienes.
-· "montoQueConsta": el monto ejecutado, facturado o pagado que dice un documento de CIERRE (conformidad, constancia de prestación o de cumplimiento, acta de recepción que indique el monto, resolución de liquidación). Si ningún documento de cierre dice el monto —por ejemplo, un acta que solo certifica la entrega o la culminación—, null. El monto del contrato original NO es monto que consta.
+· "montoQueConsta": el monto ejecutado, facturado o pagado que dice un documento de CIERRE (conformidad, constancia de prestación o de cumplimiento, acta de recepción que indique el monto, resolución de liquidación). Si ningún documento de cierre dice el monto —por ejemplo, un acta que solo certifica la entrega o la culminación—, null. En OBRAS, el monto del contrato original NO es monto que consta. En BIENES y SERVICIOS, una conformidad o constancia de cumplimiento que certifica que la prestación se cumplió POR COMPLETO y nombra el monto de esa orden o contrato («monto contractual S/ 12,995.00») sí acredita ese monto; una conformidad parcial (de una entrega) acredita solo el de esa entrega.
 · "pagosTotal": la SUMA de esos pagos.
-· "pagos": CADA comprobante de pago (factura) cuya cancelación acredita una constancia de depósito o de transferencia, nota de abono, constancia de pago del SIAF («transferencia a cuenta de terceros»), estado de cuenta o retención del IGV: [{"comprobante": "número de la factura", "monto": número, "pagina": número}]. No sumes: lista.
+· "pagos": CADA comprobante de pago (factura) con el documento que acredita su cancelación: [{"comprobante": "número de la factura", "monto": número, "pagina": número, "medio": ""}]. "medio" es el documento de la cancelación: "deposito" (constancia de depósito o voucher bancario), "transferencia" (constancia de transferencia emitida por el BANCO), "nota_abono", "estado_cuenta" (reporte o estado de cuenta del banco), "cancelado_en_comprobante" (la factura dice «cancelado» con sello y firma), "retencion" (comprobante de retención electrónico de la SUNAT), "siaf" (comprobante de pago, constancia o reporte del SIAF de la Entidad, aunque mencione un banco o una «transferencia a cuenta de terceros»), u "otro". No sumes: lista.
 · "documentoDeCierre": cuál documento de cierre hay y su página («acta de recepción de obra, página 45, no indica monto»).
+· "paginasCierre": las páginas de los documentos de cierre (conformidad, constancia, acta) de los que tomaste "montoQueConsta".
 · "participacion": si se ejecutó EN CONSORCIO, el porcentaje de las obligaciones que tuvo en aquel consorcio el postor o el integrante que la aporta; 100 si la ejecutó solo. "citaParticipacion": la frase LITERAL de la promesa o contrato de consorcio de entonces, o de la constancia, donde consta ese porcentaje (vacío si no la hay).
 · "tieneModificaciones": true si hay adicionales, deductivos, ampliaciones con mayores costos, adendas que cambian el monto, o un monto final distinto del contratado.
 · "sustentoModificaciones": qué documentos sustentan esas modificaciones o el monto final, o vacío.
 Copia cifras sin separador de miles. No completes lo que no consta.
-Devuelve SOLO JSON: {"tipo": "obra"|"servicio"|"bien"|"otro", "montoQueConsta": null, "pagosTotal": 0, "pagos": [], "documentoDeCierre": "", "participacion": 100, "citaParticipacion": "", "tieneModificaciones": false, "sustentoModificaciones": ""}`;
+Devuelve SOLO JSON: {"tipo": "obra"|"servicio"|"bien"|"otro", "montoQueConsta": null, "pagosTotal": 0, "pagos": [], "documentoDeCierre": "", "paginasCierre": [], "participacion": 100, "citaParticipacion": "", "tieneModificaciones": false, "sustentoModificaciones": ""}`;
+
+/**
+ * Los medios con que las Bases estándar admiten acreditar la cancelación
+ * de un comprobante: «constancia de depósito, nota de abono, reporte de
+ * estado de cuenta, cualquier otro documento emitido por entidad del
+ * sistema financiero que acredite el abono o mediante cancelación en el
+ * mismo comprobante de pago, o comprobante de retención electrónico
+ * emitido por SUNAT».
+ *
+ * El comprobante del SIAF no está entre ellos. César, documento 15
+ * (17/10/2026), sobre EDDU CONTRATISTAS: «el reporte SIAF no es válido
+ * dado que este no vendría de una entidad financiera». Antes se aceptaba
+ * (documento 13, Grupo Constructor Ore); ahora solo si las Bases lo
+ * admiten expresamente.
+ */
+const MEDIOS_DEL_SISTEMA_FINANCIERO = new Set(['deposito', 'transferencia', 'nota_abono', 'estado_cuenta', 'cancelado_en_comprobante', 'retencion']);
+
+function medioValido(medio: unknown, aceptaSiaf: boolean): boolean {
+  const m = String(medio ?? '').toLowerCase();
+  if (!m) return true; // lecturas anteriores, sin el dato
+  return MEDIOS_DEL_SISTEMA_FINANCIERO.has(m) || (aceptaSiaf && m === 'siaf');
+}
+
+const LEGIBLE = `Eres el control de calidad de un evaluador de ofertas. Te muestran la IMAGEN de los documentos de cierre (conformidad, constancia de prestación o de cumplimiento, acta) de una contratación que un postor presenta como experiencia. La transcripción automática de un escaneo borroso puede «leer» cifras que en la imagen no se distinguen.
+Mira la imagen y lista CADA documento de cierre (cada conformidad, constancia o acta; uno por entrega o por pago), con:
+· "pagina": la página donde está.
+· "legible": SOLO sobre si se puede leer: true si se lee con certeza quién lo emite, a favor de quién, qué prestación y el monto; false únicamente si el escaneo no deja distinguirlos (borroso, cifras empastadas). Que el documento no diga un monto no lo hace ilegible.
+· "montoConforme": el monto de la prestación EJECUTADA o CONFORME que acredita ESE documento, sin separador de miles, solo si se lee con certeza; null si no lo dice. Si el documento certifica que la prestación de una orden o contrato se cumplió POR COMPLETO y nombra su monto («monto contractual S/ 12,995.00»), ese es el monto conforme. Si es la conformidad de UNA entrega de un contrato mayor, es el monto de esa entrega, no el total del contrato.
+· "nota": qué no se lee, si algo.
+Las órdenes de compra o de servicio, las facturas, las notas de pago y los comprobantes del SIAF NO son documentos de cierre: no los listes (un recuadro «conformidad» vacío al pie de una orden no es una conformidad ilegible).
+Devuelve SOLO JSON: {"documentos": [{"pagina": 0, "legible": true, "montoConforme": null, "nota": ""}]}`;
+
+/**
+ * Las páginas que son documentos de cierre: una conformidad, constancia o
+ * acta en su asunto o encabezado (las primeras líneas). En el cuerpo del
+ * contrato también se habla de «la conformidad de la prestación», y las
+ * facturas y notas de pago no son cierre.
+ */
+const CIERRE = /conformidad|constancia\s+de\s+(?:prestaci|cumplimiento)|acta\s+de\s+recepci/i;
+const NO_CIERRE = /NOTA\s+DE\s+PAGO|FACTURA\s+ELECTR|COMPROBANTE\s+DE\s+PAGO|CL[ÁA]USULA\s+(?:PRIMERA|SEGUNDA|TERCERA|NOVENA)/i;
+/**
+ * Una orden de compra o de servicio tampoco es cierre, aunque traiga al pie
+ * un recuadro «CONFORMIDAD» (vacío en las de POZO HCJ, que se tomaron por
+ * conformidades ilegibles).
+ */
+const ES_ORDEN = /ORDEN\s+DE\s+(?:COMPRA|SERVICIO)|GU[ÍI]A\s+DE\s+INTERNAMIENTO/i;
+const esCierre = (pagina: string) =>
+  CIERRE.test(pagina.slice(0, 1400)) && !NO_CIERRE.test(pagina) && !ES_ORDEN.test(pagina.slice(0, 400));
+
+/**
+ * El medio de un pago, por el texto de su página y no por lo que dice el
+ * modelo, que en una corrida marcaba como «transferencia» la nota de pago
+ * del SIAF de EDDU y en la siguiente como «siaf».
+ */
+function medioPorLaPagina(pagina: string | undefined, medio: unknown): unknown {
+  if (!pagina) return medio;
+  const siaf = /\bSIAF\b|NOTA\s+DE\s+PAGO|Expediente\s+SIAF|REGISTRO\s+SIAF/i.test(pagina);
+  const banco = /ESTADO\s+DE\s+CUENTA|VOUCHER|NOTA\s+DE\s+ABONO|CONSTANCIA\s+DE\s+(?:DEP[ÓO]SITO|TRANSFERENCIA\s+(?:BANCARIA|INTERBANCARIA))/i.test(pagina);
+  return siaf && !banco ? 'siaf' : medio;
+}
 
 // La 5325 y la 8067 tratan justamente obras admitidas como «similares» en
 // un servicio; la 7146, similares definidos por partidas de servicios u
@@ -116,7 +185,10 @@ const DE_EXPERIENCIA =
   // Las constancias de pago del SIAF («transferencia a cuenta de terceros»)
   // acreditan la cancelación de las facturas: sin ellas, a Grupo
   // Constructor Ore no se le computó el contrato N° 22-2024.
-  /experiencia del postor|anexo n\S* ?1[01]\b|contrato|orden de servicio|conformidad|constancia de prestaci|constancia de pago|transferencia|abono|dep[óo]sito|nota de pago|estado de cuenta|retenci[óo]n|acta de recepci|liquidaci|comprobante|factura|valorizaci|adicional|deductivo|remype|micro y peque/i;
+  // «O/C» y «orden de compra»: la segunda hoja del Anexo N° 11 de POZO HCJ
+  // solo trae filas «O/C N° 1098-2025 …» y se descartaba con dos de sus
+  // cinco contrataciones.
+  /experiencia del postor|anexo n\S* ?1[01]\b|contrato|orden de servicio|orden de compra|\bO\/[CS]\b|monto facturado|conformidad|constancia de prestaci|constancia de cumplimiento|constancia de pago|transferencia|abono|dep[óo]sito|nota de pago|estado de cuenta|retenci[óo]n|acta de recepci|liquidaci|comprobante|factura|valorizaci|adicional|deductivo|remype|micro y peque/i;
 
 /**
  * Las páginas de la experiencia: desde el anexo de experiencia del postor,
@@ -141,10 +213,11 @@ function paginasDeLaExperiencia(texto: string): string[] {
  * modelo, los del contrato AY-1108 de Kametsa daban 3,8 millones en una
  * corrida y 2,6 en la siguiente.
  */
-function sumaDePagos(r: Record<string, unknown>): number {
+function sumaDePagos(r: Record<string, unknown>, aceptaSiaf = true): number {
   const vistos = new Set<string>();
   let total = 0;
   for (const x of Array.isArray(r.pagos) ? (r.pagos as Array<Record<string, unknown>>) : []) {
+    if (!medioValido(x.medio, aceptaSiaf)) continue;
     const monto = Number(x.monto) || 0;
     const clave = String(x.comprobante ?? '').replace(/\W/g, '').toUpperCase() || `${monto}@${String(x.pagina ?? '')}`;
     if (monto <= 0 || vistos.has(clave)) continue;
@@ -154,9 +227,11 @@ function sumaDePagos(r: Record<string, unknown>): number {
   return total;
 }
 
-function evidenciaDe(r: Record<string, unknown>): number {
-  return Math.max(Number(r.montoQueConsta) || 0, sumaDePagos(r), Number(r.pagosTotal) || 0);
+function evidenciaDe(r: Record<string, unknown>, aceptaSiaf = true): number {
+  return Math.max(Number(r.montoQueConsta) || 0, sumaDePagos(r, aceptaSiaf), Number(r.pagosTotal) || 0);
 }
+
+const soles = (n: number) => `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export async function verificarExperiencia(args: {
   ficha: FichaRequisito;
@@ -164,11 +239,14 @@ export async function verificarExperiencia(args: {
   extracto: string;
   textoBases: string;
   nombrePostor: string;
+  /** Si la oferta es un escaneo, para mirar la imagen de los documentos de cierre. */
+  lector?: LectorDePaginas;
 }): Promise<FichaRequisito> {
   const { ficha, extracto } = args;
   if (!extracto) return ficha;
   const objeto = objetoDeLasBases(extracto, args.textoBases);
   const { general, mype } = montosExigidos(extracto);
+  const aceptaSiaf = /SIAF/i.test(extracto);
 
   // Las páginas que tratan la experiencia: el anexo y los documentos de
   // cada contratación.
@@ -261,13 +339,90 @@ ${suyas.join('\n').slice(0, 120_000)}`,
             fallidas++;
             return null;
           }
-          const r = lecturas.sort((a, b) => evidenciaDe(b) - evidenciaDe(a))[0];
-          const pagos = sumaDePagos(r);
+          for (const l of lecturas) {
+            for (const x of Array.isArray(l.pagos) ? (l.pagos as Array<Record<string, unknown>>) : []) {
+              x.medio = medioPorLaPagina(porNumero.get(Number(x.pagina)), x.medio);
+            }
+          }
+          const r = lecturas.sort((a, b) => evidenciaDe(b, aceptaSiaf) - evidenciaDe(a, aceptaSiaf))[0];
+          const pagos = sumaDePagos(r, aceptaSiaf);
+          const listados = Array.isArray(r.pagos) ? (r.pagos as Array<Record<string, unknown>>) : [];
+          const noValidos = listados.filter((x) => !medioValido(x.medio, aceptaSiaf));
+          // El total que suma el modelo solo vale si todos sus pagos tienen un
+          // medio admitido: si no, incluiría los del SIAF.
+          const pagosTotal = noValidos.length === 0 ? Number(r.pagosTotal) || 0 : 0;
+          // En un escaneo, el monto del documento de cierre se confirma en la
+          // imagen: la conformidad de EDDU CONTRATISTAS (página 43) apenas se
+          // lee y la transcripción la devolvió con montos nítidos.
+          let cierre = Number(r.montoQueConsta) || 0;
+          let notaCierre = '';
+          // Las que el modelo dio y las que por su texto son conformidades,
+          // constancias o actas de esta contratación (no facturas ni notas
+          // de pago): EDDU tiene tres conformidades, una por entrega, y la
+          // lectura solo nombró una.
+          const delTexto = suyas.filter(esCierre).map((p) => Number(p.match(/^=== P[áa]gina (\d+) ===/)?.[1]));
+          const paginasCierre = [
+            ...new Set(
+              [...delTexto, ...(Array.isArray(r.paginasCierre) ? r.paginasCierre : [])]
+                .map(Number)
+                // Solo las de esta contratación: con la página de más a cada
+                // lado entraban las constancias de las vecinas (POZO HCJ).
+                .filter((n) => Number.isFinite(n) && n >= Math.min(...nums) && n <= Math.max(...nums) && porNumero.has(n) && esCierre(porNumero.get(n)!)),
+            ),
+          ].slice(0, 8);
+          if (cierre > 0 && args.lector && paginasCierre.length) {
+            const v = await preguntarALasPaginas({
+              lector: args.lector,
+              paginas: paginasCierre,
+              sistema: LEGIBLE,
+              pregunta: `Contratación ${String(c.n ?? '')}: ${String(c.objeto ?? '').slice(0, 200)} — cliente ${String(c.cliente ?? '')}.`,
+              nombre: args.nombrePostor,
+              maxTokens: 1500,
+            });
+            const documentos = Array.isArray(v?.documentos) ? (v!.documentos as Array<Record<string, unknown>>) : null;
+            if (documentos && documentos.length) {
+              // La suma la hace el código, y solo con lo que se lee.
+              // Una entrega suele tener dos documentos con el mismo monto —el
+              // informe del residente y la conformidad del subgerente (EDDU:
+              // 283 774,20 en las páginas 48 y 49)—: se cuenta una vez.
+              const legibles = documentos
+                .filter((x) => x.legible !== false && Number(x.montoConforme) > 0)
+                .filter((x, i, todos) => todos.findIndex((y) => Math.abs(Number(y.montoConforme) - Number(x.montoConforme)) <= 1) === i);
+              const ilegibles = documentos.filter((x) => x.legible === false);
+              const leido = Math.round(legibles.reduce((s, x) => s + Number(x.montoConforme), 0) * 100) / 100;
+              const notas2: string[] = [];
+              if (ilegibles.length) {
+                notas2.push(
+                  `${ilegibles.length === 1 ? 'la conformidad de la página' : 'las conformidades de las páginas'} ${ilegibles.map((x) => Number(x.pagina) || '?').join(', ')} no se ${ilegibles.length === 1 ? 'lee' : 'leen'} con certeza${ilegibles.some((x) => x.nota) ? ` (${ilegibles.map((x) => String(x.nota ?? '').trim()).filter(Boolean).join('; ')})` : ''}; un documento ilegible no acredita la prestación ni su monto`,
+                );
+              }
+              // Si la imagen no dio ningún monto y nada es ilegible, no hay
+              // con qué corregir la lectura: queda la del texto.
+              // La imagen corrige hacia abajo —un documento ilegible, una
+              // cifra que la transcripción inventó—, nunca hacia arriba: lo
+              // que suma de más suele ser de otra contratación.
+              if ((legibles.length > 0 || ilegibles.length > 0) && leido < cierre - 1) {
+                notas2.push(
+                  leido > 0
+                    ? `con las conformidades legibles (${legibles.map((x) => `página ${Number(x.pagina) || '?'}: ${soles(Number(x.montoConforme))}`).join('; ')}) consta ${soles(leido)}, no ${soles(cierre)}`
+                    : 'ninguna conformidad se lee con certeza',
+                );
+                cierre = leido;
+              }
+              notaCierre = notas2.join('; ');
+            }
+          }
           // Con muchos comprobantes el modelo lista solo algunos; su total
           // suele ser más completo. Se toma lo mayor: lo computable queda
           // topado por lo que el postor declara, así que el riesgo es
           // quedarse corto, no pasarse.
-          const consta = Math.max(Number(r.montoQueConsta) || 0, pagos, Number(r.pagosTotal) || 0);
+          const consta = Math.max(cierre, pagos, pagosTotal);
+          const notas = [
+            notaCierre,
+            noValidos.length
+              ? `${noValidos.length === 1 ? 'el pago' : 'los pagos'} ${noValidos.map((x) => `${String(x.comprobante ?? '').trim() || 's/n'}${x.pagina ? ` (página ${x.pagina})` : ''}`).join(', ')} ${noValidos.length === 1 ? 'se acredita' : 'se acreditan'} solo con ${noValidos.some((x) => String(x.medio) === 'siaf') ? 'el comprobante del SIAF de la Entidad, que no es un documento emitido por una entidad del sistema financiero' : 'un documento que no es de los que admite la «Acreditación»'}; no se ${noValidos.length === 1 ? 'computa' : 'computan'}`
+              : '',
+          ].filter(Boolean);
           // El porcentaje de un consorcio anterior solo se aplica con su
           // cita literal en la oferta; si no, manda lo que el postor declara.
           const cita = plano(String(r.citaParticipacion ?? ''));
@@ -289,6 +444,8 @@ ${suyas.join('\n').slice(0, 120_000)}`,
             participacion,
             tieneModificaciones: r.tieneModificaciones === true,
             sustentoModificaciones: String(r.sustentoModificaciones ?? '').trim(),
+            notas,
+            soloPorSiaf: consta === 0 && !notaCierre && noValidos.some((x) => String(x.medio) === 'siaf'),
           };
         } catch {
           return null;
@@ -331,12 +488,22 @@ ${suyas.join('\n').slice(0, 120_000)}`,
     }
     if (c.montoQueConsta === null && c.tipo !== 'obra') {
       observaciones.push(
-        `${nombre}: no consta el monto con la conformidad, la constancia de prestación o el comprobante de pago cancelado que pide la «Acreditación» de las Bases (${c.documentoDeCierre || 'sin documento de cierre'}); no se computa.`,
+        `${nombre}: no consta el monto con la conformidad, la constancia de prestación o el comprobante de pago cancelado que pide la «Acreditación» de las Bases (${c.documentoDeCierre || 'sin documento de cierre'})${c.notas.length ? `: ${c.notas.join('; ')}` : ''}; no se computa.`,
       );
-      sinMontoHallado += (c.montoDeclarado * 1) || 0;
-      porRevisar.push(nombre);
+      // Si se descartó por algo comprobado —un cierre ilegible, pagos solo
+      // con el SIAF—, no es que no se hallara: no va al comité por eso.
+      // El SIAF: César (documento 15) no lo admite, porque no lo emite una
+      // entidad del sistema financiero; pero con ese mismo criterio el
+      // Consorcio Mega —adjudicatario del CP SER-SM-6-2026, que él validó y
+      // el Tribunal confirmó— no alcanzaría el monto. Hasta que César lo
+      // confirme, una contratación que solo cae por eso va al comité.
+      if (c.notas.length === 0 || c.soloPorSiaf) {
+        sinMontoHallado += (c.montoDeclarado * 1) || 0;
+        porRevisar.push(nombre);
+      }
       continue;
     }
+    if (c.notas.length) observaciones.push(`${nombre}: ${c.notas.join('; ')}.`);
     if (c.montoQueConsta === null) {
       observaciones.push(
         `${nombre}: ningún documento de cierre indica el monto ejecutado o facturado (${c.documentoDeCierre || 'no presenta documento de cierre'}); un acta que solo certifica la recepción o la culminación no acredita el monto (Acuerdo de Sala Plena N° 002-2023/TCE; Resoluciones N° 3723-2026-TCP-S4 y N° 2931-2025-TCP-S1). Debió presentar, por ejemplo, la resolución de liquidación.`,
@@ -374,7 +541,10 @@ ${suyas.join('\n').slice(0, 120_000)}`,
     if (resultado === 'no_cumple' && porRevisar.length > 0 && computable + sinMontoHallado >= exigido) {
       resultado = 'revision_humana';
       observaciones.push(
-        `Sin esas contrataciones se acreditan ${fmt(computable)}; con lo que el postor declara en ellas se alcanzaría lo exigido. El comité debe verificar sus documentos de pago o de cierre: ${porRevisar.join('; ')}.`,
+        `Sin esas contrataciones se acreditan ${fmt(computable)}; con lo que el postor declara en ellas se alcanzaría lo exigido. El comité debe verificar sus documentos de pago o de cierre: ${porRevisar.join('; ')}.` +
+          (lista.some((c) => c.soloPorSiaf)
+            ? ' Donde el pago solo consta en el comprobante del SIAF, el comité debe decidir si lo admite: las Bases piden un documento emitido por una entidad del sistema financiero (o la cancelación en el comprobante, o la retención de la SUNAT), y el SIAF es el registro de la Entidad, no del banco.'
+            : ''),
       );
     }
     conclusion = `Conclusión: ${resultado === 'cumple' ? 'cumple' : resultado === 'revision_humana' ? 'queda para el comité' : 'NO CUMPLE'} — monto computable ${fmt(computable)} frente a ${fmt(exigido)} exigidos${esMype && mype ? ' (monto para MYPE)' : ''}.`;

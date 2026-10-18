@@ -203,18 +203,6 @@ export function EvaluatorWizard({
                       desc="Compara ofertas contra los requisitos de las Bases Integradas."
                       active
                     />
-                    <RadioCard
-                      value="eett_tdr"
-                      title="Revisor EETT / TDR"
-                      desc="Identifica vicios en los términos de referencia (direccionamiento, ambigüedades, plazos)."
-                      href="/revisor-tdr/nuevo"
-                    />
-                    <RadioCard
-                      value="consultas"
-                      title="Consultas y observaciones"
-                      desc="Formula consultas y observaciones a las Bases de un proceso."
-                      href="/generador"
-                    />
                   </RadioGroup>
                 </div>
               </div>

@@ -16,6 +16,14 @@ import { embedOne } from '@/lib/ai/embeddings';
 import { expandLegalQuery, tipoDeFoco } from '@/lib/ai/query-expansion';
 import { rewriteToLegalQueries } from '@/lib/ai/query-rewrite';
 import { fetchNeighborChunks, mergeNeighbors } from '@/lib/ai/neighbor-chunks';
+import {
+  pareceConsultaDeConsecuencia,
+  analizarConsultaDeConsecuencia,
+  documentosDeLaConsecuencia,
+  fragmentosDeLaConsecuencia,
+  conAfines,
+  citarDecision,
+} from '@/lib/ai/consulta-de-consecuencia';
 
 export interface NormativaSearchResult {
   /** Tipo del documento (ley, reglamento, directiva, opinion, etc.). */
@@ -30,6 +38,12 @@ export interface NormativaSearchResult {
   similarity: number;
   /** Para enlazar la fuente desde la llamada («Ver fuentes de la respuesta»). */
   documentId?: string;
+  /**
+   * Solo en la consulta por la consecuencia de un defecto de la oferta:
+   * las frases en que el Tribunal dice qué consecuencia aplicó (ver
+   * lib/ai/consulta-de-consecuencia.ts).
+   */
+  decisiones?: string[];
 }
 
 export interface SearchOptions {
@@ -96,6 +110,17 @@ export async function searchNormativa(
     opts.filter_type !== 'reglamento'
       ? opts.filter_type
       : null;
+
+  // La consecuencia de un defecto de la oferta («¿no admitir o no otorgar
+  // el puntaje?»): las resoluciones que lo analizan se buscan por pares de
+  // expresiones, en paralelo con todo lo demás (César, documento 15; ver
+  // lib/ai/consulta-de-consecuencia.ts). Solo si la búsqueda no viene
+  // filtrada por tipo: con filtro, el modelo pidió otra cosa.
+  const leyDeLaLlamada = opts.filter_law && opts.filter_law.length === 1 ? opts.filter_law[0] : null;
+  const consecuenciaPromesa =
+    !filterType && pareceConsultaDeConsecuencia(opts.query)
+      ? resolucionesDeLaConsecuencia(opts.query, leyDeLaLlamada)
+      : Promise.resolve([] as NormativaSearchResult[]);
 
   // Query expansion — feedback César 08/07/2026: cuando el usuario
   // preguntó por "gestión de riesgos en contrato menor", el embedding
@@ -364,7 +389,13 @@ export async function searchNormativa(
   const ocultos = await idsOcultos(admin);
   rows = rows.filter((r) => !ocultos.has(r.document_id));
 
-  return rows.map((r) => {
+  // Las resoluciones de la consecuencia van delante: son las que deciden
+  // la respuesta. Lo que ya trajo la búsqueda general no se repite.
+  const deLaConsecuencia = await consecuenciaPromesa;
+  const yaVienen = new Set(deLaConsecuencia.map((r) => r.snippet.slice(0, 120)));
+  rows = rows.filter((r) => !yaVienen.has(r.content.slice(0, 120)));
+
+  return [...deLaConsecuencia, ...rows.map((r) => {
     const numberPart = r.doc_number ? ` ${r.doc_number}` : '';
     const typeLabel = formatTypeLabel(r.doc_type);
     return {
@@ -389,7 +420,74 @@ export async function searchNormativa(
       snippet: r.content,
       similarity: r.similarity,
     };
+  })];
+}
+
+/**
+ * Tope de la búsqueda de la consecuencia en la voz: la llamada al modelo
+ * rápido, los pares y la lectura tardan de 4 a 8 s. Si no llega, la voz
+ * responde con la búsqueda general, como antes.
+ */
+const TOPE_CONSECUENCIA_MS = 8000;
+
+async function resolucionesDeLaConsecuencia(query: string, ley: string | null): Promise<NormativaSearchResult[]> {
+  const trabajo = (async () => {
+    const c = await analizarConsultaDeConsecuencia(query, 2500);
+    if (!c) return [];
+    const admin = createAdminClient();
+    // Hasta cuatro resoluciones con su análisis y su parte resolutiva: la
+    // voz da una respuesta corta, y cada fragmento llega entero. Se leen
+    // seis y quedan las que dicen qué consecuencia aplicaron: una que
+    // nombra las expresiones pero no decide nada sobre la oferta ocupaba
+    // el cuarto puesto y dejaba fuera la Resolución N° 8674-2026-TCP-S4.
+    const hallado = await documentosDeLaConsecuencia(admin, c, { ley, tope: 6, tiempoPorParMs: 3000, paginas: 1 });
+    if (!hallado) return [];
+    const leido = await fragmentosDeLaConsecuencia(admin, hallado.elegidos, {
+      ids: hallado.elegidos.map((d) => d.document_id),
+      afectado: c.afectado,
+      figura: conAfines(c.figura),
+      elemento: c.elemento,
+      porDocumento: 1,
+    });
+    const { decisiones } = leido;
+    const quedan = new Set(
+      hallado.elegidos
+        .filter((d) => (decisiones.get(d.document_id) ?? []).length > 0)
+        .slice(0, 4)
+        .map((d) => d.document_id),
+    );
+    const piezas = leido.piezas.filter((p) => quedan.has(p.document_id));
+    const conFrases = new Set<string>();
+    return piezas.map((p): NormativaSearchResult => {
+      const primera = !conFrases.has(p.document_id);
+      conFrases.add(p.document_id);
+      return {
+        type: p.doc.tipo,
+        documentId: p.document_id,
+        citation: `${formatTypeLabel(p.doc.tipo)}${p.doc.numero ? ` ${p.doc.numero}` : ''}`.trim(),
+        title: p.doc.titulo,
+        snippet: p.content,
+        similarity: 1,
+        ...(primera ? { decisiones: decisiones.get(p.document_id) ?? [] } : {}),
+      };
+    });
+  })().catch((e: Error) => {
+    // No poder buscarlas no es que no existan: queda en el registro y la voz sigue.
+    console.error('[voice-search] consecuencia no buscada:', e.message);
+    return [] as NormativaSearchResult[];
   });
+  let reloj: ReturnType<typeof setTimeout> | undefined;
+  const tope = new Promise<NormativaSearchResult[]>((resolver) => {
+    reloj = setTimeout(() => {
+      console.warn('[voice-search] consecuencia: sin respuesta a tiempo');
+      resolver([]);
+    }, TOPE_CONSECUENCIA_MS);
+  });
+  try {
+    return await Promise.race([trabajo, tope]);
+  } finally {
+    clearTimeout(reloj);
+  }
 }
 
 /**
@@ -430,7 +528,27 @@ export function formatResultsForLLM(
     .map((r, i) => `  ${i + 1}. ${r.citation}`)
     .join('\n');
 
-  return `Encontré ${results.length} fragmento(s) relevante(s) en la base normativa de A-LexIA.
+  // La consulta por la consecuencia de un defecto de la oferta: lo que
+  // decidió cada resolución, en sus palabras, y cómo responder.
+  const decididas = results
+    .map((r, i) => ({ r, i }))
+    .filter(({ r }) => r.decisiones && r.decisiones.length > 0);
+  const avisoConsecuencia =
+    decididas.length > 0
+      ? `═══════════════════════════════════════════════════════
+CONSECUENCIA DE UN DEFECTO DE LA OFERTA — NO HAY UNA RESPUESTA ÚNICA
+═══════════════════════════════════════════════════════
+El Tribunal no siempre aplica la misma consecuencia a un defecto así: unas veces declara NO ADMITIDA la oferta (cuando el defecto genera incertidumbre sobre una condición mínima del requerimiento y no se puede subsanar) y otras solo NO OTORGA o revoca el puntaje del factor (cuando afecta únicamente la acreditación de la mejora). Lo que decidió cada resolución, en sus palabras:
+${decididas
+  .map(({ r, i }) => `  - Fuente ${i + 1}, ${r.citation}:\n${r.decisiones!.map((f) => `      ${citarDecision(f)}`).join('\n')}`)
+  .join('\n')}
+
+Clasifica cada una por LO QUE DECIDIÓ según esas frases («revocar los puntos» o «no asignación del puntaje» es no otorgar el puntaje; «no admitida» o «confirmar su no admisión» es no admitir; un voto singular no es la decisión). Responde: (1) que la sola presencia del defecto no decide la consecuencia; (2) las dos posiciones, cada una con su condición y al menos una resolución que la aplicó, por su número; (3) qué condición del caso del usuario lleva a una u otra. Ofrece detallar las resoluciones si quiere.
+
+`
+      : '';
+
+  return `${avisoConsecuencia}Encontré ${results.length} fragmento(s) relevante(s) en la base normativa de A-LexIA.
 
 ═══════════════════════════════════════════════════════
 DOCUMENTOS DISPONIBLES PARA CITAR (whitelist estricta):

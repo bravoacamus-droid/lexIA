@@ -190,7 +190,7 @@ export function obrasComoSimilares(texto: string): ObrasComoSimilares[] {
  * al quitarle la tilde, las posiciones dejarían de valer; en ese caso se
  * deja tal cual.
  */
-function plegarConLongitud(texto: string): string {
+export function plegarConLongitud(texto: string): string {
   let salida = '';
   for (const c of texto) {
     const p = plegar(c);

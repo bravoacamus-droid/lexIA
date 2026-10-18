@@ -28,6 +28,7 @@ import { TOPE_OFERTA } from './motor';
 import { contarUnidades, plano, revisarLocales, revisarUnidades, tablaDeEquipos, tipoDeEquipo } from './equipos';
 import { cargosDeBases, comprobarPersonal, observacionDeCargo } from './personal';
 import { verificarExperiencia } from './experiencia';
+import type { LectorDePaginas } from './lectura-visual';
 
 type Clase = 'equipamiento' | 'personal' | 'infraestructura' | 'experiencia';
 
@@ -323,10 +324,25 @@ const ENCABEZADO: Record<Clase, RegExp> = {
 };
 const ACREDITACION = /Acreditaci[óo]n\s*:/i;
 
+/**
+ * El mismo encabezado escrito en minúsculas, pero solo como título: tras
+ * su literal («B. Experiencia del postor en la especialidad») al comienzo
+ * de una línea. Las Bases de la LP Abreviada N° 005-2026-MDK/OC-2 lo
+ * escriben así, y la verificación de la experiencia no corría (documento
+ * 15 de César). En minúsculas y sin literal es una frase del cuerpo («La
+ * experiencia del postor en la especialidad se acredita…»).
+ */
+function encabezadoComoTitulo(clase: Clase): RegExp {
+  return new RegExp(`(?<=(?:^|\\n)[ \\t]*[A-D](?:\\.\\d+)*\\.?[ \\t]+)(?:${ENCABEZADO[clase].source})`, 'gi');
+}
+
 export function extractoDeBases(textoBases: string, clase: Clase): string {
   // El último encabezado con su «Acreditación» cerca: el índice está al
   // principio, y la tabla de los requisitos de calificación, después.
-  const candidatos = [...textoBases.matchAll(ENCABEZADO[clase])]
+  const encontrados = [...textoBases.matchAll(ENCABEZADO[clase]), ...textoBases.matchAll(encabezadoComoTitulo(clase))].sort(
+    (a, b) => a.index! - b.index!,
+  );
+  const candidatos = encontrados
     .map((m) => textoBases.slice(m.index!, m.index! + 9000))
     .filter((c) => {
       const i = c.search(ACREDITACION);
@@ -337,7 +353,10 @@ export function extractoDeBases(textoBases: string, clase: Clase): string {
   const fin = elegido.search(ACREDITACION);
   // Hasta el final del párrafo de la acreditación, sin entrar en el
   // requisito siguiente («B.3 INFRAESTRUCTURA…», «C. PARTICIPACIÓN…»).
-  const resto = elegido.slice(fin, fin + 900);
+  // 2 500 y no 900: en la LP Abreviada N° 005-2026-MDK/OC-2 tras
+  // «Acreditación:» viene el pie de página con las firmas y el párrafo de la
+  // acreditación empieza en la hoja siguiente.
+  const resto = elegido.slice(fin, fin + 2500);
   const corte = resto.search(/\s(?:[A-D]\.\d(?:\.\d)?\.?\s+[A-ZÁÉÍÓÚÑ]{4}|[A-D]\.\s+[A-ZÁÉÍÓÚÑ]{4})/);
   return elegido.slice(0, fin + (corte > 20 ? corte : resto.length)).trim();
 }
@@ -392,6 +411,8 @@ export async function verificarFicha(args: {
   propios?: string[];
   /** El texto completo de las Bases, para leer el requisito tal como está. */
   textoBases?: string;
+  /** Si la oferta es un escaneo: para mirar la imagen de una página (`lectura-visual.ts`). */
+  lector?: LectorDePaginas;
 }): Promise<FichaRequisito> {
   const extracto = args.textoBases ? extractoDeBases(args.textoBases, args.clase) : '';
   // La experiencia del postor tiene su propia revisión (experiencia.ts).
@@ -402,6 +423,7 @@ export async function verificarFicha(args: {
       extracto,
       textoBases: args.textoBases ?? '',
       nombrePostor: args.nombrePostor,
+      lector: args.lector,
     });
   }
   const { ficha } = args;

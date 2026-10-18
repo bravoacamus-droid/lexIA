@@ -135,6 +135,9 @@ function clausulaAntes(texto: string, hasta: number): { nombre: string; posicion
   return ultima;
 }
 
+const REQUISITO_EN_TIPO_ORACION =
+  /(?<=^|[\s(])([A-H](?:\.\d{1,2}){0,2})\.\s+(?=(?:Capacidad\s+(?:legal|t[ée]cnica|econ[óo]mica)|Experiencia\s+del\s+(?:postor|personal)|Habilitaci[óo]n|Equipamiento\s+estrat[ée]gico|Infraestructura\s+estrat[ée]gica|Calificaciones\s+del\s+personal|Formaci[óo]n\s+acad[ée]mica|Participaci[óo]n\s+en\s+consorcio)\b)/g;
+
 interface Marca {
   literal: string;
   posicion: number;
@@ -159,6 +162,17 @@ function marcas(texto: string, desde: number, hasta: number): Marca[] {
     const previo = tramo.slice(Math.max(0, (m.index ?? 0) - 12), m.index ?? 0);
     if (CITA_DE_LITERAL.test(previo)) continue;
     salida.push({ literal: `${m[1]}.`, posicion: desde + (m.index ?? 0), mayuscula: true });
+  }
+  // «A. Capacidad legal», «B. Experiencia del postor en la especialidad»:
+  // el rótulo de un requisito de calificación escrito en tipo oración, como
+  // en las bases de Kimbiri (documento 15 de César). Solo con el nombre de
+  // un requisito detrás, para no tomar por literal «A. Las bases…».
+  for (const m of tramo.matchAll(REQUISITO_EN_TIPO_ORACION)) {
+    const posicion = desde + (m.index ?? 0);
+    if (salida.some((s) => s.posicion === posicion)) continue;
+    const previo = tramo.slice(Math.max(0, (m.index ?? 0) - 12), m.index ?? 0);
+    if (CITA_DE_LITERAL.test(previo)) continue;
+    salida.push({ literal: `${m[1]}.`, posicion, mayuscula: true });
   }
   for (const m of tramo.matchAll(/(?<=^|\s)([a-z])\)\s+(?=[A-ZÁÉÍÓÚÑ¿“"«])/g)) {
     const previo = tramo.slice(Math.max(0, (m.index ?? 0) - 12), m.index ?? 0);

@@ -37,6 +37,13 @@ import {
   bloqueDelTema,
   type FuentesDelTema,
 } from '@/lib/ai/fuentes-del-tema';
+import {
+  pareceConsultaDeConsecuencia,
+  analizarConsultaDeConsecuencia,
+  buscarFuentesDeLaConsecuencia,
+  fragmentosDeLaConsecuencia,
+  bloqueDeConsecuencia,
+} from '@/lib/ai/consulta-de-consecuencia';
 import { fetchNeighborChunks, mergeNeighbors } from '@/lib/ai/neighbor-chunks';
 import {
   isPanoramicQuery,
@@ -320,15 +327,36 @@ export async function POST(req: Request) {
   // hace falta, en paralelo con la búsqueda por parecido. Si la pregunta
   // nombra un documento por su número, lo que quiere es ese documento.
   // Ver lib/ai/fuentes-del-tema.ts.
+  //
+  // Si la pregunta es por la consecuencia de un defecto de la oferta
+  // («¿no admitir o no otorgar el puntaje?»), las fuentes del tema son las
+  // resoluciones que analizan ese defecto, buscadas por pares de
+  // expresiones (César, documento 15, 17/10/2026; ver
+  // lib/ai/consulta-de-consecuencia.ts). La búsqueda del tema se lanza
+  // igual, en paralelo, por si el modelo dice que no lo es.
+  const leyDelTema = lawFilter?.length === 1 ? lawFilter[0] : null;
+  const consecuenciaPromesa =
+    referencias.length === 0 && pareceConsultaDeConsecuencia(lastUser.content)
+      ? analizarConsultaDeConsecuencia(lastUser.content)
+      : Promise.resolve(null);
+  const temaPromesa = referencias.length === 0 ? temaDeLaPregunta(lastUser.content) : Promise.resolve(null);
   const fuentesDelTemaPromesa: Promise<FuentesDelTema | null> =
     referencias.length > 0
       ? Promise.resolve(null)
-      : temaDeLaPregunta(lastUser.content)
-          .then((tema) =>
-            tema
-              ? buscarFuentesDelTema(supabase, tema, { ley: lawFilter?.length === 1 ? lawFilter[0] : null })
-              : null,
-          )
+      : consecuenciaPromesa
+          .then(async (consecuencia) => {
+            if (consecuencia) {
+              const f = await buscarFuentesDeLaConsecuencia(supabase, consecuencia, { ley: leyDelTema, tope: 6 }).catch(
+                (e: Error) => {
+                  console.error('[chat] fuentes de la consecuencia no se pudieron buscar:', e.message);
+                  return null;
+                },
+              );
+              if (f) return f;
+            }
+            const tema = await temaPromesa;
+            return tema ? buscarFuentesDelTema(supabase, tema, { ley: leyDelTema }) : null;
+          })
           .catch((e: Error) => {
             // No poder buscarlas no es que no existan: queda en el registro.
             console.error('[chat] fuentes del tema no se pudieron buscar:', e.message);
@@ -547,6 +575,16 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
       documentos: documentos.length,
     });
   }
+
+  // La consecuencia de un defecto de la oferta: sus documentos llegan con
+  // las fuentes del tema; aquí, la estructura de la respuesta. Si la
+  // pregunta es además por una exigencia, manda la de criterio.
+  const consecuencia = enumeracion || criterio ? null : await consecuenciaPromesa;
+  if (consecuencia) console.log('[chat] consecuencia', consecuencia);
+  // Por documento, las frases en que el Tribunal dice qué consecuencia
+  // aplicó; se llenan al leer sus fragmentos, más abajo.
+  let decisionesDeConsecuencia = new Map<string, string[]>();
+  let avisoConsecuencia = '';
 
   let sources: ChatSource[] = [];
 
@@ -1025,12 +1063,25 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
           // Los que ya llegan al modelo (lo que el rerank dejó, más lo pedido
           // por su número) no se repiten: la plaza es para documentos nuevos.
           const presentes = new Set(reranked.map((c) => c.document_id));
-          const elegidos = elegirParaElModelo(fuentesDelTema.documentos, criterio ? 4 : 8, presentes);
+          // En la consulta por la consecuencia de un defecto los documentos
+          // ya vienen elegidos, y se leen aunque el parecido haya traído
+          // algún fragmento suyo: hace falta el análisis y la parte
+          // resolutiva, no el fragmento que más se parece a la pregunta.
+          const lectura = fuentesDelTema.lectura;
+          const elegidos = lectura
+            ? lectura.ids
+                .map((id) => fuentesDelTema.documentos.find((d) => d.document_id === id))
+                .filter((d): d is NonNullable<typeof d> => !!d)
+            : elegirParaElModelo(fuentesDelTema.documentos, criterio ? 4 : 8, presentes);
           try {
-            const piezas = await fragmentosParaElModelo(supabase, elegidos, [
-              ...fuentesDelTema.terminos,
-              ...fuentesDelTema.objeto,
-            ]);
+            let piezas: Array<{ id: string; document_id: string; content: string; doc: (typeof elegidos)[number] }>;
+            if (lectura) {
+              const leido = await fragmentosDeLaConsecuencia(supabase, elegidos, lectura);
+              piezas = leido.piezas;
+              decisionesDeConsecuencia = leido.decisiones;
+            } else {
+              piezas = await fragmentosParaElModelo(supabase, elegidos, [...fuentesDelTema.terminos, ...fuentesDelTema.objeto]);
+            }
             const yaEsta = new Set(reranked.map((c) => c.chunk_id));
             for (const p of piezas) {
               if (yaEsta.has(p.id)) continue;
@@ -1368,9 +1419,30 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
       // Por jerarquía la Ley va primero en la lista, pero no es «lo que han
       // resuelto el Tribunal y el OECE»: a esa sección van los casos.
       const casos = leidos.filter((d) => !['ley', 'reglamento', 'bases_estandar', 'directiva', 'lineamiento'].includes(d.tipo));
-      if (leidos.length > 0) avisoTema = bloqueDelTema(fuentesDelTema, leidos, posiciones, !criterio && casos.length >= 2);
+      if (consecuencia && fuentesDelTema.lectura) {
+        // La consulta por la consecuencia lleva su propia lista —con las
+        // frases de la decisión— y no la del tema, que diría lo mismo.
+        avisoConsecuencia = bloqueDeConsecuencia(
+          consecuencia,
+          fuentesDelTema.lectura.ids.flatMap((id) => {
+            const d = fuentesDelTema.documentos.find((x) => x.document_id === id);
+            if (!d) return [];
+            return [
+              {
+                nombre: d.numero && /\d/.test(d.numero) ? d.numero : d.titulo,
+                fecha: d.fecha,
+                fuentes: posiciones.get(id) ?? [],
+                decisiones: decisionesDeConsecuencia.get(id) ?? [],
+              },
+            ];
+          }),
+        );
+      } else if (leidos.length > 0) {
+        avisoTema = bloqueDelTema(fuentesDelTema, leidos, posiciones, !criterio && !consecuencia && casos.length >= 2);
+      }
     }
   }
+  if (consecuencia && !avisoConsecuencia) avisoConsecuencia = bloqueDeConsecuencia(consecuencia);
 
   // 3. Persistir el mensaje de usuario (idempotent: only if último mensaje no es el mismo)
   const { data: existingUserMsg } = await supabase
@@ -1412,6 +1484,7 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
     // como si esos fueran todos los que existen.
     avisoEnumeracion +
     avisoCriterio +
+    avisoConsecuencia +
     avisoTema;
   const trimmedHistory = messages.slice(-MAX_HISTORY);
 
