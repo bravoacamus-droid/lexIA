@@ -36,6 +36,7 @@ import { fastModel } from '@/lib/ai/gemini';
 import { parseJsonLoose } from '@/lib/ai/json-suelto';
 import type { LecturaBases } from './motor';
 import type { ResultadoPostor } from './etapas';
+import type { PerfilProcedimiento } from './procedimiento';
 
 export interface OfertaEconomica {
   monto: number;
@@ -113,13 +114,20 @@ export async function leerOfertaEconomica(texto: string): Promise<OfertaEconomic
 }
 
 const redondear = (n: number) => Math.round(n * 100) / 100;
+const soles = (n: number) => `S/ ${n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 /** ¿Llega el postor a la evaluación económica? Superó admisión y calificación y no quedó fuera. */
-export function accedeAEconomica(p: ResultadoPostor, lectura: LecturaBases): boolean {
+export function accedeAEconomica(p: ResultadoPostor, lectura: LecturaBases, perfil?: PerfilProcedimiento): boolean {
   const cortado = p.etapas.some((e) => !e.omitida && e.resultado === 'no_cumple' && e.etapa !== 'evaluacion');
   if (cortado) return false;
   if (p.rechazo?.rechazada) return false;
-  const minimo = lectura.evaluacionEconomica?.tipo === 'posterior' ? lectura.puntajeTecnicoMinimo : null;
+  // El mínimo técnico rige donde la económica es posterior (art. 74.1 b):
+  // posterior propiamente dicha y limitada. En bienes es simultánea; con
+  // oferta fija no hay evaluación económica.
+  const conMinimo = perfil
+    ? perfil.economica.tipo === 'posterior' || perfil.economica.tipo === 'limitada'
+    : lectura.evaluacionEconomica?.tipo === 'posterior';
+  const minimo = conMinimo ? (perfil?.puntajeTecnicoMinimo ?? lectura.puntajeTecnicoMinimo) : null;
   if (typeof minimo === 'number' && (p.puntajeTecnico ?? 0) < minimo) return false;
   return true;
 }
@@ -130,21 +138,86 @@ export interface EtapasFinales {
   rechazo: Array<{ postor: string; estado: 'por_revisar'; fundamento: string }>;
   negociacion: { postor: string; fundamento: string } | null;
   buenaPro: { postor: string | null; fundamento: string; empate?: string[] };
+  /** El procedimiento que se aplicó (`procedimiento.ts`). Las evaluaciones anteriores no lo tienen. */
+  perfil?: PerfilProcedimiento;
+  /** Ofertas descalificadas en la evaluación económica: fuera del rango, monto distinto del fijo. */
+  descalificados?: Array<{ postor: string; motivo: string }>;
+  /** Bonificaciones: a quién se aplicaron y lo que queda para el comité. */
+  bonificaciones?: Array<{ postor: string; detalle: string; aplicada: boolean }>;
+  /** Si no hay oferta válida, o en comparación de precios menos de dos calificadas (art. 84.1; numeral 98.1). */
+  desierto?: string;
+  /** Cuándo queda consentida la buena pro (art. 82). */
+  consentimiento?: string;
+}
+
+const normalizar = (t?: string) => (t ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z]/g, '');
+
+/**
+ * Las bonificaciones del postor sobre su puntaje total (art. 75.5 y 75.6).
+ * Se suman sobre el total sin bonificar: «5 % sobre el puntaje total
+ * obtenido», «10 % sobre el puntaje total».
+ */
+function bonificar(p: ResultadoPostor, perfil: PerfilProcedimiento): Array<{ detalle: string; aplicada: boolean }> {
+  const s = p.bonificacion;
+  const out: Array<{ detalle: string; aplicada: boolean }> = [];
+  if (!s || typeof p.puntajeTotal !== 'number') return out;
+  const base = p.puntajeTotal;
+  let extra = 0;
+  const aplicadas: string[] = [];
+  if (s.mype) {
+    if (perfil.bonificaciones.mype) {
+      extra += base * 0.05;
+      aplicadas.push('MYPE 5 %');
+      out.push({
+        aplicada: true,
+        detalle:
+          `Solicitó la bonificación del 5 % por ser micro o pequeña empresa: ${redondear(base)} + ${redondear(base * 0.05)} puntos (art. 75.5 del Reglamento). ` +
+          (s.remype ? 'La oferta adjunta la acreditación en el REMYPE; ' : 'La oferta no adjunta la constancia del REMYPE; ') +
+          `el comité verifica la condición en el portal del REMYPE${p.consorcio?.length ? ', y en consorcio la de cada integrante' : ''}, como dicen las Bases.`,
+      });
+    } else {
+      out.push({ aplicada: false, detalle: 'Solicitó la bonificación MYPE, pero las Bases no la prevén para este procedimiento (art. 75.5: solo en la modalidad abreviada): no se aplica.' });
+    }
+  }
+  if (s.provincia) {
+    const misma = s.provinciaDomicilio && s.provinciaEjecucion && normalizar(s.provinciaDomicilio) === normalizar(s.provinciaEjecucion);
+    if (perfil.bonificaciones.provincia && misma) {
+      extra += base * 0.1;
+      aplicadas.push('Provincia 10 %');
+      out.push({ aplicada: true, detalle: `Solicitó la bonificación del 10 %: su domicilio en el RNP está en la provincia de ${s.provinciaDomicilio}, donde se ejecuta la prestación (art. 75.6 del Reglamento).` });
+    } else if (perfil.bonificaciones.provincia) {
+      out.push({
+        aplicada: false,
+        detalle: `Solicitó la bonificación del 10 %${s.provinciaDomicilio ? ` con domicilio en la provincia de ${s.provinciaDomicilio}` : ''}${s.provinciaEjecucion ? `; la prestación se ejecuta en ${s.provinciaEjecucion}` : ''}. El comité verifica en la constancia del RNP si el domicilio está en esa provincia o en una colindante (art. 75.6): no se aplicó automáticamente.`,
+      });
+    } else {
+      out.push({ aplicada: false, detalle: 'Solicitó la bonificación del 10 %, pero las Bases no la prevén (art. 75.6: servicios, consultorías y obras fuera de Lima y Callao, bajo los topes de cuantía): no se aplica.' });
+    }
+  }
+  if (extra > 0) {
+    p.puntajeSinBonificacion = redondear(base);
+    p.puntajeTotal = redondear(base + extra);
+    p.bonificacionesAplicadas = aplicadas;
+  }
+  return out;
 }
 
 /**
  * Puntaje económico, puntaje total, orden de prelación y lo que
- * corresponde en rechazo, negociación y buena pro. Modifica los postores
- * (montos, puntajes, prelación) y devuelve el resumen de las etapas.
+ * corresponde en rechazo, negociación y buena pro, según el procedimiento
+ * de las Bases (`procedimiento.ts`). Modifica los postores (montos,
+ * puntajes, prelación) y devuelve el resumen de las etapas.
  */
 export function etapasFinales(
   postores: ResultadoPostor[],
   ofertas: Map<string, OfertaEconomica | null>,
   lectura: LecturaBases,
+  perfil?: PerfilProcedimiento,
 ): EtapasFinales {
   const eco = lectura.evaluacionEconomica;
-  const pmp = eco?.puntajeMaximo ?? 100;
-  const posterior = eco?.tipo === 'posterior';
+  const tipo = perfil?.economica.tipo ?? (eco?.tipo === 'posterior' ? 'posterior' : 'simultanea');
+  const posterior = tipo === 'posterior' || tipo === 'limitada';
+  const pmp = perfil ? (perfil.economica.puntajeMaximo || eco?.puntajeMaximo || 100) : eco?.puntajeMaximo ?? 100;
   const c1 = eco?.coeficienteTecnico;
   const c2 = eco?.coeficienteEconomico;
   const cuantia = lectura.procedimiento.cuantiaMonto;
@@ -153,75 +226,157 @@ export function etapasFinales(
   // la cuantía y no le dan puntaje (CP SER-SM-6-2026: «Evaluación
   // económica fija al 100% de la cuantía. No se asigna puntaje a la
   // oferta económica»). Entonces el total es el puntaje técnico.
-  const precioFijo = eco?.puntajeMaximo === 0 || /fij[ao]|no se asigna puntaje/i.test(eco?.formula ?? '');
+  const precioFijo = tipo === 'fija' || eco?.puntajeMaximo === 0 || /fij[ao]|no se asigna puntaje/i.test(eco?.formula ?? '');
+  // Solo precio: subasta inversa y comparación de precios (art. 74.3).
+  const soloPrecio = tipo === 'menor_precio' || tipo === 'lances';
 
-  const habilitados = postores.filter((p) => accedeAEconomica(p, lectura));
+  const habilitados = postores.filter((p) => accedeAEconomica(p, lectura, perfil));
   for (const p of postores) {
     p.ofertaEconomica = ofertas.get(p.postor) ?? undefined;
     p.accedeEconomica = habilitados.includes(p);
+    p.descalificadoEconomica = undefined;
+    p.bonificacionesAplicadas = undefined;
+    p.puntajeSinBonificacion = undefined;
   }
-  const conMonto = habilitados.filter((p) => p.ofertaEconomica?.monto);
+
+  // Descalificación en la económica: oferta limitada fuera de rango (art.
+  // 133 a; bases de obras y de consultoría de obra) u oferta fija distinta
+  // de la cuantía (art. 133 b, 134.1). Sin la cuantía no se puede decidir.
+  const descalificados: Array<{ postor: string; motivo: string }> = [];
+  const avisos: string[] = [];
+  if (perfil && (tipo === 'limitada' || tipo === 'fija')) {
+    for (const p of habilitados) {
+      const m = p.ofertaEconomica?.monto;
+      if (!m) continue;
+      if (!cuantia) continue;
+      let motivo = '';
+      if (tipo === 'limitada' && perfil.economica.rango) {
+        const { minimo, maximo } = perfil.economica.rango;
+        if (m < cuantia * minimo - 0.005) motivo = `su oferta (${soles(m)}) es menor al ${Math.round(minimo * 100)} % de la cuantía (${soles(cuantia * minimo)})`;
+        else if (maximo && m > cuantia * maximo + 0.005) motivo = `su oferta (${soles(m)}) supera el ${Math.round(maximo * 100)} % de la cuantía (${soles(cuantia * maximo)})`;
+      } else if (tipo === 'fija' && Math.abs(m - cuantia) > 0.5) {
+        motivo = `su oferta (${soles(m)}) no corresponde al 100 % de la cuantía (${soles(cuantia)}), como exige la oferta económica fija`;
+      }
+      if (motivo) {
+        p.descalificadoEconomica = motivo;
+        p.accedeEconomica = false;
+        descalificados.push({ postor: p.postor, motivo: `Descalificada: ${motivo}.` });
+      }
+    }
+    if (!cuantia) {
+      avisos.push(
+        tipo === 'limitada'
+          ? `La cuantía no consta en las Bases leídas: el comité verifica que cada oferta esté ${perfil.economica.rango?.maximo ? `entre el ${Math.round(perfil.economica.rango.minimo * 100)} % y el ${Math.round(perfil.economica.rango.maximo * 100)} %` : `por encima del ${Math.round((perfil.economica.rango?.minimo ?? 0.9) * 100)} %`} de la cuantía; la que no lo esté se descalifica.`
+          : 'La cuantía no consta en las Bases leídas: el comité verifica que cada oferta corresponda al 100 % de la cuantía; la que no, se descalifica.',
+      );
+    }
+  }
+  const enCompetencia = habilitados.filter((p) => !p.descalificadoEconomica);
+
+  // Comparación de precios: al menos dos ofertas calificadas (numeral 98.1).
+  const minimo = perfil?.minimoCalificadas;
+  const desiertoPorMinimo = typeof minimo === 'number' && enCompetencia.length < minimo;
+
+  const conMonto = enCompetencia.filter((p) => p.ofertaEconomica?.monto);
   const om = conMonto.length > 0 ? Math.min(...conMonto.map((p) => p.ofertaEconomica!.monto)) : null;
 
-  for (const p of habilitados) {
-    if (precioFijo) {
-      p.puntajeEconomico = undefined;
-      p.puntajeTotal = p.puntajeTecnico ?? 0;
-      continue;
-    }
-    const oi = p.ofertaEconomica?.monto;
-    if (!om || !oi) continue;
-    p.puntajeEconomico = redondear((pmp * om) / oi);
-    const pt = p.puntajeTecnico ?? 0;
-    p.puntajeTotal =
-      posterior && c1 && c2 ? redondear(c1 * pt + c2 * p.puntajeEconomico) : redondear(pt + p.puntajeEconomico);
-  }
-
-  // Orden de prelación por puntaje total; empate, por técnico (art. 81 a).
-  const ordenables = habilitados.filter((p) => typeof p.puntajeTotal === 'number');
-  const ordenados = [...ordenables].sort(
-    (a, b) => (b.puntajeTotal ?? 0) - (a.puntajeTotal ?? 0) || (b.puntajeTecnico ?? 0) - (a.puntajeTecnico ?? 0),
-  );
-  if (ordenados.length > 0) {
-    for (const p of postores) p.prelacion = undefined;
-    let posicion = 0;
-    ordenados.forEach((p, i) => {
-      const anterior = ordenados[i - 1];
-      if (!anterior || anterior.puntajeTotal !== p.puntajeTotal || anterior.puntajeTecnico !== p.puntajeTecnico) {
-        posicion = i + 1;
+  if (!desiertoPorMinimo) {
+    for (const p of enCompetencia) {
+      if (precioFijo) {
+        p.puntajeEconomico = undefined;
+        p.puntajeTotal = p.puntajeTecnico ?? 0;
+        continue;
       }
-      p.prelacion = posicion;
-    });
+      if (soloPrecio) {
+        p.puntajeEconomico = undefined;
+        p.puntajeTotal = undefined;
+        continue;
+      }
+      const oi = p.ofertaEconomica?.monto;
+      if (!om || !oi) continue;
+      p.puntajeEconomico = redondear((pmp * om) / oi);
+      const pt = p.puntajeTecnico ?? 0;
+      if (posterior) {
+        // Sin coeficientes no hay promedio ponderado que calcular (art. 75.3):
+        // sumar técnico y económico daría hasta 200 puntos.
+        p.puntajeTotal = c1 && c2 ? redondear(c1 * pt + c2 * p.puntajeEconomico) : undefined;
+      } else {
+        p.puntajeTotal = redondear(pt + p.puntajeEconomico);
+      }
+    }
+  }
+  if (posterior && !precioFijo && !soloPrecio && !(c1 && c2)) {
+    avisos.push('Las Bases leídas no traen los coeficientes C1 y C2: el comité calcula el puntaje total con los de sus Bases (art. 75.3).');
   }
 
-  const metodo = precioFijo
-    ? `Las Bases fijan la oferta económica${eco?.formula ? ` («${eco.formula}»)` : ''}: no se asigna puntaje económico y el puntaje total es el técnico.`
-    : om
-    ? `Puntaje económico = ${pmp} × ${om.toLocaleString('es-PE')} (menor oferta) / oferta del postor` +
-      (posterior && c1 && c2
-        ? `; puntaje total = ${c1} × técnico + ${c2} × económico (art. 75.3 del Reglamento).`
-        : '; puntaje total = técnico + económico.') +
-      (eco?.formula ? ` Fórmula de las Bases: ${eco.formula}.` : '')
-    : 'No se pudo leer el monto de las ofertas económicas: la evaluación económica queda a cargo del comité.';
+  // Bonificaciones, sobre el puntaje total (art. 75.5 y 75.6).
+  const bonificaciones: NonNullable<EtapasFinales['bonificaciones']> = [];
+  if (perfil && !soloPrecio && !desiertoPorMinimo) {
+    for (const p of enCompetencia) for (const b of bonificar(p, perfil)) bonificaciones.push({ postor: p.postor, ...b });
+  }
 
-  // Rechazo (art. 132.5): ofertas sustancialmente por debajo de la
-  // cuantía. El Reglamento no fija un umbral; se señalan las que quedan
-  // por debajo del 90 % para que el comité decida si pide el detalle.
-  const rechazo = cuantia && !precioFijo
-    ? conMonto
-        .filter((p) => p.ofertaEconomica!.monto < cuantia * 0.9)
-        .map((p) => ({
-          postor: p.postor,
-          estado: 'por_revisar' as const,
-          fundamento: `Su oferta (${p.ofertaEconomica!.monto.toLocaleString('es-PE')}) está ${Math.round(
-            (1 - p.ofertaEconomica!.monto / cuantia) * 100,
-          )} % por debajo de la cuantía (${cuantia.toLocaleString('es-PE')}). El comité puede pedirle el detalle de la composición de su oferta, con un plazo mínimo de dos días hábiles, y rechazarla solo si hay razones objetivas de un probable incumplimiento (art. 132.5 y 132.6 del Reglamento).`,
-        }))
-    : [];
+  // Orden de prelación. Con puntaje: total; empate, técnico (art. 81 a) y
+  // luego la condición MYPE (art. 81 c). Solo precio: menor monto.
+  const esMype = (p: ResultadoPostor) => !!(p.bonificacion?.remype || p.bonificacion?.mype);
+  const ordenables = desiertoPorMinimo
+    ? []
+    : soloPrecio
+      ? enCompetencia.filter((p) => p.ofertaEconomica?.monto)
+      : enCompetencia.filter((p) => typeof p.puntajeTotal === 'number');
+  const comparar = (a: ResultadoPostor, b: ResultadoPostor) =>
+    soloPrecio
+      ? a.ofertaEconomica!.monto - b.ofertaEconomica!.monto || Number(esMype(b)) - Number(esMype(a))
+      : (b.puntajeTotal ?? 0) - (a.puntajeTotal ?? 0) ||
+        (b.puntajeTecnico ?? 0) - (a.puntajeTecnico ?? 0) ||
+        Number(esMype(b)) - Number(esMype(a));
+  const ordenados = [...ordenables].sort(comparar);
+  for (const p of postores) p.prelacion = undefined;
+  let posicion = 0;
+  ordenados.forEach((p, i) => {
+    const anterior = ordenados[i - 1];
+    if (!anterior || comparar(anterior, p) !== 0) posicion = i + 1;
+    p.prelacion = posicion;
+  });
+
+  const metodo = [
+    soloPrecio
+      ? 'El único factor es el precio: el orden de prelación va del menor al mayor monto ofertado (art. 74.3 del Reglamento).'
+      : precioFijo
+        ? `La oferta económica es fija${eco?.formula ? ` («${eco.formula}»)` : ''}: no se asigna puntaje económico y el puntaje total es el técnico.`
+        : om
+          ? `Puntaje económico = ${pmp} × ${om.toLocaleString('es-PE')} (menor oferta) / oferta del postor` +
+            (posterior
+              ? c1 && c2
+                ? `; puntaje total = ${c1} × técnico + ${c2} × económico (art. 75.3 del Reglamento).`
+                : '.'
+              : '; puntaje total = técnico + económico (art. 75.1 del Reglamento).') +
+            (eco?.formula ? ` Fórmula de las Bases: ${eco.formula}.` : '')
+          : 'No se pudo leer el monto de las ofertas económicas: la evaluación económica queda a cargo del comité.',
+    ...avisos,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  // Rechazo (art. 132.5): solo bienes y servicios, no subasta inversa
+  // (132.7). El Reglamento no fija un umbral; se señalan las que quedan por
+  // debajo del 90 % para que el comité decida si pide el detalle.
+  const aplicaRechazo = perfil ? perfil.rechazo : true;
+  const rechazo =
+    aplicaRechazo && cuantia && !precioFijo
+      ? conMonto
+          .filter((p) => p.ofertaEconomica!.monto < cuantia * 0.9)
+          .map((p) => ({
+            postor: p.postor,
+            estado: 'por_revisar' as const,
+            fundamento: `Su oferta (${p.ofertaEconomica!.monto.toLocaleString('es-PE')}) está ${Math.round(
+              (1 - p.ofertaEconomica!.monto / cuantia) * 100,
+            )} % por debajo de la cuantía (${cuantia.toLocaleString('es-PE')}). El comité puede pedirle el detalle de la composición de su oferta, con un plazo mínimo de dos días hábiles, y rechazarla solo si hay razones objetivas de un probable incumplimiento (art. 132.5 y 132.6 del Reglamento).`,
+          }))
+      : [];
 
   const primero = ordenados[0];
   const negociacion =
-    primero && cuantia && !precioFijo && primero.ofertaEconomica && primero.ofertaEconomica.monto > cuantia
+    primero && cuantia && !precioFijo && tipo !== 'lances' && primero.ofertaEconomica && primero.ofertaEconomica.monto > cuantia
       ? {
           postor: primero.postor,
           fundamento: `La oferta del mejor puntaje total (${primero.ofertaEconomica.monto.toLocaleString(
@@ -232,32 +387,50 @@ export function etapasFinales(
         }
       : null;
 
+  const desierto = desiertoPorMinimo
+    ? `Solo ${enCompetencia.length === 1 ? 'una oferta cumple' : `${enCompetencia.length} ofertas cumplen`} los requisitos de calificación y la evaluación económica requiere al menos ${minimo}: el procedimiento se declara desierto (bases estándar, numeral 98.1; art. 84.1 del Reglamento).`
+    : enCompetencia.length === 0
+      ? 'No hay ninguna oferta válida: el procedimiento se declara desierto (art. 84.1 del Reglamento). Los evaluadores informan las causas a la DEC (art. 84.3).'
+      : undefined;
+
   const empatados = primero ? ordenados.filter((p) => p.prelacion === 1) : [];
-  const buenaPro = !primero
-    ? {
-        postor: null,
-        fundamento:
-          habilitados.length === 0
-            ? 'Ninguna oferta superó la admisión y la calificación: no hay a quién otorgar la buena pro.'
-            : 'Falta la oferta económica de los postores habilitados: el comité determina el puntaje total y el orden de prelación.',
-      }
-    : empatados.length > 1
+  const buenaPro = desierto
+    ? { postor: null, fundamento: desierto }
+    : !primero
       ? {
           postor: null,
-          empate: empatados.map((p) => p.postor),
-          fundamento: `Empate en puntaje total y técnico entre ${empatados
-            .map((p) => p.postor)
-            .join(' y ')}: se resuelve con los criterios del artículo 81 del Reglamento (micro y pequeña empresa con personas con discapacidad, micro y pequeña empresa, sorteo).`,
-        }
-      : {
-          postor: primero.postor,
           fundamento:
-            `Primer lugar del orden de prelación con ${primero.puntajeTotal} puntos totales` +
-            (negociacion ? ', sujeto a la ampliación de la certificación o a la negociación (art. 132).' : '.') +
-            (pendientesDe(primero) ? ' Antes de otorgarla, el postor debe subsanar lo observado.' : ''),
-        };
+            habilitados.length === 0
+              ? 'Ninguna oferta superó la admisión y la calificación: no hay a quién otorgar la buena pro.'
+              : 'Falta la oferta económica de los postores habilitados: el comité determina el puntaje total y el orden de prelación.',
+        }
+      : empatados.length > 1
+        ? {
+            postor: null,
+            empate: empatados.map((p) => p.postor),
+            fundamento: `Empate entre ${empatados.map((p) => p.postor).join(' y ')}${soloPrecio ? ' en el monto ofertado' : ' en puntaje total y técnico'}, sin que el puntaje técnico ni la condición de MYPE los distingan: se resuelve con los criterios restantes del artículo 81 del Reglamento — MYPE integrada por personas con discapacidad y, en último término, sorteo.`,
+          }
+        : {
+            postor: primero.postor,
+            fundamento:
+              (soloPrecio
+                ? `Primer lugar del orden de prelación con la oferta de menor monto (${soles(primero.ofertaEconomica!.monto)})`
+                : `Primer lugar del orden de prelación con ${primero.puntajeTotal} puntos totales${primero.bonificacionesAplicadas?.length ? ` (incluida la bonificación ${primero.bonificacionesAplicadas.join(' y ')})` : ''}`) +
+              (ordenados[1] && comparar(primero, ordenados[1]) !== 0 && ordenados[1].puntajeTotal === primero.puntajeTotal
+                ? '; el empate en puntaje total se resolvió por el mejor puntaje técnico o la condición de MYPE (art. 81 del Reglamento)'
+                : '') +
+              (negociacion ? ', sujeto a la ampliación de la certificación o a la negociación (art. 132).' : '.') +
+              (pendientesDe(primero) ? ' Antes de otorgarla, el postor debe subsanar lo observado.' : ''),
+          };
 
-  return { metodo, rechazo, negociacion, buenaPro };
+  const presentadas = postores.length;
+  const consentimiento = desierto
+    ? undefined
+    : presentadas >= 2
+      ? 'Se presentaron dos o más ofertas: el consentimiento de la buena pro se produce y registra en la Pladicop al día siguiente de vencido el plazo para interponer recurso de apelación sin que los postores lo hayan ejercido (art. 82.1 del Reglamento).'
+      : 'Se presentó una sola oferta: el consentimiento de la buena pro se produce el mismo día de la notificación de su otorgamiento y se registra en la Pladicop al día siguiente (art. 82.2 del Reglamento).';
+
+  return { metodo, rechazo, negociacion, buenaPro, perfil, descalificados, bonificaciones, desierto, consentimiento };
 }
 
 function pendientesDe(p: ResultadoPostor): boolean {

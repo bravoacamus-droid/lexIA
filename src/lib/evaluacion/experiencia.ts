@@ -66,11 +66,6 @@ interface Contratacion {
   sustentoModificaciones: string;
   /** Lo que se descartó al revisarla: un cierre ilegible, pagos del SIAF. */
   notas: string[];
-  /**
-   * Solo se descartó porque sus pagos se acreditan con el SIAF: con ellos
-   * se computaría. Va al comité, no se descalifica por eso (ver abajo).
-   */
-  soloPorSiaf: boolean;
 }
 
 /**
@@ -119,14 +114,42 @@ function medioValido(medio: unknown, aceptaSiaf: boolean): boolean {
   return MEDIOS_DEL_SISTEMA_FINANCIERO.has(m) || (aceptaSiaf && m === 'siaf');
 }
 
-const LEGIBLE = `Eres el control de calidad de un evaluador de ofertas. Te muestran la IMAGEN de los documentos de cierre (conformidad, constancia de prestación o de cumplimiento, acta) de una contratación que un postor presenta como experiencia. La transcripción automática de un escaneo borroso puede «leer» cifras que en la imagen no se distinguen.
-Mira la imagen y lista CADA documento de cierre (cada conformidad, constancia o acta; uno por entrega o por pago), con:
-· "pagina": la página donde está.
-· "legible": SOLO sobre si se puede leer: true si se lee con certeza quién lo emite, a favor de quién, qué prestación y el monto; false únicamente si el escaneo no deja distinguirlos (borroso, cifras empastadas). Que el documento no diga un monto no lo hace ilegible.
-· "montoConforme": el monto de la prestación EJECUTADA o CONFORME que acredita ESE documento, sin separador de miles, solo si se lee con certeza; null si no lo dice. Si el documento certifica que la prestación de una orden o contrato se cumplió POR COMPLETO y nombra su monto («monto contractual S/ 12,995.00»), ese es el monto conforme. Si es la conformidad de UNA entrega de un contrato mayor, es el monto de esa entrega, no el total del contrato.
-· "nota": qué no se lee, si algo.
-Las órdenes de compra o de servicio, las facturas, las notas de pago y los comprobantes del SIAF NO son documentos de cierre: no los listes (un recuadro «conformidad» vacío al pie de una orden no es una conformidad ilegible).
-Devuelve SOLO JSON: {"documentos": [{"pagina": 0, "legible": true, "montoConforme": null, "nota": ""}]}`;
+/**
+ * El criterio es el de César (17/10/2026), sobre las conformidades de EDDU
+ * CONTRATISTAS: «no solo es ver el monto de la conformidad, adicional a ello
+ * se tiene que ver el contenido y dar fe del contenido integral y que se
+ * pueda desprender fehacientemente y de manera indubitable datos de quien
+ * emite la conformidad, el cargo, si realmente hace referencia del contrato
+ * de donde proviene la conformidad, si la conformidad corresponde a una
+ * conformidad parcial o total y entre otros aspectos».
+ */
+const LEGIBLE = `Lees la IMAGEN de los documentos de cierre (conformidad, constancia de prestación o de cumplimiento, acta) de una contratación que un postor presenta como experiencia. La transcripción automática de un escaneo puede «leer» cifras que en la imagen no se distinguen.
+Lista CADA documento de cierre (cada conformidad, constancia o acta; uno por entrega o por pago), con:
+· "pagina": la página de la oferta donde está.
+· "montoConforme": el monto de la prestación EJECUTADA o CONFORME que acredita ESE documento, sin separador de miles, solo si se lee en la imagen; null si no lo dice o no se distingue. Si el documento certifica que la prestación de una orden o contrato se cumplió POR COMPLETO y nombra su monto («monto contractual S/ 12,995.00»), ese es el monto conforme. Si es la conformidad de UNA entrega de un contrato mayor, es el monto de esa entrega, no el total del contrato.
+Las órdenes de compra o de servicio, las facturas, las notas de pago y los comprobantes del SIAF NO son documentos de cierre: no los listes.
+Devuelve SOLO JSON: {"documentos": [{"pagina": 0, "montoConforme": null}]}`;
+
+/**
+ * La calidad de imagen de UNA página de cierre, en una consulta aparte.
+ *
+ * Es lo que decide si se puede dar fe de la conformidad. César (17/10/2026),
+ * sobre las de EDDU CONTRATISTAS: «no solo es ver el monto […] se tiene que
+ * ver el contenido y dar fe del contenido integral y que se pueda
+ * desprender fehacientemente y de manera indubitable datos de quien emite
+ * la conformidad, el cargo, si realmente hace referencia del contrato […],
+ * si la conformidad corresponde a una conformidad parcial o total».
+ * Medido el mismo día: preguntado si se «lee», el modelo descifra esas
+ * conformidades y dice que sí; preguntado por la calidad de cada página por
+ * separado, califica «deficientes» las tres (folios 42, 37 y 32) y
+ * «nítidas» las de POZO HCJ y AGUILAR. Juntas en una consulta, solo marcaba
+ * una: por eso va página por página.
+ */
+const CALIDAD = `Evalúas la CALIDAD DE IMAGEN de una página escaneada que es un documento de conformidad o constancia, para saber si un comité puede dar fe de su contenido íntegro. No importa si logras descifrarlo con esfuerzo: importa si un evaluador puede leerlo sin dudas.
+"calidad": "nitida" (texto impreso limpio; cada carácter bien formado, incluidos tablas, cifras, sellos y firmas con su nombre y cargo), "aceptable" (algún borrón menor que no afecta ningún dato), "deficiente" (fotocopia borrosa, desvanecida o empastada; cifras, nombres, cargos o el número del contrato se adivinan o se deducen en lugar de leerse).
+Devuelve SOLO JSON: {"calidad": "nitida|aceptable|deficiente", "motivo": ""}`;
+
+
 
 /**
  * Las páginas que son documentos de cierre: una conformidad, constancia o
@@ -371,46 +394,57 @@ ${suyas.join('\n').slice(0, 120_000)}`,
             ),
           ].slice(0, 8);
           if (cierre > 0 && args.lector && paginasCierre.length) {
-            const v = await preguntarALasPaginas({
-              lector: args.lector,
-              paginas: paginasCierre,
-              sistema: LEGIBLE,
-              pregunta: `Contratación ${String(c.n ?? '')}: ${String(c.objeto ?? '').slice(0, 200)} — cliente ${String(c.cliente ?? '')}.`,
-              nombre: args.nombrePostor,
-              maxTokens: 1500,
-            });
-            const documentos = Array.isArray(v?.documentos) ? (v!.documentos as Array<Record<string, unknown>>) : null;
-            if (documentos && documentos.length) {
-              // La suma la hace el código, y solo con lo que se lee.
-              // Una entrega suele tener dos documentos con el mismo monto —el
-              // informe del residente y la conformidad del subgerente (EDDU:
-              // 283 774,20 en las páginas 48 y 49)—: se cuenta una vez.
-              const legibles = documentos
-                .filter((x) => x.legible !== false && Number(x.montoConforme) > 0)
-                .filter((x, i, todos) => todos.findIndex((y) => Math.abs(Number(y.montoConforme) - Number(x.montoConforme)) <= 1) === i);
-              const ilegibles = documentos.filter((x) => x.legible === false);
-              const leido = Math.round(legibles.reduce((s, x) => s + Number(x.montoConforme), 0) * 100) / 100;
-              const notas2: string[] = [];
-              if (ilegibles.length) {
-                notas2.push(
-                  `${ilegibles.length === 1 ? 'la conformidad de la página' : 'las conformidades de las páginas'} ${ilegibles.map((x) => Number(x.pagina) || '?').join(', ')} no se ${ilegibles.length === 1 ? 'lee' : 'leen'} con certeza${ilegibles.some((x) => x.nota) ? ` (${ilegibles.map((x) => String(x.nota ?? '').trim()).filter(Boolean).join('; ')})` : ''}; un documento ilegible no acredita la prestación ni su monto`,
-                );
-              }
-              // Si la imagen no dio ningún monto y nada es ilegible, no hay
-              // con qué corregir la lectura: queda la del texto.
-              // La imagen corrige hacia abajo —un documento ilegible, una
-              // cifra que la transcripción inventó—, nunca hacia arriba: lo
-              // que suma de más suele ser de otra contratación.
-              if ((legibles.length > 0 || ilegibles.length > 0) && leido < cierre - 1) {
-                notas2.push(
-                  leido > 0
-                    ? `con las conformidades legibles (${legibles.map((x) => `página ${Number(x.pagina) || '?'}: ${soles(Number(x.montoConforme))}`).join('; ')}) consta ${soles(leido)}, no ${soles(cierre)}`
-                    : 'ninguna conformidad se lee con certeza',
-                );
-                cierre = leido;
-              }
-              notaCierre = notas2.join('; ');
+            const orden = [...paginasCierre].sort((x, y) => x - y);
+            // La calidad, página por página; los montos, en una consulta.
+            const [calidades, v] = await Promise.all([
+              Promise.all(
+                orden.map(async (n) => {
+                  const q = await preguntarALasPaginas({ lector: args.lector, paginas: [n], sistema: CALIDAD, pregunta: 'Califica la calidad de imagen de esta página.', nombre: args.nombrePostor, maxTokens: 300 });
+                  return { pagina: n, deficiente: String(q?.calidad ?? '').toLowerCase() === 'deficiente', motivo: String(q?.motivo ?? '').trim() };
+                }),
+              ),
+              preguntarALasPaginas({
+                lector: args.lector,
+                paginas: orden,
+                sistema: LEGIBLE,
+                pregunta: `Contratación ${String(c.n ?? '')}: ${String(c.objeto ?? '').slice(0, 200)} — cliente ${String(c.cliente ?? '')}.`,
+                nombre: args.nombrePostor,
+                maxTokens: 1500,
+              }),
+            ]);
+            const deficientes = calidades.filter((q) => q.deficiente);
+            // El modelo a veces cita la hoja del PDF («página 7») y no la de la oferta.
+            const paginaDe = (x: Record<string, unknown>) => {
+              const n = Number(x.pagina);
+              return orden.includes(n) ? n : n >= 1 && n <= orden.length ? orden[n - 1] : n;
+            };
+            const documentos = (Array.isArray(v?.documentos) ? (v!.documentos as Array<Record<string, unknown>>) : []).map((x) => ({
+              pagina: paginaDe(x),
+              montoConforme: Number(x.montoConforme) || 0,
+            }));
+            // Una entrega suele tener dos documentos con el mismo monto —el
+            // informe del residente y la conformidad del subgerente (EDDU:
+            // 283 774,20 en las páginas 48 y 49)—: se cuenta una vez.
+            const legibles = documentos
+              .filter((x) => x.montoConforme > 0 && !deficientes.some((q) => q.pagina === x.pagina))
+              .filter((x, i, todos) => todos.findIndex((y) => Math.abs(y.montoConforme - x.montoConforme) <= 1) === i);
+            const leido = Math.round(legibles.reduce((s2, x) => s2 + x.montoConforme, 0) * 100) / 100;
+            const notas2: string[] = [];
+            if (deficientes.length) {
+              notas2.push(
+                `${deficientes.length === 1 ? 'la conformidad de la página' : 'las conformidades de las páginas'} ${deficientes.map((q) => q.pagina).join(', ')} ${deficientes.length === 1 ? 'es una copia' : 'son copias'} de calidad deficiente (${deficientes.map((q) => q.motivo).filter(Boolean).join('; ').slice(0, 400)}): no permite${deficientes.length === 1 ? '' : 'n'} dar fe de quién la emite, su cargo, el contrato al que se refiere, si es parcial o total ni su monto, y no acredita${deficientes.length === 1 ? '' : 'n'} la prestación`,
+              );
             }
+            // Solo baja: si hubo documentos que leer o páginas deficientes.
+            if ((documentos.length > 0 || deficientes.length > 0) && leido < cierre - 1) {
+              notas2.push(
+                leido > 0
+                  ? `con las conformidades que sí se leen (${legibles.map((x) => `página ${x.pagina}: ${soles(x.montoConforme)}`).join('; ')}) consta ${soles(leido)}, no ${soles(cierre)}`
+                  : 'ninguna conformidad se puede leer con certeza',
+              );
+              cierre = leido;
+            }
+            notaCierre = notas2.join('; ');
           }
           // Con muchos comprobantes el modelo lista solo algunos; su total
           // suele ser más completo. Se toma lo mayor: lo computable queda
@@ -445,7 +479,6 @@ ${suyas.join('\n').slice(0, 120_000)}`,
             tieneModificaciones: r.tieneModificaciones === true,
             sustentoModificaciones: String(r.sustentoModificaciones ?? '').trim(),
             notas,
-            soloPorSiaf: consta === 0 && !notaCierre && noValidos.some((x) => String(x.medio) === 'siaf'),
           };
         } catch {
           return null;
@@ -492,12 +525,11 @@ ${suyas.join('\n').slice(0, 120_000)}`,
       );
       // Si se descartó por algo comprobado —un cierre ilegible, pagos solo
       // con el SIAF—, no es que no se hallara: no va al comité por eso.
-      // El SIAF: César (documento 15) no lo admite, porque no lo emite una
-      // entidad del sistema financiero; pero con ese mismo criterio el
-      // Consorcio Mega —adjudicatario del CP SER-SM-6-2026, que él validó y
-      // el Tribunal confirmó— no alcanzaría el monto. Hasta que César lo
-      // confirme, una contratación que solo cae por eso va al comité.
-      if (c.notas.length === 0 || c.soloPorSiaf) {
+      // El SIAF tampoco va al comité: César lo confirmó el 17/10/2026,
+      // «aplicar siempre, dado que el reporte SIAF no proviene o no es
+      // emitido de una entidad financiera», aun sabiendo que así el
+      // Consorcio Mega (CP SER-SM-6-2026) no alcanza el monto.
+      if (c.notas.length === 0) {
         sinMontoHallado += (c.montoDeclarado * 1) || 0;
         porRevisar.push(nombre);
       }
@@ -541,10 +573,7 @@ ${suyas.join('\n').slice(0, 120_000)}`,
     if (resultado === 'no_cumple' && porRevisar.length > 0 && computable + sinMontoHallado >= exigido) {
       resultado = 'revision_humana';
       observaciones.push(
-        `Sin esas contrataciones se acreditan ${fmt(computable)}; con lo que el postor declara en ellas se alcanzaría lo exigido. El comité debe verificar sus documentos de pago o de cierre: ${porRevisar.join('; ')}.` +
-          (lista.some((c) => c.soloPorSiaf)
-            ? ' Donde el pago solo consta en el comprobante del SIAF, el comité debe decidir si lo admite: las Bases piden un documento emitido por una entidad del sistema financiero (o la cancelación en el comprobante, o la retención de la SUNAT), y el SIAF es el registro de la Entidad, no del banco.'
-            : ''),
+        `Sin esas contrataciones se acreditan ${fmt(computable)}; con lo que el postor declara en ellas se alcanzaría lo exigido. El comité debe verificar sus documentos de pago o de cierre: ${porRevisar.join('; ')}.`,
       );
     }
     conclusion = `Conclusión: ${resultado === 'cumple' ? 'cumple' : resultado === 'revision_humana' ? 'queda para el comité' : 'NO CUMPLE'} — monto computable ${fmt(computable)} frente a ${fmt(exigido)} exigidos${esMype && mype ? ' (monto para MYPE)' : ''}.`;

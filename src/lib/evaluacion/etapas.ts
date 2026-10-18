@@ -176,6 +176,26 @@ export interface ResultadoPostor {
   puntajeTotal?: number;
   /** Decisión de rechazo de la oferta económica en la segunda evaluación (art. 132.5). */
   rechazo?: { rechazada: boolean; fundamento: string };
+  /** Lo que el postor solicita y acredita para las bonificaciones (`bonificaciones.ts`). */
+  bonificacion?: SolicitudesDeBonificacion;
+  /** El puntaje total antes de las bonificaciones. */
+  puntajeSinBonificacion?: number;
+  /** Bonificaciones aplicadas, para el acta: «MYPE 5 %». */
+  bonificacionesAplicadas?: string[];
+  /** Descalificación en la evaluación económica: fuera del rango, monto distinto de la oferta fija. */
+  descalificadoEconomica?: string;
+}
+
+export interface SolicitudesDeBonificacion {
+  /** Presentó la solicitud del 5 % por ser micro o pequeña empresa. */
+  mype: boolean;
+  /** La oferta trae la constancia del REMYPE o declara la condición en el Anexo N° 1. */
+  remype: boolean;
+  /** Presentó la solicitud del 10 % por domicilio en la provincia o colindante. */
+  provincia: boolean;
+  /** Provincia de su domicilio según la constancia del RNP y la de ejecución, si se leyeron. */
+  provinciaDomicilio?: string;
+  provinciaEjecucion?: string;
 }
 
 /**

@@ -439,13 +439,22 @@ export function ResultadoEtapasView({
                     {resultado.finales && (
                       <>
                         <td className="px-4 py-3 text-right tabular-nums text-slate-700">
-                          {p.ofertaEconomica && p.accedeEconomica !== false
-                            ? `S/ ${p.ofertaEconomica.monto.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`
-                            : '—'}
+                          {p.descalificadoEconomica ? (
+                            <span className="text-red-700" title={p.descalificadoEconomica}>Descalificada</span>
+                          ) : p.ofertaEconomica && p.accedeEconomica !== false ? (
+                            `S/ ${p.ofertaEconomica.monto.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`
+                          ) : (
+                            '—'
+                          )}
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums text-slate-700">{p.puntajeEconomico ?? '—'}</td>
                         <td className="px-4 py-3 text-right tabular-nums font-semibold text-slate-900">
                           {p.puntajeTotal ?? '—'}
+                          {p.bonificacionesAplicadas?.length ? (
+                            <span className="block text-[11px] font-normal text-emerald-700">
+                              incluye {p.bonificacionesAplicadas.join(' y ')}
+                            </span>
+                          ) : null}
                         </td>
                       </>
                     )}
@@ -553,14 +562,30 @@ function Integrantes({ postor }: { postor: ResultadoPostor }) {
  * que corresponde —o no— en rechazo, negociación y buena pro.
  */
 function EtapasSiguientes({ finales }: { finales: EtapasFinales }) {
+  const perfil = finales.perfil;
   const filas: Array<{ etapa: string; texto: string; aviso?: boolean }> = [
-    { etapa: '4. Evaluación económica', texto: finales.metodo },
+    ...(perfil
+      ? [
+          {
+            etapa: 'Procedimiento',
+            texto: `${perfil.nombre}: ${perfil.secuencia.join(' → ')}.${perfil.avisos.length ? ` ${perfil.avisos.join(' ')}` : ''}`,
+            aviso: perfil.avisos.length > 0,
+          },
+        ]
+      : []),
+    {
+      etapa: '4. Evaluación económica',
+      texto: [finales.metodo, ...(finales.descalificados ?? []).map((d) => `${d.postor}: ${d.motivo}`)].join(' '),
+      aviso: (finales.descalificados ?? []).length > 0,
+    },
     {
       etapa: '5. Rechazo de oferta',
       texto:
-        finales.rechazo.length === 0
-          ? 'No corresponde: ninguna oferta quedó sustancialmente por debajo de la cuantía.'
-          : finales.rechazo.map((r) => `${r.postor}: ${r.fundamento}`).join(' '),
+        perfil && !perfil.rechazo
+          ? 'No aplica en este procedimiento (art. 132.5 del Reglamento: bienes y servicios; no en obras con rango ni en subasta inversa).'
+          : finales.rechazo.length === 0
+            ? 'No corresponde: ninguna oferta quedó sustancialmente por debajo de la cuantía.'
+            : finales.rechazo.map((r) => `${r.postor}: ${r.fundamento}`).join(' '),
       aviso: finales.rechazo.length > 0,
     },
     {
@@ -570,9 +595,18 @@ function EtapasSiguientes({ finales }: { finales: EtapasFinales }) {
         : 'No corresponde: la oferta del mejor puntaje total no supera la cuantía.',
       aviso: !!finales.negociacion,
     },
+    ...((finales.bonificaciones ?? []).length
+      ? [
+          {
+            etapa: 'Bonificaciones',
+            texto: (finales.bonificaciones ?? []).map((b) => `${b.postor}: ${b.detalle}`).join(' '),
+            aviso: (finales.bonificaciones ?? []).some((b) => !b.aplicada),
+          },
+        ]
+      : []),
     {
       etapa: '7. Otorgamiento de la buena pro',
-      texto: `${finales.buenaPro.postor ? `${finales.buenaPro.postor}. ` : ''}${finales.buenaPro.fundamento}`,
+      texto: `${finales.buenaPro.postor ? `${finales.buenaPro.postor}. ` : ''}${finales.buenaPro.fundamento}${finales.consentimiento ? ` ${finales.consentimiento}` : ''}`,
     },
   ];
   return (

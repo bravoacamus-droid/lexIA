@@ -109,6 +109,14 @@ export interface DisponibilidadDelBien {
   literal: string;
   /** Las demás oraciones del mismo requisito que piden acreditarla. */
   acreditacion: string[];
+  /**
+   * Las que se conservan: la que permite acreditar la habilitación con la
+   * de un TERCERO —el titular de la cantera— y el vínculo con él. César
+   * (17/10/2026), sobre Kimbiri: «eso se mantendría a fin de dar pluralidad
+   * de postores»; suprimirla dejaría fuera a quien compra el material a un
+   * titular autorizado.
+   */
+  seConserva: string[];
   /** Dónde termina la última de esas oraciones (o la frase): el tramo entero de la exigencia. */
   hasta: number;
   /**
@@ -337,7 +345,8 @@ export function disponibilidadDelBien(texto: string): DisponibilidadDelBien[] {
     const clave = `${bloque.donde}|${numeral}|${literal}|${requisito}`;
     const previa = salida.find((s) => `${s.donde}|${s.numeral}|${s.literal}|${s.requisito}` === clave);
     if (previa) {
-      previa.acreditacion.push(frase);
+      if (TERCERO.test(frase)) previa.seConserva.push(frase);
+      else previa.acreditacion.push(frase);
       previa.hasta = Math.max(previa.hasta, b);
       continue;
     }
@@ -351,12 +360,16 @@ export function disponibilidadDelBien(texto: string): DisponibilidadDelBien[] {
       numeral,
       literal,
       acreditacion: [],
+      seConserva: [],
       hasta: b,
       propuesta: sinLaExigencia(frase, marca.pos - a),
     });
   }
   return salida;
 }
+
+/** La oración que admite la habilitación de un tercero y el vínculo con él. */
+const TERCERO = /tercer|v[ií]nculo|titular\s+u\s+operador|a\s+nombre\s+de\s+un/i;
 
 /**
  * Lo que, dicho por el modelo sobre el mismo tramo, ya cubre el control:
@@ -453,6 +466,11 @@ export function analisisDeDisponibilidad(
       'La habilitación que exige la normativa sectorial —aquí, la autorización vigente de la cantera o fuente de donde provendrá el material— sí puede pedirse como capacidad legal; lo que no corresponde es la disponibilidad del bien ni sus medios de acreditación.',
     );
   }
+  if (d.seConserva.length) {
+    partes.push(
+      `Se conserva la posibilidad de acreditar la habilitación mediante la de un tercero —el titular de la cantera— y el vínculo con él (${d.seConserva.map(cita).join('; ')}): permite participar a quien no es titular de la autorización y favorece la pluralidad de postores.`,
+    );
+  }
   const p220 = precedentes.some((p) => /220-2026/.test(p.numero));
   const p505 = precedentes.some((p) => /505-2026/.test(p.numero));
   if (p220 || p505) {
@@ -481,7 +499,8 @@ export function solicitudDeDisponibilidad(d: DisponibilidadDelBien): string {
       : 'de los documentos para la admisión de la oferta';
   return (
     `Se solicita suprimir ${de} la exigencia de acreditar ${loExigido(d)}${d.acreditacion.length ? ' y los documentos previstos para acreditarla' : ''}, por no corresponder a ninguno de los tipos de requisitos de calificación del numeral 72.3 del artículo 72 del Reglamento ni a lo que permiten las bases estándar.` +
-    (d.propuesta ? ` Redacción propuesta: «${d.propuesta}»` : ' Se pide suprimir la oración completa.')
+    (d.propuesta ? ` Redacción propuesta: «${d.propuesta}»` : ' Se pide suprimir la oración completa.') +
+    (d.seConserva.length ? ` Se mantiene, para no restringir la pluralidad de postores, la oración que admite la habilitación de un tercero y el vínculo con él.` : '')
   );
 }
 
@@ -491,6 +510,7 @@ export function correccionDeDisponibilidad(d: DisponibilidadDelBien): string {
     `Suprimir la exigencia de acreditar ${loExigido(d)}` +
     (d.propuesta ? ` (redacción: «${d.propuesta}»)` : ' (la oración completa)') +
     (d.acreditacion.length ? ` y las oraciones que la acreditan: ${d.acreditacion.map(cita).join('; ')}` : '') +
+    (d.seConserva.length ? `. Mantener la que admite la habilitación de un tercero: ${d.seConserva.map(cita).join('; ')}` : '') +
     '. Si se necesita asegurar el abastecimiento, regularlo como obligación del contratista durante la ejecución del contrato, no como requisito para calificar o admitir la oferta.'
   );
 }

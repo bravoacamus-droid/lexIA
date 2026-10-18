@@ -47,7 +47,10 @@ void (async () => {
     const d = r[0];
     comprobar('…en requisitos de calificación, «Capacidad legal», numeral 7.1, literal A.', d?.donde === 'calificacion' && d.requisito === 'Capacidad legal' && d.numeral === '7.1' && d.literal === 'A.', d && [d.donde, d.requisito, d.numeral, d.literal]);
     comprobar('…la frase es literal y empieza en «Habilitación»', !!d && KIMBIRI.includes(d.frase) && d.frase.startsWith('Habilitación para la explotación'), d?.frase);
-    comprobar('…con las dos oraciones de su acreditación', d?.acreditacion.length === 2, d?.acreditacion);
+    // César (17/10/2026): la del tercero titular de la cantera se mantiene,
+    // «a fin de dar pluralidad de postores».
+    comprobar('…suprime la oración de la acreditación de la disponibilidad', d?.acreditacion.length === 1 && /propiedad, posesión/.test(d.acreditacion[0]), d?.acreditacion);
+    comprobar('…y conserva la de la habilitación de un tercero', d?.seConserva.length === 1 && /a nombre de un tercero/.test(d.seConserva[0]), d?.seConserva);
     comprobar(
       '…y la redacción propuesta conserva la habilitación de la cantera',
       d?.propuesta === 'Habilitación para la explotación y/o aprovechamiento de la cantera de donde provendrá el material, conforme a la normativa sectorial aplicable.',

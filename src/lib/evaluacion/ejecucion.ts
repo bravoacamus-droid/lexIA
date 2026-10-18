@@ -66,6 +66,8 @@ import type { LectorDePaginas } from './lectura-visual';
 import { esFichaDePrecio, revisarPrecio } from './precio';
 import { revisarErratas } from './erratas';
 import { revisarPlazo } from './plazo';
+import { perfilDelProcedimiento } from './procedimiento';
+import { solicitudesDeBonificacion } from './bonificaciones';
 
 /** Cuántas unidades corren a la vez. */
 const PARALELO = 8;
@@ -1171,7 +1173,9 @@ async function cerrarRonda(
   });
   ordenarPorPuntaje(postores);
   const montos = new Map(postores.map((x) => [x.postor, x.ofertaEconomica ?? null] as const));
-  const finales = etapasFinales(postores, montos, previo.bases);
+  // El procedimiento y las bonificaciones se leyeron en la primera
+  // evaluación; las ofertas no se vuelven a leer.
+  const finales = etapasFinales(postores, montos, previo.bases, previo.finales?.perfil);
   const rondas = [
     ...(previo.rondas ?? []),
     {
@@ -1373,7 +1377,19 @@ export async function avanzarEvaluacion(
   ofertas.forEach((d) => {
     if (d.estado === 'listo' && d.postor) montos.set(d.postor, d.ofertaEconomica ?? null);
   });
-  const finales = etapasFinales(postores, montos, lectura);
+  // El procedimiento de ESTAS bases (documento «PROCEDIMIENTOS DE
+  // EVALUACIÓN» de César, 17/10/2026) y lo que cada postor solicita como
+  // bonificación (Anexo de solicitud del 5 % o del 10 %).
+  const textoBases = p.documentos[0]?.texto ?? '';
+  const perfil = perfilDelProcedimiento(lectura, textoBases);
+  await Promise.all(
+    ofertas.map(async (d) => {
+      const x = postores.find((y) => y.postor === d.postor);
+      if (!x || d.estado !== 'listo' || !d.texto) return;
+      x.bonificacion = await solicitudesDeBonificacion(d.texto, textoBases).catch(() => undefined);
+    }),
+  );
+  const finales = etapasFinales(postores, montos, lectura, perfil);
   const acta = construirActa({ bases: lectura, postores, finales });
   const resultado = {
     version: 'etapas-1',

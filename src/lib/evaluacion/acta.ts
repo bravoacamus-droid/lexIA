@@ -245,6 +245,26 @@ export function piezasDelActa({ bases, postores, sesion, finales, rondas }: Dato
     ],
   });
 
+  // ── Procedimiento aplicable ── Documento «PROCEDIMIENTOS DE EVALUACIÓN»
+  // de César (17/10/2026): el acta sigue la secuencia y las reglas de
+  // ESTAS bases, no una plantilla única (`procedimiento.ts`).
+  const perfil = finales?.perfil;
+  if (perfil) {
+    apartado('PROCEDIMIENTO DE EVALUACIÓN APLICABLE');
+    parrafo(
+      `De acuerdo con las Bases Integradas (${perfil.nombre}), la evaluación de las ofertas se realiza en la siguiente secuencia: ${perfil.secuencia
+        .map((e, i) => `${i + 1}) ${e}`)
+        .join('; ')}.`,
+    );
+    piezas.push({
+      clase: 'tabla',
+      columnas: ['Etapa', 'Regla aplicable', 'Fuente'],
+      conContenido: perfil.reglas.length,
+      filas: perfil.reglas.map((r) => [r.etapa, r.regla, r.fuente]),
+    });
+    for (const a of perfil.avisos) piezas.push({ clase: 'nota', texto: a });
+  }
+
   // ── II. Instalación ──
   apartado('INSTALACIÓN DE LA SESIÓN');
   parrafo(
@@ -297,7 +317,8 @@ export function piezasDelActa({ bases, postores, sesion, finales, rondas }: Dato
   });
 
   // ── Por etapa: desarrollo, subsanación y resultado consolidado ──
-  for (const etapa of ['admision', 'calificacion', 'evaluacion'] as Etapa[]) {
+  const etapasDelActa: Etapa[] = perfil && !perfil.conTecnica ? ['admision', 'calificacion'] : ['admision', 'calificacion', 'evaluacion'];
+  for (const etapa of etapasDelActa) {
     apartado(TITULO_ETAPA[etapa]);
     for (const t of INTRODUCCION[etapa]) parrafo(t);
 
@@ -443,8 +464,29 @@ export function piezasDelActa({ bases, postores, sesion, finales, rondas }: Dato
       parrafo(
         'Concluida la evaluación individual de las ofertas en la etapa de evaluación técnica y, de corresponder, la evaluación de las subsanaciones, se obtiene el siguiente resultado:',
       );
-      const minimo = bases.puntajeTecnicoMinimo;
-      piezas.push({
+      const simultanea = perfil?.economica.tipo === 'simultanea';
+      const sinEconomica = perfil?.economica.tipo === 'fija';
+      const minimo = perfil ? (simultanea || sinEconomica ? null : perfil.puntajeTecnicoMinimo) : bases.puntajeTecnicoMinimo;
+      if (simultanea) {
+        parrafo(
+          `La evaluación económica es simultánea a la técnica (art. 74.1 a) del Reglamento): la oferta económica es un factor de evaluación de hasta ${perfil!.economica.puntajeMaximo} puntos y no se exige puntaje técnico mínimo para acceder a ella.`,
+        );
+      } else if (sinEconomica) {
+        parrafo('La oferta económica es fija: no se asigna puntaje económico y el puntaje total es el puntaje técnico.');
+      }
+      // Sin mínimo que aplicar (bienes: simultánea; oferta fija: no hay
+      // económica) las columnas del mínimo y del acceso no dicen nada.
+      if (perfil && (simultanea || sinEconomica)) {
+        piezas.push({
+          clase: 'tabla',
+          columnas: ['N.°', 'Postor / Consorcio', 'Ítem(s) / Lote(s)', 'Puntaje técnico'],
+          conContenido: postores.length,
+          filas: postores.map((x, i) => {
+            const et = etapaDe(x, 'evaluacion');
+            return [String(i + 1), x.postor, '[Ítem / Lote]', et?.omitida || !et ? 'No evaluado' : String(et.puntaje ?? 0)];
+          }),
+        });
+      } else piezas.push({
         clase: 'tabla',
         columnas: [
           'N.°',
@@ -500,10 +542,34 @@ export function piezasDelActa({ bases, postores, sesion, finales, rondas }: Dato
   );
   const soles = (n?: number) =>
     typeof n === 'number' ? n.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '[Indicar el monto]';
-  apartado('EVALUACIÓN ECONÓMICA DE LAS OFERTAS');
-  parrafo(
-    'Acto seguido, se procede con la evaluación económica de las ofertas que cumplieron las condiciones establecidas para acceder a esta etapa. Previo a la asignación de puntaje económica, se realiza la verificación del cumplimiento de la oferta económica.',
+  const tipoEco = perfil?.economica.tipo;
+  apartado(
+    tipoEco === 'simultanea'
+      ? 'EVALUACIÓN ECONÓMICA DE LAS OFERTAS (SIMULTÁNEA A LA TÉCNICA)'
+      : tipoEco === 'fija'
+        ? 'VERIFICACIÓN DE LA OFERTA ECONÓMICA FIJA'
+        : tipoEco === 'menor_precio'
+          ? 'EVALUACIÓN ECONÓMICA DE LAS OFERTAS (MENOR PRECIO)'
+          : tipoEco === 'lances'
+            ? 'EVALUACIÓN ECONÓMICA DE LAS OFERTAS (LANCES EN LÍNEA)'
+            : 'EVALUACIÓN ECONÓMICA DE LAS OFERTAS',
   );
+  parrafo(
+    tipoEco === 'simultanea'
+      ? 'La oferta económica de cada postor admitido y calificado se evalúa como un factor más, simultáneamente con los factores técnicos. Previo a la asignación de puntaje económico, se realiza la verificación del cumplimiento de la oferta económica.'
+      : tipoEco === 'posterior' || tipoEco === 'limitada'
+        ? `Acto seguido, se procede con la evaluación económica de las ofertas que alcanzaron el puntaje técnico mínimo${perfil?.puntajeTecnicoMinimo != null ? ` de ${perfil.puntajeTecnicoMinimo} puntos` : ''} (art. 74.1 b) del Reglamento). Previo a la asignación de puntaje económico, se realiza la verificación del cumplimiento de la oferta económica${tipoEco === 'limitada' && perfil?.economica.rango ? `, incluido el rango de la oferta limitada (${perfil.economica.rango.maximo ? `entre el ${Math.round(perfil.economica.rango.minimo * 100)} % y el ${Math.round(perfil.economica.rango.maximo * 100)} %` : `no menor al ${Math.round(perfil.economica.rango.minimo * 100)} %`} de la cuantía)` : ''}.`
+        : tipoEco === 'fija'
+          ? 'Se verifica que la oferta económica de cada postor corresponda al 100 % de la cuantía de la contratación; la que no corresponda se descalifica. No se asigna puntaje económico.'
+          : tipoEco === 'menor_precio'
+            ? 'El único factor de evaluación es el precio: se establece el orden de prelación considerando en el primer lugar a quien oferte el menor monto (art. 74.3 del Reglamento).'
+            : tipoEco === 'lances'
+              ? 'La evaluación económica se realizó mediante lances en línea en la Pladicop; el orden de prelación es el del menor al mayor último lance (art. 96.4 del Reglamento).'
+              : 'Acto seguido, se procede con la evaluación económica de las ofertas que cumplieron las condiciones establecidas para acceder a esta etapa. Previo a la asignación de puntaje económica, se realiza la verificación del cumplimiento de la oferta económica.',
+  );
+  if (finales?.descalificados?.length) {
+    piezas.push({ clase: 'lista', marca: 'vineta', elementos: finales.descalificados.map((d) => `**${d.postor}**: ${d.motivo}`) });
+  }
   if (bases.evaluacionEconomica) {
     piezas.push({
       clase: 'nota',
@@ -539,43 +605,47 @@ export function piezasDelActa({ bases, postores, sesion, finales, rondas }: Dato
     ],
   });
 
-  // ── Verificación de montos por debajo de la cuantía ──
-  const ver = apartado(
-    'VERIFICACIÓN DE LOS MONTOS QUE SE ENCUENTRAN SUSTANCIALMENTE POR DEBAJO LA CUANTÍA Y/O LA POSIBILIDAD DE SOLICITAR SUBSANACIÓN',
-  );
-  subapartado(
-    ver,
-    1,
-    'Declaración sobre la exigencia de un monto sustancialmente por debajo de la cuantía y/o subsanación',
-  );
-  if (finales && finales.rechazo.length === 0) {
-    parrafo(
-      `El ${EVALUADOR} deja constancia de que no se identificaron ofertas sustancialmente por debajo de la cuantía de la contratación que justifiquen solicitar la descripción a detalle de su composición (art. 132.5 del Reglamento).`,
+  // ── Verificación de montos por debajo de la cuantía ── Solo bienes y
+  // servicios (art. 132.5); no en obras ni subasta inversa (132.7).
+  const conRechazo = perfil ? perfil.rechazo : true;
+  if (conRechazo) {
+    const ver = apartado(
+      'VERIFICACIÓN DE LOS MONTOS QUE SE ENCUENTRAN SUSTANCIALMENTE POR DEBAJO LA CUANTÍA Y/O LA POSIBILIDAD DE SOLICITAR SUBSANACIÓN',
     );
-  } else if (finales) {
-    parrafo(
-      'Las siguientes ofertas se encuentran por debajo de la cuantía de la contratación. Corresponde al comité decidir si solicita la descripción a detalle de su composición antes de resolver sobre su rechazo:',
+    subapartado(
+      ver,
+      1,
+      'Declaración sobre la exigencia de un monto sustancialmente por debajo de la cuantía y/o subsanación',
     );
-    piezas.push({ clase: 'lista', marca: 'vineta', elementos: finales.rechazo.map((r) => `**${r.postor}**: ${r.fundamento}`) });
-  } else {
-    piezas.push({ clase: 'nota', texto: '[Seleccione y consigne únicamente el supuesto que corresponda:]' });
-    parrafo('**No se requirió justificación y/o subsanación**');
-    parrafo(
-      `El ${EVALUADOR} deja constancia de que no se requirió [justificación / subsanación] durante la etapa de evaluación económica, al no haberse identificado documentación o información susceptible de justificación y/o subsanación conforme a las Bases y la normativa aplicable.`,
-    );
-    parrafo('**Se requirió y evaluó la subsanación**');
-    parrafo(
-      `El ${EVALUADOR} requirió la [justificación / subsanación] de la oferta económica presentada por el siguiente postor: ${HUECO}`,
-    );
+    if (finales && finales.rechazo.length === 0) {
+      parrafo(
+        `El ${EVALUADOR} deja constancia de que no se identificaron ofertas sustancialmente por debajo de la cuantía de la contratación que justifiquen solicitar la descripción a detalle de su composición (art. 132.5 del Reglamento).`,
+      );
+    } else if (finales) {
+      parrafo(
+        'Las siguientes ofertas se encuentran por debajo de la cuantía de la contratación. Corresponde al comité decidir si solicita la descripción a detalle de su composición antes de resolver sobre su rechazo:',
+      );
+      piezas.push({ clase: 'lista', marca: 'vineta', elementos: finales.rechazo.map((r) => `**${r.postor}**: ${r.fundamento}`) });
+    } else {
+      piezas.push({ clase: 'nota', texto: '[Seleccione y consigne únicamente el supuesto que corresponda:]' });
+      parrafo('**No se requirió justificación y/o subsanación**');
+      parrafo(
+        `El ${EVALUADOR} deja constancia de que no se requirió [justificación / subsanación] durante la etapa de evaluación económica, al no haberse identificado documentación o información susceptible de justificación y/o subsanación conforme a las Bases y la normativa aplicable.`,
+      );
+      parrafo('**Se requirió y evaluó la subsanación**');
+      parrafo(
+        `El ${EVALUADOR} requirió la [justificación / subsanación] de la oferta económica presentada por el siguiente postor: ${HUECO}`,
+      );
+    }
+    subapartado(ver, 2, 'Resultado de la evaluación económica');
+    parrafo('Concluida la evaluación individual de la evaluación económica, se obtiene el siguiente resultado:');
+    piezas.push({
+      clase: 'tabla',
+      columnas: ['N.º', 'Nombre o razón social del postor', 'Ítem(s) / Lote(s)', '¿Oferta económica rechazada?'],
+      conContenido: accedenEco.length,
+      filas: accedenEco.map((x, i) => [String(i + 1), x.postor, '[Ítem / Lote]', finales ? NO : NI]),
+    });
   }
-  subapartado(ver, 2, 'Resultado de la evaluación económica');
-  parrafo('Concluida la evaluación individual de la evaluación económica, se obtiene el siguiente resultado:');
-  piezas.push({
-    clase: 'tabla',
-    columnas: ['N.º', 'Nombre o razón social del postor', 'Ítem(s) / Lote(s)', '¿Oferta económica rechazada?'],
-    conContenido: accedenEco.length,
-    filas: accedenEco.map((x, i) => [String(i + 1), x.postor, '[Ítem / Lote]', finales ? NO : NI]),
-  });
   if (finales?.negociacion) {
     apartado('NEGOCIACIÓN');
     parrafo(finales.negociacion.fundamento);
@@ -608,6 +678,35 @@ export function piezasDelActa({ bases, postores, sesion, finales, rondas }: Dato
     });
   }
 
+  // ── Bonificaciones ── Art. 75.5 (MYPE, modalidad abreviada) y 75.6
+  // (provincia o colindante): se aplican sobre el puntaje total.
+  if (perfil && (finales?.bonificaciones?.length || perfil.bonificaciones.mype || perfil.bonificaciones.provincia)) {
+    apartado('BONIFICACIONES');
+    const bon = finales?.bonificaciones ?? [];
+    if (bon.length === 0) {
+      parrafo(
+        `Las Bases prevén ${[perfil.bonificaciones.mype ? 'la bonificación del cinco por ciento (5 %) para la micro y pequeña empresa' : '', perfil.bonificaciones.provincia ? 'la bonificación del diez por ciento (10 %) por domicilio en la provincia o colindante' : ''].filter(Boolean).join(' y ')}. Ningún postor que accedió a la evaluación la solicitó.`,
+      );
+    } else {
+      parrafo('Los siguientes postores solicitaron bonificaciones sobre su puntaje total:');
+      piezas.push({
+        clase: 'tabla',
+        columnas: ['Postor', 'Bonificación', '¿Se aplica?', 'Puntaje total sin bonificación', 'Puntaje total con bonificación'],
+        conContenido: bon.length,
+        filas: bon.map((b) => {
+          const x = postores.find((y) => y.postor === b.postor);
+          return [
+            b.postor,
+            b.detalle,
+            b.aplicada ? 'Sí' : 'No',
+            String(x?.puntajeSinBonificacion ?? x?.puntajeTotal ?? HUECO),
+            String(x?.puntajeTotal ?? HUECO),
+          ];
+        }),
+      });
+    }
+  }
+
   // ── Resultado consolidado general ──
   apartado('RESULTADO CONSOLIDADO DE LA EVALUACIÓN DE OFERTAS');
   parrafo(
@@ -633,7 +732,15 @@ export function piezasDelActa({ bases, postores, sesion, finales, rondas }: Dato
       resultadoEnActa(x, 'calificacion'),
       etapaDe(x, 'evaluacion')?.omitida ? 'No evaluado' : String(x.puntajeTecnico ?? 0),
       typeof x.puntajeEconomico === 'number' ? String(x.puntajeEconomico) : '—',
-      typeof x.puntajeTotal === 'number' ? String(x.puntajeTotal) : '[Indicar puntaje obtenido]',
+      typeof x.puntajeTotal === 'number'
+        ? x.bonificacionesAplicadas?.length
+          ? `${x.puntajeTotal} (${x.puntajeSinBonificacion} + ${x.bonificacionesAplicadas.join(' + ')})`
+          : String(x.puntajeTotal)
+        : perfil && (perfil.economica.tipo === 'menor_precio' || perfil.economica.tipo === 'lances') && x.ofertaEconomica
+          ? `S/ ${soles(x.ofertaEconomica.monto)}`
+          : x.descalificadoEconomica
+            ? 'Descalificada'
+            : '[Indicar puntaje obtenido]',
       x.prelacion ? String(x.prelacion) : '—',
     ]),
   });
@@ -642,15 +749,19 @@ export function piezasDelActa({ bases, postores, sesion, finales, rondas }: Dato
   apartado('OTORGAMIENTO DE LA BUENA PRO');
   const ganador = postores.find((x) => x.prelacion === 1);
   const empatados = postores.filter((x) => x.prelacion === 1);
-  if (!ganador) {
+  if (finales?.desierto) {
+    parrafo(finales.desierto);
+  } else if (!ganador) {
     parrafo(
       'Ningún postor alcanzó la etapa de evaluación técnica con puntaje, por lo que no corresponde otorgar la buena pro en este acto.',
     );
   } else if (empatados.length > 1) {
     parrafo(
-      `Se ha producido un empate en el primer lugar entre ${empatados.map((x) => x.postor).join(' y ')}, ` +
-        `con ${ganador.puntajeTecnico} puntos. El desempate se resuelve conforme a las reglas de las Bases ` +
-        'Integradas y del Reglamento; no se otorga automáticamente.',
+      finales?.buenaPro.empate
+        ? finales.buenaPro.fundamento
+        : `Se ha producido un empate en el primer lugar entre ${empatados.map((x) => x.postor).join(' y ')}, ` +
+            `con ${ganador.puntajeTecnico} puntos. El desempate se resuelve conforme al artículo 81 del Reglamento: ` +
+            'mejor puntaje técnico, MYPE integrada por personas con discapacidad, MYPE y, en último término, sorteo.',
     );
   } else {
     parrafo(
@@ -658,10 +769,20 @@ export function piezasDelActa({ bases, postores, sesion, finales, rondas }: Dato
     );
     parrafo(
       typeof ganador.puntajeTotal === 'number'
-        ? `El primer lugar del orden de prelación corresponde a **${ganador.postor}**, con ${ganador.puntajeTotal} puntos totales (${ganador.puntajeTecnico} técnicos y ${ganador.puntajeEconomico} económicos).`
-        : `El primer lugar del orden de prelación corresponde a **${ganador.postor}**, con ${ganador.puntajeTecnico} puntos técnicos.`,
+        ? `El primer lugar del orden de prelación corresponde a **${ganador.postor}**, con ${ganador.puntajeTotal} puntos totales (${ganador.puntajeTecnico} técnicos${typeof ganador.puntajeEconomico === 'number' ? ` y ${ganador.puntajeEconomico} económicos` : ''}${ganador.bonificacionesAplicadas?.length ? `, más la bonificación ${ganador.bonificacionesAplicadas.join(' y ')}` : ''}).`
+        : ganador.ofertaEconomica && perfil && (perfil.economica.tipo === 'menor_precio' || perfil.economica.tipo === 'lances')
+          ? `El primer lugar del orden de prelación corresponde a **${ganador.postor}**, con la oferta de menor monto (S/ ${soles(ganador.ofertaEconomica.monto)}).`
+          : `El primer lugar del orden de prelación corresponde a **${ganador.postor}**, con ${ganador.puntajeTecnico} puntos técnicos.`,
     );
-    if (finales?.buenaPro.fundamento) parrafo(finales.buenaPro.fundamento);
+    // El fundamento solo si agrega algo a la frase anterior: la negociación,
+    // la subsanación pendiente o el desempate.
+    const f = finales?.buenaPro.fundamento ?? '';
+    const extra = [
+      /art\. 81/.test(f) ? 'El empate en puntaje total se resolvió por el mejor puntaje técnico o la condición de MYPE (art. 81 del Reglamento).' : '',
+      finales?.negociacion ? 'La buena pro queda sujeta a la ampliación de la certificación o previsión presupuestal o a la negociación (art. 132 del Reglamento).' : '',
+      /subsanar/.test(f) ? 'Antes de otorgarla, el postor debe subsanar lo observado.' : '',
+    ].filter(Boolean);
+    if (extra.length) parrafo(extra.join(' '));
     piezas.push({
       clase: 'tabla',
       columnas: [
@@ -682,6 +803,14 @@ export function piezasDelActa({ bases, postores, sesion, finales, rondas }: Dato
         ],
       ],
     });
+  }
+  // Publicación (art. 80) y consentimiento (art. 82), según cuántas
+  // ofertas se presentaron.
+  if (finales?.consentimiento && ganador && empatados.length === 1) {
+    parrafo(
+      'El otorgamiento de la buena pro se publica en la Pladicop con los documentos que sustentan los resultados de la admisión, calificación y evaluación de las ofertas (art. 80 del Reglamento).',
+    );
+    parrafo(finales.consentimiento);
   }
 
   // Lo que el comité tiene que mirar sí o sí. No está en el modelo: es
