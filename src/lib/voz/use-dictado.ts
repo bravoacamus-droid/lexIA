@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { unirResultados } from './unir-dictado';
 
 /**
  * Dictar la pregunta en vez de teclearla (Web Speech API del navegador).
@@ -70,15 +71,13 @@ export function useDictado(valor: string, alCambiar: (v: string) => void) {
       const base = valor;
       r.onstart = () => setDictando(true);
       r.onresult = (e) => {
-        let final = '';
-        let parcial = '';
-        for (let i = 0; i < e.results.length; i++) {
-          const t = e.results[i][0].transcript;
-          if (e.results[i].isFinal) final += `${t} `;
-          else parcial += t;
-        }
+        // Unidos por superposición, no concatenados: en Android cada
+        // resultado trae la frase acumulada (ver unir-dictado.ts).
+        const trozos: string[] = [];
+        for (let i = 0; i < e.results.length; i++) trozos.push(e.results[i][0].transcript);
+        const dicho = unirResultados(trozos);
         const sep = base === '' || base.endsWith(' ') ? '' : ' ';
-        alCambiar(`${base}${sep}${final}${parcial}`.trim());
+        alCambiar(`${base}${sep}${dicho}`.trim());
       };
       r.onerror = (e) => {
         if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {

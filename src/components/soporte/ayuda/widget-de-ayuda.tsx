@@ -167,7 +167,11 @@ export function WidgetDeAyuda({ usuario }: { usuario: UsuarioDelWidget }) {
         aria-label={abierto ? 'Cerrar la ayuda' : sinLeer > 0 ? `Ayuda: ${sinLeer} respuesta(s) nueva(s)` : 'Abrir la ayuda'}
         className={cn(
           'flotante-entra fixed right-4 z-40 md:right-6',
-          conCompositor ? 'bottom-[9.5rem] md:bottom-[7.5rem]' : 'bottom-20 md:bottom-6',
+          // En el celular, en el chat, el cuadro de texto crece hacia arriba
+          // al dictar o escribir varias líneas, y a una altura fija el botón
+          // terminaba encima del micrófono y de «Enviar» (César, 17/10/2026).
+          // Ahí va arriba, bajo la barra superior, solo con el ícono.
+          conCompositor ? 'top-[4.5rem] md:top-auto md:bottom-[7.5rem]' : 'bottom-20 md:bottom-6',
           abierto && 'hidden md:block',
         )}
         style={{ animationDelay: '1.2s', marginBottom: 'env(safe-area-inset-bottom)' }}
@@ -182,7 +186,7 @@ export function WidgetDeAyuda({ usuario }: { usuario: UsuarioDelWidget }) {
           className={cn(
             'relative flex h-12 items-center gap-2 rounded-full text-white shadow-lg shadow-brand-900/30 ring-4 ring-background transition-all duration-200 hover:scale-105 active:scale-95',
             'bg-gradient-to-br from-brand-500 to-brand-700',
-            abierto ? 'w-12 justify-center' : 'pl-3.5 pr-4',
+            abierto ? 'w-12 justify-center' : conCompositor ? 'w-12 justify-center md:w-auto md:pl-3.5 md:pr-4' : 'pl-3.5 pr-4',
           )}
         >
           {abierto ? (
@@ -190,7 +194,7 @@ export function WidgetDeAyuda({ usuario }: { usuario: UsuarioDelWidget }) {
           ) : (
             <>
               <MessageCircleQuestion className="flotante-saluda h-5 w-5" />
-              <span className="text-[14px] font-semibold tracking-tight">Ayuda</span>
+              <span className={cn('text-[14px] font-semibold tracking-tight', conCompositor && 'hidden md:inline')}>Ayuda</span>
             </>
           )}
         </span>
