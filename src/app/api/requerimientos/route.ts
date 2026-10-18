@@ -14,7 +14,7 @@ import {
   SUBTIPO_META,
   type SubtipoRequerimiento,
 } from '@/lib/requerimientos/subtipos';
-import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
+import { respuestaDeRechazo, usarHerramienta } from '@/lib/billing/creditos';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -48,10 +48,6 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  // Feature gate (cuenta como una generación)
-  const guard = await ensureCanUse(user.id, 'generator_call');
-  if (!guard.ok) return NextResponse.json(guard.body, { status: guard.status });
-
   const body = await req.json().catch(() => null);
   const parsed = CreateSchema.safeParse(body);
   if (!parsed.success) {
@@ -72,6 +68,11 @@ export async function POST(req: Request) {
       ? 'menor_8uit'
       : 'seleccion'
     : parsed.data.regimen || 'seleccion';
+
+  // Contrato menor: plan Consulta; procedimiento de selección: Profesional.
+  const herramienta = regimen === 'menor_8uit' ? 'requerimiento_menor' : 'requerimiento_seleccion';
+  const guard = await usarHerramienta(user.id, herramienta, { soloComprobar: true });
+  if (!guard.ok) return respuestaDeRechazo(guard);
 
   // Si se eligió una plantilla y aplica al objeto seleccionado, la aplicamos.
   // Esto pre-rellena las cláusulas típicas.
@@ -111,7 +112,7 @@ export async function POST(req: Request) {
     );
   }
 
-  await recordUsage(user.id, 'generator_call');
+  await usarHerramienta(user.id, herramienta, { detalle: denominacion.slice(0, 120) });
   return NextResponse.json({ id: (data as { id: string }).id });
 }
 

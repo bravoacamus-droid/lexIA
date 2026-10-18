@@ -12,7 +12,7 @@ import { chatModel, fastModel, CHAT_MODEL_ID, FAST_MODEL_ID } from '@/lib/ai/gem
 import { buildChatSystemPrompt, TITLE_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 import type { ChatSource, NormativeDocType } from '@/lib/supabase/types';
 import type { ProfileRole } from '@/lib/auth/session';
-import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
+import { respuestaDeRechazo, usarHerramienta } from '@/lib/billing/creditos';
 import { recordAiUsage } from '@/lib/ai/usage-log';
 import { expandLegalQuery, tipoDeFoco } from '@/lib/ai/query-expansion';
 import {
@@ -244,11 +244,10 @@ export async function POST(req: Request) {
   const lawFilter =
     convo.law_filter && convo.law_filter.length > 0 ? convo.law_filter : null;
 
-  // Gate de cuota de mensajes
-  const guard = await ensureCanUse(user.id, 'chat_message');
-  if (!guard.ok) {
-    return NextResponse.json(guard.body, { status: guard.status });
-  }
+  // Créditos: se comprueba aquí y se descuenta al guardar la pregunta
+  // nueva (abajo), para no cobrar las repeticiones del mismo mensaje.
+  const guard = await usarHerramienta(user.id, 'consulta_texto', { soloComprobar: true });
+  if (!guard.ok) return respuestaDeRechazo(guard);
 
   const lastUser = [...messages].reverse().find((m) => m.role === 'user');
   if (!lastUser) {
@@ -1389,8 +1388,8 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
       role: 'user',
       content: lastUser.content,
     } as never);
-    // Solo contamos un mensaje cuando es genuinamente nuevo (no replay)
-    await recordUsage(user.id, 'chat_message');
+    // Solo se cobra una pregunta genuinamente nueva (no un reintento).
+    await usarHerramienta(user.id, 'consulta_texto', { detalle: lastUser.content.slice(0, 120) });
   }
 
   // Ley o Reglamento: en el texto íntegro de El Peruano son un solo

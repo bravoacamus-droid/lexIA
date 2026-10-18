@@ -15,6 +15,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Check, ChevronDown, FileSignature, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { avisoDePlan } from '@/lib/billing/aviso-de-plan';
 import { cn } from '@/lib/utils';
 import { ACTUACIONES, ORDEN_ACTUACIONES, PERFILES, type Actuacion, type Perfil } from '@/lib/ejecucion/catalogo';
 import { documentoRecomendado } from '@/lib/ejecucion/matriz';
@@ -92,7 +93,13 @@ export function ArranqueDelExpediente({ permitidos }: { permitidos: Perfil[] }) 
         }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json?.detail || json?.message || json?.error || 'No se pudo crear el expediente');
+      if (!res.ok) {
+        if (avisoDePlan(json)) {
+          setYendo(false);
+          return;
+        }
+        throw new Error(json?.detail || json?.message || json?.error || 'No se pudo crear el expediente');
+      }
       router.push(`/generador/expedientes/${json.id}?a=${json.actuacionId}&analizar=1`);
     } catch (e) {
       toast.error((e as Error).message);

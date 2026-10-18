@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { AvisoDePlanMostrado, avisoDePlan, creditosCambiaron, yaAvisado } from '@/lib/billing/aviso-de-plan';
 import {
   Mic,
   MicOff,
@@ -158,6 +159,7 @@ export function HablaConALexia({ disponible, tieneConsentimiento, versionAviso }
         body: JSON.stringify({ voice_id: voz }),
       });
       const creada = await crear.json();
+      if (!crear.ok && avisoDePlan(creada)) throw new AvisoDePlanMostrado();
       if (!crear.ok) throw new Error(creada?.message || creada?.detail || creada?.error || 'No se pudo crear la llamada');
       const id = creada.call.id as string;
       llamadaRef.current = id;
@@ -200,7 +202,7 @@ export function HablaConALexia({ disponible, tieneConsentimiento, versionAviso }
         setSegundos(segundosRef.current);
       }, 1000);
     } catch (e) {
-      toast.error((e as Error).message.slice(0, 160));
+      if (!yaAvisado(e)) toast.error((e as Error).message.slice(0, 160));
       // Una llamada que no llegó a conectar no debe quedar «En curso».
       const id = llamadaRef.current;
       if (id) {
@@ -315,6 +317,7 @@ export function HablaConALexia({ disponible, tieneConsentimiento, versionAviso }
       }
       void fetch(`/api/voice/calls/${id}/summarize`, { method: 'POST', keepalive: true }).catch(() => {});
       toast.success('Llamada finalizada');
+      creditosCambiaron();
       router.push(`/llamadas/${id}`);
     } catch (e) {
       toast.error((e as Error).message);
@@ -468,7 +471,7 @@ export function HablaConALexia({ disponible, tieneConsentimiento, versionAviso }
           </>
         ) : (
           <Link
-            href="/pricing"
+            href="/#planes"
             className="mt-6 inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-brand-600"
           >
             <Crown className="h-4 w-4" />

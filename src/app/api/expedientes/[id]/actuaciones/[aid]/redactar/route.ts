@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
+import { respuestaDeRechazo, usarHerramienta } from '@/lib/billing/creditos';
 import { estadoDelExpediente, fallo, sesion } from '@/lib/ejecucion/api';
 import { redactar } from '@/lib/ejecucion/servicio';
 
@@ -24,11 +24,11 @@ export async function POST(req: Request, { params }: { params: { id: string; aid
     })
     .safeParse(await req.json().catch(() => null));
   if (!p.success) return NextResponse.json({ error: 'invalid_payload' }, { status: 400 });
-  const guard = await ensureCanUse(s.user.id, 'generator_call');
-  if (!guard.ok) return NextResponse.json(guard.body, { status: guard.status });
+  const guard = await usarHerramienta(s.user.id, 'documentos_ejecucion', { soloComprobar: true });
+  if (!guard.ok) return respuestaDeRechazo(guard);
   try {
     await redactar(s.supabase, params.id, params.aid, p.data.nivel, { id: s.user.id, nombre: s.nombre }, p.data.enfoque);
-    await recordUsage(s.user.id, 'generator_call');
+    await usarHerramienta(s.user.id, 'documentos_ejecucion', { detalle: `actuación ${params.aid}` });
     return NextResponse.json(await estadoDelExpediente(s.supabase, params.id));
   } catch (e) {
     return fallo(e);

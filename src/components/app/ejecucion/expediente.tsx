@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Check, Loader2, Pencil, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { AvisoDePlanMostrado, avisoDePlan, creditosCambiaron, yaAvisado } from '@/lib/billing/aviso-de-plan';
 import { cn } from '@/lib/utils';
 import { ACTUACIONES, PERFILES, type Actuacion, type Perfil } from '@/lib/ejecucion/catalogo';
 import type { ActuacionDelExpediente, EstadoDelExpediente } from '@/lib/ejecucion/estado';
@@ -47,6 +48,9 @@ export function VistaDelExpediente({ inicial, permitidos }: { inicial: EstadoDel
       });
       const json = await res.json().catch(() => null);
       if (!res.ok) {
+        // 402: el aviso de plan (con «Recargar» o «Mejorar plan») ya
+        // se mostró; `conOcupacion` no debe pintar otro con el código.
+        if (avisoDePlan(json)) throw new AvisoDePlanMostrado();
         const msg = json?.detail || json?.message || json?.error || `Error ${res.status}`;
         throw new Error(typeof msg === 'string' ? msg : 'No se pudo completar la acción');
       }
@@ -62,7 +66,7 @@ export function VistaDelExpediente({ inicial, permitidos }: { inicial: EstadoDel
       try {
         await f();
       } catch (e) {
-        toast.error((e as Error).message);
+        if (!yaAvisado(e)) toast.error((e as Error).message);
         // Lo que haya quedado en la base (el error de la actuación, por ejemplo).
         const r = await fetch(base).catch(() => null);
         if (r?.ok) setEstado(await r.json());
@@ -186,7 +190,10 @@ export function VistaDelExpediente({ inicial, permitidos }: { inicial: EstadoDel
           alResponder={respuestaCambia}
           alAnalizar={(como) => analizar(act.id, como)}
           alRedactar={(nivel: NivelDeSalida, enfoque?: 'descarte') =>
-            conOcupacion('redactando', () => llamar(`${base}/actuaciones/${act.id}/redactar`, 'POST', { nivel, enfoque }))
+            conOcupacion('redactando', async () => {
+              await llamar(`${base}/actuaciones/${act.id}/redactar`, 'POST', { nivel, enfoque });
+              creditosCambiaron();
+            })
           }
           alAuditar={() => conOcupacion('auditando', () => llamar(`${base}/actuaciones/${act.id}/auditar`, 'POST'))}
           alContinuar={(perfil) =>

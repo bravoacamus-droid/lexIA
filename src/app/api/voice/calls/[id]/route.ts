@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { recordUsage } from '@/lib/billing/feature-gate';
+import { usarHerramienta } from '@/lib/billing/creditos';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -128,7 +128,15 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
   ) {
     const minutes = Math.ceil(parsed.data.duration_seconds / 60);
     // Con await: en Vercel lo que queda pendiente tras responder se corta.
-    await recordUsage(user.id, 'voice_call_minute', minutes);
+    const uso = await usarHerramienta(user.id, 'consulta_voz', { unidades: minutes, detalle: `${minutes} min` });
+    // Si la llamada fue más larga que el saldo, se cobra lo que quedaba:
+    // la conversación ya ocurrió y no puede quedar gratis.
+    if (!uso.ok && uso.body.error === 'sin_creditos' && (uso.body.disponibles ?? 0) > 0) {
+      await usarHerramienta(user.id, 'consulta_voz', {
+        creditos: uso.body.disponibles,
+        detalle: `${minutes} min (saldo insuficiente)`,
+      });
+    }
   }
 
   return NextResponse.json({ ok: true });

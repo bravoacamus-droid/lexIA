@@ -17,18 +17,13 @@ import {
   Star,
 } from 'lucide-react';
 import { ROLE_LABELS } from '@/lib/navigation/menu-by-role';
-import { getTier } from '@/lib/billing/tiers';
-import type { ProfileRole, SubscriptionTier, SubscriptionStatus } from '@/lib/auth/session';
+import { bolsaDelUsuario, HERRAMIENTAS_DEL_PLAN, NOMBRE_HERRAMIENTA, type EstadoDeCreditos } from '@/lib/billing/creditos';
+import { planDelCatalogo } from '@/lib/billing/catalogo';
+import type { ProfileRole } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Perfil' };
 
-interface Sub {
-  tier: SubscriptionTier;
-  status: SubscriptionStatus;
-  trial_ends_at: string | null;
-  current_period_end: string | null;
-}
 
 function fmtDate(d: string | null): string {
   if (!d) return '—';
@@ -39,28 +34,30 @@ function fmtDate(d: string | null): string {
   });
 }
 
-function tierBadge(tier: SubscriptionTier, status: SubscriptionStatus) {
-  if (tier === 'enterprise') {
+/**
+ * La insignia del plan junto al nombre. Con los planes de créditos
+ * (17/10/2026) dice el plan del catálogo; si el plan venció o está
+ * suspendido, eso primero.
+ */
+function insigniaDelPlan(e: EstadoDeCreditos | null) {
+  if (!e) return null;
+  const nombre = planDelCatalogo(e.plan).nombre;
+  if (e.vencido) return <Badge variant="warning">{e.plan === 'prueba' ? 'Prueba terminada' : `${nombre} · vencido`}</Badge>;
+  if (e.plan === 'prueba') return <Badge variant="warning">En prueba</Badge>;
+  if (e.plan === 'equipos' || e.plan === 'organizaciones' || e.plan === 'especialista') {
     return (
       <Badge className="bg-gradient-to-r from-brand-500 to-violet-500 text-white border-transparent hover:from-brand-600 hover:to-violet-600">
         <Star className="h-3 w-3 fill-current" />
-        Enterprise
+        {nombre}
       </Badge>
     );
   }
-  if (tier === 'pro' && status === 'active') {
-    return (
-      <Badge className="bg-brand-600 text-white border-transparent">
-        <Sparkles className="h-3 w-3" />
-        Pro
-      </Badge>
-    );
-  }
-  if (status === 'trialing') {
-    return <Badge variant="warning">En prueba</Badge>;
-  }
-  if (status === 'past_due') return <Badge variant="warning">Atrasada</Badge>;
-  return <Badge variant="secondary">{getTier(tier).label}</Badge>;
+  return (
+    <Badge className="bg-brand-600 text-white border-transparent">
+      <Sparkles className="h-3 w-3" />
+      {nombre}
+    </Badge>
+  );
 }
 
 export default async function PerfilPage() {
@@ -71,7 +68,7 @@ export default async function PerfilPage() {
   if (!user) return null;
 
   // Cargar en paralelo profile, subscription y los contadores para KPIs
-  const [profileRes, subRes, savedCount, chatCount, voiceCount, generatorCount] =
+  const [profileRes, creditos, savedCount, chatCount, voiceCount, generatorCount] =
     await Promise.all([
       supabase
         .from('profiles')
@@ -80,11 +77,7 @@ export default async function PerfilPage() {
         )
         .eq('id', user.id)
         .maybeSingle(),
-      supabase
-        .from('subscriptions')
-        .select('tier, status, trial_ends_at, current_period_end')
-        .eq('user_id', user.id)
-        .maybeSingle(),
+      bolsaDelUsuario(user.id).catch(() => null),
       supabase
         .from('user_saved_documents')
         .select('id', { count: 'exact', head: true })
@@ -114,10 +107,10 @@ export default async function PerfilPage() {
     is_admin: boolean | null;
     created_at: string;
   } | null;
-  const sub = (subRes.data as Sub | null) || null;
   const role = profile?.profile_role || null;
-  const tier = sub?.tier || 'free_trial';
-  const tierDef = getTier(tier);
+  const planId = creditos?.plan ?? 'prueba';
+  const plan = planDelCatalogo(planId);
+  const incluidas = HERRAMIENTAS_DEL_PLAN[planId].map((h) => NOMBRE_HERRAMIENTA[h]);
 
   const memberSince = profile?.created_at
     ? new Date(profile.created_at).toLocaleDateString('es-PE', {
@@ -194,7 +187,7 @@ export default async function PerfilPage() {
               <h1 className="text-2xl font-semibold tracking-tight">
                 {profile?.full_name || user.email}
               </h1>
-              {tierBadge(tier, sub?.status || 'trialing')}
+              {insigniaDelPlan(creditos)}
               {profile?.is_admin && (
                 <Badge variant="outline" className="border-brand-500/40 text-brand-700 dark:text-brand-400">
                   <ShieldCheck className="h-3 w-3" />
@@ -274,34 +267,32 @@ export default async function PerfilPage() {
             <p className="text-[10px] uppercase tracking-widest font-semibold text-brand-600 mb-0.5">
               Mi plan
             </p>
-            <h2 className="text-lg font-semibold">{tierDef.label}</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">{tierDef.tagline}</p>
+            <h2 className="text-lg font-semibold">
+              {plan.nombre}
+              {creditos?.equipo && (
+                <span className="font-normal text-muted-foreground"> · {creditos.equipo.nombre}</span>
+              )}
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">{plan.descripcion}</p>
           </div>
-          {sub && (
+          {creditos && (
             <div className="text-right text-xs text-muted-foreground shrink-0">
-              {sub.status === 'trialing' && sub.trial_ends_at && (
-                <>
-                  <p className="font-medium text-foreground">Prueba activa</p>
-                  <p>Vence el {fmtDate(sub.trial_ends_at)}</p>
-                </>
-              )}
-              {sub.status === 'active' && sub.current_period_end && (
-                <>
-                  <p className="font-medium text-foreground">Renovación</p>
-                  <p>{fmtDate(sub.current_period_end)}</p>
-                </>
-              )}
-              {sub.status === 'past_due' && (
-                <p className="font-medium text-amber-700 dark:text-amber-400">
-                  Vencida — regulariza el pago
-                </p>
-              )}
+              <p className="font-medium text-foreground tabular-nums">
+                {creditos.disponibles.toLocaleString('es-PE')} {planId === 'prueba' ? 'preguntas' : 'créditos'}
+              </p>
+              <p>
+                {creditos.vencido
+                  ? 'Plan no vigente'
+                  : planId === 'prueba'
+                    ? `Vence el ${fmtDate(creditos.renovacion)}`
+                    : `Se renuevan el ${fmtDate(creditos.renovacion)}`}
+              </p>
             </div>
           )}
         </div>
 
         <div className="mt-3 grid sm:grid-cols-2 gap-x-6 gap-y-1">
-          {tierDef.highlights.slice(0, 6).map((h: string) => (
+          {incluidas.slice(0, 6).map((h) => (
             <p key={h} className="text-xs text-muted-foreground flex items-start gap-1.5">
               <span className="text-brand-500 mt-0.5">✓</span>
               <span>{h}</span>
@@ -311,11 +302,9 @@ export default async function PerfilPage() {
 
         <div className="mt-4 pt-4 border-t border-border/60 flex flex-wrap items-center justify-between gap-3">
           <p className="text-[11px] text-muted-foreground">
-            {tier === 'enterprise'
-              ? 'Tienes acceso completo. Gracias por confiar en A-LexIA.'
-              : tier === 'pro'
-                ? 'Puedes cambiar tu plan cuando quieras.'
-                : 'Explora todas las funciones activando tu prueba o pasando a Pro.'}
+            {planId === 'prueba'
+              ? 'La prueba incluye 20 preguntas por texto o 30 días, lo que ocurra primero.'
+              : 'Puedes recargar créditos o cambiar de plan cuando quieras.'}
           </p>
           <div className="flex gap-2">
             <Button asChild variant="ghost" size="sm">
@@ -323,11 +312,11 @@ export default async function PerfilPage() {
                 Detalles de mi plan
               </Link>
             </Button>
-            {tier !== 'enterprise' && (
+            {planId !== 'organizaciones' && (
               <Button asChild size="sm" variant="glow">
-                <Link href="/pricing">
+                <Link href="/cuenta/suscripcion#cambiar-de-plan">
                   <ArrowUpRight className="h-3.5 w-3.5" />
-                  {tier === 'free_trial' ? 'Elegir un plan' : 'Mejorar'}
+                  {planId === 'prueba' ? 'Elegir un plan' : 'Mejorar'}
                 </Link>
               </Button>
             )}

@@ -3,68 +3,39 @@ import { createClient } from '@/lib/supabase/server';
 import { AppShell, type ResumenDePlan } from '@/components/app/app-shell';
 import { SurveyPromptModal } from '@/components/app/surveys/survey-prompt-modal';
 import { WidgetDeAyuda } from '@/components/soporte/ayuda/widget-de-ayuda';
-import { getMonthlyUsage } from '@/lib/billing/feature-gate';
-import { getTier, type FeatureKey } from '@/lib/billing/tiers';
-import type { SubscriptionTier } from '@/lib/auth/session';
+import { bolsaDelUsuario } from '@/lib/billing/creditos';
+import { resumenDeTarjeta } from '@/lib/billing/resumen-de-tarjeta';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * El resumen del plan que pinta la barra lateral.
  *
- * Antes mostraba solo la cuota más cerca de agotarse. En un plan con
- * chat, generadores y evaluador ilimitados, esa era siempre la de
- * minutos de voz: la tarjeta decía «0 / 120 minutos de llamada» aunque
- * César hubiera usado A-LexIA todo el mes (27/09/2026). Ahora muestra
- * el consumo de las tres acciones —Consultar, Generar, Evaluar—, con su
- * tope cuando lo hay.
+ * Con los planes de créditos (documento «PLANES DE A-LEXIA» de César,
+ * 17/10/2026) ya no hay una cuota por acción: hay una bolsa de créditos
+ * del mes, más las recargas, que comparten todas las herramientas. La
+ * tarjeta enseña esa bolsa —la del equipo si el usuario es de uno— y
+ * cuándo se renueva.
  */
-async function resumirElPlan(
-  userId: string,
-  tier: SubscriptionTier,
-  finDePeriodo: string | null,
-): Promise<ResumenDePlan> {
-  const plan = getTier(tier);
-  let medidores: ResumenDePlan['medidores'] = null;
-  const tope = (clave: FeatureKey) => {
-    const t = plan.quotas[clave];
-    return Number.isFinite(t) ? t : null;
-  };
-
+async function resumirElPlan(userId: string): Promise<ResumenDePlan | null> {
   try {
-    const consumo = await getMonthlyUsage(userId);
-    const topeVoz = tope('voice_call_minute');
-    medidores = [
-      {
-        accion: 'Consultar',
-        usado: consumo.chat_message,
-        tope: tope('chat_message'),
-        unidad: 'consultas',
-        detalle:
-          topeVoz === 0
-            ? undefined
-            : `${consumo.voice_call_minute}${topeVoz ? ` de ${topeVoz}` : ''} min de voz`,
-      },
-      { accion: 'Generar', usado: consumo.generator_call, tope: tope('generator_call'), unidad: 'documentos' },
-      { accion: 'Evaluar', usado: consumo.evaluation_run, tope: tope('evaluation_run'), unidad: 'evaluaciones' },
-    ];
+    const e = await bolsaDelUsuario(userId);
+    return resumenDeTarjeta({
+      plan: e.plan,
+      equipo: e.equipo,
+      creditosMes: e.bolsa.creditos_mes,
+      delMes: e.delMes,
+      recargas: e.recargas,
+      disponibles: e.disponibles,
+      renovacion: e.renovacion,
+      venceAt: e.bolsa.vence_at,
+      vencido: e.vencido,
+    });
   } catch {
-    // Si el consumo no se puede leer, la tarjeta se queda sin barras
-    // antes que mostrar un número inventado.
-    medidores = null;
+    // Si la bolsa no se puede leer, la tarjeta no se pinta antes que
+    // mostrar un saldo inventado.
+    return null;
   }
-
-  return {
-    etiqueta: plan.label,
-    medidores,
-    renovacion: finDePeriodo
-      ? new Date(finDePeriodo).toLocaleDateString('es-PE', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-        })
-      : null,
-  };
 }
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -77,23 +48,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect('/login');
   }
 
-  const [{ data: profile }, { data: suscripcion }] = await Promise.all([
+  const [{ data: profile }, plan] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
-    supabase
-      .from('subscriptions')
-      .select('tier, status, trial_ends_at, current_period_end')
-      .eq('user_id', user.id)
-      .maybeSingle(),
+    resumirElPlan(user.id),
   ]);
-
-  const tier = (suscripcion?.tier as SubscriptionTier | undefined) || 'free_trial';
-  const plan = await resumirElPlan(
-    user.id,
-    tier,
-    (suscripcion?.current_period_end as string | null) ??
-      (suscripcion?.trial_ends_at as string | null) ??
-      null,
-  );
 
   return (
     <AppShell

@@ -320,8 +320,8 @@ export function OnboardingWizard({ next, defaultFullName }: Props) {
                   Esto es lo que vas a tener
                 </h1>
                 <p className="text-muted-foreground">
-                  Acceso completo durante 30 días sin pedir tarjeta. Después
-                  eliges el plan que mejor te calce.
+                  Empiezas con la Prueba A-LexIA, sin tarjeta. Después eliges
+                  el plan que mejor te calce.
                 </p>
               </div>
 
@@ -335,11 +335,11 @@ export function OnboardingWizard({ next, defaultFullName }: Props) {
                 <Sparkles className="h-5 w-5 text-brand-600 dark:text-brand-400 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-semibold">
-                    Tu prueba gratuita ya está activa
+                    Tu Prueba A-LexIA ya está activa
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    30 días con acceso ilimitado. Sin cobros automáticos cuando
-                    expire — tú decides si quieres seguir.
+                    20 preguntas por texto o 30 días, lo que ocurra primero, una
+                    sola vez. Sin cobros automáticos: tú decides si quieres seguir.
                   </p>
                 </div>
               </div>

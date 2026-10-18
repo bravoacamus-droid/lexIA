@@ -15,11 +15,14 @@ import {
   Lock,
   PhoneCall,
   Inbox,
+  Coins,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ROLE_LABELS } from '@/lib/navigation/menu-by-role';
 import type { ProfileRole } from '@/lib/auth/session';
 import { saludDelActualizador } from '@/lib/scraping/salud';
+import { listarCuentas } from '@/lib/billing/gestion';
+import { PLANES, planDelCatalogo } from '@/lib/billing/catalogo';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Panel administrador' };
@@ -71,7 +74,7 @@ export default async function AdminPage() {
   // Métricas globales (todo en paralelo)
   const [
     profilesRes,
-    subsRes,
+    cuentas,
     chatRes,
     docsRes,
     evalsRes,
@@ -87,9 +90,9 @@ export default async function AdminPage() {
       )
       .order('created_at', { ascending: false })
       .limit(100),
-    admin
-      .from('subscriptions')
-      .select('user_id, tier, status, trial_ends_at'),
+    // Planes con créditos (migración 0086): el plan efectivo de cada
+    // usuario, el de su equipo si es de uno.
+    listarCuentas(),
     admin.from('chat_messages').select('id', { count: 'exact', head: true }).eq('role', 'user'),
     admin
       .from('generated_documents')
@@ -130,16 +133,9 @@ export default async function AdminPage() {
     is_admin: boolean;
     created_at: string;
   };
-  type Sub = {
-    user_id: string;
-    tier: 'free_trial' | 'starter' | 'pro' | 'enterprise';
-    status: 'trialing' | 'active' | 'past_due' | 'canceled';
-    trial_ends_at: string | null;
-  };
 
   const profiles = (profilesRes.data || []) as Profile[];
-  const subs = (subsRes.data || []) as Sub[];
-  const subByUser = new Map(subs.map((s) => [s.user_id, s]));
+  const cuentaDe = new Map(cuentas.map((c) => [c.id, c]));
 
   // Stats agregadas
   const totalUsers = profiles.length;
@@ -148,11 +144,13 @@ export default async function AdminPage() {
   for (const p of profiles) {
     if (p.profile_role) byRole[p.profile_role] = (byRole[p.profile_role] || 0) + 1;
   }
-  const tierCounts = { free_trial: 0, starter: 0, pro: 0, enterprise: 0 };
-  const statusCounts = { trialing: 0, active: 0, past_due: 0, canceled: 0 };
-  for (const s of subs) {
-    tierCounts[s.tier] = (tierCounts[s.tier] || 0) + 1;
-    statusCounts[s.status] = (statusCounts[s.status] || 0) + 1;
+  const porPlan: Record<string, number> = {};
+  let suspendidas = 0;
+  let vencidas = 0;
+  for (const c of cuentas) {
+    porPlan[c.plan ?? 'sin'] = (porPlan[c.plan ?? 'sin'] ?? 0) + 1;
+    if (c.estado === 'suspendido') suspendidas++;
+    else if (c.venceAt && new Date(c.venceAt).getTime() <= Date.now()) vencidas++;
   }
 
   return (
@@ -246,26 +244,25 @@ export default async function AdminPage() {
           <h2 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground mb-4">
             Distribución por plan
           </h2>
-          <div className="grid grid-cols-2 gap-3">
-            {(['free_trial', 'starter', 'pro', 'enterprise'] as const).map((t) => (
-              <div
-                key={t}
-                className="rounded-lg border border-border p-3"
-              >
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {PLANES.map((p) => (
+              <div key={p.id} className="rounded-lg border border-border p-3">
                 <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
-                  {t === 'free_trial' ? 'Trial' : t}
+                  {p.nombre}
                 </p>
                 <p className="font-mono text-xl font-semibold tabular-nums mt-0.5">
-                  {tierCounts[t] || 0}
+                  {porPlan[p.id] || 0}
                 </p>
               </div>
             ))}
           </div>
-          <div className="mt-4 flex flex-wrap gap-1.5">
-            <Badge variant="default">Trialing: {statusCounts.trialing || 0}</Badge>
-            <Badge variant="success">Activas: {statusCounts.active || 0}</Badge>
-            <Badge variant="warning">Past due: {statusCounts.past_due || 0}</Badge>
-            <Badge variant="secondary">Canceladas: {statusCounts.canceled || 0}</Badge>
+          <div className="mt-4 flex flex-wrap items-center gap-1.5">
+            {(porPlan.sin ?? 0) > 0 && <Badge variant="secondary">Sin bolsa aún: {porPlan.sin}</Badge>}
+            <Badge variant="warning">Vencidas: {vencidas}</Badge>
+            <Badge variant="danger">Suspendidas: {suspendidas}</Badge>
+            <Link href="/admin/planes" className="ml-auto text-xs font-medium text-brand-600 hover:underline dark:text-brand-400">
+              Gestionar planes →
+            </Link>
           </div>
         </Card>
       </div>
@@ -309,7 +306,7 @@ export default async function AdminPage() {
               </thead>
               <tbody>
                 {profiles.map((p) => {
-                  const sub = subByUser.get(p.id);
+                  const cuenta = cuentaDe.get(p.id);
                   return (
                     <tr
                       key={p.id}
@@ -346,38 +343,34 @@ export default async function AdminPage() {
                         )}
                       </td>
                       <td className="p-3">
-                        {sub ? (
+                        {cuenta?.plan ? (
                           <Badge
-                            variant={
-                              sub.tier === 'pro' || sub.tier === 'enterprise'
-                                ? 'success'
-                                : sub.tier === 'starter'
-                                  ? 'default'
-                                  : 'secondary'
-                            }
+                            variant={cuenta.plan === 'prueba' ? 'secondary' : 'success'}
                             className="text-[10px]"
                           >
-                            {sub.tier === 'free_trial' ? 'Trial' : sub.tier}
+                            {planDelCatalogo(cuenta.plan).nombre}
                           </Badge>
                         ) : (
-                          <span className="text-muted-foreground text-xs">sin sub</span>
+                          <span className="text-muted-foreground text-xs">sin bolsa</span>
                         )}
                       </td>
                       <td className="p-3">
-                        {sub ? (
+                        {cuenta?.plan ? (
                           <Badge
                             variant={
-                              sub.status === 'active'
-                                ? 'success'
-                                : sub.status === 'trialing'
-                                  ? 'default'
-                                  : sub.status === 'past_due'
-                                    ? 'warning'
-                                    : 'secondary'
+                              cuenta.estado === 'suspendido'
+                                ? 'danger'
+                                : cuenta.venceAt && new Date(cuenta.venceAt).getTime() <= Date.now()
+                                  ? 'warning'
+                                  : 'default'
                             }
                             className="text-[10px]"
                           >
-                            {sub.status}
+                            {cuenta.estado === 'suspendido'
+                              ? 'suspendido'
+                              : cuenta.venceAt && new Date(cuenta.venceAt).getTime() <= Date.now()
+                                ? 'vencido'
+                                : `${cuenta.disponibles.toLocaleString('es-PE')} créditos`}
                           </Badge>
                         ) : (
                           '—'
@@ -426,6 +419,18 @@ export default async function AdminPage() {
               {(soporteRes.count || 0) > 0
                 ? `● ${soporteRes.count} por responder`
                 : '● Todo al día'}
+            </p>
+          </Link>
+          <Link
+            href="/admin/planes"
+            className="group rounded-xl border border-border bg-card p-5 hover:border-brand-400 hover:shadow-md hover:-translate-y-0.5 transition-all"
+          >
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 mb-3">
+              <Coins className="h-4 w-4" />
+            </span>
+            <h3 className="font-semibold text-base mb-1">Planes y créditos</h3>
+            <p className="text-xs text-muted-foreground">
+              Activa los planes y recargas pedidos por WhatsApp, y suspende cuentas.
             </p>
           </Link>
           <Link

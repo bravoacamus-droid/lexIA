@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { ensureCanUse } from '@/lib/billing/feature-gate';
+import { respuestaDeRechazo, usarHerramienta } from '@/lib/billing/creditos';
 import { ORDEN_ACTUACIONES } from '@/lib/ejecucion/catalogo';
 import { perfilPermitido, sesion } from '@/lib/ejecucion/api';
 
@@ -39,8 +39,10 @@ export async function GET() {
 export async function POST(req: Request) {
   const s = await sesion();
   if ('error' in s) return s.error;
-  const guard = await ensureCanUse(s.user.id, 'generator_call');
-  if (!guard.ok) return NextResponse.json(guard.body, { status: guard.status });
+  // Abrir un expediente no cuesta: se cobra cada documento redactado.
+  // Pero solo se abre si el plan incluye la ejecución contractual.
+  const guard = await usarHerramienta(s.user.id, 'documentos_ejecucion', { soloComprobar: true });
+  if (!guard.ok) return respuestaDeRechazo(guard);
 
   const p = Crear.safeParse(await req.json().catch(() => null));
   if (!p.success) return NextResponse.json({ error: 'invalid_payload', detail: p.error.flatten() }, { status: 400 });

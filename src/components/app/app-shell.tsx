@@ -7,6 +7,7 @@ import { BarraInferiorMovil } from '@/components/app/barra-inferior-movil';
 import { CommandPalette } from '@/components/app/command-palette';
 import { NavProgress } from '@/components/app/nav-progress';
 import { useUiStore } from '@/lib/stores/ui';
+import type { ResumenDePlan } from '@/lib/billing/resumen-de-tarjeta';
 
 export interface AppUser {
   id: string;
@@ -21,26 +22,11 @@ export interface AppUser {
 /**
  * Lo que la barra lateral necesita saber del plan. Se calcula en el
  * layout (servidor) y baja como propiedad: la barra es un componente de
- * cliente y no puede consultar la base.
+ * cliente y no puede consultar la base. La forma vive en
+ * `resumen-de-tarjeta.ts` porque la tarjeta también la recalcula sola
+ * cuando el saldo cambia.
  */
-/** El consumo del mes de una de las tres acciones de A-LexIA. */
-export interface MedidorDeAccion {
-  accion: 'Consultar' | 'Generar' | 'Evaluar';
-  usado: number;
-  /** `null` = sin límite; `0` = no incluido en el plan. */
-  tope: number | null;
-  unidad: string;
-  /** Una línea más, p. ej. los minutos de voz dentro de Consultar. */
-  detalle?: string;
-}
-
-export interface ResumenDePlan {
-  etiqueta: string;
-  /** Consultar, Generar y Evaluar, en ese orden. `null` si no se pudo leer. */
-  medidores: MedidorDeAccion[] | null;
-  /** Fecha de renovación ya formateada, o `null` si no aplica. */
-  renovacion: string | null;
-}
+export type { ResumenDePlan } from '@/lib/billing/resumen-de-tarjeta';
 
 interface Props {
   user: AppUser;

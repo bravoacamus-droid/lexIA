@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
+import { respuestaDeRechazo, usarHerramienta } from '@/lib/billing/creditos';
 import { redactarAbsolucion, redactarFormulacion } from '@/lib/consultas/redactor';
 import type { Formulacion, Tramo } from '@/lib/consultas/tipos';
 
@@ -58,8 +58,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   }
   const p = leido.data;
 
-  const puerta = await ensureCanUse(user.id, 'generator_call');
-  if (!puerta.ok) return NextResponse.json(puerta.body, { status: puerta.status });
+  // Formular es del plan Profesional; absolver, de Especialista. Se
+  // comprueba aquí y se cobra solo si la redacción sale.
+  const herramienta = p.que === 'formulacion' ? 'formulacion_consultas' : 'absolucion_consultas';
+  const puerta = await usarHerramienta(user.id, herramienta, { soloComprobar: true });
+  if (!puerta.ok) return respuestaDeRechazo(puerta);
 
   const { data } = await supabase
     .from('entradas_consulta')
@@ -106,7 +109,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
           avisos_formulacion: salida.avisos,
         } as never)
         .eq('id', fila.id);
-      await recordUsage(user.id, 'generator_call');
+      await usarHerramienta(user.id, herramienta, { detalle: `entrada ${fila.numero ?? fila.id}` });
       return NextResponse.json(salida);
     }
 
@@ -147,7 +150,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         avisos_absolucion: salida.avisos,
       } as never)
       .eq('id', fila.id);
-    await recordUsage(user.id, 'generator_call');
+    await usarHerramienta(user.id, herramienta, { detalle: `entrada ${fila.numero ?? fila.id}` });
     return NextResponse.json(salida);
   } catch (e) {
     return NextResponse.json(

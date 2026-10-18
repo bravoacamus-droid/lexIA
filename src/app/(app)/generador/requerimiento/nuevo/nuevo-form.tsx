@@ -34,6 +34,8 @@ import {
   type SubtipoRequerimiento,
 } from '@/lib/requerimientos/subtipos';
 import { cn } from '@/lib/utils';
+import { LineaDeConsumo } from '@/components/app/billing/consumo-estimado';
+import { avisoDePlan, creditosCambiaron } from '@/lib/billing/aviso-de-plan';
 
 /**
  * Wizard de 2 pasos:
@@ -130,8 +132,13 @@ export function NuevoRequerimientoForm() {
       });
       const json = await res.json();
       if (!res.ok) {
+        if (avisoDePlan(json)) {
+          setSubmitting(false);
+          return;
+        }
         throw new Error(json?.message || json?.error || 'No se pudo crear');
       }
+      creditosCambiaron();
       toast.success(
         templateId
           ? 'Requerimiento creado con plantilla aplicada'
@@ -575,6 +582,15 @@ function Step2Datos({
           maxLength={500}
         />
       </div>
+
+      {/* Lo mismo que decide el servidor: los subtipos «menor_» son de
+          contrato menor (plan Consulta); los demás, de selección. */}
+      <LineaDeConsumo
+        estimacion={{
+          herramienta: meta.key.startsWith('menor_') ? 'requerimiento_menor' : 'requerimiento_seleccion',
+          que: 'Este requerimiento',
+        }}
+      />
 
       <div className="flex justify-between pt-2">
         <Button onClick={onBack} variant="ghost">

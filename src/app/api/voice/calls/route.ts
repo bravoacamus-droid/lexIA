@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { DISCLAIMER_VERSION, REGIMEN_DE_VOZ, VOZ_PREDETERMINADA } from '@/lib/ai/voice-config';
-import { ensureCanUse } from '@/lib/billing/feature-gate';
+import { respuestaDeRechazo, usarHerramienta } from '@/lib/billing/creditos';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -40,11 +40,10 @@ export async function POST(req: Request) {
     );
   }
 
-  // Feature gate: ¿el plan del usuario incluye llamadas y tiene cuota?
-  const guard = await ensureCanUse(user.id, 'voice_call_minute');
-  if (!guard.ok) {
-    return NextResponse.json(guard.body, { status: guard.status });
-  }
+  // ¿El plan incluye la voz (desde Especialista) y alcanza al menos para
+  // un minuto? Los minutos se cobran al cerrar la llamada.
+  const guard = await usarHerramienta(user.id, 'consulta_voz', { soloComprobar: true });
+  if (!guard.ok) return respuestaDeRechazo(guard);
 
   // Verificar consentimiento vigente
   const { data: consent } = await supabase

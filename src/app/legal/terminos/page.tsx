@@ -39,13 +39,23 @@ export default function TerminosPage() {
         la seguridad de tu cuenta y de la información que cargues en ella.
       </p>
 
-      <h2>5. Prueba gratuita y suscripciones</h2>
+      <h2>5. Prueba gratuita, planes y créditos</h2>
       <p>
-        Ofrecemos 30 días de prueba sin tarjeta de crédito. Al término del
-        periodo de prueba, podrás continuar contratando un plan pago. Los planes
-        se procesan vía Culqi y se facturan en soles peruanos. Puedes cancelar
-        en cualquier momento; conservarás el acceso hasta el fin del periodo
-        pagado.
+        Cada usuario puede usar una sola vez la Prueba A-LexIA, sin tarjeta de
+        crédito: incluye 20 preguntas por texto o 30 días, lo que ocurra
+        primero. Al terminar no se cobra nada; para seguir usando la Plataforma
+        puedes contratar un plan.
+      </p>
+      <p>
+        Cada plan habilita un conjunto de herramientas y una bolsa mensual de
+        créditos, que se descuentan según la herramienta usada y se renuevan
+        cada mes mientras el plan esté vigente; los créditos del mes no
+        utilizados no se acumulan. Puedes comprar recargas de créditos
+        adicionales. En los planes de equipo, la bolsa de créditos es
+        compartida por sus usuarios. Los planes y las recargas se contratan a
+        través de nuestro canal comercial y se facturan en soles peruanos; el
+        plan anual cubre 12 meses y se paga por adelantado. Conservarás el
+        acceso hasta el fin del periodo pagado.
       </p>
 
       <h2>6. Uso aceptable</h2>

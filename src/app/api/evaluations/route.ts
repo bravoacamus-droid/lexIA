@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
+import { respuestaDeRechazo, usarHerramienta, type Herramienta } from '@/lib/billing/creditos';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -21,6 +21,10 @@ const createSchema = z
       .enum(['committee', 'self_review', 'tdr_audit', 'bases_audit'])
       .optional()
       .default('committee'),
+    // Revisión de un requerimiento: si es de un contrato menor (≤ 8 UIT)
+    // entra en el plan Consulta; si es de un procedimiento de selección,
+    // desde Profesional. Sin el dato, se trata como de selección.
+    regimen: z.enum(['menor_8uit', 'seleccion']).optional(),
   })
   .refine(
     (v) =>
@@ -66,11 +70,20 @@ export async function POST(req: Request) {
     );
   }
 
-  // Feature gate: 1 evaluación consume 1 unidad de la cuota mensual.
-  const guard = await ensureCanUse(user.id, 'evaluation_run');
-  if (!guard.ok) {
-    return NextResponse.json(guard.body, { status: guard.status });
-  }
+  // Créditos según la herramienta: ofertas (por oferta), bases o
+  // requerimiento. Se cobra al crear la evaluación.
+  const modo = parsed.data.mode;
+  const herramienta: Herramienta =
+    modo === 'bases_audit'
+      ? 'evaluacion_bases'
+      : modo === 'tdr_audit'
+        ? parsed.data.regimen === 'menor_8uit'
+          ? 'evaluacion_requerimiento_menor'
+          : 'evaluacion_requerimiento_seleccion'
+        : 'evaluacion_ofertas';
+  const unidades = herramienta === 'evaluacion_ofertas' ? parsed.data.offer_files?.length ?? 1 : 1;
+  const guard = await usarHerramienta(user.id, herramienta, { unidades, soloComprobar: true });
+  if (!guard.ok) return respuestaDeRechazo(guard);
 
   const { data, error } = await supabase
     .from('evaluations')
@@ -87,6 +100,6 @@ export async function POST(req: Request) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  await recordUsage(user.id, 'evaluation_run');
+  await usarHerramienta(user.id, herramienta, { unidades, detalle: parsed.data.title.slice(0, 120) });
   return NextResponse.json({ evaluation: data });
 }

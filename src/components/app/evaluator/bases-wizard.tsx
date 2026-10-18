@@ -14,6 +14,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PdfDropzone } from '@/components/app/evaluator/pdf-dropzone';
 import { Processing } from '@/components/app/evaluator/processing';
+import { useConfirmarConsumo } from '@/components/app/billing/consumo-estimado';
+import { avisoDePlan, creditosCambiaron } from '@/lib/billing/aviso-de-plan';
 
 interface Subido {
   name: string;
@@ -35,9 +37,11 @@ export function BasesWizard() {
   const [archivo, setArchivo] = useState<Subido | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [procesando, setProcesando] = useState(false);
+  const { confirmar, dialogo } = useConfirmarConsumo();
 
   async function empezar() {
     if (!archivo || titulo.trim().length < 3) return;
+    if (!(await confirmar({ herramienta: 'evaluacion_bases', que: 'Esta evaluación de bases' }))) return;
     setEnviando(true);
     try {
       const res = await fetch('/api/evaluations', {
@@ -46,7 +50,14 @@ export function BasesWizard() {
         body: JSON.stringify({ title: titulo.trim(), bases_file_path: archivo.path, offer_files: [], mode: 'bases_audit' }),
       });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(j.error || 'No se pudo crear la evaluación');
+      if (!res.ok) {
+        if (avisoDePlan(j)) {
+          setEnviando(false);
+          return;
+        }
+        throw new Error(j.message || j.error || 'No se pudo crear la evaluación');
+      }
+      creditosCambiaron();
       const id = j.evaluation.id as string;
       setProcesando(true);
       fetch(`/api/evaluations/${id}/process`, { method: 'POST' }).catch(() => null);
@@ -69,6 +80,8 @@ export function BasesWizard() {
   }
 
   return (
+    <>
+    {dialogo}
     <AnimatePresence mode="wait">
       {procesando ? (
         <motion.div key="procesando" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -139,5 +152,6 @@ export function BasesWizard() {
         </motion.div>
       )}
     </AnimatePresence>
+    </>
   );
 }

@@ -29,10 +29,10 @@ export function LoginCard() {
 
         <div className="mt-6 rounded-lg bg-slate-50 border border-slate-200 px-4 py-3 text-center">
           <p className="text-xs font-semibold text-slate-900">
-            Prueba gratuita de 30 días
+            Prueba A-LexIA gratis
           </p>
           <p className="mt-0.5 text-[11px] text-slate-500">
-            Sin tarjeta de crédito · Acceso completo a la plataforma
+            20 preguntas o 30 días, lo que ocurra primero · Sin tarjeta · Una sola vez
           </p>
         </div>
 

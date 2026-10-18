@@ -14,7 +14,7 @@ import {
   type GeneratorPerfil,
 } from '@/lib/ai/generator-perfiles';
 import { recordAiUsage } from '@/lib/ai/usage-log';
-import { ensureCanUse, recordUsage } from '@/lib/billing/feature-gate';
+import { respuestaDeRechazo, usarHerramienta } from '@/lib/billing/creditos';
 import type { NormativeDocType } from '@/lib/supabase/types';
 
 export const runtime = 'nodejs';
@@ -96,9 +96,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 
-  // Gate de cuota (cuenta como una generación)
-  const guard = await ensureCanUse(user.id, 'generator_call');
-  if (!guard.ok) return NextResponse.json(guard.body, { status: guard.status });
+  // El primer mensaje de la conversación es el documento (20 créditos);
+  // las repreguntas para ajustarlo, como una consulta (1).
+  const turnos = messages.filter((m) => m.role === 'user').length;
+  const creditosDelTurno = turnos <= 1 ? undefined : 1;
+  const guard = await usarHerramienta(user.id, 'documentos_ejecucion', { soloComprobar: true, creditos: creditosDelTurno });
+  if (!guard.ok) return respuestaDeRechazo(guard);
 
   const lastUser = [...messages].reverse().find((m) => m.role === 'user');
   if (!lastUser) {
@@ -106,7 +109,10 @@ export async function POST(req: Request) {
   }
   // Se comprobaba la cuota pero nunca se descontaba: el consumo de
   // «Generar» no avanzaba (César, 27/09/2026).
-  await recordUsage(user.id, 'generator_call');
+  await usarHerramienta(user.id, 'documentos_ejecucion', {
+    creditos: creditosDelTurno,
+    detalle: turnos <= 1 ? 'documento nuevo' : 'repregunta',
+  });
 
   // Cargar files adjuntos vigentes de esta conversación (los ya subidos
   // a Gemini Files API por el endpoint POST /api/generator-chat/[id]/files).

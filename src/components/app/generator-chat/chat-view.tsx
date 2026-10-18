@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useChat } from 'ai/react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { avisoDesdeError, creditosCambiaron } from '@/lib/billing/aviso-de-plan';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { normalizarMarkdownModelo } from '@/lib/markdown/normalizar-modelo';
@@ -112,12 +113,15 @@ export function GeneratorChatView({
     streamProtocol: 'data',
     onError(err) {
       console.error('Generator chat error', err);
+      // 402 de plan: el aviso dice qué pasó y ofrece recargar o mejorar.
+      if (avisoDesdeError(err)) return;
       toast.error('Error generando la respuesta', {
         description: (err as Error).message?.slice(0, 200),
       });
     },
     onFinish: async (message) => {
       if (message.role !== 'assistant') return;
+      creditosCambiaron();
       // Polling con backoff: el backend inserta el mensaje en su
       // onFinish, que puede terminar después que el streaming del
       // cliente. Reintentamos hasta 3 veces con 300ms/800ms/1500ms.

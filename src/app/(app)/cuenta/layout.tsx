@@ -25,7 +25,7 @@ const NAV: NavItem[] = [
     label: 'Suscripción',
     href: '/cuenta/suscripcion',
     icon: CreditCard,
-    description: 'Plan vigente, consumo y facturación.',
+    description: 'Plan, créditos, recargas y equipo.',
     color: 'text-emerald-600 dark:text-emerald-400',
     bg: 'bg-emerald-50 dark:bg-emerald-950/40',
   },

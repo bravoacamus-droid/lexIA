@@ -1,0 +1,1959 @@
+/*
+ * Página pública de A-LexIA: la propuesta de César (octubre 2026), tal cual.
+ *
+ * Este archivo es el styles.css de su prototipo con cada selector puesto
+ * debajo de `.landing-cesar`. El prototipo se escribió contra los estilos
+ * por defecto del navegador; la aplicación, en cambio, carga el «preflight»
+ * de Tailwind y globals.css, que dejan los títulos sin negrita, los párrafos
+ * sin margen y los svg en bloque. Aislarlo bajo un contenedor evita que sus
+ * reglas (h1, header, footer, dialog…) se derramen sobre la aplicación y,
+ * con el bloque de abajo, devuelve lo que el preflight le quitó.
+ *
+ * Si César manda una versión nueva de su styles.css, regenerarla igual:
+ * anteponer `.landing-cesar ` a cada selector (`:root` y `body` pasan a ser
+ * el propio contenedor, `html` pasa a `html:has(.landing-cesar)`).
+ */
+
+/* Lo que el navegador daba por defecto y el preflight de Tailwind borra.
+   Va con :where() para no ganarle a ninguna regla de la propuesta. */
+.landing-cesar :where(h1, h2, h3, h4, h5, h6) {
+  font-weight: bold;
+}
+.landing-cesar :where(h1) {
+  font-size: 2em;
+  margin: 0.67em 0;
+}
+.landing-cesar :where(h2) {
+  font-size: 1.5em;
+  margin: 0.83em 0;
+}
+.landing-cesar :where(h3) {
+  font-size: 1.17em;
+  margin: 1em 0;
+}
+.landing-cesar :where(h4) {
+  font-size: 1em;
+  margin: 1.33em 0;
+}
+.landing-cesar :where(p) {
+  margin: 1em 0;
+}
+.landing-cesar :where(ul) {
+  list-style: disc;
+  margin: 1em 0;
+  padding-left: 40px;
+}
+.landing-cesar :where(svg, img) {
+  display: inline;
+  vertical-align: baseline;
+}
+.landing-cesar :where(button) {
+  padding: 1px 6px;
+}
+.landing-cesar :where(input, textarea)::placeholder {
+  color: #757575;
+  opacity: 1;
+}
+.landing-cesar {
+  /* globals.css activa variantes tipográficas pensadas para Plus Jakarta;
+     con Segoe UI cambian la forma de algunas letras. */
+  font-feature-settings: normal;
+  /* Sin contexto de apilamiento propio, el fondo blanco del contenedor
+     taparía el círculo celeste del hero (z-index: -1). */
+  isolation: isolate;
+  min-height: 100vh;
+}
+
+/* ───── styles.css de la propuesta ───── */
+.landing-cesar {
+  --navy: #061a4d;
+  --blue: #0755d9;
+  --cyan: #05cff5;
+  --pale: #eef7ff;
+  --text: #52617b;
+  --line: #dce5f1;
+  --white: #fff;
+  --radius: 20px;
+}
+.landing-cesar * {
+  box-sizing: border-box;
+}
+html:has(.landing-cesar) {
+  scroll-behavior: smooth;
+  scroll-padding-top: 90px;
+}
+.landing-cesar {
+  margin: 0;
+  color: var(--navy);
+  font: 16px/1.6 "Segoe UI",Arial,sans-serif;
+  background: #fff;
+}
+.landing-cesar button,
+.landing-cesar input,
+.landing-cesar select {
+  font: inherit;
+}
+.landing-cesar button,
+.landing-cesar a {
+  -webkit-tap-highlight-color: transparent;
+}
+.landing-cesar button {
+  cursor: pointer;
+}
+.landing-cesar a {
+  color: inherit;
+  text-decoration: none;
+}
+.landing-cesar button:focus-visible,
+.landing-cesar a:focus-visible,
+.landing-cesar summary:focus-visible,
+.landing-cesar select:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 4px;
+}
+.landing-cesar svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+.landing-cesar .svg-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+.landing-cesar header {
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 0 max(5vw,24px);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  background: #fffffff5;
+  z-index: 20;
+  backdrop-filter: blur(12px);
+}
+.landing-cesar .brand img {
+  display: block;
+  width: 175px;
+}
+.landing-cesar nav {
+  display: flex;
+  gap: 30px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.landing-cesar nav a:hover,
+.landing-cesar .login:hover {
+  color: var(--blue);
+}
+.landing-cesar .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.landing-cesar .login {
+  font-size: 13px;
+}
+.landing-cesar .btn {
+  border: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 23px;
+  border-radius: 10px;
+  background: var(--blue);
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  transition: transform .18s,background .18s;
+  line-height: 1.5;
+}
+.landing-cesar .btn:hover {
+  background: #0645ad;
+  transform: translateY(-2px);
+}
+.landing-cesar .btn.small {
+  padding: 10px 15px;
+  font-size: 13px;
+}
+.landing-cesar .btn.secondary {
+  background: white;
+  border: 1px solid var(--line);
+  color: var(--navy);
+}
+.landing-cesar .btn.secondary:hover {
+  background: var(--pale);
+}
+.landing-cesar .menu-toggle {
+  display: none;
+  background: none;
+  border: 0;
+  font-size: 26px;
+}
+.landing-cesar .hero {
+  max-width: 1260px;
+  margin: auto;
+  padding: 85px 40px 90px;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 70px;
+  align-items: center;
+}
+.landing-cesar .eyebrow {
+  font-size: 11px;
+  letter-spacing: 1.6px;
+  font-weight: 800;
+  color: var(--blue);
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  text-transform: uppercase;
+}
+.landing-cesar .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--blue);
+}
+.landing-cesar h1 {
+  font-size: clamp(42px,4.6vw,66px);
+  line-height: 1.08;
+  letter-spacing: -2.5px;
+  margin: 24px 0;
+}
+.landing-cesar h1 span {
+  color: var(--blue);
+}
+.landing-cesar .lead {
+  font-size: 18px;
+  color: var(--text);
+  max-width: 500px;
+  line-height: 1.75;
+}
+.landing-cesar .cta-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 28px;
+}
+.landing-cesar .micro {
+  font-size: 12px;
+  color: var(--text);
+  margin-top: 13px;
+}
+.landing-cesar .hero-points {
+  display: flex;
+  gap: 24px;
+  margin-top: 28px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.landing-cesar .hero-points span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.landing-cesar .hero-points svg {
+  color: var(--blue);
+  width: 18px;
+}
+.landing-cesar .hero-visual {
+  position: relative;
+  padding: 10px 0 25px;
+}
+.landing-cesar .orb {
+  position: absolute;
+  border-radius: 50%;
+  background: linear-gradient(145deg,#eef7ff,#c9efff);
+  width: 400px;
+  height: 400px;
+  right: -28px;
+  top: -5px;
+  z-index: -1;
+}
+.landing-cesar .workspace {
+  border: 1px solid #cbd9ee;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 28px 70px #061a4d12;
+  transform: rotate(-1.2deg);
+  overflow: hidden;
+}
+.landing-cesar .workspace-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f6f9fe;
+  padding: 16px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  border-bottom: 1px solid var(--line);
+}
+.landing-cesar .mini-mark {
+  display: grid;
+  place-items: center;
+  color: white;
+  background: var(--blue);
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+}
+.landing-cesar .example-pill {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text);
+  margin-left: auto;
+}
+.landing-cesar .workspace-tabs {
+  display: flex;
+  gap: 24px;
+  padding: 17px 25px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+.landing-cesar .workspace-tabs>* {
+  padding-bottom: 14px;
+}
+.landing-cesar .workspace-tabs b {
+  color: var(--blue);
+  border-bottom: 2px solid var(--blue);
+}
+.landing-cesar .workspace-body {
+  padding: 24px;
+}
+.landing-cesar .doc-heading {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.landing-cesar .icon {
+  display: grid;
+  place-items: center;
+  background: var(--pale);
+  color: var(--blue);
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+}
+.landing-cesar .doc-heading small {
+  font-size: 9px;
+  letter-spacing: 1.1px;
+  color: var(--text);
+}
+.landing-cesar .doc-heading h3 {
+  font-size: 17px;
+  line-height: 1.4;
+  margin: 3px 0;
+}
+.landing-cesar .file-pair {
+  display: flex;
+  gap: 9px;
+  margin: 23px 0;
+}
+.landing-cesar .file-pair span {
+  border: 1px solid var(--line);
+  background: #fbfdff;
+  border-radius: 8px;
+  padding: 9px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+.landing-cesar .file-pair svg {
+  width: 16px;
+  color: var(--blue);
+}
+.landing-cesar .check-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 13px 0;
+  border-top: 1px solid #edf1f7;
+}
+.landing-cesar .check-circle {
+  border-radius: 50%;
+  color: var(--blue);
+  background: #e6f5ff;
+  display: grid;
+  place-items: center;
+  width: 23px;
+  height: 23px;
+  font-size: 13px;
+}
+.landing-cesar .check-row b {
+  display: block;
+  font-size: 13px;
+}
+.landing-cesar .check-row small {
+  color: var(--text);
+  font-size: 11px;
+}
+.landing-cesar .demo-link {
+  border: 0;
+  border-radius: 8px;
+  background: var(--pale);
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 16px;
+  width: 100%;
+  margin-top: 17px;
+}
+.landing-cesar .floating-note {
+  position: absolute;
+  bottom: 0;
+  left: -35px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--navy);
+  color: white;
+  padding: 16px 22px;
+  border-radius: 12px;
+  box-shadow: 0 8px 25px #061a4d22;
+}
+.landing-cesar .floating-note svg {
+  color: var(--cyan);
+}
+.landing-cesar .floating-note b {
+  display: block;
+  font-size: 12px;
+}
+.landing-cesar .floating-note span {
+  font-size: 10px;
+  color: #c6d4ec;
+}
+.landing-cesar .source-strip {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: #f8fbff;
+  text-align: center;
+  padding: 25px 24px;
+}
+.landing-cesar .source-strip>span {
+  font-size: 9px;
+  letter-spacing: 2px;
+  font-weight: 800;
+  color: var(--text);
+}
+.landing-cesar .source-strip div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  font-size: 13px;
+  margin-top: 10px;
+  color: #435775;
+}
+.landing-cesar .source-strip i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #9fb2ce;
+}
+.landing-cesar .section {
+  max-width: 1220px;
+  margin: auto;
+  padding: 84px 40px;
+}
+.landing-cesar .section-head {
+  text-align: center;
+  margin-bottom: 30px;
+}
+.landing-cesar .section-head h2,
+.landing-cesar h2 {
+  font-size: clamp(29px,3.4vw,44px);
+  letter-spacing: -1.3px;
+  line-height: 1.2;
+  margin: 13px 0 17px;
+}
+.landing-cesar .section-head p {
+  color: var(--text);
+  font-size: 15px;
+  max-width: 650px;
+  margin: auto;
+}
+.landing-cesar .function-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 0 auto 25px;
+  padding: 6px;
+  background: #f3f7fc;
+  border-radius: 13px;
+  max-width: 570px;
+}
+.landing-cesar .function-tabs button {
+  border: 0;
+  background: none;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex: 1;
+  padding: 13px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+}
+.landing-cesar .function-tabs [aria-selected=true] {
+  background: white;
+  box-shadow: 0 2px 10px #061a4d0b;
+  color: var(--blue);
+}
+.landing-cesar .module-panel {
+  display: grid;
+  grid-template-columns: .95fr 1.05fr;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  min-height: 310px;
+}
+.landing-cesar .module-copy {
+  padding: 36px;
+  background: var(--pale);
+}
+.landing-cesar .module-copy h3 {
+  font-size: 26px;
+  letter-spacing: -.6px;
+  line-height: 1.3;
+  margin: 14px 0;
+}
+.landing-cesar .module-copy p {
+  color: var(--text);
+  font-size: 14px;
+}
+.landing-cesar .module-list {
+  padding: 20px 30px;
+}
+.landing-cesar .tool-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+.landing-cesar .tool-row:last-child {
+  border-bottom: 0;
+}
+.landing-cesar .tool-row h4 {
+  font-size: 14px;
+  margin: 0 0 4px;
+}
+.landing-cesar .tool-row p {
+  font-size: 12px;
+  color: var(--text);
+  margin: 0;
+}
+.landing-cesar .tool-row button {
+  border: 1px solid var(--line);
+  background: white;
+  padding: 7px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--blue);
+}
+.landing-cesar .audience-section {
+  background: #f8fbff;
+  padding: 65px 40px;
+}
+.landing-cesar .audience-tabs {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 25px;
+}
+.landing-cesar .audience-tabs button {
+  border: 1px solid var(--line);
+  border-radius: 100px;
+  background: white;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.landing-cesar .audience-tabs [aria-selected=true] {
+  color: white;
+  background: var(--navy);
+  border-color: var(--navy);
+}
+.landing-cesar .profile-panel {
+  max-width: 1050px;
+  margin: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  background: white;
+  padding: 35px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.landing-cesar .profile-panel h3 {
+  font-size: 25px;
+  letter-spacing: -.6px;
+  margin: 0 0 13px;
+}
+.landing-cesar .profile-panel p {
+  color: var(--text);
+  font-size: 14px;
+  margin: 0;
+}
+.landing-cesar .profile-panel ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.landing-cesar .profile-panel li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  margin: 13px 0;
+}
+.landing-cesar .profile-panel svg {
+  color: var(--blue);
+  width: 18px;
+}
+.landing-cesar .split {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
+  gap: 70px;
+}
+.landing-cesar .split>p {
+  max-width: 330px;
+  margin: 0;
+}
+.landing-cesar .media-controls {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  align-items: center;
+  margin: 25px 0;
+}
+.landing-cesar .filter-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.landing-cesar .filter-group button {
+  border: 0;
+  border-radius: 100px;
+  padding: 8px 16px;
+  background: #f2f6fc;
+  color: var(--text);
+  font-size: 12px;
+}
+.landing-cesar .filter-group button.active {
+  background: var(--navy);
+  color: white;
+}
+.landing-cesar .text-button {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  border: 0;
+  background: none;
+  padding: 6px 0;
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 700;
+}
+.landing-cesar .gallery {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 22px;
+}
+.landing-cesar .media-card {
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  overflow: hidden;
+  background: white;
+}
+.landing-cesar .media-card button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: white;
+  padding: 0;
+  color: var(--navy);
+}
+.landing-cesar .media-image {
+  aspect-ratio: 1.5;
+  overflow: hidden;
+  background: var(--pale);
+}
+.landing-cesar .media-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  transition: transform .3s;
+}
+.landing-cesar .media-card button:hover img {
+  transform: scale(1.04);
+}
+.landing-cesar .media-meta {
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+.landing-cesar .media-meta small {
+  color: var(--blue);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.landing-cesar .media-meta h3 {
+  font-size: 14px;
+  margin: 4px 0 0;
+}
+.landing-cesar .media-meta svg {
+  width: 18px;
+  color: var(--blue);
+}
+.landing-cesar .trust-section {
+  background: var(--navy);
+  padding: 65px max(6vw,30px);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 90px;
+  color: white;
+}
+.landing-cesar .trust-section .eyebrow {
+  color: var(--cyan);
+}
+.landing-cesar .trust-copy {
+  max-width: 530px;
+  margin-left: auto;
+}
+.landing-cesar .trust-copy p {
+  color: #bacbe3;
+  font-size: 14px;
+}
+.landing-cesar .light {
+  color: var(--cyan);
+}
+.landing-cesar .trust-list {
+  max-width: 480px;
+}
+.landing-cesar .trust-list>div {
+  display: flex;
+  gap: 20px;
+  padding: 20px 0;
+  border-bottom: 1px solid #ffffff20;
+}
+.landing-cesar .trust-list span {
+  color: var(--cyan);
+  font-size: 11px;
+  font-weight: 700;
+  padding-top: 6px;
+}
+.landing-cesar .trust-list p {
+  margin: 0;
+}
+.landing-cesar .trust-list b {
+  font-size: 15px;
+  display: block;
+}
+.landing-cesar .trust-list small {
+  display: block;
+  color: #bacbe3;
+  font-size: 12px;
+  margin-top: 7px;
+}
+.landing-cesar .pricing-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  align-items: center;
+  margin: 30px 0;
+}
+.landing-cesar .segmented,
+.landing-cesar .billing-switch {
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  display: flex;
+  gap: 4px;
+}
+.landing-cesar .segmented button,
+.landing-cesar .billing-switch button {
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--text);
+  padding: 9px 15px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.landing-cesar .segmented button.active {
+  background: var(--navy);
+  color: white;
+}
+.landing-cesar .billing-switch button.active {
+  background: var(--pale);
+  color: var(--blue);
+}
+.landing-cesar .billing-switch span {
+  font-size: 9px;
+  color: var(--blue);
+  margin-left: 5px;
+}
+.landing-cesar .pricing {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 15px;
+}
+.landing-cesar .price-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px 20px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: white;
+}
+.landing-cesar .price-card.featured {
+  border: 2px solid var(--blue);
+  background: #f8fbff;
+  padding: 23px 19px;
+}
+.landing-cesar .price-card .ribbon {
+  position: absolute;
+  top: -12px;
+  left: 20px;
+  background: var(--blue);
+  color: white;
+  border-radius: 100px;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 3px 12px;
+}
+.landing-cesar .price-card .kind {
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: var(--blue);
+  font-weight: 800;
+}
+.landing-cesar .price-card h3 {
+  font-size: 20px;
+  margin: 8px 0 5px;
+}
+.landing-cesar .price-card .description {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text);
+  min-height: 56px;
+}
+.landing-cesar .price {
+  font-size: 32px;
+  letter-spacing: -1.2px;
+  font-weight: 800;
+  margin: 18px 0 3px;
+  line-height: 1.2;
+}
+.landing-cesar .price small {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--text);
+}
+.landing-cesar .price-card .bill-note {
+  font-size: 10px;
+  color: var(--text);
+  min-height: 33px;
+  margin: 5px 0 15px;
+}
+.landing-cesar .quota {
+  background: var(--pale);
+  padding: 9px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.landing-cesar .price-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 15px 0 22px;
+  flex: 1;
+}
+.landing-cesar .price-card li {
+  display: flex;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--text);
+  margin: 9px 0;
+}
+.landing-cesar .price-card li:before {
+  content: '✓';
+  color: var(--blue);
+  font-weight: 800;
+}
+.landing-cesar .price-card .btn {
+  width: 100%;
+  font-size: 12px;
+  padding: 11px;
+}
+.landing-cesar .business-pricing {
+  grid-template-columns: repeat(2,1fr);
+  max-width: 840px;
+  margin: auto;
+}
+.landing-cesar .business-pricing .description {
+  min-height: 0;
+}
+.landing-cesar .pricing-bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: 30px;
+  margin-top: 20px;
+  align-items: flex-start;
+}
+.landing-cesar .pricing-bottom p {
+  font-size: 11px;
+  color: var(--text);
+  max-width: 680px;
+  margin: 0;
+}
+.landing-cesar .credits-details {
+  border-top: 1px solid var(--line);
+  margin-top: 25px;
+  font-size: 13px;
+}
+.landing-cesar .credits-details summary {
+  padding: 20px 0;
+  font-weight: 700;
+  cursor: pointer;
+}
+.landing-cesar .credits-details>div {
+  color: var(--text);
+  max-width: 900px;
+}
+.landing-cesar .plan-finder {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  padding: 50px max(7vw,30px);
+  background: var(--pale);
+}
+.landing-cesar .plan-finder h2 {
+  font-size: 34px;
+}
+.landing-cesar .plan-finder p {
+  color: var(--text);
+  font-size: 14px;
+}
+.landing-cesar .plan-finder label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  margin: 0 0 16px;
+}
+.landing-cesar .plan-finder select {
+  display: block;
+  width: 100%;
+  border: 1px solid #bccce1;
+  border-radius: 8px;
+  background: white;
+  padding: 11px;
+  margin-top: 6px;
+  color: var(--navy);
+  font-size: 13px;
+}
+.landing-cesar .plan-finder .btn {
+  padding: 10px 15px;
+}
+.landing-cesar #finder-result {
+  font-size: 13px;
+  margin-top: 15px;
+}
+.landing-cesar #finder-result a {
+  text-decoration: underline;
+  color: var(--blue);
+}
+.landing-cesar .faq-section {
+  max-width: 900px;
+}
+.landing-cesar .faq-list details {
+  border-bottom: 1px solid var(--line);
+}
+.landing-cesar .faq-list summary {
+  padding: 21px 0;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.landing-cesar .faq-list p {
+  color: var(--text);
+  font-size: 14px;
+  padding: 0 0 20px;
+  margin: 0;
+}
+.landing-cesar .final-cta {
+  text-align: center;
+  background: #f8fbff;
+  padding: 70px 25px;
+}
+.landing-cesar .final-cta h2 {
+  font-size: 42px;
+  line-height: 1.3;
+}
+.landing-cesar .final-cta h2 span {
+  color: var(--blue);
+}
+.landing-cesar footer {
+  max-width: 1220px;
+  margin: auto;
+  padding: 40px;
+  display: grid;
+  grid-template-columns: 180px 1fr 1fr;
+  gap: 25px;
+  align-items: center;
+}
+.landing-cesar footer img {
+  width: 160px;
+}
+.landing-cesar footer p {
+  font-size: 12px;
+  color: var(--text);
+}
+.landing-cesar footer p small {
+  font-size: 10px;
+}
+.landing-cesar footer>div {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  font-size: 11px;
+}
+.landing-cesar footer>small {
+  grid-column: 1/-1;
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+  font-size: 10px;
+  color: var(--text);
+}
+.landing-cesar .floating-help {
+  position: fixed;
+  right: 22px;
+  bottom: 24px;
+  border: 1px solid var(--line);
+  border-radius: 100px;
+  background: white;
+  box-shadow: 0 5px 20px #061a4d15;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 16px;
+  font-size: 12px;
+  color: var(--navy);
+  z-index: 21;
+}
+.landing-cesar .floating-help svg {
+  color: var(--blue);
+}
+.landing-cesar .privacy-banner {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  max-width: 460px;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: white;
+  box-shadow: 0 10px 35px #061a4d20;
+  z-index: 30;
+}
+.landing-cesar .privacy-banner p {
+  font-size: 11px;
+  color: var(--text);
+  margin: 0 0 10px;
+}
+.landing-cesar .privacy-banner button {
+  font-size: 11px;
+  border: 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--blue);
+  color: white;
+  margin-right: 5px;
+}
+.landing-cesar .privacy-banner button:last-child {
+  background: var(--pale);
+  color: var(--navy);
+}
+.landing-cesar dialog {
+  border: 0;
+  border-radius: 18px;
+  padding: 35px;
+  max-width: min(900px,94vw);
+  max-height: 90vh;
+  overflow: auto;
+  color: var(--navy);
+  box-shadow: 0 20px 100px #061a4d44;
+}
+.landing-cesar dialog::backdrop {
+  background: #061a4d99;
+  backdrop-filter: blur(3px);
+}
+.landing-cesar .modal-close {
+  position: sticky;
+  top: 0;
+  float: right;
+  border: 0;
+  background: var(--pale);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--navy);
+  z-index: 1;
+}
+.landing-cesar dialog h2 {
+  font-size: 28px;
+  margin-right: 35px;
+}
+.landing-cesar dialog p {
+  font-size: 14px;
+  color: var(--text);
+}
+.landing-cesar dialog img.flyer {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-top: 20px;
+}
+.landing-cesar dialog table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+}
+.landing-cesar dialog th,
+.landing-cesar dialog td {
+  padding: 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+.landing-cesar dialog th {
+  background: var(--pale);
+}
+.landing-cesar .demo-step {
+  padding: 25px;
+  background: var(--pale);
+  border-radius: 12px;
+  margin: 20px 0;
+}
+.landing-cesar .demo-step small {
+  color: var(--blue);
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.landing-cesar .demo-step h3 {
+  font-size: 22px;
+  margin: 10px 0;
+}
+.landing-cesar .step-controls {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+}
+.landing-cesar .demo-dots {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+}
+.landing-cesar .demo-dots span {
+  width: 35px;
+  height: 4px;
+  background: var(--line);
+  border-radius: 4px;
+}
+.landing-cesar .demo-dots span.active {
+  background: var(--blue);
+}
+.landing-cesar .selection-box {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.landing-cesar .selection-box strong {
+  font-size: 28px;
+}
+.landing-cesar dialog .micro {
+  font-size: 11px;
+}
+.landing-cesar .consumption {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+.landing-cesar .consumption label {
+  font-size: 12px;
+}
+.landing-cesar .consumption input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.landing-cesar .credit-result {
+  padding: 20px;
+  border-radius: 10px;
+  background: var(--pale);
+  font-weight: 700;
+  margin-top: 15px;
+}
+@media (prefers-reduced-motion:reduce) {
+  html:has(.landing-cesar) {
+    scroll-behavior: auto;
+  }
+  .landing-cesar * {
+    transition: none !important;
+  }
+}
+@media (max-width:1100px) {
+  .landing-cesar header nav {
+    gap: 17px;
+  }
+  .landing-cesar .login {
+    display: none;
+  }
+  .landing-cesar .hero {
+    gap: 35px;
+    padding: 65px 35px;
+  }
+  .landing-cesar .hero h1 {
+    font-size: 52px;
+  }
+  .landing-cesar .pricing {
+    grid-template-columns: repeat(2,1fr);
+    gap: 23px;
+  }
+  .landing-cesar .business-pricing {
+    grid-template-columns: repeat(2,1fr);
+  }
+  .landing-cesar .trust-section {
+    gap: 40px;
+  }
+}
+@media (max-width:760px) {
+  .landing-cesar header {
+    height: 72px;
+    padding: 0 18px;
+    gap: 12px;
+  }
+  .landing-cesar .brand img {
+    width: 125px;
+  }
+  .landing-cesar header nav {
+    display: none;
+    position: absolute;
+    top: 72px;
+    left: 0;
+    right: 0;
+    background: white;
+    padding: 22px;
+    border-bottom: 1px solid var(--line);
+  }
+  .landing-cesar header nav.open {
+    display: flex;
+    flex-direction: column;
+  }
+  .landing-cesar .menu-toggle {
+    display: block;
+  }
+  .landing-cesar .header-actions {
+    gap: 10px;
+  }
+  .landing-cesar .btn.small {
+    font-size: 10px;
+    padding: 9px 10px;
+  }
+  .landing-cesar .btn.small svg {
+    display: none;
+  }
+  .landing-cesar .hero {
+    padding: 45px 22px 55px;
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  .landing-cesar .hero h1 {
+    font-size: 48px;
+    letter-spacing: -1.8px;
+  }
+  .landing-cesar .lead {
+    font-size: 16px;
+  }
+  .landing-cesar .hero-visual {
+    max-width: 500px;
+    width: 100%;
+    margin: auto;
+  }
+  .landing-cesar .floating-note {
+    left: 8px;
+  }
+  .landing-cesar .orb {
+    max-width: 100%;
+    right: 0;
+  }
+  .landing-cesar .source-strip div {
+    font-size: 11px;
+    gap: 12px;
+  }
+  .landing-cesar .section {
+    padding: 55px 22px;
+  }
+  .landing-cesar .section-head h2 {
+    font-size: 32px;
+  }
+  .landing-cesar .module-panel {
+    grid-template-columns: 1fr;
+  }
+  .landing-cesar .module-copy {
+    padding: 25px;
+  }
+  .landing-cesar .module-list {
+    padding: 10px 24px;
+  }
+  .landing-cesar .function-tabs button {
+    padding: 10px 7px;
+    font-size: 12px;
+    gap: 6px;
+  }
+  .landing-cesar .function-tabs svg {
+    width: 18px;
+  }
+  .landing-cesar .audience-section {
+    padding: 45px 22px;
+  }
+  .landing-cesar .audience-tabs {
+    gap: 7px;
+  }
+  .landing-cesar .audience-tabs button {
+    padding: 8px 12px;
+    font-size: 11px;
+  }
+  .landing-cesar .profile-panel {
+    grid-template-columns: 1fr;
+    gap: 15px;
+    padding: 25px;
+  }
+  .landing-cesar .split {
+    display: block;
+  }
+  .landing-cesar .split>p {
+    max-width: 100%;
+    margin-top: 15px;
+  }
+  .landing-cesar .gallery {
+    grid-template-columns: repeat(2,1fr);
+    gap: 12px;
+  }
+  .landing-cesar .media-meta {
+    padding: 12px;
+  }
+  .landing-cesar .media-meta h3 {
+    font-size: 12px;
+  }
+  .landing-cesar .media-controls {
+    display: block;
+  }
+  .landing-cesar .media-controls>.text-button {
+    margin-top: 12px;
+  }
+  .landing-cesar .trust-section {
+    grid-template-columns: 1fr;
+    padding: 45px 25px;
+    gap: 20px;
+  }
+  .landing-cesar .trust-copy {
+    margin: 0;
+  }
+  .landing-cesar .trust-copy h2 {
+    font-size: 33px;
+  }
+  .landing-cesar .pricing-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .landing-cesar .pricing {
+    gap: 18px 12px;
+  }
+  .landing-cesar .price-card {
+    padding: 22px 15px;
+  }
+  .landing-cesar .price-card.featured {
+    padding: 21px 14px;
+  }
+  .landing-cesar .price {
+    font-size: 28px;
+  }
+  .landing-cesar .price-card h3 {
+    font-size: 18px;
+  }
+  .landing-cesar .pricing-bottom {
+    display: block;
+  }
+  .landing-cesar .pricing-bottom>.text-button {
+    margin-top: 14px;
+  }
+  .landing-cesar .plan-finder {
+    grid-template-columns: 1fr;
+    padding: 40px 25px;
+    gap: 15px;
+  }
+  .landing-cesar .final-cta h2 {
+    font-size: 32px;
+  }
+  .landing-cesar footer {
+    padding: 30px 22px;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+  }
+  .landing-cesar footer>div {
+    grid-column: 1/-1;
+    justify-content: flex-start;
+  }
+  .landing-cesar footer img {
+    width: 130px;
+  }
+  .landing-cesar .floating-help {
+    right: 14px;
+    bottom: 16px;
+    padding: 10px;
+  }
+  .landing-cesar .floating-help span {
+    display: none;
+  }
+  .landing-cesar .privacy-banner {
+    left: 10px;
+    right: 10px;
+    bottom: 70px;
+    max-width: none;
+  }
+  .landing-cesar dialog {
+    padding: 22px;
+  }
+  .landing-cesar .consumption {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width:400px) {
+  .landing-cesar .pricing {
+    grid-template-columns: 1fr;
+  }
+  .landing-cesar .hero h1 {
+    font-size: 42px;
+  }
+  .landing-cesar .hero-points {
+    gap: 13px;
+    font-size: 11px;
+  }
+  .landing-cesar .cta-row .btn {
+    width: 100%;
+  }
+  .landing-cesar .gallery {
+    grid-template-columns: 1fr 1fr;
+  }
+  .landing-cesar .business-pricing {
+    grid-template-columns: 1fr;
+  }
+}
+/* Segunda revisión: accesibilidad, claridad y adaptación móvil. */
+.landing-cesar [hidden] {
+  display: none !important;
+}
+.landing-cesar .skip-link {
+  position: fixed;
+  top: 8px;
+  left: 12px;
+  transform: translateY(-160%);
+  background: var(--navy);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  z-index: 100;
+}
+.landing-cesar .skip-link:focus {
+  transform: none;
+}
+.landing-cesar .gallery-search {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 0 0 22px;
+}
+.landing-cesar .gallery-search label {
+  font-size: 12px;
+  font-weight: 700;
+}
+.landing-cesar .gallery-search input {
+  border: 1px solid #bacbe1;
+  border-radius: 9px;
+  padding: 11px 14px;
+  font-size: 14px;
+  max-width: 430px;
+  flex: 1;
+  min-width: 0;
+}
+.landing-cesar .gallery-search span {
+  font-size: 11px;
+  color: var(--text);
+  margin-left: auto;
+}
+.landing-cesar .gallery-more {
+  text-align: center;
+  margin-top: 24px;
+}
+.landing-cesar .empty-state {
+  grid-column: 1/-1;
+  padding: 30px;
+  background: var(--pale);
+  border-radius: 12px;
+  text-align: center;
+}
+.landing-cesar .footer-button {
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+.landing-cesar .footer-button:hover {
+  color: var(--blue);
+}
+.landing-cesar .price-card .description {
+  min-height: 60px;
+}
+.landing-cesar .price-card li {
+  font-size: 12px;
+  line-height: 1.65;
+}
+.landing-cesar .price-card .kind {
+  font-size: 10px;
+}
+.landing-cesar .price-card .bill-note {
+  font-size: 11px;
+}
+.landing-cesar .tool-row button {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+.landing-cesar .media-card button {
+  min-height: 44px;
+}
+.landing-cesar .privacy-banner button {
+  min-height: 40px;
+}
+.landing-cesar .filter-group button {
+  min-height: 40px;
+}
+.landing-cesar .modal-close {
+  width: 40px;
+  height: 40px;
+}
+.landing-cesar #request-form label {
+  display: block;
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 15px;
+}
+.landing-cesar #request-form select,
+.landing-cesar #request-form textarea {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #b9c9de;
+  border-radius: 8px;
+  margin-top: 7px;
+  color: var(--navy);
+  font-size: 15px;
+  background: white;
+}
+.landing-cesar .request-preview {
+  white-space: pre-wrap;
+  border: 1px solid var(--line);
+  background: var(--pale);
+  padding: 20px;
+  border-radius: 10px;
+  margin-top: 20px;
+  font-size: 14px;
+}
+.landing-cesar .module-list .tool-row:first-child {
+  padding-top: 10px;
+}
+.landing-cesar .module-copy .text-button {
+  min-height: 44px;
+}
+.landing-cesar .section-head p {
+  line-height: 1.75;
+}
+.landing-cesar .hero .lead {
+  max-width: 530px;
+}
+.landing-cesar .hero .micro {
+  font-size: 13px;
+}
+.landing-cesar .source-strip>span {
+  color: #435775;
+}
+.landing-cesar .floating-help:hover {
+  background: var(--pale);
+}
+@media (max-width:760px) {
+  .landing-cesar .gallery-search {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .landing-cesar .gallery-search label {
+    width: 100%;
+    font-size: 13px;
+  }
+  .landing-cesar .gallery-search input {
+    font-size: 16px;
+    max-width: none;
+  }
+  .landing-cesar .gallery-search span {
+    width: 100%;
+    margin: 0;
+  }
+  .landing-cesar .hero h1 {
+    font-size: clamp(39px,8vw,49px);
+  }
+  .landing-cesar .hero {
+    padding-top: 35px;
+  }
+  .landing-cesar .hero .lead {
+    font-size: 17px;
+  }
+  .landing-cesar .hero-points {
+    font-size: 12px;
+  }
+  .landing-cesar .workspace {
+    transform: none;
+  }
+  .landing-cesar .floating-note {
+    position: relative;
+    left: auto;
+    margin-top: 12px;
+    box-shadow: none;
+  }
+  .landing-cesar .hero-visual {
+    padding-bottom: 0;
+  }
+  .landing-cesar .pricing {
+    grid-template-columns: 1fr;
+  }
+  .landing-cesar .price-card {
+    padding: 27px 23px;
+  }
+  .landing-cesar .price-card.featured {
+    padding: 26px 22px;
+  }
+  .landing-cesar .price-card .description {
+    min-height: 0;
+  }
+  .landing-cesar .price-card li {
+    font-size: 13px;
+  }
+  .landing-cesar .price-card .quota {
+    font-size: 12px;
+  }
+  .landing-cesar .price-card .btn {
+    font-size: 14px;
+    min-height: 46px;
+  }
+  .landing-cesar .price-card .bill-note {
+    min-height: 0;
+  }
+  .landing-cesar .price-card h3 {
+    font-size: 23px;
+  }
+  .landing-cesar .pricing-toolbar {
+    gap: 14px;
+  }
+  .landing-cesar .segmented,
+  .landing-cesar .billing-switch {
+    width: 100%;
+  }
+  .landing-cesar .segmented button,
+  .landing-cesar .billing-switch button {
+    flex: 1;
+    min-height: 43px;
+    font-size: 13px;
+  }
+  .landing-cesar .plan-finder select,
+  .landing-cesar .consumption input,
+  .landing-cesar #request-form select,
+  .landing-cesar #request-form textarea {
+    font-size: 16px;
+  }
+  .landing-cesar .btn {
+    min-height: 46px;
+  }
+  .landing-cesar .function-tabs button {
+    min-height: 48px;
+  }
+  .landing-cesar .audience-tabs button {
+    min-height: 44px;
+  }
+  .landing-cesar .menu-toggle {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .landing-cesar .faq-list summary {
+    font-size: 16px;
+    line-height: 1.55;
+    padding: 22px 0;
+  }
+  .landing-cesar .media-meta h3 {
+    font-size: 13px;
+  }
+  .landing-cesar .privacy-banner button {
+    min-height: 44px;
+  }
+  .landing-cesar .privacy-banner p {
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .landing-cesar dialog {
+    max-width: calc(100vw - 24px);
+    width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px);
+    padding: 23px;
+  }
+  .landing-cesar dialog h2 {
+    font-size: 26px;
+  }
+  .landing-cesar .step-controls {
+    gap: 10px;
+  }
+  .landing-cesar .step-controls .btn {
+    padding: 12px 18px;
+  }
+  .landing-cesar .floating-help {
+    min-width: 46px;
+    min-height: 46px;
+  }
+  .landing-cesar .privacy-banner {
+    bottom: 76px;
+  }
+  .landing-cesar .gallery {
+    gap: 15px;
+  }
+  .landing-cesar .module-panel {
+    min-height: 0;
+  }
+  .landing-cesar .profile-panel li {
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .landing-cesar .trust-copy p {
+    font-size: 15px;
+  }
+  .landing-cesar .trust-list small {
+    font-size: 13px;
+  }
+}
+@media (min-width:761px) and (max-width:1000px) {
+  .landing-cesar .hero h1 {
+    font-size: 46px;
+  }
+  .landing-cesar .hero {
+    gap: 25px;
+    padding-inline: 28px;
+  }
+  .landing-cesar .header-actions .btn {
+    font-size: 11px;
+  }
+  .landing-cesar .header-actions {
+    gap: 10px;
+  }
+  .landing-cesar .brand img {
+    width: 145px;
+  }
+  .landing-cesar .module-copy {
+    padding: 28px;
+  }
+  .landing-cesar .price-card li {
+    font-size: 12px;
+  }
+  .landing-cesar .gallery {
+    gap: 16px;
+  }
+}
+/* Contacto comercial: identidad propia y área táctil accesible */
+.landing-cesar .whatsapp-btn {
+  background: #087c49;
+  color: #fff;
+}
+.landing-cesar .whatsapp-btn:hover {
+  background: #05633a;
+}
+.landing-cesar .contact-row {
+  justify-content: center;
+}
+.landing-cesar .final-cta .micro {
+  color: #dce9ff;
+}
+.landing-cesar .whatsapp-float {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 24;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 13px 19px;
+  border-radius: 100px;
+  background: #087c49;
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 6px 22px #061a4d24;
+}
+.landing-cesar .whatsapp-float:hover {
+  background: #05633a;
+}
+.landing-cesar .whatsapp-float svg {
+  width: 26px;
+  height: 26px;
+}
+.landing-cesar .floating-help {
+  bottom: 90px;
+}
+.landing-cesar .privacy-banner {
+  bottom: 155px;
+}
+.landing-cesar:has(dialog[open]) .whatsapp-float,
+.landing-cesar:has(dialog[open]) .floating-help {
+  visibility: hidden;
+}
+@media (max-width:760px) {
+  .landing-cesar .whatsapp-float {
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    width: 52px;
+    height: 52px;
+    justify-content: center;
+    padding: 0;
+  }
+  .landing-cesar .whatsapp-float span {
+    display: none;
+  }
+  .landing-cesar .floating-help {
+    right: 16px;
+    bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+  .landing-cesar .privacy-banner {
+    bottom: calc(142px + env(safe-area-inset-bottom));
+  }
+  .landing-cesar .contact-row .btn {
+    max-width: 100%;
+    font-size: 13px;
+  }
+  .landing-cesar .final-cta {
+    padding-bottom: 100px;
+  }
+  .landing-cesar footer {
+    padding-bottom: 150px;
+  }
+}
+.landing-cesar .video-card {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: white;
+  overflow: hidden;
+  box-shadow: 0 10px 30px #061a4d06;
+}
+.landing-cesar .video-heading {
+  padding: 23px 23px 18px;
+}
+.landing-cesar .video-heading h3 {
+  font-size: 20px;
+  line-height: 1.35;
+  margin: 10px 0 0;
+  min-height: 54px;
+  letter-spacing: -.4px;
+}
+.landing-cesar .video-card video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2.04;
+  background: #061a4d;
+  object-fit: contain;
+}
+.landing-cesar .video-copy {
+  padding: 17px 23px 23px;
+}
+.landing-cesar .video-copy p {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.65;
+  margin: 0 0 15px;
+}
+.landing-cesar .video-copy .text-button {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.landing-cesar .video-copy svg {
+  width: 18px;
+}
+.landing-cesar .gallery .empty-state {
+  grid-column: 1/-1;
+  padding: 30px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--pale);
+}
+@media (max-width:1000px) {
+  .landing-cesar #gallery {
+    grid-template-columns: 1fr;
+  }
+  .landing-cesar .video-heading h3 {
+    min-height: 0;
+  }
+  .landing-cesar .video-card video {
+    max-height: 420px;
+  }
+}
+@media (max-width:760px) {
+  .landing-cesar .video-heading {
+    padding: 20px;
+  }
+  .landing-cesar .video-copy {
+    padding: 17px 20px 22px;
+  }
+  .landing-cesar .video-heading h3 {
+    font-size: 22px;
+  }
+}

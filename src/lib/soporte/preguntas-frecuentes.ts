@@ -71,7 +71,7 @@ export const PREGUNTAS_FRECUENTES: PreguntaFrecuente[] = [
       'Para cambiar de plan o si necesitas más cupo por una urgencia, escríbenos por este chat o por WhatsApp y lo resolvemos contigo.',
     ],
     claves: 'agotado acabó límite alcanzado cupo sin cupo no me deja más plan mejorar',
-    enlace: { texto: 'Ver los planes', href: '/pricing' },
+    enlace: { texto: 'Ver los planes', href: '/#planes' },
   },
   {
     id: 'pagar',
@@ -83,7 +83,7 @@ export const PREGUNTAS_FRECUENTES: PreguntaFrecuente[] = [
       'Para entidades con varios usuarios existe el plan **Enterprise**, que se coordina directamente con nosotros.',
     ],
     claves: 'pago pagar contratar suscripción plan precio factura tarjeta enterprise starter pro',
-    enlace: { texto: 'Ver los planes', href: '/pricing' },
+    enlace: { texto: 'Ver los planes', href: '/#planes' },
   },
 
   // ── Consultar ────────────────────────────────────────────────────

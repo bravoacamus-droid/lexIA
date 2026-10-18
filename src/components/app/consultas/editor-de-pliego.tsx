@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { avisoDePlan, creditosCambiaron } from '@/lib/billing/aviso-de-plan';
 import {
   TEXTO_DECISION,
   faltasDeAbsolucion,
@@ -630,7 +631,11 @@ function CajonDeEntrada({
         }),
       });
       const j = await res.json();
-      if (!res.ok) throw new Error(j?.detail ?? j?.message ?? 'No se pudo redactar');
+      if (!res.ok) {
+        if (avisoDePlan(j)) return;
+        throw new Error(j?.detail ?? j?.message ?? 'No se pudo redactar');
+      }
+      creditosCambiaron();
 
       if (esAbsolucion) {
         onCambio({

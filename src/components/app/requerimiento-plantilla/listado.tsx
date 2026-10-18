@@ -26,6 +26,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { LineaDeConsumo } from '@/components/app/billing/consumo-estimado';
+import { avisoDePlan, creditosCambiaron } from '@/lib/billing/aviso-de-plan';
 import {
   Dialog,
   DialogContent,
@@ -170,9 +172,11 @@ export function ListadoRequerimientos({
       });
       const j = await res.json();
       if (!res.ok) {
-        toast.error('No se pudo crear', { description: j?.detail ?? j?.error });
+        if (avisoDePlan(j)) return;
+        toast.error('No se pudo crear', { description: j?.detail ?? j?.message ?? j?.error });
         return;
       }
+      creditosCambiaron();
       router.push(`/generador/requerimiento-plantilla/${j.id}`);
     } catch (e) {
       toast.error('Fallo al crear', { description: (e as Error).message });
@@ -435,6 +439,15 @@ export function ListadoRequerimientos({
               }}
             />
           </div>
+          {/* El consumo, antes de crear: 40 créditos por requerimiento. */}
+          {elegida && (
+            <LineaDeConsumo
+              estimacion={{
+                herramienta: elegida.familia === 'menor_8_uit' ? 'requerimiento_menor' : 'requerimiento_seleccion',
+                que: 'Este requerimiento',
+              }}
+            />
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setElegida(null)}>
               Cancelar

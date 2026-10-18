@@ -2,9 +2,9 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
 import { Mic, Crown, ShieldCheck, Lightbulb, HelpCircle, ScrollText, FileText, ArrowRight } from 'lucide-react';
-import { checkFeatureGate } from '@/lib/billing/feature-gate';
+import { bolsaDelUsuario, COSTO, HERRAMIENTAS_DEL_PLAN } from '@/lib/billing/creditos';
+import { planDelCatalogo } from '@/lib/billing/catalogo';
 import { getCurrentUserWithRole } from '@/lib/auth/session';
-import { getTier } from '@/lib/billing/tiers';
 import { Companero } from '@/components/marca/companero';
 import { HablaConALexia } from '@/components/app/voice/habla-con-alexia';
 import { HistorialDeVoz, type LlamadaDelHistorial } from '@/components/app/voice/historial-de-voz';
@@ -34,7 +34,7 @@ export default async function LlamadasPage() {
     .eq('status', 'active')
     .lt('started_at', new Date(Date.now() - 3 * 3600 * 1000).toISOString());
 
-  const [{ data: calls }, gate, { data: consentimiento }] = await Promise.all([
+  const [{ data: calls }, creditos, { data: consentimiento }] = await Promise.all([
     supabase
       .from('voice_calls')
       .select(
@@ -43,7 +43,7 @@ export default async function LlamadasPage() {
       .eq('user_id', ctx.userId)
       .order('started_at', { ascending: false })
       .limit(30),
-    checkFeatureGate(ctx.userId, 'voice_call_minute'),
+    bolsaDelUsuario(ctx.userId),
     supabase
       .from('voice_consents')
       .select('id')
@@ -55,17 +55,11 @@ export default async function LlamadasPage() {
 
   const callList = (calls || []) as LlamadaDelHistorial[];
 
-  // Cuota real desde feature gate (incluye bonus si los hay)
-  const tier = ctx.subscription?.tier
-    ? getTier(ctx.subscription.tier)
-    : getTier('free_trial');
-  const cuotaTotal = gate.allowed ? gate.limit : 0;
-  const cuotaUsada = gate.allowed ? gate.consumed : 0;
-  const cuotaRestante = gate.allowed ? gate.remaining : 0;
-  const tierIncluyeVoz = isFinite(cuotaTotal) && cuotaTotal > 0;
-  const cuotaPercent = isFinite(cuotaTotal) && cuotaTotal > 0
-    ? Math.min(100, (cuotaUsada / cuotaTotal) * 100)
-    : 0;
+  // La voz se paga con créditos de la bolsa del plan (desde Especialista).
+  const plan = planDelCatalogo(creditos.plan);
+  const tierIncluyeVoz = HERRAMIENTAS_DEL_PLAN[creditos.plan].includes('consulta_voz') && !creditos.vencido;
+  const minutosQueAlcanzan = Math.floor(creditos.disponibles / COSTO.consulta_voz);
+  const renovacion = new Date(creditos.renovacion).toLocaleDateString('es-PE', { day: 'numeric', month: 'long', timeZone: 'America/Lima' });
 
   return (
     <Pagina className="max-w-[1200px]">
@@ -157,24 +151,15 @@ export default async function LlamadasPage() {
         <Card className="border-consultar-500/30 bg-consultar-50/50 p-4 dark:bg-consultar-900/20">
           <div className="mb-2 flex items-center justify-between gap-3">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-consultar-700 dark:text-consultar-400">
-              Cuota mensual · Plan {tier.label}
+              Créditos · Plan {plan.nombre}
             </p>
             <p className="font-mono text-xs text-muted-foreground">
-              {cuotaUsada} de {isFinite(cuotaTotal) ? cuotaTotal : '∞'} min
+              {creditos.disponibles.toLocaleString('es-PE')} disponibles
             </p>
           </div>
-          {isFinite(cuotaTotal) && (
-            <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
-              <div
-                className="h-full bg-gradient-to-r from-consultar-500 to-consultar-400 transition-all"
-                style={{ width: `${cuotaPercent}%` }}
-              />
-            </div>
-          )}
-          <p className="mt-2 text-[11px] text-muted-foreground">
-            Te quedan{' '}
-            {isFinite(cuotaRestante) ? `${cuotaRestante} minutos` : 'minutos ilimitados'} este
-            mes. La cuota se renueva el día 1.
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Cada minuto de llamada usa {COSTO.consulta_voz} créditos de la bolsa de tu plan: te alcanzan para unos{' '}
+            {minutosQueAlcanzan.toLocaleString('es-PE')} minutos. Los créditos del mes se renuevan el {renovacion}.
           </p>
         </Card>
       ) : (
@@ -183,11 +168,15 @@ export default async function LlamadasPage() {
             <Crown className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
             <div className="min-w-0">
               <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
-                Hablar con A-LexIA no está disponible en tu plan {tier.label}
+                Hablar con A-LexIA no está disponible en tu plan {plan.nombre}
               </p>
               <p className="mt-1 text-xs leading-relaxed text-amber-900/80 dark:text-amber-100/80">
-                Actualiza a <strong>Pro</strong> para incluir 30 minutos al mes, o a{' '}
-                <strong>Enterprise</strong> para 120 minutos al mes.
+                {creditos.vencido
+                  ? 'Tu plan no está vigente. '
+                  : ''}
+                La consulta por voz se incluye desde el plan <strong>Especialista</strong>, además de{' '}
+                <strong>Equipos</strong> y <strong>Organizaciones</strong>.{' '}
+                <Link href="/cuenta/suscripcion" className="underline">Ver mi plan</Link>
               </p>
             </div>
           </div>

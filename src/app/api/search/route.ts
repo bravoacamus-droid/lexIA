@@ -1,3 +1,4 @@
+import { respuestaDeRechazo, usarHerramienta } from '@/lib/billing/creditos';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
@@ -24,6 +25,12 @@ const requestSchema = z.object({
    * de LEX Contrataciones (pero con brand A-LexIA).
    */
   queries: z.array(z.string().min(1).max(80)).max(8).optional(),
+  /**
+   * Lo manda solo la pantalla de Búsqueda avanzada cuando cambian las
+   * palabras buscadas: es lo que se cobra (2 créditos). La paginación,
+   * los filtros, la biblioteca y la paleta de comandos no cuestan.
+   */
+  cobrar: z.boolean().optional(),
   type: z
     .enum([
       'ley',
@@ -115,6 +122,14 @@ export async function POST(req: Request) {
   const parsed = requestSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: 'invalid_body', issues: parsed.error.issues }, { status: 400 });
+  }
+
+  // Búsqueda avanzada: 2 créditos por búsqueda nueva (ver `cobrar`).
+  if (parsed.data.cobrar) {
+    const uso = await usarHerramienta(user.id, 'busqueda_avanzada', {
+      detalle: (parsed.data.queries ?? [parsed.data.query]).join(' + ').slice(0, 120),
+    });
+    if (!uso.ok) return respuestaDeRechazo(uso);
   }
 
   const {

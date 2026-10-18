@@ -20,6 +20,8 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { PdfDropzone } from '@/components/app/evaluator/pdf-dropzone';
 import { Processing } from '@/components/app/evaluator/processing';
+import { useConfirmarConsumo } from '@/components/app/billing/consumo-estimado';
+import { avisoDePlan, creditosCambiaron } from '@/lib/billing/aviso-de-plan';
 
 type Step = 1 | 2 | 3 | 'processing';
 
@@ -64,9 +66,19 @@ export function EvaluatorWizard({
   const [bases, setBases] = useState<UploadedFile | null>(null);
   const [offers, setOffers] = useState<UploadedFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const { confirmar, dialogo } = useConfirmarConsumo();
 
   async function startProcessing() {
     if (!bases || offers.length === 0 || !title.trim()) return;
+    // 30 créditos por oferta: con cinco ofertas son 150, y el usuario
+    // tiene que verlo antes de pulsar (regla de César, 17/10/2026).
+    const seguir = await confirmar({
+      herramienta: 'evaluacion_ofertas',
+      unidades: offers.length,
+      que: 'Esta evaluación',
+      porUnidad: 'por oferta',
+    });
+    if (!seguir) return;
     setSubmitting(true);
     try {
       const createRes = await fetch('/api/evaluations', {
@@ -82,9 +94,14 @@ export function EvaluatorWizard({
       });
       if (!createRes.ok) {
         const j = await createRes.json().catch(() => ({}));
-        throw new Error(j.error || 'No se pudo crear la evaluación');
+        if (avisoDePlan(j)) {
+          setSubmitting(false);
+          return;
+        }
+        throw new Error(j.message || j.error || 'No se pudo crear la evaluación');
       }
       const { evaluation } = await createRes.json();
+      creditosCambiaron();
 
       // La evaluación por etapas se sigue en su propia página: la pantalla
       // de allí la pone en marcha, muestra el avance real que se guarda en
@@ -131,6 +148,7 @@ export function EvaluatorWizard({
 
   return (
     <div className="space-y-6">
+      {dialogo}
       {/* Stepper */}
       <Stepper currentStep={step as 1 | 2 | 3} />
 

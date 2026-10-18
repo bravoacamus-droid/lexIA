@@ -13,6 +13,7 @@ import type { ChatMessage, ChatSource } from '@/lib/supabase/types';
 import { useConversations } from '@/lib/stores/conversations';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { avisoDesdeError, creditosCambiaron } from '@/lib/billing/aviso-de-plan';
 
 interface Props {
   conversationId: string;
@@ -199,6 +200,7 @@ export function ChatPanel({
         return;
       }
       emptyRetriesRef.current = 0;
+      creditosCambiaron();
       const last = (window as Window & { __lexia_last_sources?: ChatSource[] | null }).__lexia_last_sources;
       if (last && last.length > 0 && message.role === 'assistant') {
         // La cabecera trae un ANTICIPO: el fragmento va cortado para
@@ -232,6 +234,9 @@ export function ChatPanel({
     },
     onError: async (err) => {
       console.error('Chat error', err);
+      // 402 de plan (sin créditos, prueba vencida…): el aviso con
+      // «Recargar» o «Mejorar plan», no «A-LexIA falló: {"error":…}».
+      if (avisoDesdeError(err)) return;
       let friendly = 'A-LexIA tuvo un problema generando la respuesta.';
       // Intentamos extraer detalle del último fetch para mostrarlo al usuario
       try {

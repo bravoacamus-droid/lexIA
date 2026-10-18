@@ -14,6 +14,8 @@ const PROTECTED_PREFIXES = [
   '/ajustes',
   '/cuenta',
   '/onboarding',
+  // El enlace de invitación a un equipo: pide sesión y vuelve con su token.
+  '/equipo',
 ];
 
 const AUTH_ONLY_PREFIXES = ['/login'];
@@ -58,9 +60,14 @@ export async function updateSession(request: NextRequest) {
   const isAuthOnly = AUTH_ONLY_PREFIXES.some((p) => path === p || path.startsWith(p + '/'));
 
   // No autenticado intentando entrar a ruta protegida → /login
+  // El destino lleva su consulta: el enlace /equipo/unirse?token=… sin
+  // el token no sirve. Antes se guardaba solo la ruta y el token quedaba
+  // suelto en la URL de /login, sin volver nunca a la invitación.
+  const destino = path + request.nextUrl.search;
   if (!user && isProtected) {
     url.pathname = '/login';
-    url.searchParams.set('redirect', path);
+    url.search = '';
+    url.searchParams.set('redirect', destino);
     return NextResponse.redirect(url);
   }
 
@@ -82,7 +89,8 @@ export async function updateSession(request: NextRequest) {
 
     if (profile && !profile.onboarding_completed) {
       url.pathname = '/onboarding';
-      url.searchParams.set('next', path);
+      url.search = '';
+      url.searchParams.set('next', destino);
       return NextResponse.redirect(url);
     }
   }

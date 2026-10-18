@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { AvisoDePlanMostrado, avisoDePlan, creditosCambiaron, yaAvisado } from '@/lib/billing/aviso-de-plan';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -99,9 +100,17 @@ export function SmartSearchView({ role }: Props) {
   const [loading, setLoading] = useState(false);
   const [cargandoMas, setCargandoMas] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  // La última búsqueda la rechazó el plan (402): el estado vacío no debe
+  // decir «ningún documento contiene esta palabra», que sería falso.
+  const [sinPlan, setSinPlan] = useState(false);
 
   // Ejecutar búsqueda cuando cambian tags o filtros
+  // Se cobra la búsqueda solo cuando cambian las palabras: no al paginar
+  // ni al cambiar filtros.
+  const cobradas = useRef('');
   async function pedir(offset: number) {
+    const clave = [...tags].sort().join('|');
+    const cobrar = offset === 0 && clave !== cobradas.current;
     const law = lawFilter && lawFilter.length === 1 ? lawFilter[0] : null;
     const res = await fetch('/api/search', {
       method: 'POST',
@@ -113,10 +122,16 @@ export function SmartSearchView({ role }: Props) {
         law,
         limit: POR_PAGINA,
         offset,
+        cobrar,
       }),
     });
     const json = await res.json();
+    if (res.status === 402 && avisoDePlan(json)) throw new AvisoDePlanMostrado();
     if (!res.ok) throw new Error(json?.detail || json?.error || `HTTP ${res.status}`);
+    if (cobrar) {
+      cobradas.current = clave;
+      creditosCambiaron();
+    }
     return json as { results?: SearchResult[]; total?: number };
   }
 
@@ -125,8 +140,8 @@ export function SmartSearchView({ role }: Props) {
     try {
       const json = await pedir(results.length);
       setResults((r) => [...r, ...((json.results || []) as SearchResult[])]);
-    } catch {
-      toast.error('No se pudieron traer más resultados. Intenta de nuevo.');
+    } catch (e) {
+      if (!yaAvisado(e)) toast.error('No se pudieron traer más resultados. Intenta de nuevo.');
     } finally {
       setCargandoMas(false);
     }
@@ -145,10 +160,19 @@ export function SmartSearchView({ role }: Props) {
       try {
         const json = await pedir(0);
         if (cancelled) return;
+        setSinPlan(false);
         setResults((json.results || []) as SearchResult[]);
         setTotal(json.total ?? (json.results || []).length);
-      } catch {
-        if (!cancelled) toast.error('Error al buscar. Intenta de nuevo.');
+      } catch (e) {
+        // Sin plan o sin créditos, el aviso de plan ya lo dijo; los
+        // resultados de la búsqueda anterior no deben quedarse en pantalla.
+        if (yaAvisado(e)) {
+          if (!cancelled) {
+            setResults([]);
+            setTotal(0);
+            setSinPlan(true);
+          }
+        } else if (!cancelled) toast.error('Error al buscar. Intenta de nuevo.');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -407,6 +431,17 @@ export function SmartSearchView({ role }: Props) {
             /* Loader animado (dotLottie) centrado debajo del buscador
                — reemplaza al spinner tenue interno del input. */
             <SearchLottieLoader />
+          ) : results.length === 0 && sinPlan ? (
+            <Card className="p-10 text-center border-dashed">
+              <Sparkles className="mx-auto h-6 w-6 text-muted-foreground mb-2" />
+              <p className="text-sm font-medium">La búsqueda avanzada no está disponible ahora</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Tu plan no la incluye o no te quedan créditos.{' '}
+                <a href="/cuenta/suscripcion" className="text-brand-600 hover:underline dark:text-brand-400">
+                  Ver mi plan
+                </a>
+              </p>
+            </Card>
           ) : results.length === 0 ? (
             <Card className="p-10 text-center border-dashed">
               <Sparkles className="mx-auto h-6 w-6 text-muted-foreground mb-2" />

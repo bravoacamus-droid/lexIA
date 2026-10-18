@@ -7,7 +7,8 @@ import { DashboardActivity } from '@/components/app/dashboard/activity';
 import { RecentLibrary } from '@/components/app/dashboard/recent-library';
 import { TrialBanner } from '@/components/app/dashboard/trial-banner';
 import { Pagina, BandaDeConfianza } from '@/components/app/seccion/piezas';
-import type { ProfileRole, SubscriptionRow } from '@/lib/auth/session';
+import type { ProfileRole } from '@/lib/auth/session';
+import { bolsaDelUsuario } from '@/lib/billing/creditos';
 import type { NormativeDocType } from '@/lib/supabase/types';
 
 export const dynamic = 'force-dynamic';
@@ -30,13 +31,9 @@ export default async function PortadaPage() {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [perfil, suscripcion, convos, evals, docs, normativaReciente] = await Promise.all([
+  const [perfil, creditos, convos, evals, docs, normativaReciente] = await Promise.all([
     supabase.from('profiles').select('full_name, profile_role').eq('id', user.id).maybeSingle(),
-    supabase
-      .from('subscriptions')
-      .select('id, user_id, tier, status, trial_ends_at, current_period_end')
-      .eq('user_id', user.id)
-      .maybeSingle(),
+    bolsaDelUsuario(user.id).catch(() => null),
     supabase
       .from('chat_conversations')
       .select('id, title, updated_at')
@@ -99,7 +96,7 @@ export default async function PortadaPage() {
     <Pagina className="space-y-5">
       <PortadaHero nombre={nombre} />
 
-      <TrialBanner subscription={(suscripcion.data as SubscriptionRow | null) || null} />
+      <TrialBanner creditos={creditos} />
 
       <TarjetasDeVerbo role={rol} />
 

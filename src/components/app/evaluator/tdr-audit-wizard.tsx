@@ -11,6 +11,22 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { PdfDropzone } from '@/components/app/evaluator/pdf-dropzone';
 import { Processing } from '@/components/app/evaluator/processing';
+import { LineaDeConsumo } from '@/components/app/billing/consumo-estimado';
+import { avisoDePlan, creditosCambiaron } from '@/lib/billing/aviso-de-plan';
+import { cn } from '@/lib/utils';
+
+/**
+ * Contrato menor o procedimiento de selección. No es un detalle de
+ * forma: el plan Consulta incluye la revisión de requerimientos de
+ * contratos menores (≤ 8 UIT) pero no la de procedimientos de selección,
+ * que va desde Profesional («PLANES DE A-LEXIA», 17/10/2026). El servidor
+ * cobra una u otra herramienta según lo que se elija aquí.
+ */
+type Regimen = 'menor_8uit' | 'seleccion';
+const REGIMENES: Array<{ id: Regimen; titulo: string; detalle: string }> = [
+  { id: 'menor_8uit', titulo: 'Contrato menor (≤ 8 UIT)', detalle: 'Contratación directa por monto igual o menor a 8 UIT.' },
+  { id: 'seleccion', titulo: 'Procedimiento de selección', detalle: 'Licitación, concurso, comparación de precios u otro procedimiento.' },
+];
 
 type Step = 1 | 2 | 'processing';
 
@@ -26,6 +42,7 @@ export function TdrAuditWizard() {
   const [title, setTitle] = useState('');
   const [tdr, setTdr] = useState<UploadedFile | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [regimen, setRegimen] = useState<Regimen>('seleccion');
 
   async function startAudit() {
     if (!tdr || !title.trim()) return;
@@ -40,13 +57,19 @@ export function TdrAuditWizard() {
           // tdr_audit no usa offer_files; el endpoint ya permite array vacío
           offer_files: [],
           mode: 'tdr_audit',
+          regimen,
         }),
       });
       if (!createRes.ok) {
         const j = await createRes.json().catch(() => ({}));
-        throw new Error(j.error || 'No se pudo crear la auditoría');
+        if (avisoDePlan(j)) {
+          setSubmitting(false);
+          return;
+        }
+        throw new Error(j.message || j.error || 'No se pudo crear la auditoría');
       }
       const { evaluation } = await createRes.json();
+      creditosCambiaron();
       setStep('processing');
       // Fire-and-forget el process
       fetch(`/api/evaluations/${evaluation.id}/process`, { method: 'POST' }).catch(() => null);
@@ -126,6 +149,30 @@ export function TdrAuditWizard() {
               Solo para tu organización. Puedes editarlo después.
             </p>
 
+            <Label className="mt-6 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              ¿Para qué contratación es el requerimiento?
+            </Label>
+            <div role="radiogroup" className="mt-2 grid gap-3 sm:grid-cols-2">
+              {REGIMENES.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={regimen === r.id}
+                  onClick={() => setRegimen(r.id)}
+                  className={cn(
+                    'rounded-xl border bg-card p-4 text-left transition-all',
+                    regimen === r.id
+                      ? 'border-brand-500 ring-2 ring-brand-500/20'
+                      : 'border-border hover:border-brand-400',
+                  )}
+                >
+                  <span className="text-sm font-semibold">{r.titulo}</span>
+                  <span className="mt-0.5 block text-[11px] leading-relaxed text-muted-foreground">{r.detalle}</span>
+                </button>
+              ))}
+            </div>
+
             <div className="mt-7 flex justify-end">
               <Button
                 onClick={() => setStep(2)}
@@ -187,6 +234,15 @@ export function TdrAuditWizard() {
                 </div>
               </div>
             )}
+
+            <LineaDeConsumo
+              className="mt-4"
+              estimacion={{
+                herramienta:
+                  regimen === 'menor_8uit' ? 'evaluacion_requerimiento_menor' : 'evaluacion_requerimiento_seleccion',
+                que: 'Esta revisión',
+              }}
+            />
 
             <div className="mt-7 flex items-center justify-between">
               <Button variant="ghost" onClick={() => setStep(1)} disabled={submitting}>
