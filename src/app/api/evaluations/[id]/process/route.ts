@@ -25,6 +25,8 @@ import { cacheEnEvaluacion, camposDeLaLectura, leerBases } from '@/lib/evaluacio
 import { reforzarAuditoria } from '@/lib/evaluacion/auditoria-tdr';
 import { buscadorDeSustento } from '@/lib/evaluacion/mejora/sustento';
 import { GENERATOR_MODEL_ID } from '@/lib/ai/gemini';
+import { borrarSubidas, rutasDeEvaluacion } from '@/lib/archivos/borrar-subidas';
+import { guardarLectura } from '@/lib/archivos/bases-leidas';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutos para todo el pipeline
@@ -136,10 +138,16 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
           uso.salida += u.salida;
         },
       });
-      await supabase
+      const { error: errGuardado } = await supabase
         .from('evaluations')
         .update({ status: 'done', result: resultado as never, completed_at: new Date().toISOString() } as never)
         .eq('id', ev.id);
+      // Lo leído queda en la evaluación (reevaluar y el pliego lo usan) y
+      // el PDF se borra: César, 18/10/2026, no se almacenan los documentos
+      // que se cargan. Si algo no se guardó, el archivo se queda.
+      if (!errGuardado && (await guardarLectura(admin, ev.id, leidas))) {
+        await borrarSubidas(admin, ev.user_id, [ev.bases_file_path], `evaluación de bases ${ev.id}`);
+      }
       void recordAiUsage({
         userId: ev.user_id,
         feature: 'evaluation_bases_audit',
@@ -165,12 +173,19 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
           } as never,
         } as never)
         .eq('id', ev.id);
+      // Una evaluación fallida no se reintenta: se vuelve a subir.
+      await borrarSubidas(admin, ev.user_id, [ev.bases_file_path], `evaluación de bases fallida ${ev.id}`);
       return NextResponse.json({ error: isOcrIssue ? 'pdf_needs_ocr' : 'bases_audit_failed', detail: errorMsg }, { status: isOcrIssue ? 422 : 500 });
     }
   }
 
   // ════════════════════════════════════════════════════════
   // Branch tdr_audit: pipeline distinto (un solo doc, sin ofertas)
+  //
+  // El requerimiento NO se borra al terminar: la versión mejorada
+  // (`/mejora`) lo vuelve a leer y, si es Word, marca los cambios sobre
+  // ese mismo archivo cada vez que se descarga. Se borra al eliminar la
+  // evaluación. Ver el informe del 18/10/2026 (pregunta para César).
   // ════════════════════════════════════════════════════════
   if (mode === 'tdr_audit') {
     try {
@@ -495,7 +510,7 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
     };
 
     // 6. Persist result
-    await supabase
+    const { error: errGuardado } = await supabase
       .from('evaluations')
       .update({
         status: 'done',
@@ -503,6 +518,9 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
         completed_at: new Date().toISOString(),
       } as never)
       .eq('id', ev.id);
+    // Evaluadas, las bases y las ofertas se borran (César, 18/10/2026):
+    // el resultado no vuelve a leerlas.
+    if (!errGuardado) await borrarSubidas(admin, ev.user_id, rutasDeEvaluacion(ev), `evaluación ${ev.id}`);
 
     return NextResponse.json({ ok: true, result });
   } catch (err) {
@@ -529,6 +547,8 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
         } as never,
       } as never)
       .eq('id', ev.id);
+    // Una evaluación fallida no se reintenta (se vuelve a subir): sus archivos se borran.
+    await borrarSubidas(admin, ev.user_id, rutasDeEvaluacion(ev), `evaluación fallida ${ev.id}`);
 
     return NextResponse.json(
       {

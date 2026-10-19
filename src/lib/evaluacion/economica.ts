@@ -271,6 +271,48 @@ export function etapasFinales(
       );
     }
   }
+  // Cuadro de rechazo y descalificación de César (documento 16, 19/10/2026).
+  if (perfil) {
+    // Puntaje técnico menor al mínimo: descalificada (servicios,
+    // consultorías, obras, mantenimiento vial, proyectos).
+    const minimoTecnico = tipo === 'posterior' || tipo === 'limitada' ? perfil.puntajeTecnicoMinimo : null;
+    if (typeof minimoTecnico === 'number') {
+      for (const p of postores) {
+        const ev = p.etapas.find((e) => e.etapa === 'evaluacion');
+        const llego = ev && !ev.omitida && !p.etapas.some((e) => !e.omitida && e.resultado === 'no_cumple' && e.etapa !== 'evaluacion');
+        if (llego && (p.puntajeTecnico ?? 0) < minimoTecnico) {
+          descalificados.push({ postor: p.postor, motivo: `Descalificada: su puntaje técnico (${p.puntajeTecnico ?? 0}) no alcanza el mínimo de ${minimoTecnico} puntos; su oferta económica no se evalúa.` });
+        }
+      }
+    }
+    for (const p of habilitados) {
+      if (p.descalificadoEconomica) continue;
+      let motivo = '';
+      // Expertos y gerentes de proyectos: mínimo en cada factor obligatorio.
+      for (const m of perfil.minimosPorFactor ?? []) {
+        const f = p.etapas
+          .find((e) => e.etapa === 'evaluacion')
+          ?.fichas.find((x) => new RegExp(m.patron, 'i').test(x.requisito));
+        if (f && (f.puntaje ?? 0) < m.minimo) {
+          motivo = `no alcanza el mínimo de ${m.minimo} puntos en «${m.factor}» (obtuvo ${f.puntaje ?? 0})`;
+          break;
+        }
+      }
+      // Comparación de precios y no competitivo: no puede superar la cuantía.
+      const monto = p.ofertaEconomica?.monto;
+      if (!motivo && perfil.topeEnLaCuantia && cuantia && monto && monto > cuantia + 0.005) {
+        motivo = `su oferta (${soles(monto)}) supera la cuantía de la contratación (${soles(cuantia)})`;
+      }
+      if (motivo) {
+        p.descalificadoEconomica = motivo;
+        p.accedeEconomica = false;
+        descalificados.push({ postor: p.postor, motivo: `Descalificada: ${motivo}.` });
+      }
+    }
+    if (perfil.topeEnLaCuantia && !cuantia) {
+      avisos.push('La cuantía no consta en las Bases leídas: el comité verifica que ninguna oferta la supere; la que la supere se descalifica.');
+    }
+  }
   const enCompetencia = habilitados.filter((p) => !p.descalificadoEconomica);
 
   // Comparación de precios: al menos dos ofertas calificadas (numeral 98.1).
@@ -383,7 +425,7 @@ export function etapasFinales(
             'es-PE',
           )}) supera la cuantía (${cuantia.toLocaleString(
             'es-PE',
-          )}). La DEC gestiona la ampliación de la certificación o previsión presupuestal; si no hay recursos, antes de adjudicar se negocia con este postor la reducción de su oferta y, en su caso, de prestaciones, y si no acepta, con los siguientes en el orden de prelación (art. 132.1 a 132.3 del Reglamento).`,
+          )}). La DEC gestiona la ampliación de la certificación o previsión presupuestal; si no hay recursos, antes de adjudicar se negocia con este postor la reducción de su oferta y, en su caso, de prestaciones, y si no acepta o no se llega al límite presupuestal, se rechaza su buena pro y se negocia con el siguiente en el orden de prelación (art. 132.1 a 132.3 del Reglamento).`,
         }
       : null;
 

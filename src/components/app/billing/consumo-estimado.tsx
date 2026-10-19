@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { enlaceWhatsApp } from '@/lib/billing/catalogo';
+import { LIMITES } from '@/lib/billing/limites';
 
 interface ResumenDePlanApi {
   plan: { id: string; nombre: string };
@@ -63,8 +64,8 @@ function calcular(r: ResumenDePlanApi, e: Estimacion): Calculo {
   let aviso: string | null = null;
   if (r.creditos.vencido) impedimento = `Tu plan ${r.plan.nombre} no está vigente.`;
   else if (h && !h.incluida) impedimento = `${h.nombre} no está incluida en tu plan ${r.plan.nombre}.`;
-  else if (r.plan.id === 'profesional' && e.herramienta === 'evaluacion_ofertas' && unidades > 2)
-    impedimento = `En el plan Profesional cada análisis admite hasta 2 ofertas y aquí hay ${unidades}. Quita ${unidades - 2} o pasa al plan Especialista.`;
+  else if (r.plan.id === 'profesional' && e.herramienta === 'evaluacion_ofertas' && unidades > LIMITES.profesional.ofertasPorAnalisis)
+    impedimento = `En el plan Profesional cada análisis admite hasta ${LIMITES.profesional.ofertasPorAnalisis} ofertas y aquí hay ${unidades}. Quita ${unidades - LIMITES.profesional.ofertasPorAnalisis} o pasa al plan Especialista.`;
   else if (r.limite && r.limite.usados >= r.limite.maximo && limitada(r.plan.id, e.herramienta))
     impedimento = `Ya usaste las ${r.limite.maximo} operaciones del mes que incluye tu plan (${r.limite.texto.toLowerCase()}).`;
   else if (r.creditos.disponibles < creditos)

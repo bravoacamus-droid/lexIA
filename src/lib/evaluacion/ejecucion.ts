@@ -66,6 +66,7 @@ import type { LectorDePaginas } from './lectura-visual';
 import { esFichaDePrecio, revisarPrecio } from './precio';
 import { revisarErratas } from './erratas';
 import { revisarPlazo } from './plazo';
+import { revisarFactor } from './factores';
 import { perfilDelProcedimiento } from './procedimiento';
 import { solicitudesDeBonificacion } from './bonificaciones';
 
@@ -434,7 +435,8 @@ function descargarUnaVez(cliente: SupabaseClient, path: string): Promise<Buffer>
  * página (documento 15 de César, 17/10/2026):
  *   · admisión: el precio del Anexo N° 6 cuadrado por código
  *     (`precio.ts`) y las erratas confirmadas en la imagen (`erratas.ts`);
- *   · evaluación: el inicio del cómputo del plazo ofertado (`plazo.ts`).
+ *   · evaluación: el inicio del cómputo del plazo ofertado (`plazo.ts`) y
+ *     los documentos de cada factor que exige varios (`factores.ts`).
  * Si alguno falla, la ficha queda como estaba.
  */
 export async function controlesFinales(
@@ -451,7 +453,12 @@ export async function controlesFinales(
     );
     return revisarErratas(conPrecio, textoOferta, lector, nombre).catch(() => conPrecio);
   }
-  if (etapa === 'evaluacion') return fichas.map((f) => revisarPlazo(f, textoOferta, textoBases));
+  if (etapa === 'evaluacion') {
+    // El plazo (inicio del cómputo) y los factores cuya acreditación pide
+    // varios documentos (`factores.ts`: la Mejora 1 de AGUILAR HUAYLLA).
+    const conPlazo = fichas.map((f) => revisarPlazo(f, textoOferta, textoBases));
+    return Promise.all(conPlazo.map((f) => revisarFactor(f, textoOferta, textoBases).catch(() => f)));
+  }
   return fichas;
 }
 
@@ -1280,6 +1287,19 @@ export async function avanzarEvaluacion(
   const fallar = async (motivo: string, codigo: string): Promise<Desenlace> => {
     await Promise.allSettled([...enCurso.values()]);
     p.documentos.forEach(borrarArchivosGemini);
+    // Si falla una SEGUNDA evaluación, el resultado de la primera no se
+    // pierde: antes se reemplazaba por el error y el acta desaparecía. Queda
+    // el resultado anterior, «terminada», con el error de la ronda anotado,
+    // y la ronda se descarta para poder intentarla de nuevo.
+    const previo = (fila as { result?: Record<string, unknown> | null } | null)?.result;
+    if (p.ronda && previo && !('error' in previo)) {
+      delete p.ronda;
+      await guardar({
+        status: 'done',
+        result: { ...previo, errorRonda: { motivo, codigo, fecha: new Date().toISOString() } },
+      });
+      return { estado: 'failed', motivo };
+    }
     await guardar({
       status: 'failed',
       result: { error: motivo, error_code: codigo, failed_at: new Date().toISOString() },

@@ -21,11 +21,22 @@
  *
  * Solo trabaja quien tiene el turno (`tomar_turno_evaluacion`): dos
  * pestañas, o una pestaña y la vuelta encadenada, no evalúan a la vez.
+ *
+ * AL TERMINAR
+ *
+ * Cuando la evaluación termina o falla, sus archivos se borran del
+ * almacenamiento (César, 18/10/2026: lo que cargan los suscriptores no se
+ * almacena): las bases y las ofertas con sus partes y, en una segunda
+ * evaluación, los documentos de subsanación, rechazo o negociación
+ * (`progreso.subidos`, que anota la ruta `/ronda`). Lo que se usa después
+ * —el acta, la carta, la segunda evaluación— sale del resultado y de los
+ * textos guardados, no de los PDF.
  */
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { TURNO_SEGUNDOS, avanzarEvaluacion } from '@/lib/evaluacion/ejecucion';
+import { borrarSubidas, rutasDeEvaluacion } from '@/lib/archivos/borrar-subidas';
 
 export const runtime = 'nodejs';
 export const maxDuration = 800;
@@ -51,15 +62,18 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
 
   const { data: fila } = await cliente
     .from('evaluations')
-    .select('id, user_id, bases_file_path, offer_files, status')
+    .select('id, user_id, bases_file_path, bases_partes, offer_files, status, subidos:progreso->subidos')
     .eq('id', ctx.params.id)
     .maybeSingle();
   if (!fila) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   const ev = fila as {
     user_id: string;
     bases_file_path: string | null;
-    offer_files: unknown[] | null;
+    bases_partes: string[] | null;
+    offer_files: Array<{ path?: string; partes?: string[] }> | null;
     status: string;
+    /** Los documentos de la segunda evaluación en curso. */
+    subidos: string[] | null;
   };
 
   if (!interna) {
@@ -99,6 +113,15 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
     desenlace = { estado: 'error', detalle: (e as Error).message };
   } finally {
     await cliente.from('evaluations').update({ corriendo_hasta: null }).eq('id', ctx.params.id);
+  }
+
+  if (desenlace.estado === 'done' || desenlace.estado === 'failed') {
+    await borrarSubidas(
+      cliente,
+      ev.user_id,
+      [...rutasDeEvaluacion(ev), ...(Array.isArray(ev.subidos) ? ev.subidos : [])],
+      `evaluación ${ctx.params.id} (${desenlace.estado})`,
+    );
   }
 
   // Falta trabajo: la vuelta siguiente se pide sola, para que la

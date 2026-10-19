@@ -22,6 +22,8 @@ export interface ResumenDePlan {
   creditosMes: number;
   usadosDelMes: number;
   recargas: number;
+  /** «vence el 17/11/2026»: cuándo vence la recarga que vence primero (cada una dura 30 días). */
+  recargasVencen: string | null;
   disponibles: number;
   /** «Renueva el 17/11/2026», «Prueba: vence el …» o «Venció el …». */
   renovacion: string | null;
@@ -35,6 +37,8 @@ export interface DatosDeBolsa {
   creditosMes: number;
   delMes: number;
   recargas: number;
+  /** Vencimiento de la recarga vigente que vence primero. */
+  proximaRecargaVence?: string | null;
   disponibles: number;
   renovacion: string;
   venceAt: string | null;
@@ -68,6 +72,7 @@ export function resumenDeTarjeta(d: DatosDeBolsa): ResumenDePlan {
     creditosMes: d.creditosMes,
     usadosDelMes: Math.max(d.creditosMes - d.delMes, 0),
     recargas: d.recargas,
+    recargasVencen: d.recargas > 0 && d.proximaRecargaVence ? `vence el ${fecha(d.proximaRecargaVence)}` : null,
     disponibles: d.disponibles,
     renovacion,
     vencido: d.vencido,

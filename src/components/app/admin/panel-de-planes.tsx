@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { PLANES, RECARGAS, planDelCatalogo, type IdDePlan } from '@/lib/billing/catalogo';
+import { DIAS_DE_RECARGA } from '@/lib/billing/limites';
 import type { listarCuentas } from '@/lib/billing/gestion';
 
 type Cuenta = Awaited<ReturnType<typeof listarCuentas>>[number];
@@ -210,7 +211,18 @@ export function PanelDePlanes() {
                       )}
                     </td>
                     <td className="p-3 text-right tabular-nums">{n(c.disponibles)}</td>
-                    <td className="p-3 text-right tabular-nums">{c.recargas ? n(c.recargas) : '—'}</td>
+                    <td className="p-3 text-right tabular-nums">
+                      {c.recargas ? (
+                        <>
+                          {n(c.recargas)}
+                          {c.recargaVence && (
+                            <span className="block text-[10px] font-normal text-muted-foreground">vence {fecha(c.recargaVence)}</span>
+                          )}
+                        </>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
                     <td className="whitespace-nowrap p-3 text-xs text-muted-foreground">{c.plan ? fecha(c.venceAt) : '—'}</td>
                     <td className="p-3">
                       <div className="flex justify-end gap-1">
@@ -501,6 +513,10 @@ function DialogoRecargar({ cuenta, alCerrar, alTerminar }: { cuenta: Cuenta; alC
           </div>
           <p className="text-xs text-muted-foreground">
             Disponibles ahora: {n(cuenta.disponibles)} · después: {n(cuenta.disponibles + (valido ? total : 0))}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            La recarga vence a los {DIAS_DE_RECARGA} días calendario de activada: el{' '}
+            {fecha(new Date(Date.now() + DIAS_DE_RECARGA * 86_400_000).toISOString())}. Se usa después de los créditos del mes.
           </p>
         </div>
         <DialogFooter className="gap-2 sm:gap-0">

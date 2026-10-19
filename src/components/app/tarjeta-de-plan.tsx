@@ -12,7 +12,8 @@ import { EVENTO_CREDITOS, type ResumenDePlan } from '@/lib/billing/resumen-de-ta
  *
  * Una sola bolsa de créditos (documento «PLANES DE A-LEXIA», 17/10/2026):
  * la barra mide los créditos del mes usados; las recargas van aparte
- * porque no vencen con el mes, y abajo, lo que de verdad importa al
+ * porque no se renuevan con el mes —cada una vence a los 30 días de
+ * activada (César, 18/10/2026)—, y abajo, lo que de verdad importa al
  * usuario: cuántos créditos le quedan y cuándo se renuevan.
  *
  * El layout no se vuelve a pintar al navegar entre páginas, así que la
@@ -90,7 +91,9 @@ export function TarjetaDePlan({ plan: inicial }: { plan: ResumenDePlan }) {
           />
         </div>
         {plan.recargas > 0 && (
-          <p className="mt-1 text-[10.5px] text-white/55">+ {n(plan.recargas)} de recargas</p>
+          <p className="mt-1 text-[10.5px] text-white/55">
+            + {n(plan.recargas)} de recargas{plan.recargasVencen ? ` · ${plan.recargasVencen}` : ''}
+          </p>
         )}
         <p className={cn('mt-1.5 text-[11.5px] font-medium', apretado ? 'text-amber-300' : 'text-white/85')}>
           {n(plan.disponibles)} {plan.disponibles === 1 ? unidad.slice(0, -1) : unidad} disponibles

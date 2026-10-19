@@ -87,6 +87,24 @@ export default function PrivacidadPage() {
         conservarlos por más tiempo (por ejemplo, facturación). Puedes
         solicitar la eliminación en cualquier momento.
       </p>
+      <p>
+        <strong>Documentos que cargas para evaluar.</strong> Las bases,
+        ofertas y documentos de subsanación, rechazo o negociación que cargas
+        en la evaluación de ofertas, las bases que cargas en la evaluación de
+        bases y los documentos que cargas en un expediente de ejecución
+        contractual se eliminan de nuestro almacenamiento en cuanto termina
+        su procesamiento, con resultado o con error. Conservamos el resultado
+        y el texto extraído de esos documentos, asociados a tu evaluación o
+        expediente, para que puedas consultarlo, descargar el acta, hacer una
+        segunda evaluación o reevaluar; se eliminan al borrar la evaluación o
+        el expediente. El requerimiento que cargas en la evaluación de
+        requerimientos se conserva mientras exista la evaluación, porque
+        sobre ese mismo archivo se prepara la versión mejorada con control de
+        cambios; se elimina al borrar la evaluación. Los adjuntos de tus
+        consultas a soporte y las grabaciones de la consulta por voz siguen
+        sus propias reglas (ver la{' '}
+        <a href="/legal/privacidad-voz">política de la consulta por voz</a>).
+      </p>
 
       <h2>7. Tus derechos</h2>
       <p>

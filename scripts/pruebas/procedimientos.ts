@@ -111,6 +111,44 @@ void (async () => {
   const fc2 = etapasFinales(c2, montos({ A: 50000, B: 45000 }), lectura(), pComp);
   ok(fc2.buenaPro.postor === 'B' && c2[1].prelacion === 1, 'comparación: buena pro al menor precio');
 
+  // 6 bis. Subasta inversa (art. 96.5; César, 18/10/2026): mínimo dos calificadas.
+  const pSie = perfilDelProcedimiento(lectura(), 'SUBASTA INVERSA ELECTRÓNICA N° 8-2026');
+  const sie1 = [postor('A', 0), postor('B', 0, undefined, true)];
+  const fs1 = etapasFinales(sie1, montos({ A: 900, B: 850 }), lectura(), pSie);
+  ok(pSie.minimoCalificadas === 2 && !!fs1.desierto, 'subasta inversa: una sola calificada → desierto');
+  const sie2 = [postor('A', 0), postor('B', 0)];
+  const fs2 = etapasFinales(sie2, montos({ A: 900, B: 850 }), lectura(), pSie);
+  ok(fs2.buenaPro.postor === 'B', 'subasta inversa: dos calificadas, buena pro al menor lance');
+  ok(pSie.reglas.some((r) => /una hora/.test(r.regla)), 'subasta inversa: periodo de lances de una hora como mínimo');
+  const pExp = perfilDelProcedimiento(lectura(), 'CONCURSO PÚBLICO ABREVIADO PARA LA CONTRATACIÓN DE EXPERTOS Y GERENTES DE PROYECTOS');
+  ok(pExp.reglas.some((r) => /mínimo 20 puntos\)[^]*mínimo 20 puntos\)[^]*mínimo 25 puntos/.test(r.regla)), 'expertos: mínimos 20, 20 y 25 de las bases estándar');
+
+  // 6 ter. Cuadro de rechazo y descalificación de César (documento 16, 19/10/2026).
+  const pMv = perfilDelProcedimiento(lObra, 'CONCURSO PÚBLICO PARA SERVICIO DE MANTENIMIENTO VIAL … EVALUACIÓN ECONÓMICA (Puntaje Máximo: 100 Puntos) Oferta económica limitada: entre el 95% y 110%');
+  ok(pMv.rechazo && !pObra.rechazo, 'mantenimiento vial: con rechazo por estructura de costos; obra: sin rechazo');
+  const pCo = perfilDelProcedimiento(lServ, 'CONCURSO PÚBLICO PARA CONSULTORÍA DE OBRA N° 3');
+  ok(!pCo.rechazo && pCo.economica.rango?.minimo === 0.9, 'consultoría de obra: piso del 90 %, sin rechazo');
+  ok(fo.descalificados?.length === 2, 'obra: las dos fuera de rango quedan como descalificadas');
+  const fs3 = etapasFinales([postor('A', 80), postor('B', 65), postor('C', 90)], montos({ A: 100000, B: 80000, C: 125000 }), lServ, pServ);
+  ok((fs3.descalificados ?? []).some((d) => d.postor === 'B' && /mínimo de 70/.test(d.motivo)), 'servicios: menos de 70 puntos técnicos = descalificada');
+  const lComp = lectura({ cuantiaMonto: 50000 });
+  const cp = [postor('A', 0), postor('B', 0), postor('C', 0)];
+  const fcp = etapasFinales(cp, montos({ A: 48000, B: 52000, C: 49000 }), lComp, pComp);
+  ok(!!cp[1].descalificadoEconomica && fcp.buenaPro.postor === 'A', 'comparación de precios: la que supera la cuantía se descalifica');
+  const pEx = perfilDelProcedimiento(lectura({ cuantiaMonto: 30000 }), 'CONCURSO PÚBLICO ABREVIADO PARA LA CONTRATACIÓN DE EXPERTOS Y GERENTES DE PROYECTOS');
+  const conFactores = (nombre: string, casos: number, entrevista: number, experiencia: number): ResultadoPostor => {
+    const p = postor(nombre, casos + entrevista + experiencia);
+    p.etapas[2].fichas = [
+      { id: 'c', requisito: 'A. RESOLUCIÓN DE CASOS PRÁCTICOS POR ESCRITO', puntaje: casos } as never,
+      { id: 'e', requisito: 'B. ENTREVISTA', puntaje: entrevista } as never,
+      { id: 'x', requisito: 'C. EXPERIENCIA DEL POSTOR EN LA ESPECIALIDAD', puntaje: experiencia } as never,
+    ];
+    return p;
+  };
+  const ex = [conFactores('A', 25, 20, 30), conFactores('B', 30, 15, 30)];
+  const fex = etapasFinales(ex, montos({ A: 30000, B: 30000 }), lectura({ cuantiaMonto: 30000 }), pEx);
+  ok(!!ex[1].descalificadoEconomica && /Entrevista/.test(ex[1].descalificadoEconomica) && fex.buenaPro.postor === 'A', 'expertos: menos de 20 en la entrevista = descalificada');
+
   // 7. Empate (art. 81): técnico, luego MYPE, luego sorteo.
   const pE = perfilDelProcedimiento(lectura({ eco: { tipo: 'simultanea', puntajeMaximo: 40 } }), 'LICITACIÓN PÚBLICA PARA BIENES');
   const e1 = [postor('A', 50, { mype: false }), postor('B', 50, { remype: true })];

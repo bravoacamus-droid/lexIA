@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { borrarSubidas, rutasDeEvaluacion } from '@/lib/archivos/borrar-subidas';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -38,6 +39,15 @@ export async function DELETE(_req: Request, ctx: { params: { id: string } }) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
+  // Los archivos que aún queden (el requerimiento de una evaluación de
+  // requerimiento, o los de una evaluación que no terminó) se van con ella.
+  const { data: fila } = await supabase
+    .from('evaluations')
+    .select('bases_file_path, bases_partes, offer_files')
+    .eq('id', ctx.params.id)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
   const { error } = await supabase
     .from('evaluations')
     .delete()
@@ -45,5 +55,13 @@ export async function DELETE(_req: Request, ctx: { params: { id: string } }) {
     .eq('user_id', user.id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (fila) {
+    await borrarSubidas(
+      createAdminClient(),
+      user.id,
+      rutasDeEvaluacion(fila as Parameters<typeof rutasDeEvaluacion>[0]),
+      `evaluación eliminada ${ctx.params.id}`,
+    );
+  }
   return NextResponse.json({ ok: true });
 }

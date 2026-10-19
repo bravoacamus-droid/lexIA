@@ -14,6 +14,9 @@
  */
 import { createClient as createAdmin, type SupabaseClient } from '@supabase/supabase-js';
 import { enlaceWhatsApp, planDelCatalogo, type IdDePlan } from './catalogo';
+import { LIMITES, bytesPorOferta, mensajeDeTamano } from './limites';
+
+export { LIMITES } from './limites';
 
 export type Herramienta =
   | 'consulta_texto'
@@ -94,17 +97,6 @@ export function planMinimo(h: Herramienta): IdDePlan {
   return 'especialista';
 }
 
-/**
- * Límites propios de algunos planes, además de los créditos:
- *   · Consulta: hasta 3 operaciones combinadas al mes de requerimientos de
- *     contratos menores (generar, evaluar o ambas), no 3 por cada tipo.
- *   · Profesional: hasta 3 análisis de ofertas al mes, de 2 ofertas cada uno.
- */
-export const LIMITES = {
-  consulta: { herramientas: ['requerimiento_menor', 'evaluacion_requerimiento_menor'] as Herramienta[], porMes: 3 },
-  profesional: { herramientas: ['evaluacion_ofertas'] as Herramienta[], porMes: 3, ofertasPorAnalisis: 2 },
-};
-
 function admin(): SupabaseClient {
   return createAdmin(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -119,11 +111,67 @@ export interface Bolsa {
   modalidad: 'mensual' | 'anual';
   estado: 'activo' | 'suspendido';
   creditos_mes: number;
+  /** Desde cuándo corre el plan: cada mes se renueva en `inicio_plan` + n meses (migración 0087). */
+  inicio_plan: string;
   periodo_inicio: string;
   periodo_fin: string;
   vence_at: string | null;
   usados_periodo: number;
+  /** Obsoleta desde 0087: las recargas viven en `recargas_de_creditos`, con vencimiento. */
   saldo_recargas: number;
+}
+
+/** Una recarga: su saldo vence a los 30 días calendario de activada (César, 18/10/2026). */
+export interface LoteDeRecarga {
+  id: string;
+  creditos: number;
+  saldo: number;
+  activada_at: string;
+  vence_at: string;
+  detalle: string | null;
+}
+
+/**
+ * `d` + `n` meses, como lo hace Postgres (`timestamptz + interval 'n
+ * months'`): si el día no existe en el mes de llegada, el último día del
+ * mes. Con `setUTCMonth` el 31 de enero + 1 mes daba el 3 de marzo, y la
+ * pantalla anunciaba una renovación que la base de datos no hacía.
+ */
+export function sumarMeses(d: Date, n: number): Date {
+  const total = d.getUTCMonth() + n;
+  const anio = d.getUTCFullYear() + Math.floor(total / 12);
+  const mes = ((total % 12) + 12) % 12;
+  const ultimo = new Date(Date.UTC(anio, mes + 1, 0)).getUTCDate();
+  return new Date(
+    Date.UTC(anio, mes, Math.min(d.getUTCDate(), ultimo), d.getUTCHours(), d.getUTCMinutes(), d.getUTCSeconds(), d.getUTCMilliseconds()),
+  );
+}
+
+/**
+ * El periodo vigente de la bolsa, con la misma cuenta que `renovar_bolsa`
+ * (migración 0087): si el periodo guardado ya terminó, los siguientes van
+ * del inicio del plan + k meses al inicio del plan + k + 1 meses, mientras
+ * el plan siga vigente. También el plan anual: renueva cada mes.
+ */
+export function periodoVigente(
+  b: Pick<Bolsa, 'plan' | 'inicio_plan' | 'periodo_inicio' | 'periodo_fin' | 'vence_at' | 'usados_periodo'>,
+  ahora = Date.now(),
+): { inicio: number; fin: number; usados: number } {
+  let inicio = new Date(b.periodo_inicio).getTime();
+  let fin = new Date(b.periodo_fin).getTime();
+  let usados = b.usados_periodo;
+  if (b.plan === 'prueba' || fin > ahora) return { inicio, fin, usados };
+  const ancla = new Date(b.inicio_plan ?? b.periodo_inicio);
+  const vence = b.vence_at ? new Date(b.vence_at).getTime() : null;
+  let k = 0;
+  while (sumarMeses(ancla, k).getTime() < fin) k++;
+  while (fin <= ahora && (vence === null || fin < vence)) {
+    k++;
+    inicio = fin;
+    fin = sumarMeses(ancla, k).getTime();
+    usados = 0;
+  }
+  return { inicio, fin, usados };
 }
 
 export interface EstadoDeCreditos {
@@ -132,10 +180,15 @@ export interface EstadoDeCreditos {
   equipo: { id: string; nombre: string; rol: 'propietario' | 'miembro' } | null;
   /** Créditos del mes que quedan (si el periodo ya venció, el mes completo). */
   delMes: number;
+  /** Saldo de las recargas vigentes (las vencidas ya no cuentan). */
   recargas: number;
+  /** Las recargas vigentes, de la que vence primero a la última. */
+  lotes: LoteDeRecarga[];
   disponibles: number;
   vencido: boolean;
   renovacion: string;
+  /** Inicio del periodo vigente aunque la base aún no lo haya renovado: desde aquí se cuentan los límites del mes. */
+  periodoInicio: string;
 }
 
 /**
@@ -173,18 +226,19 @@ export async function bolsaDelUsuario(userId: string, cliente: SupabaseClient = 
   const ahora = Date.now();
   // Vista del periodo vigente sin escribir: la renovación real la hace
   // `consumir_creditos` al primer uso.
-  let usados = bolsa.usados_periodo;
-  let fin = new Date(bolsa.periodo_fin).getTime();
+  const { inicio, fin, usados } = periodoVigente(bolsa, ahora);
   const vence = bolsa.vence_at ? new Date(bolsa.vence_at).getTime() : null;
-  if (bolsa.plan !== 'prueba') {
-    while (fin <= ahora && (vence === null || fin < vence)) {
-      const d = new Date(fin);
-      d.setUTCMonth(d.getUTCMonth() + 1);
-      fin = d.getTime();
-      usados = 0;
-    }
-  }
   const delMes = Math.max(bolsa.creditos_mes - usados, 0);
+  // Recargas vigentes: cada una vence a los 30 días de activada.
+  const { data: lotesLeidos } = await cliente
+    .from('recargas_de_creditos')
+    .select('id, creditos, saldo, activada_at, vence_at, detalle')
+    .eq('bolsa_id', bolsa.id)
+    .gt('saldo', 0)
+    .gt('vence_at', new Date(ahora).toISOString())
+    .order('vence_at', { ascending: true });
+  const lotes = (lotesLeidos ?? []) as LoteDeRecarga[];
+  const recargas = lotes.reduce((t, l) => t + l.saldo, 0);
   const equipoInfo = miembro
     ? {
         id: miembro.equipo_id as string,
@@ -197,10 +251,12 @@ export async function bolsaDelUsuario(userId: string, cliente: SupabaseClient = 
     plan: bolsa.plan,
     equipo: equipoInfo,
     delMes,
-    recargas: bolsa.saldo_recargas,
-    disponibles: delMes + bolsa.saldo_recargas,
+    recargas,
+    lotes,
+    disponibles: delMes + recargas,
     vencido: bolsa.estado !== 'activo' || (vence !== null && ahora >= vence),
     renovacion: new Date(bolsa.plan === 'prueba' ? (vence ?? fin) : fin).toISOString(),
+    periodoInicio: new Date(inicio).toISOString(),
   };
 }
 
@@ -257,11 +313,19 @@ function rechazo(
  * hacer el trabajo; si falla después, `reembolsar()`.
  *
  * `unidades`: minutos de voz u ofertas de una evaluación.
+ * `bytesPorOferta`: lo que pesa cada archivo de oferta (evaluación de
+ * ofertas), para el tope de tamaño del plan.
  */
 export async function usarHerramienta(
   userId: string,
   herramienta: Herramienta,
-  opciones: { unidades?: number; detalle?: string; soloComprobar?: boolean; creditos?: number } = {},
+  opciones: {
+    unidades?: number;
+    detalle?: string;
+    soloComprobar?: boolean;
+    creditos?: number;
+    bytesPorOferta?: Array<{ nombre: string; bytes: number }>;
+  } = {},
 ): Promise<UsoAutorizado | RechazoDePlan> {
   const cliente = admin();
   const estado = await bolsaDelUsuario(userId, cliente);
@@ -302,6 +366,19 @@ export async function usarHerramienta(
       { plan_sugerido: 'especialista' },
     );
   }
+  if (herramienta === 'evaluacion_ofertas' && opciones.bytesPorOferta?.length) {
+    const tope = bytesPorOferta(plan);
+    const grande = tope ? opciones.bytesPorOferta.find((o) => o.bytes > tope) : undefined;
+    if (grande) {
+      return rechazo(
+        estado,
+        herramienta,
+        'limite_del_plan',
+        mensajeDeTamano(plan, grande.nombre, grande.bytes),
+        plan === 'profesional' ? { plan_sugerido: 'especialista' } : {},
+      );
+    }
+  }
   const limite = plan === 'consulta' || plan === 'profesional' ? LIMITES[plan] : null;
   if (limite && limite.herramientas.includes(herramienta)) {
     const { count } = await cliente
@@ -310,14 +387,14 @@ export async function usarHerramienta(
       .eq('bolsa_id', estado.bolsa.id)
       .eq('origen', 'consumo')
       .in('herramienta', limite.herramientas)
-      .gte('created_at', estado.bolsa.periodo_inicio);
+      .gte('created_at', estado.periodoInicio);
     const { count: devueltos } = await cliente
       .from('movimientos_de_creditos')
       .select('id', { count: 'exact', head: true })
       .eq('bolsa_id', estado.bolsa.id)
       .eq('origen', 'reembolso')
       .in('herramienta', limite.herramientas)
-      .gte('created_at', estado.bolsa.periodo_inicio);
+      .gte('created_at', estado.periodoInicio);
     if ((count ?? 0) - (devueltos ?? 0) >= limite.porMes) {
       return rechazo(
         estado,
@@ -350,7 +427,7 @@ export async function usarHerramienta(
     p_creditos: creditos,
     p_detalle: opciones.detalle ?? null,
   });
-  const r = (data ?? {}) as { ok?: boolean; motivo?: string; disponibles?: number };
+  const r = (data ?? {}) as { ok?: boolean; motivo?: string; disponibles?: number; movimiento?: number };
   if (error || !r.ok) {
     if (r.motivo === 'vencido' || r.motivo === 'suspendido') {
       return rechazo(estado, herramienta, 'plan_vencido', `Tu plan ${nombrePlan} no está vigente.`);
@@ -378,6 +455,9 @@ export async function usarHerramienta(
         p_herramienta: herramienta,
         p_creditos: creditos,
         p_detalle: motivo ?? 'la tarea no se completó',
+        // Con el consumo, cada crédito vuelve a su sitio: al mes o a la
+        // recarga de la que salió (migración 0087).
+        p_movimiento: r.movimiento ?? null,
       });
     },
   };

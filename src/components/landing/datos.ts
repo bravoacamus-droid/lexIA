@@ -168,7 +168,7 @@ export const COMPARACION: [string, string, string, string][] = [
   ['Contratos menores', '3 operaciones combinadas/mes', '✓', '✓'],
   ['Requerimientos de selección', '—', '✓', '✓'],
   ['Bases y formulación de observaciones', '—', '✓', '✓'],
-  ['Ofertas', '—', '3 análisis/mes; hasta 2 ofertas/análisis', 'Varias según capacidad'],
+  ['Ofertas', '—', '3 análisis/mes; hasta 3 ofertas/análisis de hasta 60 MB cada una', 'Varias por análisis, de hasta 120 MB cada una'],
   ['Documentos contractuales y absoluciones', '—', '—', '✓'],
 ];
 

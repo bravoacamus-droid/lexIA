@@ -9,19 +9,25 @@
 import { randomBytes } from 'node:crypto';
 import { createClient as createAdmin, type SupabaseClient } from '@supabase/supabase-js';
 import { planDelCatalogo, type IdDePlan } from './catalogo';
-import { bolsaDelUsuario, COSTO, HERRAMIENTAS_DEL_PLAN, LIMITES, NOMBRE_HERRAMIENTA, type Herramienta } from './creditos';
+import {
+  bolsaDelUsuario,
+  COSTO,
+  HERRAMIENTAS_DEL_PLAN,
+  LIMITES,
+  NOMBRE_HERRAMIENTA,
+  periodoVigente,
+  sumarMeses,
+  type Bolsa,
+  type Herramienta,
+  type LoteDeRecarga,
+} from './creditos';
+import { DIAS_DE_RECARGA } from './limites';
 
 export function servicio(): SupabaseClient {
   return createAdmin(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
-
-const sumarMeses = (d: Date, meses: number) => {
-  const r = new Date(d);
-  r.setUTCMonth(r.getUTCMonth() + meses);
-  return r;
-};
 
 /** Lo que ve el usuario en «Mi plan»: plan, créditos, límites, movimientos y equipo. */
 export async function resumenDeCuenta(userId: string) {
@@ -39,7 +45,7 @@ export async function resumenDeCuenta(userId: string) {
     .from('movimientos_de_creditos')
     .select('herramienta, creditos, origen')
     .eq('bolsa_id', estado.bolsa.id)
-    .gte('created_at', estado.bolsa.periodo_inicio)
+    .gte('created_at', estado.periodoInicio)
     .in('origen', ['consumo', 'reembolso']);
   const porHerramienta: Record<string, { usos: number; creditos: number }> = {};
   for (const m of (delPeriodo ?? []) as Array<{ herramienta: string; creditos: number; origen: string }>) {
@@ -57,7 +63,7 @@ export async function resumenDeCuenta(userId: string) {
             texto:
               estado.plan === 'consulta'
                 ? 'Operaciones de requerimientos de contratos menores'
-                : 'Análisis de ofertas (hasta 2 ofertas cada uno)',
+                : `Análisis de ofertas (hasta ${LIMITES.profesional.ofertasPorAnalisis} ofertas cada uno)`,
             usados: Math.max(0, usados),
             maximo: l.porMes,
           };
@@ -101,6 +107,8 @@ export async function resumenDeCuenta(userId: string) {
       disponibles: estado.disponibles,
       delMes: estado.delMes,
       recargas: estado.recargas,
+      // Cada recarga vence a los 30 días de activada (César, 18/10/2026).
+      lotes: estado.lotes.map((l) => ({ id: l.id, creditos: l.creditos, saldo: l.saldo, activadaAt: l.activada_at, venceAt: l.vence_at })),
       usadosDelMes: Math.max(estado.bolsa.creditos_mes - estado.delMes, 0),
       renovacion: estado.renovacion,
       venceAt: estado.bolsa.vence_at,
@@ -148,6 +156,8 @@ export async function asignarPlan(args: {
     modalidad: args.modalidad,
     estado: 'activo',
     creditos_mes: creditosMes,
+    // La renovación mensual se cuenta desde aquí: inicio + 1, + 2… meses.
+    inicio_plan: ahora.toISOString(),
     periodo_inicio: ahora.toISOString(),
     periodo_fin: (args.plan === 'prueba' ? vence! : sumarMeses(ahora, 1)).toISOString(),
     vence_at: vence ? vence.toISOString() : null,
@@ -205,23 +215,24 @@ export async function asignarPlan(args: {
   return { bolsaId };
 }
 
-/** Suma créditos de recarga a la bolsa que usa el usuario (la de su equipo si tiene). */
+/**
+ * Suma una recarga a la bolsa que usa el usuario (la de su equipo si
+ * tiene). Cada recarga es un lote que vence a los 30 días calendario de
+ * activada (César, 18/10/2026); `recargar_creditos` (migración 0087) crea
+ * el lote y su movimiento juntos.
+ */
 export async function recargar(args: { userId: string; creditos: number; detalle?: string; hechoPor: string }) {
   const db = servicio();
   const estado = await bolsaDelUsuario(args.userId, db);
-  const { error } = await db
-    .from('bolsas_de_creditos')
-    .update({ saldo_recargas: estado.bolsa.saldo_recargas + args.creditos, updated_at: new Date().toISOString() })
-    .eq('id', estado.bolsa.id);
-  if (error) throw error;
-  await db.from('movimientos_de_creditos').insert({
-    bolsa_id: estado.bolsa.id,
-    user_id: args.hechoPor,
-    origen: 'recarga',
-    creditos: args.creditos,
-    detalle: args.detalle ?? `Recarga de ${args.creditos} créditos`,
-    periodo_inicio: estado.bolsa.periodo_inicio,
+  const { data, error } = await db.rpc('recargar_creditos', {
+    p_bolsa: estado.bolsa.id,
+    p_user: args.hechoPor,
+    p_creditos: args.creditos,
+    p_detalle: args.detalle ?? null,
+    p_dias: DIAS_DE_RECARGA,
   });
+  if (error) throw error;
+  return { loteId: data as string };
 }
 
 export async function suspender(args: { userId: string; suspendido: boolean }) {
@@ -237,6 +248,19 @@ export async function listarCuentas() {
   const { data: perfiles } = await db.from('profiles').select('id, full_name, organization_name, is_admin');
   const { data: bolsas } = await db.from('bolsas_de_creditos').select('*');
   const { data: miembros } = await db.from('miembros_de_equipo').select('user_id, equipo_id, rol, equipos(nombre, max_usuarios)');
+  // Solo las recargas vigentes: las vencidas ya no suman.
+  const { data: lotes } = await db
+    .from('recargas_de_creditos')
+    .select('bolsa_id, saldo, vence_at')
+    .gt('saldo', 0)
+    .gt('vence_at', new Date().toISOString());
+  const recargasDe = new Map<string, { saldo: number; vence: string | null }>();
+  for (const l of (lotes ?? []) as Array<Pick<LoteDeRecarga, 'saldo' | 'vence_at'> & { bolsa_id: string }>) {
+    const r = recargasDe.get(l.bolsa_id) ?? { saldo: 0, vence: null };
+    r.saldo += l.saldo;
+    if (!r.vence || l.vence_at < r.vence) r.vence = l.vence_at;
+    recargasDe.set(l.bolsa_id, r);
+  }
   const perfil = new Map(((perfiles ?? []) as Array<{ id: string; full_name: string | null; organization_name: string | null; is_admin: boolean }>).map((p) => [p.id, p]));
   const bolsaDeUsuario = new Map(((bolsas ?? []) as Array<Record<string, unknown>>).filter((b) => b.user_id).map((b) => [b.user_id as string, b]));
   const bolsaDeEquipo = new Map(((bolsas ?? []) as Array<Record<string, unknown>>).filter((b) => b.equipo_id).map((b) => [b.equipo_id as string, b]));
@@ -244,8 +268,9 @@ export async function listarCuentas() {
   return (usuarios?.users ?? []).map((u) => {
     const m = miembro.get(u.id) as { equipo_id: string; rol: string; equipos?: { nombre?: string; max_usuarios?: number } } | undefined;
     const b = (m ? bolsaDeEquipo.get(m.equipo_id) : null) ?? bolsaDeUsuario.get(u.id) ?? null;
+    const rec = b ? recargasDe.get(b.id as string) : undefined;
     const disponibles = b
-      ? Math.max((b.creditos_mes as number) - (b.usados_periodo as number), 0) + (b.saldo_recargas as number)
+      ? Math.max((b.creditos_mes as number) - periodoVigente(b as unknown as Bolsa).usados, 0) + (rec?.saldo ?? 0)
       : 0;
     return {
       id: u.id,
@@ -260,7 +285,9 @@ export async function listarCuentas() {
       venceAt: (b?.vence_at as string | null | undefined) ?? null,
       creditosMes: (b?.creditos_mes as number | undefined) ?? 0,
       disponibles,
-      recargas: (b?.saldo_recargas as number | undefined) ?? 0,
+      recargas: rec?.saldo ?? 0,
+      /** Cuándo vence la próxima recarga (la que vence primero). */
+      recargaVence: rec?.vence ?? null,
       equipo: m ? { id: m.equipo_id, nombre: m.equipos?.nombre ?? 'Equipo', rol: m.rol, maxUsuarios: m.equipos?.max_usuarios ?? null } : null,
     };
   });

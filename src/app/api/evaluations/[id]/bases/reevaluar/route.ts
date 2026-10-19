@@ -13,7 +13,8 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { GENERATOR_MODEL_ID } from '@/lib/ai/gemini';
 import { recordAiUsage } from '@/lib/ai/usage-log';
 import { evaluarBases, listaDeEstandares } from '@/lib/evaluacion/bases/evaluar';
-import { cacheEnEvaluacion, camposDeLaLectura, leerBases } from '@/lib/evaluacion/bases/leer';
+import { camposDeLaLectura } from '@/lib/evaluacion/bases/leer';
+import { basesDeLaEvaluacion } from '@/lib/archivos/bases-leidas';
 import { buscadorDeSustento } from '@/lib/evaluacion/mejora/sustento';
 import { cargarEvaluacionDeBases } from '@/lib/evaluacion/bases/cargar';
 
@@ -33,7 +34,14 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
   const inicio = Date.now();
   const uso = { entrada: 0, salida: 0 };
   const admin = createAdminClient();
-  const leidas = await leerBases(admin, c.ev.bases_file_path, { cache: cacheEnEvaluacion(admin, c.ev.id) });
+  // Lo leído en la primera evaluación (el PDF ya se borró, César
+  // 18/10/2026); en evaluaciones anteriores, el archivo.
+  let leidas;
+  try {
+    leidas = await basesDeLaEvaluacion(admin, c.ev);
+  } catch (e) {
+    return NextResponse.json({ error: 'bases_no_disponibles', detail: (e as Error).message }, { status: 409 });
+  }
   const resultado = await evaluarBases({
     ...camposDeLaLectura(leidas),
     estandarId: pedido.data.estandarId,

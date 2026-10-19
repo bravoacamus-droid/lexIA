@@ -38,6 +38,15 @@ export default function TerminosPage() {
         proveedor compatible (Google o Facebook). Eres responsable de mantener
         la seguridad de tu cuenta y de la información que cargues en ella.
       </p>
+      <p>
+        Los documentos que cargas para que A-LexIA los evalúe (bases, ofertas,
+        documentos de subsanación y los documentos de un expediente de
+        ejecución contractual) se eliminan de nuestro almacenamiento cuando
+        termina su procesamiento. Conservamos el resultado y el texto que se
+        extrajo de ellos mientras no elimines la evaluación o el expediente.
+        El detalle está en la{' '}
+        <a href="/legal/privacidad">Política de Privacidad</a>.
+      </p>
 
       <h2>5. Prueba gratuita, planes y créditos</h2>
       <p>
@@ -51,10 +60,14 @@ export default function TerminosPage() {
         créditos, que se descuentan según la herramienta usada y se renuevan
         cada mes mientras el plan esté vigente; los créditos del mes no
         utilizados no se acumulan. Puedes comprar recargas de créditos
-        adicionales. En los planes de equipo, la bolsa de créditos es
+        adicionales: cada recarga vence a los 30 días calendario de su
+        activación, y los créditos de recarga que no uses en ese plazo se
+        pierden. Los créditos del mes se usan primero y, después, los de la
+        recarga que vence antes. En los planes de equipo, la bolsa de créditos es
         compartida por sus usuarios. Los planes y las recargas se contratan a
         través de nuestro canal comercial y se facturan en soles peruanos; el
-        plan anual cubre 12 meses y se paga por adelantado. Conservarás el
+        plan anual cubre 12 meses, se paga por adelantado y sus créditos se
+        entregan y renuevan cada mes durante esos 12 meses. Conservarás el
         acceso hasta el fin del periodo pagado.
       </p>
 

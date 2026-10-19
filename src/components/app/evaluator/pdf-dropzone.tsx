@@ -84,6 +84,12 @@ interface Props {
    * evaluación de ofertas.
    */
   dividir?: boolean;
+  /**
+   * Qué hacer cuando el archivo pasa de `maxSize`, en vez del aviso
+   * genérico: el asistente del evaluador dice el tope del plan y ofrece
+   * mejorarlo (Profesional 60 MB por oferta, Especialista 120 MB).
+   */
+  alExceder?: (archivo: File) => void;
 }
 
 interface UploadStats {
@@ -187,6 +193,7 @@ export function PdfDropzone({
   compact = false,
   dividir = false,
   maxSize = dividir ? 400 * 1024 * 1024 : LIMITE_STORAGE,
+  alExceder,
 }: Props) {
   const [uploading, setUploading] = useState(false);
   const [stats, setStats] = useState<UploadStats | null>(null);
@@ -199,6 +206,10 @@ export function PdfDropzone({
       const file = acceptedFiles[0];
       if (!file) return;
       if (file.size > maxSize) {
+        if (alExceder) {
+          alExceder(file);
+          return;
+        }
         toast.error(
           `El archivo pesa ${formatBytes(file.size)} y aquí se aceptan hasta ${formatBytes(maxSize)}. Comprímelo (por ejemplo, en ilovepdf.com/es/comprimir_pdf) y vuelve a subirlo.`,
         );
@@ -279,7 +290,7 @@ export function PdfDropzone({
         xhrRef.current = null;
       }
     },
-    [folder, maxSize, onChange, dividir],
+    [folder, maxSize, onChange, dividir, alExceder],
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({

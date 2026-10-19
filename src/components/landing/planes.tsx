@@ -92,8 +92,8 @@ export function Planes() {
           </p>
           <p>
             Las operaciones documentales máximas no son cupos adicionales gratuitos. Las recargas amplían saldo,
-            pero no desbloquean funciones ni eliminan los límites del plan. En equipos, la bolsa se comparte entre
-            los usuarios.
+            pero no desbloquean funciones ni eliminan los límites del plan, y vencen a los 30 días calendario de
+            activadas. En equipos, la bolsa se comparte entre los usuarios.
           </p>
           <button className="text-button" id="credits-button" onClick={abrirCreditos}>
             Explorar ejemplos de consumo →

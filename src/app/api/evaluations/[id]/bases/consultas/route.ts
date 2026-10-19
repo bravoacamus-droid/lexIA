@@ -14,7 +14,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createAdminClient } from '@/lib/supabase/server';
 import { cargarEvaluacionDeBases } from '@/lib/evaluacion/bases/cargar';
-import { cacheEnEvaluacion, leerBases } from '@/lib/evaluacion/bases/leer';
+import { basesDeLaEvaluacion } from '@/lib/archivos/bases-leidas';
 import { ubicarHallazgosGuardados } from '@/lib/evaluacion/bases/evaluar';
 import { NOMBRE_DE_FUENTE } from '@/lib/evaluacion/bases/biblioteca';
 import type { HallazgoBases } from '@/lib/evaluacion/bases/tipos';
@@ -78,10 +78,7 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
   if (!c.ev.result.paginacion && hallazgos.some((h) => pedido.data.hallazgos.includes(h.id) && !h.pagina)) {
     try {
       const admin = createAdminClient();
-      const leidas = await leerBases(admin, c.ev.bases_file_path, {
-        cache: cacheEnEvaluacion(admin, c.ev.id),
-        transcribir: false,
-      });
+      const leidas = await basesDeLaEvaluacion(admin, c.ev, { transcribir: false });
       hallazgos = await ubicarHallazgosGuardados(c.ev.result, leidas);
       await c.supabase
         .from('evaluations')

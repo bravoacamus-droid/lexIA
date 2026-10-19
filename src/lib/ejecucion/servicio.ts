@@ -15,6 +15,7 @@ import { reconstruirFicha } from './ficha';
 import { leerDocumento } from './lectura';
 import { redactarDocumento } from './redaccion';
 import { hoyISO } from './regimen';
+import { borrarSubidas } from '@/lib/archivos/borrar-subidas';
 import type { ActuacionDelExpediente } from './estado';
 import type {
   AnalisisDeActuacion,
@@ -61,7 +62,14 @@ const MIME: Record<string, string> = {
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 };
 
-/** Lee los documentos que falten, de a tres. */
+/**
+ * Lee los documentos que falten, de a tres.
+ *
+ * Leído el documento —o con un error que no se reintenta—, el archivo se
+ * borra del almacenamiento y la fila se queda con su texto (César,
+ * 18/10/2026: lo que se carga no se almacena). El análisis y la
+ * redacción trabajan con `texto`, no con el archivo.
+ */
 export async function leerPendientes(supabase: SupabaseClient, documentos: DocumentoDelExpediente[], usuario: string) {
   const pendientes = documentos.filter((d) => d.origen === 'cargado' && (d.lectura === 'pendiente' || d.lectura === 'leyendo') && d.ruta);
   const cola = [...pendientes];
@@ -85,17 +93,28 @@ export async function leerPendientes(supabase: SupabaseClient, documentos: Docum
           clase: d.clase ?? lectura.clase,
           carpeta: d.carpeta ?? CLASES[d.clase ?? lectura.clase].carpeta,
         };
-        await supabase.from('expediente_documentos').update(cambios).eq('id', d.id);
+        const { error: errGuardado } = await supabase.from('expediente_documentos').update(cambios).eq('id', d.id);
         Object.assign(d, cambios);
+        if (!errGuardado) await soltarArchivo(supabase, d, usuario);
       } catch (e) {
         const msg =
           e instanceof DocumentoIlegibleError ? `${e.message} ${e.sugerencia}` : `No se pudo leer el documento: ${(e as Error).message}`;
         await supabase.from('expediente_documentos').update({ lectura: 'error', error: msg }).eq('id', d.id);
         Object.assign(d, { lectura: 'error', error: msg });
+        await soltarArchivo(supabase, d, usuario);
       }
     }
   }
   await Promise.all([trabajador(), trabajador(), trabajador()]);
+}
+
+/** Borra el archivo del documento y deja la fila sin ruta. */
+async function soltarArchivo(supabase: SupabaseClient, d: DocumentoDelExpediente, usuario: string) {
+  if (!d.ruta) return;
+  const { error } = await borrarSubidas(supabase, usuario, [d.ruta], `expediente, documento ${d.id}`);
+  if (error) return;
+  await supabase.from('expediente_documentos').update({ ruta: null }).eq('id', d.id);
+  d.ruta = null;
 }
 
 export async function analizar(

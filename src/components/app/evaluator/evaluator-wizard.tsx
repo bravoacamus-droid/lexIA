@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -22,6 +22,8 @@ import { PdfDropzone } from '@/components/app/evaluator/pdf-dropzone';
 import { Processing } from '@/components/app/evaluator/processing';
 import { useConfirmarConsumo } from '@/components/app/billing/consumo-estimado';
 import { avisoDePlan, creditosCambiaron } from '@/lib/billing/aviso-de-plan';
+import { enlaceWhatsApp, planDelCatalogo, type IdDePlan } from '@/lib/billing/catalogo';
+import { MAX_OFERTAS_POR_ANALISIS, MB_POR_OFERTA, bytesPorOferta, mensajeDeTamano, ofertasPorAnalisis } from '@/lib/billing/limites';
 
 type Step = 1 | 2 | 3 | 'processing';
 
@@ -67,6 +69,38 @@ export function EvaluatorWizard({
   const [offers, setOffers] = useState<UploadedFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const { confirmar, dialogo } = useConfirmarConsumo();
+  // El plan dice cuántas ofertas y de qué tamaño (César, 18/10/2026:
+  // Profesional 3 ofertas de hasta 60 MB; Especialista hasta 120 MB). Si
+  // no se puede leer, se deja subir y el servidor decide.
+  const [plan, setPlan] = useState<IdDePlan | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    fetch('/api/cuenta/plan?breve=1', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { plan?: IdDePlan } | null) => {
+        if (vivo && j?.plan) setPlan(j.plan);
+      })
+      .catch(() => null);
+    return () => {
+      vivo = false;
+    };
+  }, []);
+  const maxOfertas = plan ? ofertasPorAnalisis(plan) : MAX_OFERTAS_POR_ANALISIS;
+  const maxBytesOferta = plan ? bytesPorOferta(plan) : null;
+
+  function ofertaDemasiadoGrande(archivo: File) {
+    if (!plan) return;
+    const sugerido = plan === 'profesional' ? planDelCatalogo('especialista').nombre : null;
+    avisoDePlan({
+      error: 'limite_del_plan',
+      message: mensajeDeTamano(plan, archivo.name, archivo.size),
+      whatsapp_url: enlaceWhatsApp(
+        sugerido
+          ? `Hola, uso A-LexIA (plan ${planDelCatalogo(plan).nombre}) y quisiera pasar al plan ${sugerido} para evaluar ofertas de más de ${MB_POR_OFERTA[plan]} MB.`
+          : `Hola, uso A-LexIA (plan ${planDelCatalogo(plan).nombre}) y necesito evaluar una oferta de más de ${MB_POR_OFERTA[plan]} MB.`,
+      ),
+    });
+  }
 
   async function startProcessing() {
     if (!bases || offers.length === 0 || !title.trim()) return;
@@ -88,7 +122,7 @@ export function EvaluatorWizard({
           title: title.trim(),
           bases_file_path: bases.path,
           bases_partes: bases.partes,
-          offer_files: offers.map((o) => ({ name: o.name, path: o.path, partes: o.partes })),
+          offer_files: offers.map((o) => ({ name: o.name, path: o.path, partes: o.partes, size: o.size })),
           mode,
         }),
       });
@@ -279,13 +313,33 @@ export function EvaluatorWizard({
                     Sube las ofertas
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    Sube hasta 5 ofertas en PDF, escaneadas o no. Cada una será evaluada
+                    Sube hasta {maxOfertas} ofertas en PDF, escaneadas o no. Cada una será evaluada
                     contra los requisitos extraídos.
                   </p>
                 </div>
-                <span className="shrink-0 inline-flex items-center justify-center h-6 px-2 rounded-md bg-secondary text-xs font-mono">
-                  {offers.length} / 5
+                <span
+                  className="shrink-0 inline-flex items-center justify-center h-6 px-2 rounded-md bg-secondary text-xs font-mono"
+                  aria-label={`${offers.length} de ${maxOfertas} ofertas`}
+                >
+                  {offers.length} / {maxOfertas}
                 </span>
+              </div>
+
+              <div
+                className="mb-4 rounded-lg border border-brand-200/60 bg-brand-50/50 px-4 py-3 text-xs leading-relaxed text-foreground/80 dark:border-brand-900 dark:bg-brand-950/30"
+                data-regla-un-tomo
+              >
+                <p>
+                  <strong>Una oferta = un solo PDF.</strong> Cada archivo que subas cuenta como una oferta
+                  (y se cobra como una). Si una oferta viene en varios tomos, únelos en un solo PDF antes
+                  de subirla.
+                </p>
+                {plan && maxBytesOferta && (
+                  <p className="mt-1 text-muted-foreground">
+                    Tu plan {planDelCatalogo(plan).nombre}: hasta {maxOfertas} ofertas por análisis, de hasta{' '}
+                    {MB_POR_OFERTA[plan]} MB cada una.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-3">
@@ -318,17 +372,23 @@ export function EvaluatorWizard({
                   </div>
                 ))}
 
-                {offers.length < 5 && (
+                {offers.length < maxOfertas && (
                   <PdfDropzone
                     folder="evaluations/offers"
                     onChange={(f) => {
                       if (f) setOffers((prev) => [...prev, f]);
                     }}
-                    label={`Agregar oferta ${offers.length + 1}`}
+                    label={`Agregar oferta ${offers.length + 1} (un solo PDF)`}
                     accept="application/pdf"
                     compact
                     dividir
+                    {...(maxBytesOferta ? { maxSize: maxBytesOferta, alExceder: ofertaDemasiadoGrande } : {})}
                   />
+                )}
+                {offers.length > maxOfertas && (
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    Tu plan admite {maxOfertas} ofertas por análisis: quita {offers.length - maxOfertas}.
+                  </p>
                 )}
               </div>
 
@@ -341,7 +401,7 @@ export function EvaluatorWizard({
                   size="lg"
                   variant="glow"
                   onClick={startProcessing}
-                  disabled={offers.length === 0}
+                  disabled={offers.length === 0 || offers.length > maxOfertas}
                   loading={submitting}
                 >
                   <Sparkles className="h-4 w-4" />

@@ -89,8 +89,45 @@ const REVISAR = `Revisas UNA contratación que un postor presenta como experienc
 · "participacion": si se ejecutó EN CONSORCIO, el porcentaje de las obligaciones que tuvo en aquel consorcio el postor o el integrante que la aporta; 100 si la ejecutó solo. "citaParticipacion": la frase LITERAL de la promesa o contrato de consorcio de entonces, o de la constancia, donde consta ese porcentaje (vacío si no la hay).
 · "tieneModificaciones": true si hay adicionales, deductivos, ampliaciones con mayores costos, adendas que cambian el monto, o un monto final distinto del contratado.
 · "sustentoModificaciones": qué documentos sustentan esas modificaciones o el monto final, o vacío.
+· "modalidad", según el contrato u orden: "suministro" (bienes entregados de forma periódica, continuada o en entregas sucesivas a lo largo de un período), "periodica" (servicio de ejecución periódica o continuada), "unica" (entrega única de bienes o servicio de ejecución única). "citaModalidad": la frase del contrato que lo muestra.
+· "conformidadTotal": true si algún documento de cierre acredita la ejecución TOTAL del contrato u orden; false si solo hay conformidades de entregas o avances parciales.
+· "organoConformidad": quién debe otorgar la conformidad según el contrato (literal: «el área usuaria», «el residente, el supervisor y el jefe de infraestructura»…); vacío si no lo dice. "firmantesConformidad": quiénes firman las conformidades presentadas (nombre y cargo). "organoCompleto": true si las firman todos los que el contrato designa —si el contrato dice «área usuaria», basta quien pertenece a ella, por ejemplo el residente o el supervisor de obra—; false si falta alguno de los designados; null si el contrato no lo dice. Esto se evalúa SOLO sobre las CONFORMIDADES: la constancia de prestación o de cumplimiento la emite la entidad —su órgano de contrataciones o abastecimiento— una vez otorgada la conformidad (art. 124 del Reglamento) y vale por sí misma; si el cierre es una constancia, "organoCompleto" es null.
+· "esSimilar": true si lo contratado es igual o similar a lo que las Bases definen como similar (se te da la definición); false si claramente no lo es; null si no se puede saber. "motivoSimilar": por qué.
 Copia cifras sin separador de miles. No completes lo que no consta.
-Devuelve SOLO JSON: {"tipo": "obra"|"servicio"|"bien"|"otro", "montoQueConsta": null, "pagosTotal": 0, "pagos": [], "documentoDeCierre": "", "paginasCierre": [], "participacion": 100, "citaParticipacion": "", "tieneModificaciones": false, "sustentoModificaciones": ""}`;
+Devuelve SOLO JSON: {"tipo": "obra"|"servicio"|"bien"|"otro", "montoQueConsta": null, "pagosTotal": 0, "pagos": [], "documentoDeCierre": "", "paginasCierre": [], "participacion": 100, "citaParticipacion": "", "tieneModificaciones": false, "sustentoModificaciones": "", "modalidad": "suministro"|"periodica"|"unica", "citaModalidad": "", "conformidadTotal": false, "organoConformidad": "", "firmantesConformidad": "", "organoCompleto": null, "esSimilar": null, "motivoSimilar": ""}`;
+
+/**
+ * Cuándo vale una conformidad PARCIAL, quién debe emitirla y si la
+ * experiencia es similar. César, 18/10/2026, sobre el folio 41 de EDDU
+ * CONTRATISTAS:
+ *   · «si estuviéramos en el SUPUESTO DE EJECUCIÓN ÚNICA, mientras no se
+ *     demuestre la ejecución total del contrato, no correspondería reconocer
+ *     la ejecución PARCIAL, esto solo puede suceder en una ejecución
+ *     periódica, o continuada o suministro de bienes»;
+ *   · «se debe evaluar en el contrato quien está a cargo de emitir la
+ *     conformidad […] deben ser emitidos por el total del órgano competente
+ *     […]. En este caso en particular, solo dice área usuaria, […] se podría
+ *     considerar como válido dado que la conformidad está firmado por el
+ *     residente y supervisor»;
+ *   · determinar el monto ejecutado, «no solo demostrar su entrega», y que
+ *     la experiencia esté alineada a lo IGUAL o SIMILAR de las bases.
+ * Son juicios del modelo sobre el contrato: una contratación solo se
+ * descarta por ellos si las DOS lecturas coinciden.
+ */
+function descarteDeCesar(lecturas: Array<Record<string, unknown>>): string | null {
+  const todas = (f: (l: Record<string, unknown>) => boolean) => lecturas.length > 0 && lecturas.every(f);
+  if (todas((l) => l.modalidad === 'unica' && l.conformidadTotal === false)) {
+    return 'es de ejecución única y solo se acredita una ejecución parcial: mientras no se demuestre la ejecución total del contrato no se reconoce la parcial (solo cabe en el suministro de bienes o en la prestación periódica o continuada)';
+  }
+  if (todas((l) => l.organoCompleto === false)) {
+    const l = lecturas[0];
+    return `la conformidad no la emite todo el órgano que designa el contrato (${String(l.organoConformidad ?? '').trim() || 'según el contrato'}; firman: ${String(l.firmantesConformidad ?? '').trim() || 'no consta'})`;
+  }
+  if (todas((l) => l.esSimilar === false)) {
+    return `no corresponde a bienes o servicios iguales o similares a los que definen las Bases (${String(lecturas[0].motivoSimilar ?? '').trim()})`;
+  }
+  return null;
+}
 
 /**
  * Los medios con que las Bases estándar admiten acreditar la cancelación
@@ -270,6 +307,8 @@ export async function verificarExperiencia(args: {
   const objeto = objetoDeLasBases(extracto, args.textoBases);
   const { general, mype } = montosExigidos(extracto);
   const aceptaSiaf = /SIAF/i.test(extracto);
+  // Lo que las Bases definen como similar, para que la revisión lo compare.
+  const similares = (extracto.match(/[^.]*similar[^.]*\./gi) ?? []).join(' ').replace(/\s+/g, ' ').slice(0, 900);
 
   // Las páginas que tratan la experiencia: el anexo y los documentos de
   // cada contratación.
@@ -334,7 +373,9 @@ ${paginas.join('\n').slice(0, 450_000)}`,
                   model: chatModel,
                   system: REVISAR,
                   prompt: `CONTRATACIÓN ${String(c.n ?? '')}: ${String(c.objeto ?? '')} — cliente ${String(c.cliente ?? '')} — monto declarado ${String(c.montoDeclarado ?? '')}
-
+${similares ? `
+SIMILARES SEGÚN LAS BASES: ${similares}
+` : ''}
 PÁGINAS DE SUS DOCUMENTOS:
 ${suyas.join('\n').slice(0, 120_000)}`,
                   temperature: 0,
@@ -435,8 +476,11 @@ ${suyas.join('\n').slice(0, 120_000)}`,
                 `${deficientes.length === 1 ? 'la conformidad de la página' : 'las conformidades de las páginas'} ${deficientes.map((q) => q.pagina).join(', ')} ${deficientes.length === 1 ? 'es una copia' : 'son copias'} de calidad deficiente (${deficientes.map((q) => q.motivo).filter(Boolean).join('; ').slice(0, 400)}): no permite${deficientes.length === 1 ? '' : 'n'} dar fe de quién la emite, su cargo, el contrato al que se refiere, si es parcial o total ni su monto, y no acredita${deficientes.length === 1 ? '' : 'n'} la prestación`,
               );
             }
-            // Solo baja: si hubo documentos que leer o páginas deficientes.
-            if ((documentos.length > 0 || deficientes.length > 0) && leido < cierre - 1) {
+            // Solo baja, y solo si alguna página es deficiente: que la
+            // consulta no saque el monto de una constancia nítida (la de la
+            // página 47 de POZO HCJ cubre varias órdenes) no es razón para
+            // descontarla; manda la lectura del texto.
+            if (deficientes.length > 0 && leido < cierre - 1) {
               notas2.push(
                 leido > 0
                   ? `con las conformidades que sí se leen (${legibles.map((x) => `página ${x.pagina}: ${soles(x.montoConforme)}`).join('; ')}) consta ${soles(leido)}, no ${soles(cierre)}`
@@ -450,8 +494,10 @@ ${suyas.join('\n').slice(0, 120_000)}`,
           // suele ser más completo. Se toma lo mayor: lo computable queda
           // topado por lo que el postor declara, así que el riesgo es
           // quedarse corto, no pasarse.
-          const consta = Math.max(cierre, pagos, pagosTotal);
+          const descarte = descarteDeCesar(lecturas);
+          const consta = descarte ? 0 : Math.max(cierre, pagos, pagosTotal);
           const notas = [
+            descarte ?? '',
             notaCierre,
             noValidos.length
               ? `${noValidos.length === 1 ? 'el pago' : 'los pagos'} ${noValidos.map((x) => `${String(x.comprobante ?? '').trim() || 's/n'}${x.pagina ? ` (página ${x.pagina})` : ''}`).join(', ')} ${noValidos.length === 1 ? 'se acredita' : 'se acreditan'} solo con ${noValidos.some((x) => String(x.medio) === 'siaf') ? 'el comprobante del SIAF de la Entidad, que no es un documento emitido por una entidad del sistema financiero' : 'un documento que no es de los que admite la «Acreditación»'}; no se ${noValidos.length === 1 ? 'computa' : 'computan'}`

@@ -79,7 +79,12 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
     return NextResponse.json({ error: 'forbidden', detail: 'Documento fuera de tu carpeta.' }, { status: 403 });
   }
 
-  const progreso = prepararRonda({ numero: (ev.result.rondas?.length ?? 0) + 1, documentos, noSubsanaron });
+  const progreso = {
+    ...prepararRonda({ numero: (ev.result.rondas?.length ?? 0) + 1, documentos, noSubsanaron }),
+    // Para borrarlos al terminar la ronda (`/etapas`): los documentos que
+    // se cargan no se almacenan (César, 18/10/2026).
+    subidos: documentos.flatMap((d) => [d.path, ...(d.partes ?? [])]),
+  };
   const admin = createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
     auth: { persistSession: false },
   });

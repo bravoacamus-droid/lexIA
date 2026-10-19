@@ -63,7 +63,8 @@ export const PLANES: PlanDeCatalogo[] = [
     caracteristicas: [
       'Todo Consulta y requerimientos de procedimientos de selección',
       'Bases y formulación de consultas/observaciones',
-      'Hasta 3 análisis: máximo 2 ofertas por análisis',
+      'Hasta 3 análisis al mes: máximo 3 ofertas por análisis',
+      'Cada oferta en un solo PDF de hasta 60 MB',
       'Sin consulta por voz',
     ],
     recomendado: true,
@@ -80,7 +81,7 @@ export const PLANES: PlanDeCatalogo[] = [
       'Todo Profesional',
       'Consulta por voz',
       'Documentos contractuales y absoluciones',
-      'Varias ofertas según capacidad implementada',
+      'Varias ofertas por análisis, de hasta 120 MB cada una',
     ],
   },
   {
@@ -118,6 +119,7 @@ export const PLANES: PlanDeCatalogo[] = [
   },
 ];
 
+/** Cada recarga vence a los 30 días calendario de activada (César, 18/10/2026; ver limites.ts). */
 export const RECARGAS = [
   { creditos: 100, precio: 29 },
   { creditos: 300, precio: 79 },

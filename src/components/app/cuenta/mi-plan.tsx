@@ -71,6 +71,7 @@ const ORIGEN: Record<string, string> = {
   recarga: 'Recarga',
   asignacion: 'Plan activado',
   ajuste: 'Ajuste',
+  vencimiento: 'Recarga vencida',
 };
 
 /** Cómo se cobra cada herramienta: la voz por minuto, las ofertas por oferta. */
@@ -225,10 +226,23 @@ export function MiPlan({ inicial, email, userId }: { inicial: ResumenDeCuenta; e
               <dd className="mt-0.5 text-base font-semibold tabular-nums">{n(r.creditos.recargas)}</dd>
             </div>
           </dl>
+          {r.creditos.lotes.length > 0 && (
+            <ul className="mt-2 space-y-1 text-[11px] text-muted-foreground" aria-label="Recargas vigentes">
+              {r.creditos.lotes.map((l) => (
+                <li key={l.id} className="flex items-baseline justify-between gap-2" data-recarga={l.id}>
+                  <span>
+                    Recarga del {fecha(l.activadaAt)}
+                    {l.saldo < l.creditos ? ` · quedan ${n(l.saldo)} de ${n(l.creditos)}` : ` · ${n(l.creditos)} créditos`}
+                  </span>
+                  <span className="shrink-0 tabular-nums">vence el {fecha(l.venceAt)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
           <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
             {esPrueba
               ? `La prueba termina el ${fecha(r.creditos.renovacion)} o al usar la pregunta 20.`
-              : `Los créditos del mes se renuevan el ${fecha(r.creditos.renovacion)}. Las recargas se usan cuando se acaban los del mes y no vencen con la renovación.`}
+              : `Los créditos del mes se renuevan el ${fecha(r.creditos.renovacion)}${r.plan.modalidad === 'anual' ? ', y así cada mes durante el año contratado' : ''}. Las recargas se usan cuando se acaban los del mes, empezando por la que vence primero; cada recarga vence a los 30 días calendario de activada.`}
           </p>
 
           {r.limite && (
@@ -345,13 +359,13 @@ export function MiPlan({ inicial, email, userId }: { inicial: ResumenDeCuenta; e
         <p className="text-xs text-muted-foreground">
           {esPrueba
             ? 'Las recargas son para planes de pago: durante la prueba, elige un plan.'
-            : 'Créditos adicionales para tu bolsa. Pídelos por WhatsApp y se activan en tu cuenta.'}
+            : 'Créditos adicionales para tu bolsa, válidos por 30 días calendario desde que se activan. Pídelos por WhatsApp y se activan en tu cuenta.'}
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           {RECARGAS.map((rc) => (
             <Card key={rc.creditos} className={cn('flex flex-col p-5', esPrueba && 'opacity-60')}>
               <p className="text-2xl font-bold tabular-nums">{n(rc.creditos)}</p>
-              <p className="text-xs text-muted-foreground">créditos</p>
+              <p className="text-xs text-muted-foreground">créditos · vencen a los 30 días</p>
               <p className="mt-3 text-lg font-semibold">S/ {n(rc.precio)}</p>
               <Button asChild={!esPrueba} variant="outline" size="sm" className="mt-4" disabled={esPrueba}>
                 {esPrueba ? (

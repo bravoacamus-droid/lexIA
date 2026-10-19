@@ -13,6 +13,7 @@ import { numeroEnLetras, juzgarPrecio } from '../../src/lib/evaluacion/precio';
 import { compromisoDePlazo, hitoDeLasBases, revisarPlazo } from '../../src/lib/evaluacion/plazo';
 import { hayPromesaDeConsorcio } from '../../src/lib/evaluacion/identificacion';
 import { formaSocial } from '../../src/lib/evaluacion/certificaciones';
+import { pideVariosDocumentos, textoDelFactor } from '../../src/lib/evaluacion/factores';
 import type { FichaRequisito } from '../../src/lib/evaluacion/etapas';
 
 const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
@@ -95,6 +96,11 @@ void (async () => {
   ok(aguilarCert.forma === 'sa8000' && !aguilarCert.cumple, `AGUILAR: SA 8000 sin SAAS → ${aguilarCert.forma}, ${aguilarCert.cumple ? 'acredita' : 'no acredita'}`);
   const sinFormaC = formaSocial(pagina(porPostor.POZO, /SR 2030:2023/), 'Certificado SA 8000:2014 emitido por Organismo acreditado ante SAAS.');
   ok(!sinFormaC.cumple, 'si las Bases solo admiten SA 8000, las buenas prácticas laborales no acreditan');
+
+  // 4 bis. Mejoras: el factor exige varios documentos (César, 18/10/2026).
+  const tf = textoDelFactor(k.bases, 'I. MEJORAS A LAS ESPECIFICACIONES TÉCNICAS');
+  ok(/Mejora 1/.test(tf) && pideVariosDocumentos(tf), 'Kimbiri: la Mejora 1 pide declaración jurada y además el informe de ensayo');
+  ok(!pideVariosDocumentos('B. PLAZO DE ENTREGA … Acreditación: Se acreditará mediante la presentación de declaración jurada de plazo de entrega (Anexo Nº 12) … 25 puntos'), 'plazo de entrega: un solo documento');
 
   // 5. Los consorcios del documento 13 siguen siendo consorcios.
   const v = await textos('3708b632-3ecc-4e7b-80ba-da7b1b86b7af');

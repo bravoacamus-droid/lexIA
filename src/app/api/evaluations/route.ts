@@ -1,7 +1,37 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { respuestaDeRechazo, usarHerramienta, type Herramienta } from '@/lib/billing/creditos';
+import { BUCKET_DE_SUBIDAS } from '@/lib/archivos/borrar-subidas';
+
+/**
+ * Lo que pesa de verdad cada oferta: la suma de lo que hay en el
+ * almacenamiento (sus partes, si el navegador la partió para subirla).
+ * Partir un PDF con pdf-lib repite recursos compartidos (fuentes, por
+ * ejemplo), así que la suma de las partes puede pasar un poco del
+ * original: se le da un margen y manda el tamaño que declaró el
+ * navegador, que es el del archivo original.
+ */
+const MARGEN_DE_PARTES = 1.15;
+async function pesoDeLasOfertas(
+  ofertas: Array<{ name: string; path: string; partes?: string[]; size?: number }>,
+): Promise<Array<{ nombre: string; bytes: number }>> {
+  const admin = createAdminClient();
+  return Promise.all(
+    ofertas.map(async (o) => {
+      const rutas = o.partes?.length ? o.partes : [o.path];
+      const tamanos = await Promise.all(
+        rutas.map(async (r) => {
+          const { data } = await admin.storage.from(BUCKET_DE_SUBIDAS).info(r).catch(() => ({ data: null }));
+          return Number((data as { size?: number } | null)?.size ?? 0);
+        }),
+      );
+      const enStorage = tamanos.reduce((t, x) => t + x, 0);
+      const partida = rutas.length > 1;
+      return { nombre: o.name, bytes: Math.max(o.size ?? 0, partida ? enStorage / MARGEN_DE_PARTES : enStorage) };
+    }),
+  );
+}
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -13,7 +43,15 @@ const createSchema = z
     /** Las Bases partidas por el navegador para poder subirlas (Storage: 50 MB). */
     bases_partes: z.array(z.string().min(1)).max(20).optional(),
     offer_files: z
-      .array(z.object({ name: z.string(), path: z.string(), partes: z.array(z.string().min(1)).max(20).optional() }))
+      .array(
+        z.object({
+          name: z.string(),
+          path: z.string(),
+          partes: z.array(z.string().min(1)).max(20).optional(),
+          /** Bytes del archivo original (antes de partirlo): el tope por oferta del plan es sobre él. */
+          size: z.number().int().nonnegative().optional(),
+        }),
+      )
       .max(5)
       .optional()
       .default([]),
@@ -81,8 +119,29 @@ export async function POST(req: Request) {
           ? 'evaluacion_requerimiento_menor'
           : 'evaluacion_requerimiento_seleccion'
         : 'evaluacion_ofertas';
+  // Cada archivo es una oferta (una oferta = un solo PDF): el conteo y el
+  // cobro son por archivo.
   const unidades = herramienta === 'evaluacion_ofertas' ? parsed.data.offer_files?.length ?? 1 : 1;
-  const guard = await usarHerramienta(user.id, herramienta, { unidades, soloComprobar: true });
+
+  // Los archivos tienen que estar en la carpeta del usuario: el servidor
+  // los lee (y al terminar los borra) con permisos de servicio.
+  const propio = (r: string) => r.startsWith(`${user.id}/`);
+  const rutas = [
+    parsed.data.bases_file_path,
+    ...(parsed.data.bases_partes ?? []),
+    ...(parsed.data.offer_files ?? []).flatMap((o) => [o.path, ...(o.partes ?? [])]),
+  ];
+  if (!rutas.every(propio)) {
+    return NextResponse.json({ error: 'forbidden', detail: 'Documento fuera de tu carpeta.' }, { status: 403 });
+  }
+
+  const guard = await usarHerramienta(user.id, herramienta, {
+    unidades,
+    soloComprobar: true,
+    // El tope de tamaño por oferta del plan (Profesional 60 MB,
+    // Especialista 120 MB: César, 18/10/2026).
+    ...(herramienta === 'evaluacion_ofertas' ? { bytesPorOferta: await pesoDeLasOfertas(parsed.data.offer_files ?? []) } : {}),
+  });
   if (!guard.ok) return respuestaDeRechazo(guard);
 
   const { data, error } = await supabase

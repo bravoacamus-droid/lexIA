@@ -26,6 +26,7 @@ async function resumirElPlan(userId: string): Promise<ResumenDePlan | null> {
       creditosMes: e.bolsa.creditos_mes,
       delMes: e.delMes,
       recargas: e.recargas,
+        proximaRecargaVence: e.lotes[0]?.vence_at ?? null,
       disponibles: e.disponibles,
       renovacion: e.renovacion,
       venceAt: e.bolsa.vence_at,

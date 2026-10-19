@@ -36,8 +36,9 @@
  * Lo que el documento de César dice distinto, y por qué aquí manda la norma:
  *   · Empate: él escribe «sorteo electrónico automático»; el art. 81 pone
  *     antes el mejor puntaje técnico y la condición de MYPE.
- *   · Subasta inversa: él escribe «los tres primeros lugares»; el 96.5 dice
- *     que se revisan sucesivamente hasta identificar tres que cumplan.
+ *   · Subasta inversa: él escribía «los tres primeros lugares»; el 96.5 dice
+ *     que se revisan sucesivamente hasta identificar tres que cumplan. César
+ *     lo aclaró el 18/10/2026: es eso, y con menos de dos calificadas, desierto.
  *   · Rechazo: él lo extiende a obras; el 132.5 lo prevé para bienes y
  *     servicios.
  */
@@ -82,6 +83,14 @@ export interface PerfilProcedimiento {
   bonificaciones: { mype: boolean; provincia: boolean };
   /** Comparación de precios: mínimo de ofertas calificadas para evaluar (numeral 98.1). */
   minimoCalificadas?: number;
+  /** La oferta que supera la cuantía se descalifica (comparación de precios, no competitivo). */
+  topeEnLaCuantia?: boolean;
+  /**
+   * Mínimos por factor que, si no se alcanzan, descalifican (expertos y
+   * gerentes de proyectos). `patron` es una expresión regular, como texto,
+   * que reconoce el factor por su nombre.
+   */
+  minimosPorFactor?: Array<{ factor: string; patron: string; minimo: number }>;
   /** Cada regla con su fuente, para el acta. */
   reglas: Array<{ etapa: string; regla: string; fuente: string }>;
   /** Lo que no se pudo determinar de las Bases. */
@@ -199,11 +208,14 @@ export function perfilDelProcedimiento(lectura: LecturaBases, textoBases: string
       break;
     case 'consultoria_obra':
       perfil = posterior(abreviada ? 'Concurso Público Abreviado para Consultoría de Obra' : 'Concurso Público para Consultoría de Obra', [0.8, 0.9], [0.1, 0.2]);
+      // Cuadro de César (documento 16): aquí manda el piso del 90 %.
+      perfil.rechazo = false;
       perfil.economica = { tipo: 'limitada', puntajeMaximo: 100, rango: { minimo: 0.9 } };
       reglas.push({ etapa: 'Evaluación económica', regla: 'Oferta económica limitada: no puede ser menor al 90 % de la cuantía; la que no cumpla se descalifica.', fuente: 'Bases estándar de consultoría de obra' });
       break;
     case 'proyectos':
       perfil = posterior('Concurso de Proyectos Arquitectónicos y Urbanísticos', [0.6, 0.7], [0.3, 0.4]);
+      perfil.rechazo = false;
       perfil.economica = { tipo: 'limitada', puntajeMaximo: 100, rango: { minimo: 0.9 } };
       reglas.push({ etapa: 'Evaluación técnica', regla: 'A cargo de un jurado; factor obligatorio: la propuesta arquitectónica.', fuente: 'Art. 135 del Reglamento; bases estándar' }, { etapa: 'Evaluación económica', regla: 'El componente de diseño no puede ser menor al 90 % de su cuantía; en diseño y construcción, el componente de obra es fijo al 100 %.', fuente: 'Bases estándar de proyectos arquitectónicos' });
       break;
@@ -214,7 +226,13 @@ export function perfilDelProcedimiento(lectura: LecturaBases, textoBases: string
           ? abreviada ? 'Licitación Pública Abreviada de Obras' : 'Licitación Pública de Obras'
           : abreviada ? 'Concurso Público Abreviado para Servicio de Mantenimiento Vial' : 'Concurso Público para Servicio de Mantenimiento Vial';
       perfil = posterior(nombre, [0.6, 0.7], [0.3, 0.4]);
-      perfil.rechazo = false;
+      // Cuadro de César (documento 16, 19/10/2026): en mantenimiento vial
+      // cabe además el rechazo por la estructura de costos (es un servicio,
+      // art. 132.5); en obras, no: manda el rango o la oferta fija.
+      perfil.rechazo = clase === 'mantenimiento_vial';
+      if (clase === 'obra' && /dise[ñn]o y construcci[óo]n/.test(cabeza)) {
+        avisos.push('Obra bajo diseño y construcción: el componente de obra debe ofertarse al 100 % de su cuantía y el de diseño no puede ser menor al 90 % de la suya; si no, la oferta se descalifica. El comité verifica los montos de cada componente.');
+      }
       const metodo = metodoDeObra(textoBases, eco?.formula) ?? (eco?.puntajeMaximo === 0 ? 'fija' : null);
       const fuente = clase === 'obra' ? 'Bases estándar de obras' : 'Art. 133 del Reglamento; bases estándar de mantenimiento vial';
       if (metodo === 'fija') {
@@ -229,7 +247,7 @@ export function perfilDelProcedimiento(lectura: LecturaBases, textoBases: string
       break;
     }
     case 'expertos':
-      reglas.push({ etapa: 'Evaluación técnica', regla: 'Sobre 100 puntos, con los factores obligatorios de las bases estándar (casos prácticos, entrevista, experiencia).', fuente: 'Art. 134.2 del Reglamento' }, { etapa: 'Evaluación económica', regla: 'Oferta fija igual a la cuantía; la que no corresponda a la cuantía se descalifica. El puntaje total es el técnico.', fuente: 'Art. 134.1 del Reglamento' });
+      reglas.push({ etapa: 'Evaluación técnica', regla: 'Sobre 100 puntos, con los factores obligatorios de las bases estándar: resolución de casos prácticos por escrito (mínimo 20 puntos), entrevista (mínimo 20 puntos) y experiencia del postor en la especialidad (mínimo 25 puntos).', fuente: 'Art. 134.2 del Reglamento; bases estándar, Capítulo IV y cuadro resumen' }, { etapa: 'Evaluación económica', regla: 'Oferta fija igual a la cuantía; la que no corresponda a la cuantía se descalifica. El puntaje total es el técnico.', fuente: 'Art. 134.1 del Reglamento' });
       perfil = base({
         nombre: 'Concurso Público Abreviado para la Contratación de Expertos y Gerentes de Proyectos',
         secuencia: ['Admisión', 'Calificación', 'Evaluación técnica (la económica es fija)'],
@@ -237,12 +255,21 @@ export function perfilDelProcedimiento(lectura: LecturaBases, textoBases: string
         economica: { tipo: 'fija', puntajeMaximo: 0 },
         puntajeTecnicoMinimo: lectura.puntajeTecnicoMinimo,
         rechazo: false,
+        // Cuadro de César (documento 16): «Descalificación por no alcanzar los
+        // mínimos técnicos obligatorios: Casos Prácticos (20 ptos), Entrevista
+        // (20 ptos) o Experiencia (25 ptos)».
+        minimosPorFactor: [
+          { factor: 'Resolución de casos prácticos', patron: 'caso', minimo: 20 },
+          { factor: 'Entrevista', patron: 'entrevista', minimo: 20 },
+          { factor: 'Experiencia del postor en la especialidad', patron: 'experiencia', minimo: 25 },
+        ],
       });
+      reglas.push({ etapa: 'Descalificación', regla: 'Se descalifica la oferta que no alcanza el mínimo en cualquiera de los factores obligatorios (casos prácticos 20, entrevista 20, experiencia 25) o que no oferta exactamente el 100 % de la cuantía.', fuente: 'Cuadro de rechazo y descalificación de César (19/10/2026); art. 134 del Reglamento' });
       break;
     case 'subasta_inversa':
       reglas.splice(0, reglas.length,
-        { etapa: 'Evaluación económica', regla: 'Por lances en línea en la Pladicop; el orden de prelación es del menor al mayor último lance. No hay evaluación técnica.', fuente: 'Art. 74.1 c), 96.3 y 96.4 del Reglamento' },
-        { etapa: 'Admisión y calificación', regla: 'Posteriores a los lances: se revisan los postores en el orden de prelación, sucesivamente, hasta identificar tres que cumplan (si solo participaron dos, ambos).', fuente: 'Art. 96.5 del Reglamento' },
+        { etapa: 'Evaluación económica', regla: 'Por lances en línea en la Pladicop, en un periodo de una hora como mínimo; el orden de prelación es del menor al mayor último lance. No hay evaluación técnica.', fuente: 'Art. 74.1 c), 96.3 y 96.4 del Reglamento; bases estándar de subasta inversa (sección general)' },
+        { etapa: 'Admisión y calificación', regla: 'Posteriores a los lances: se revisan los requisitos de los postores en el orden de prelación, sucesivamente, hasta identificar tres que cumplan; si solo participaron dos, se revisan ambos. Se requieren al menos dos ofertas calificadas; si ninguna o solo una cumple, el procedimiento se declara desierto.', fuente: 'Art. 96.5 del Reglamento' },
       );
       perfil = base({
         nombre: 'Subasta Inversa Electrónica',
@@ -252,6 +279,8 @@ export function perfilDelProcedimiento(lectura: LecturaBases, textoBases: string
         puntajeTecnicoMinimo: null,
         rechazo: false,
         bonificaciones: { mype: false, provincia: false },
+        // César (18/10/2026): «Como mínimo, se debe tener 2 ofertas calificadas».
+        minimoCalificadas: 2,
       });
       break;
     case 'comparacion_precios':
@@ -262,9 +291,12 @@ export function perfilDelProcedimiento(lectura: LecturaBases, textoBases: string
         conTecnica: false,
         economica: { tipo: 'menor_precio', puntajeMaximo: 0 },
         puntajeTecnicoMinimo: null,
-        rechazo: true,
+        // Cuadro de César (documento 16): descalificación si supera la cuantía.
+        rechazo: false,
         minimoCalificadas: 2,
+        topeEnLaCuantia: true,
       });
+      reglas.push({ etapa: 'Descalificación', regla: 'Se descalifica la oferta que supera la cuantía de la contratación.', fuente: 'Cuadro de rechazo y descalificación de César (19/10/2026); bases estándar de comparación de precios' });
       break;
     case 'no_competitivo':
       reglas.push({ etapa: 'Verificación', regla: 'Se verifica el cumplimiento integral de las especificaciones técnicas o términos de referencia; no hay competencia ni puntaje.', fuente: 'Bases estándar del procedimiento no competitivo' });
@@ -276,7 +308,9 @@ export function perfilDelProcedimiento(lectura: LecturaBases, textoBases: string
         puntajeTecnicoMinimo: null,
         rechazo: false,
         bonificaciones: { mype: false, provincia: false },
+        topeEnLaCuantia: true,
       });
+      reglas.push({ etapa: 'Rechazo', regla: 'Se rechaza la propuesta que supera la cuantía aprobada en el expediente de contratación o que no satisface los requerimientos técnicos.', fuente: 'Cuadro de rechazo y descalificación de César (19/10/2026)' });
       break;
   }
 
@@ -321,7 +355,7 @@ export function perfilDelProcedimiento(lectura: LecturaBases, textoBases: string
     reglas.push({ etapa: 'Rechazo', regla: 'Una oferta por debajo de la cuantía puede rechazarse si, pedido el detalle de su composición (plazo mínimo de dos días hábiles), hay razones objetivas de un probable incumplimiento.', fuente: 'Art. 132.5 y 132.6 del Reglamento' });
   }
   if (perfil.economica.tipo !== 'fija' && perfil.economica.tipo !== 'no_aplica' && clase !== 'subasta_inversa') {
-    reglas.push({ etapa: 'Negociación', regla: 'Si la oferta del mejor puntaje total supera la cuantía, la DEC gestiona la ampliación presupuestal; si no hay recursos, se negocia la reducción de la oferta y luego de prestaciones, y si no acepta, con los siguientes en el orden de prelación.', fuente: 'Art. 132.1 a 132.3 del Reglamento' });
+    reglas.push({ etapa: 'Negociación', regla: 'Si la oferta del mejor puntaje total supera la cuantía, la DEC gestiona la ampliación presupuestal; si no hay recursos, se negocia la reducción de la oferta y luego de prestaciones. Si el postor no acepta o no se llega al límite presupuestal, se rechaza su buena pro y se negocia con el siguiente en el orden de prelación.', fuente: 'Art. 132.1 a 132.3 del Reglamento' });
   }
   reglas.push(
     { etapa: 'Buena pro', regla: 'Se publica en la Pladicop con los documentos que sustentan la calificación y la evaluación.', fuente: 'Art. 80 del Reglamento' },
