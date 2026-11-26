@@ -80,7 +80,7 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
       const admin = createAdminClient();
       const leidas = await basesDeLaEvaluacion(admin, c.ev, { transcribir: false });
       hallazgos = await ubicarHallazgosGuardados(c.ev.result, leidas);
-      await c.supabase
+      await admin
         .from('evaluations')
         .update({ result: { ...c.ev.result, hallazgos } as never } as never)
         .eq('id', c.ev.id);

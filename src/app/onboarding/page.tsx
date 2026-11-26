@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { rutaInterna } from '@/lib/auth/redireccion';
 import { OnboardingWizard } from '@/components/app/onboarding/onboarding-wizard';
 
 export const dynamic = 'force-dynamic';
@@ -24,12 +25,12 @@ export default async function OnboardingPage({ searchParams }: Props) {
     .maybeSingle();
 
   if (profile?.onboarding_completed) {
-    redirect(searchParams.next || '/app');
+    redirect(rutaInterna(searchParams.next));
   }
 
   return (
     <OnboardingWizard
-      next={searchParams.next || '/app'}
+      next={rutaInterna(searchParams.next)}
       defaultFullName={profile?.full_name || ''}
     />
   );

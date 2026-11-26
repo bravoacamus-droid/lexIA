@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient as createAdmin } from '@supabase/supabase-js';
+import { esCronAutorizado } from '@/lib/auth/secreto';
+import { cerrarLlamadasAbiertas } from '@/lib/voice/llamadas';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -23,12 +25,10 @@ export const maxDuration = 60;
  *     admin (futuro).
  */
 async function handleRun(req: Request): Promise<NextResponse> {
-  const cronSecret = process.env.CRON_SECRET;
-  const auth = req.headers.get('authorization');
-  if (!cronSecret) {
+  if (!process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'cron_secret_not_configured' }, { status: 500 });
   }
-  if (auth !== `Bearer ${cronSecret}`) {
+  if (!esCronAutorizado(req)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
@@ -42,11 +42,15 @@ async function handleRun(req: Request): Promise<NextResponse> {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
+  // Las llamadas que quedaron «en curso» (se cerró la pestaña sin colgar)
+  // se cierran y se cobran hasta su último turno.
+  const colgadas = await cerrarLlamadasAbiertas(admin, { antesDe: new Date(Date.now() - 3 * 3600 * 1000) });
+
   // Buscar llamadas con audio cuya retención venció.
   // Limit 500 por corrida para evitar timeouts.
   const { data: expired, error: queryErr } = await admin
     .from('voice_calls')
-    .select('id, audio_storage_path, retention_until')
+    .select('id, user_id, audio_storage_path, retention_until')
     .not('audio_storage_path', 'is', null)
     .lt('retention_until', new Date().toISOString())
     .limit(500);
@@ -60,6 +64,7 @@ async function handleRun(req: Request): Promise<NextResponse> {
 
   const candidates = (expired || []) as Array<{
     id: string;
+    user_id: string;
     audio_storage_path: string | null;
     retention_until: string;
   }>;
@@ -68,14 +73,16 @@ async function handleRun(req: Request): Promise<NextResponse> {
     return NextResponse.json({
       ok: true,
       message: 'No hay audios para borrar',
+      llamadas_colgadas_cerradas: colgadas,
       processed: 0,
     });
   }
 
   // Borrar los archivos del bucket
+  // Solo dentro de la carpeta del dueño: la ruta viene de la fila.
   const paths = candidates
     .map((c) => c.audio_storage_path)
-    .filter((p): p is string => !!p);
+    .filter((p, i): p is string => !!p && p.startsWith(`${candidates[i].user_id}/`) && !p.includes('..'));
 
   let removedCount = 0;
   let removeErr: string | null = null;
@@ -98,6 +105,7 @@ async function handleRun(req: Request): Promise<NextResponse> {
 
   return NextResponse.json({
     ok: true,
+    llamadas_colgadas_cerradas: colgadas,
     candidates_found: candidates.length,
     storage_removed: removedCount,
     db_cleared: idsToClear.length,

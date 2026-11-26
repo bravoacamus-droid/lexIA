@@ -173,7 +173,17 @@ export function HablaConALexia({ disponible, tieneConsentimiento, versionAviso }
       if (!cfgRes.ok) throw new Error(cfg?.detail || cfg?.error || 'No se pudo preparar la llamada');
 
       const cliente = new LiveClient({
-        apiKey: cfg.api_key,
+        token: cfg.token,
+        renovarToken: async () => {
+          const r = await fetch('/api/voice/session-config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ call_id: id, renovar: true }),
+          });
+          const j = await r.json().catch(() => null);
+          if (!r.ok || !j?.token) throw new Error(j?.error || 'No se pudo renovar la sesión');
+          return j.token as string;
+        },
         model: cfg.model,
         voiceId: cfg.voice_id,
         systemInstruction: cfg.system_instruction,

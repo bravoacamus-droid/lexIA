@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { rutaInterna } from '@/lib/auth/redireccion';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
@@ -129,7 +130,8 @@ export function OnboardingWizard({ next, defaultFullName }: Props) {
         );
       }
       toast.success('¡Listo! Bienvenido a A-LexIA.');
-      router.push(next);
+      // `next` ya llega validado desde la página, pero el componente no lo supone.
+      router.push(rutaInterna(next));
       router.refresh();
     } catch (e) {
       toast.error((e as Error).message || 'Algo salió mal');

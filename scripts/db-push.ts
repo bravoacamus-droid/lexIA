@@ -3,6 +3,11 @@
  * Aplica migraciones SQL al proyecto Supabase usando la Management API.
  * Lee /supabase/migrations/*.sql en orden alfabético y ejecuta cada archivo
  * via el endpoint /v1/projects/{ref}/database/query.
+ *
+ * PELIGRO: no lleva registro de lo aplicado y vuelve a correr TODAS las
+ * migraciones, incluida 0005_reset_data_v2.sql, que hace TRUNCATE de
+ * chats, evaluaciones y normativa. Con la base de producción, borra datos.
+ * Para una migración nueva: scripts/apply-migration.ts <archivo>.
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -10,6 +15,12 @@ import { config as loadEnv } from 'dotenv';
 
 loadEnv({ path: join(process.cwd(), '.env.local') });
 loadEnv();
+
+if (!process.argv.includes('--borra-datos-de-produccion')) {
+  console.error('❌ db-push reaplica TODAS las migraciones (0005 hace TRUNCATE). Usa scripts/apply-migration.ts <archivo>.');
+  console.error('   Si de verdad es una base vacía: --borra-datos-de-produccion');
+  process.exit(1);
+}
 
 const PROJECT_REF = process.env.SUPABASE_PROJECT_REF!;
 const ACCESS_TOKEN = process.env.SUPABASE_ACCESS_TOKEN!;

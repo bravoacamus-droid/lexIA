@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 import {
   VOICE_MODEL_ID,
   buildVoiceSystemPrompt,
@@ -7,28 +7,30 @@ import {
   DISCLAIMER_VERSION,
   REGIMEN_DE_VOZ,
 } from '@/lib/ai/voice-config';
+import { respuestaDeRechazo, usarHerramienta } from '@/lib/billing/creditos';
+import { cerrarLlamada, DURACION_MAXIMA_SEGUNDOS } from '@/lib/voice/llamadas';
+import { crearTokenDeVoz, HERRAMIENTAS_DE_VOZ } from '@/lib/voice/token';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+/** Reconexiones por llamada: Google corta cada ~10 min; una llamada de 2 h necesita ~12. */
+const MAX_RENOVACIONES = 40;
+
 /**
  * POST /api/voice/session-config
- * Devuelve la configuración necesaria para que el cliente abra una
- * sesión de Gemini Live API directamente desde el navegador.
+ * Prepara la sesión de Gemini Live que el navegador abre directamente.
  *
- * Por simplicidad MVP entregamos la API key restringida directamente.
- * Trade-off documentado:
- *   - PRO: setup mínimo, funciona en Vercel sin servicio extra.
- *   - CON: la API key es visible en el navegador del usuario
- *     autenticado.
- * Mitigación:
- *   - La API key tiene restricciones de servicio (solo Gemini API).
- *   - Solo usuarios autenticados de A-LexIA pueden obtenerla.
- *   - Cuota mensual por feature gate (Día 7).
- *   - Para producción a gran escala, migrar a backend proxy o
- *     ephemeral tokens cuando Gemini Live los soporte.
+ * Antes se entregaba la API key del servidor: la misma del chat, los
+ * embeddings y la Files API (auditoría del 26/11/2026, S2). Ahora se
+ * entrega un token efímero de un solo uso con el modelo, el prompt, la voz
+ * y la herramienta fijados (ver `src/lib/voice/token.ts`).
  *
- * Body: { call_id: string }  — identificador de la llamada ya creada
+ * Body:
+ *   { call_id }                 — primera vez: entrega la configuración y
+ *                                 el token, y arranca el reloj de cobro
+ *                                 (`started_at`).
+ *   { call_id, renovar: true }  — en cada reconexión: solo un token nuevo.
  */
 export async function POST(req: Request) {
   const supabase = createClient();
@@ -37,7 +39,61 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  // Validar consentimiento vigente
+  const body = (await req.json().catch(() => ({}))) as { call_id?: string; renovar?: boolean };
+  if (!body.call_id) {
+    return NextResponse.json({ error: 'missing_call_id' }, { status: 400 });
+  }
+
+  const { data: call } = await supabase
+    .from('voice_calls')
+    .select('id, user_id, status, voice_id, started_at, metadata')
+    .eq('id', body.call_id)
+    .maybeSingle();
+  if (!call) return NextResponse.json({ error: 'call_not_found' }, { status: 404 });
+  const llamada = call as {
+    id: string;
+    user_id: string;
+    status: string;
+    voice_id: string;
+    started_at: string;
+    metadata: Record<string, unknown> | null;
+  };
+  if (llamada.user_id !== user.id) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  if (llamada.status !== 'active') {
+    return NextResponse.json({ error: 'call_not_active' }, { status: 400 });
+  }
+
+  // La voz responde solo sobre la Ley 32069 (César, 27/09/2026).
+  const lawFilter = REGIMEN_DE_VOZ;
+  const systemInstruction = buildVoiceSystemPrompt(lawFilter);
+  const admin = createAdminClient();
+  const metadata = llamada.metadata ?? {};
+
+  // ── Reconexión: un token nuevo para la misma sesión ──────────────────
+  if (body.renovar) {
+    const renovaciones = Number(metadata.token_renovaciones ?? 0);
+    const vence = new Date(new Date(llamada.started_at).getTime() + DURACION_MAXIMA_SEGUNDOS * 1000);
+    if (!metadata.token_emitido_at || renovaciones >= MAX_RENOVACIONES || vence.getTime() <= Date.now()) {
+      return NextResponse.json({ error: 'renovacion_no_permitida' }, { status: 409 });
+    }
+    await admin
+      .from('voice_calls')
+      .update({ metadata: { ...metadata, token_renovaciones: renovaciones + 1 } } as never)
+      .eq('id', llamada.id);
+    try {
+      const token = await crearTokenDeVoz({ voiceId: llamada.voice_id, systemInstruction, vence });
+      return NextResponse.json({ token });
+    } catch (e) {
+      console.error('[voice/session-config] no se pudo renovar el token', (e as Error).message);
+      return NextResponse.json({ error: 'session_unavailable' }, { status: 502 });
+    }
+  }
+
+  // ── Primera vez ──────────────────────────────────────────────────────
+  // El plan también se comprueba aquí, no solo al crear la llamada.
+  const guard = await usarHerramienta(user.id, 'consulta_voz', { soloComprobar: true });
+  if (!guard.ok) return respuestaDeRechazo(guard);
+
   const { data: consent } = await supabase
     .from('voice_consents')
     .select('id')
@@ -50,66 +106,49 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'consent_required' }, { status: 403 });
   }
 
-  const body = (await req.json().catch(() => ({}))) as { call_id?: string };
-  if (!body.call_id) {
-    return NextResponse.json({ error: 'missing_call_id' }, { status: 400 });
-  }
-
-  // Validar que la llamada exista y sea del usuario
-  const { data: call } = await supabase
+  // Una sesión por llamada: se reserva antes de pedir el token, para que
+  // dos pedidos a la vez no saquen dos. El reloj de cobro empieza aquí.
+  const ahora = new Date();
+  const { data: reservada } = await admin
     .from('voice_calls')
-    .select('id, status, voice_id, law_filter')
-    .eq('id', body.call_id)
-    .maybeSingle();
-  if (!call) return NextResponse.json({ error: 'call_not_found' }, { status: 404 });
-  if ((call as { user_id?: string; status: string }).status !== 'active') {
-    return NextResponse.json({ error: 'call_not_active' }, { status: 400 });
+    .update({
+      started_at: ahora.toISOString(),
+      metadata: { ...metadata, token_emitido_at: ahora.toISOString(), token_renovaciones: 0 },
+    } as never)
+    .eq('id', llamada.id)
+    .eq('status', 'active')
+    .is('metadata->>token_emitido_at', null)
+    .select('id');
+  if (!reservada || reservada.length === 0) {
+    return NextResponse.json(
+      { error: 'sesion_ya_entregada', detail: 'Esta llamada ya tiene su sesión. Inicia una llamada nueva.' },
+      { status: 409 },
+    );
   }
 
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ error: 'missing_api_key' }, { status: 500 });
+  let token: string;
+  try {
+    token = await crearTokenDeVoz({
+      voiceId: llamada.voice_id,
+      systemInstruction,
+      vence: new Date(ahora.getTime() + DURACION_MAXIMA_SEGUNDOS * 1000),
+    });
+  } catch (e) {
+    console.error('[voice/session-config] no se pudo crear el token', (e as Error).message);
+    // Sin sesión no hubo llamada: se cierra sin cobrar (dura ~0 s).
+    await cerrarLlamada(admin, { id: llamada.id, user_id: llamada.user_id, started_at: ahora.toISOString() }, {
+      estado: 'failed',
+      fin: new Date(),
+    });
+    return NextResponse.json({ error: 'session_unavailable' }, { status: 502 });
   }
-
-  // La voz responde solo sobre la Ley 32069 (César, 27/09/2026).
-  const lawFilter = REGIMEN_DE_VOZ;
 
   return NextResponse.json({
-    api_key: apiKey,
+    token,
     model: VOICE_MODEL_ID,
-    voice_id: (call as { voice_id: string }).voice_id,
-    system_instruction: buildVoiceSystemPrompt(lawFilter),
+    voice_id: llamada.voice_id,
+    system_instruction: systemInstruction,
     initial_greeting: buildVoiceInitialGreeting(lawFilter),
-    tools: [
-      {
-        functionDeclarations: [
-          {
-            name: 'search_normativa',
-            // En gemini-3.8-live las funciones corren en segundo plano
-            // por defecto y el modelo sigue hablando sin esperar el
-            // resultado. Aquí debe esperar: responde con lo que trae.
-            behavior: 'BLOCKING',
-            description:
-              'Busca en la base normativa de A-LexIA. Devuelve los fragmentos más relevantes con su cita. USAR ANTES de citar cualquier norma.',
-            parameters: {
-              type: 'object',
-              properties: {
-                query: {
-                  type: 'string',
-                  description: 'Palabras clave o pregunta específica',
-                },
-                filter_type: {
-                  type: 'string',
-                  description:
-                    'Opcional: ley, reglamento, directiva, opinion, pronunciamiento, resolucion, resolucion_tce, acuerdo_sala_plena, lineamiento',
-                  nullable: true,
-                },
-              },
-              required: ['query'],
-            },
-          },
-        ],
-      },
-    ],
+    tools: HERRAMIENTAS_DE_VOZ,
   });
 }

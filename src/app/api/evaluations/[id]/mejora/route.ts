@@ -12,6 +12,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { rutasAjenas } from '@/lib/archivos/borrar-subidas';
 import { GENERATOR_MODEL_ID } from '@/lib/ai/gemini';
 import { recordAiUsage } from '@/lib/ai/usage-log';
 import { proponerMejoras, type HallazgoAuditado } from '@/lib/evaluacion/mejora/redactor';
@@ -52,6 +53,10 @@ async function cargar(id: string) {
     result: ResultadoAuditoria | null;
   };
   if (ev.user_id !== user.id) return { error: NextResponse.json({ error: 'forbidden' }, { status: 403 }) } as const;
+  // El requerimiento se lee con service role: debe estar en la carpeta del dueño.
+  if (rutasAjenas(ev.user_id, [ev.bases_file_path]).length > 0) {
+    return { error: NextResponse.json({ error: 'forbidden' }, { status: 403 }) } as const;
+  }
   if (ev.mode !== 'tdr_audit' || ev.status !== 'done' || !ev.result?.hallazgos) {
     return {
       error: NextResponse.json(
@@ -113,7 +118,7 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
     mejoras,
   };
 
-  const { error } = await supabase
+  const { error } = await createAdminClient()
     .from('evaluations')
     .update({ result: { ...result, mejora } } as never)
     .eq('id', ev.id);
@@ -150,7 +155,7 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
   }
   m.incluir = pedido.data.incluir;
 
-  const { error } = await supabase
+  const { error } = await createAdminClient()
     .from('evaluations')
     .update({ result: { ...result, mejora } } as never)
     .eq('id', ev.id);

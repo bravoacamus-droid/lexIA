@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { DISCLAIMER_VERSION, REGIMEN_DE_VOZ, VOZ_PREDETERMINADA } from '@/lib/ai/voice-config';
 import { respuestaDeRechazo, usarHerramienta } from '@/lib/billing/creditos';
+import { cerrarLlamadasAbiertas } from '@/lib/voice/llamadas';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -71,7 +72,12 @@ export async function POST(req: Request) {
   // Solo la Ley 32069: ya no se elige régimen (César, 27/09/2026). Se
   // guarda para que la búsqueda normativa de la llamada filtre por ella.
   const lawFilter = REGIMEN_DE_VOZ;
-  const { data, error } = await supabase
+  // La llamada la abre el servidor (el navegador ya no puede insertar en
+  // voice_calls, migración 0089). Antes se cierra y cobra la que hubiera
+  // quedado abierta: una persona no sostiene dos llamadas a la vez.
+  const admin = createAdminClient();
+  await cerrarLlamadasAbiertas(admin, { userId: user.id });
+  const { data, error } = await admin
     .from('voice_calls')
     .insert({
       user_id: user.id,

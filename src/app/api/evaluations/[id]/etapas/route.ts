@@ -36,7 +36,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { TURNO_SEGUNDOS, avanzarEvaluacion } from '@/lib/evaluacion/ejecucion';
-import { borrarSubidas, rutasDeEvaluacion } from '@/lib/archivos/borrar-subidas';
+import { borrarSubidas, rutasAjenas, rutasDeEvaluacion } from '@/lib/archivos/borrar-subidas';
+import { secretoValido } from '@/lib/auth/secreto';
 
 export const runtime = 'nodejs';
 export const maxDuration = 800;
@@ -57,7 +58,7 @@ function admin() {
 
 export async function POST(req: Request, ctx: { params: { id: string } }) {
   const secreto = process.env.CRON_SECRET?.trim();
-  const interna = !!secreto && req.headers.get(CABECERA_INTERNA) === secreto;
+  const interna = secretoValido(req.headers.get(CABECERA_INTERNA), secreto);
   const cliente = admin();
 
   const { data: fila } = await cliente
@@ -87,6 +88,11 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
 
   if (ev.status === 'done' || ev.status === 'failed') {
     return NextResponse.json({ estado: ev.status });
+  }
+  // Todo se descarga con service role: los archivos deben ser del dueño.
+  const subidosDeLaRonda = Array.isArray(ev.subidos) ? ev.subidos : [];
+  if (rutasAjenas(ev.user_id, [...rutasDeEvaluacion(ev), ...subidosDeLaRonda]).length > 0) {
+    return NextResponse.json({ error: 'forbidden', detail: 'Documento fuera de la carpeta del dueño.' }, { status: 403 });
   }
   if (!ev.bases_file_path || !ev.offer_files?.length) {
     return NextResponse.json(
