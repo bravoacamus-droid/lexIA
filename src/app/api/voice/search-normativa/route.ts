@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { searchNormativa, formatResultsForLLM } from '@/lib/ai/voice-search';
 
 export const runtime = 'nodejs';
@@ -45,10 +45,15 @@ export async function POST(req: Request) {
   // Validar ownership de la llamada
   const { data: call } = await supabase
     .from('voice_calls')
-    .select('id, user_id, rag_queries_count, cited_documents, law_filter')
+    .select('id, user_id, status, rag_queries_count, cited_documents, law_filter')
     .eq('id', parsed.data.call_id)
     .maybeSingle();
   if (!call) return NextResponse.json({ error: 'call_not_found' }, { status: 404 });
+  // La búsqueda es la herramienta de una llamada en curso, no un buscador
+  // gratuito: con una llamada ya cerrada no se busca.
+  if ((call as { status: string }).status !== 'active') {
+    return NextResponse.json({ error: 'call_not_active' }, { status: 409 });
+  }
   const callRow = call as {
     user_id: string;
     rag_queries_count: number;
@@ -106,7 +111,7 @@ export async function POST(req: Request) {
       }
     }
 
-    await supabase
+    await createAdminClient()
       .from('voice_calls')
       .update({
         rag_queries_count: prevCount + 1,

@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
+import { cerrarLlamadasAbiertas } from '@/lib/voice/llamadas';
 import { Card } from '@/components/ui/card';
 import { Mic, Crown, ShieldCheck, Lightbulb, HelpCircle, ScrollText, FileText, ArrowRight } from 'lucide-react';
 import { bolsaDelUsuario, COSTO, HERRAMIENTAS_DEL_PLAN } from '@/lib/billing/creditos';
@@ -26,13 +27,13 @@ export default async function LlamadasPage() {
 
   // Una llamada que se cortó sin colgar (se cerró la pestaña, se cayó la
   // red) quedaba «En curso» para siempre en el historial (César,
-  // 27/09/2026). Pasadas tres horas ya no puede seguir viva.
-  await supabase
-    .from('voice_calls')
-    .update({ status: 'failed', ended_at: new Date().toISOString() } as never)
-    .eq('user_id', ctx.userId)
-    .eq('status', 'active')
-    .lt('started_at', new Date(Date.now() - 3 * 3600 * 1000).toISOString());
+  // 27/09/2026). Pasadas tres horas ya no puede seguir viva: se cierra y
+  // se cobra hasta su último turno (el navegador ya no escribe en
+  // voice_calls, migración 0089).
+  await cerrarLlamadasAbiertas(createAdminClient(), {
+    userId: ctx.userId,
+    antesDe: new Date(Date.now() - 3 * 3600 * 1000),
+  });
 
   const [{ data: calls }, creditos, { data: consentimiento }] = await Promise.all([
     supabase

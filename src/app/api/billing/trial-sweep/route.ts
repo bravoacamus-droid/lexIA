@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient as createAdmin } from '@supabase/supabase-js';
+import { esCronAutorizado } from '@/lib/auth/secreto';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -15,9 +16,7 @@ export const maxDuration = 30;
  * del scraping).
  */
 async function authorize(req: Request): Promise<boolean> {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return req.headers.get('authorization') === `Bearer ${secret}`;
+  return esCronAutorizado(req);
 }
 
 async function sweep(req: Request): Promise<NextResponse> {

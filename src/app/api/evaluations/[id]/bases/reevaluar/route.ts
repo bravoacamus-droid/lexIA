@@ -52,7 +52,7 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
       uso.salida += u.salida;
     },
   });
-  const { error } = await c.supabase
+  const { error } = await admin
     .from('evaluations')
     .update({ result: resultado as never } as never)
     .eq('id', c.ev.id);

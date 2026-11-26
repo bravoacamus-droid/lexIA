@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient as createAdmin, type SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
+import { esCronAutorizado } from '@/lib/auth/secreto';
 import { discoverLinks, resolverPdfDeFicha, variantesDeFicha } from '@/lib/scraping/discover';
 import { ingestPdfFromUrl } from '@/lib/scraping/ingest';
 
@@ -67,9 +68,7 @@ async function authorize(req: Request): Promise<
   | { ok: true; via: 'cron' | 'admin' }
   | { ok: false; status: number; message: string }
 > {
-  const cronSecret = process.env.CRON_SECRET;
-  const auth = req.headers.get('authorization');
-  if (cronSecret && auth === `Bearer ${cronSecret}`) {
+  if (esCronAutorizado(req)) {
     return { ok: true, via: 'cron' };
   }
   const supabase = createClient();

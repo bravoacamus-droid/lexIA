@@ -88,10 +88,16 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
   const admin = createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
     auth: { persistSession: false },
   });
-  const { error } = await admin
+  const { data: tomada, error } = await admin
     .from('evaluations')
     .update({ status: 'processing', progreso, corriendo_hasta: null })
-    .eq('id', ctx.params.id);
+    .eq('id', ctx.params.id)
+    // Dos envíos a la vez: solo el primero encuentra la evaluación terminada.
+    .eq('status', 'done')
+    .select('id');
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!tomada || tomada.length === 0) {
+    return NextResponse.json({ error: 'ronda_en_curso' }, { status: 409 });
+  }
   return NextResponse.json({ ok: true });
 }

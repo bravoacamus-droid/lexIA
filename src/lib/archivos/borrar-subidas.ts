@@ -49,6 +49,15 @@ export async function borrarSubidas(
   return { borrados };
 }
 
+/**
+ * Las rutas que NO están en la carpeta del dueño (`<user_id>/…`).
+ * Antes de descargar con service role una ruta que viene de una fila:
+ * si la lista no está vacía, no se descarga nada.
+ */
+export function rutasAjenas(dueno: string, rutas: Array<string | null | undefined>): string[] {
+  return rutas.filter((r): r is string => !!r && (!r.startsWith(`${dueno}/`) || r.includes('..')));
+}
+
 /** Las rutas de una evaluación: las bases y cada oferta, con sus partes si se subieron partidas. */
 export function rutasDeEvaluacion(fila: {
   bases_file_path?: string | null;

@@ -3,6 +3,7 @@
  */
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { rutasAjenas } from '@/lib/archivos/borrar-subidas';
 import type { ResultadoBases } from './tipos';
 
 export interface EvaluacionDeBases {
@@ -29,6 +30,10 @@ export async function cargarEvaluacionDeBases(
   if (!data) return { error: NextResponse.json({ error: 'not_found' }, { status: 404 }) };
   const ev = data as EvaluacionDeBases & { mode: string; status: string };
   if (ev.user_id !== user.id) return { error: NextResponse.json({ error: 'forbidden' }, { status: 403 }) };
+  // Las bases se leen con service role: deben estar en la carpeta del dueño.
+  if (rutasAjenas(ev.user_id, [ev.bases_file_path]).length > 0) {
+    return { error: NextResponse.json({ error: 'forbidden' }, { status: 403 }) };
+  }
   if (ev.mode !== 'bases_audit' || ev.status !== 'done' || !ev.result?.hallazgos) {
     return {
       error: NextResponse.json(

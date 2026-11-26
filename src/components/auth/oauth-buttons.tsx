@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
+import { rutaInterna } from '@/lib/auth/redireccion';
 
 type Provider = 'google' | 'facebook';
 
@@ -16,7 +17,7 @@ type Provider = 'google' | 'facebook';
  */
 export function OAuthButtons() {
   const params = useSearchParams();
-  const redirect = params.get('redirect') || '/app';
+  const redirect = rutaInterna(params.get('redirect'));
   const [loading, setLoading] = useState<Provider | null>(null);
 
   async function signIn(provider: Provider) {

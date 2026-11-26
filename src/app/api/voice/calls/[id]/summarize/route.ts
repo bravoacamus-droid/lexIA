@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { recordAiUsage } from '@/lib/ai/usage-log';
 import { CHAT_MODEL_ID } from '@/lib/ai/gemini';
 
@@ -76,7 +76,7 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
     const summary = (res.text || '').trim();
 
     // Persistir
-    await supabase
+    await createAdminClient()
       .from('voice_calls')
       .update({ summary } as never)
       .eq('id', ctx.params.id);

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { generateText } from 'ai';
 import { createClient } from '@/lib/supabase/server';
+import { esAdmin } from '@/lib/soporte/servidor';
 import { chatModel, fastModel, CHAT_MODEL_ID, FAST_MODEL_ID } from '@/lib/ai/gemini';
 
 export const runtime = 'nodejs';
@@ -21,6 +22,9 @@ export async function GET() {
   if (!user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
+  // Diagnóstico con llamadas pagas al modelo: solo el equipo (auditoría
+  // del 26/11/2026, S6).
+  if (!(await esAdmin(supabase, user.id))) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
   const env = {
     NEXT_PUBLIC_SUPABASE_URL: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
