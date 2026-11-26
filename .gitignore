@@ -38,8 +38,9 @@ Thumbs.db
 .idea
 .vscode
 
-# claude
-.claude
+# claude — se versionan solo las skills del proyecto
+.claude/*
+!.claude/skills/
 memory
 
 # project-specific
@@ -91,3 +92,6 @@ data/resumenes.lock
 # «Cannot find module 'playwright'» — playwright no es dependencia del
 # proyecto, solo está en esta máquina.
 tmp/
+
+# Informe de auditoría de seguridad: el repo es público, no se versiona.
+docs/mejoras-noviembre-2026.md
