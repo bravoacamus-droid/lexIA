@@ -25,7 +25,7 @@ import { cacheEnEvaluacion, camposDeLaLectura, leerBases } from '@/lib/evaluacio
 import { reforzarAuditoria } from '@/lib/evaluacion/auditoria-tdr';
 import { buscadorDeSustento } from '@/lib/evaluacion/mejora/sustento';
 import { GENERATOR_MODEL_ID } from '@/lib/ai/gemini';
-import { borrarSubidas, rutasDeEvaluacion } from '@/lib/archivos/borrar-subidas';
+import { borrarSubidas, rutasAjenas, rutasDeEvaluacion } from '@/lib/archivos/borrar-subidas';
 import { guardarLectura } from '@/lib/archivos/bases-leidas';
 
 export const runtime = 'nodejs';
@@ -111,12 +111,23 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
   if (ev.user_id !== user.id) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
+  // Los archivos se descargan con service role: tienen que estar en la
+  // carpeta del dueño aunque la fila diga otra cosa.
+  if (rutasAjenas(ev.user_id, rutasDeEvaluacion(ev)).length > 0) {
+    return NextResponse.json({ error: 'forbidden', detail: 'Documento fuera de tu carpeta.' }, { status: 403 });
+  }
 
-  // Mark processing
-  await supabase
+  // Se toma la evaluación solo si está pendiente: un doble clic, o volver
+  // a llamar a /process sobre una ya hecha, no corre (ni cobra) dos veces.
+  const { data: tomada } = await admin
     .from('evaluations')
     .update({ status: 'processing' } as never)
-    .eq('id', ev.id);
+    .eq('id', ev.id)
+    .eq('status', 'pending')
+    .select('id');
+  if (!tomada || tomada.length === 0) {
+    return NextResponse.json({ error: 'ya_procesada', estado: ev.status }, { status: 409 });
+  }
 
   // ════════════════════════════════════════════════════════
   // Evaluación de bases: cotejo con la bases estándar y revisión de la
@@ -138,7 +149,7 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
           uso.salida += u.salida;
         },
       });
-      const { error: errGuardado } = await supabase
+      const { error: errGuardado } = await admin
         .from('evaluations')
         .update({ status: 'done', result: resultado as never, completed_at: new Date().toISOString() } as never)
         .eq('id', ev.id);
@@ -162,7 +173,7 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
       const isOcrIssue = err instanceof PdfHasNoTextError;
       const errorMsg = isOcrIssue ? PDF_OCR_INSTRUCTIONS : (err as Error)?.message?.slice(0, 500) || 'unknown';
       console.error('[bases-audit] error:', errorMsg);
-      await supabase
+      await admin
         .from('evaluations')
         .update({
           status: 'failed',
@@ -273,7 +284,7 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
         resumen_ejecutivo: summaryRes.text.trim(),
       };
 
-      await supabase
+      await admin
         .from('evaluations')
         .update({
           status: 'done',
@@ -289,7 +300,7 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
         ? PDF_OCR_INSTRUCTIONS
         : (err as Error)?.message?.slice(0, 500) || 'unknown';
       console.error('[tdr-audit] error:', isOcrIssue ? 'pdf_needs_ocr' : errorMsg);
-      await supabase
+      await admin
         .from('evaluations')
         .update({
           status: 'failed',
@@ -510,7 +521,7 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
     };
 
     // 6. Persist result
-    const { error: errGuardado } = await supabase
+    const { error: errGuardado } = await admin
       .from('evaluations')
       .update({
         status: 'done',
@@ -535,7 +546,7 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
     );
     if (!isOcrIssue) console.error('[evaluator] Stack:', errorStack);
 
-    await supabase
+    await admin
       .from('evaluations')
       .update({
         status: 'failed',

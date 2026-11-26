@@ -21,7 +21,16 @@ export type AgentState =
   | 'speaking';
 
 export interface LiveClientConfig {
-  apiKey: string;
+  /**
+   * Token efímero de Gemini Live (`auth_tokens/…`) que entrega
+   * /api/voice/session-config. Nunca la API key del servidor.
+   */
+  token: string;
+  /**
+   * Pide un token nuevo para reconectar: cada token sirve para abrir una
+   * sola conexión, y reanudar también cuenta.
+   */
+  renovarToken: () => Promise<string>;
   model: string;
   voiceId: string;
   systemInstruction: string;
@@ -132,8 +141,10 @@ function isLikelyNoise(text: string): boolean {
   return false;
 }
 
+// Con token efímero: el método «Constrained» de v1alpha, con el token en
+// `access_token` (así lo arma @google/genai para los auth_tokens).
 const LIVE_WS_URL =
-  'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
+  'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained';
 
 export class LiveClient {
   private cfg: LiveClientConfig;
@@ -214,7 +225,7 @@ export class LiveClient {
   }
 
   private openSocket(): Promise<void> {
-    const url = `${LIVE_WS_URL}?key=${encodeURIComponent(this.cfg.apiKey)}`;
+    const url = `${LIVE_WS_URL}?access_token=${encodeURIComponent(this.cfg.token)}`;
     const ws = new WebSocket(url);
     ws.binaryType = 'arraybuffer';
     this.ws = ws;
@@ -289,6 +300,7 @@ export class LiveClient {
     this.flushPendingTranscript();
     await new Promise((r) => setTimeout(r, 400 * this.reconnectAttempts));
     try {
+      this.cfg.token = await this.cfg.renovarToken();
       await this.openSocket();
     } catch (e) {
       console.warn('[live] reintento fallido:', (e as Error).message);

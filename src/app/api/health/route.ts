@@ -9,8 +9,11 @@ export const dynamic = 'force-dynamic';
  *   - Env vars críticas presentes
  *   - Conexión a Supabase (count en tabla pequeña)
  *
- * No revela info sensible. 200 ⇒ todo OK.
- * 503 ⇒ falta algo crítico.
+ * 200 ⇒ todo OK · 503 ⇒ falta algo crítico.
+ *
+ * Es público (lo consultan los monitores), así que solo responde el
+ * estado: qué variable falta o cuántos documentos hay queda en los logs
+ * de Vercel, no en la respuesta (auditoría del 26/11/2026, S6).
  */
 export async function GET() {
   const checks: Record<string, 'ok' | string> = {};
@@ -43,12 +46,6 @@ export async function GET() {
   }
 
   const allOk = Object.values(checks).every((v) => v.startsWith('ok'));
-  return NextResponse.json(
-    {
-      status: allOk ? 'ok' : 'degraded',
-      uptime_ms: Date.now() - startedAt,
-      checks,
-    },
-    { status: allOk ? 200 : 503 },
-  );
+  if (!allOk) console.error('[health] degradado', { checks, ms: Date.now() - startedAt });
+  return NextResponse.json({ status: allOk ? 'ok' : 'degraded' }, { status: allOk ? 200 : 503 });
 }

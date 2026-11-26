@@ -30,8 +30,13 @@ export async function esAdmin(supabase: SupabaseClient, userId: string): Promise
   return (data as { is_admin?: boolean } | null)?.is_admin === true;
 }
 
+/**
+ * Sin `nota_interna`: el usuario no tiene permiso de leerla (migración
+ * 0089) y pedirla con su sesión da error. La vista del equipo la lee con
+ * service role en `leerTicket`.
+ */
 export const COLUMNAS_DE_TICKET =
-  'id, numero, user_id, asunto, categoria, prioridad, estado, ultimo_mensaje, ultimo_mensaje_at, created_at, iniciado_por_equipo, calificacion, leido_usuario_at, leido_equipo_at, pagina, contexto, nota_interna, resuelto_por';
+  'id, numero, user_id, asunto, categoria, prioridad, estado, ultimo_mensaje, ultimo_mensaje_at, created_at, iniciado_por_equipo, calificacion, leido_usuario_at, leido_equipo_at, pagina, contexto, resuelto_por';
 
 export interface FilaDeTicket {
   id: string;
@@ -50,7 +55,6 @@ export interface FilaDeTicket {
   leido_equipo_at: string;
   pagina: string | null;
   contexto: Record<string, unknown> | null;
-  nota_interna: string | null;
   resuelto_por: string | null;
 }
 
@@ -128,8 +132,7 @@ export async function leerTicket(
 
   if (vistaDeEquipo) {
     const servicio = clienteDeServicio();
-    detalle.nota_interna = t.nota_interna;
-    const [usuarios, otros] = await Promise.all([
+    const [usuarios, otros, nota] = await Promise.all([
       datosDeUsuarios(servicio, [t.user_id]),
       supabase
         .from('soporte_tickets')
@@ -138,7 +141,9 @@ export async function leerTicket(
         .neq('id', t.id)
         .order('ultimo_mensaje_at', { ascending: false })
         .limit(10),
+      servicio.from('soporte_tickets').select('nota_interna').eq('id', t.id).maybeSingle(),
     ]);
+    detalle.nota_interna = (nota.data as { nota_interna: string | null } | null)?.nota_interna ?? null;
     detalle.usuario = usuarios.get(t.user_id);
     detalle.otros = (otros.data || []) as TicketDetalle['otros'];
   }

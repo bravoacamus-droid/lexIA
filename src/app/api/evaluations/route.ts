@@ -144,7 +144,9 @@ export async function POST(req: Request) {
   });
   if (!guard.ok) return respuestaDeRechazo(guard);
 
-  const { data, error } = await supabase
+  // La crea el servidor: el navegador ya no puede insertar en evaluations
+  // (migración 0089), así no hay evaluaciones que no pasaron por el cobro.
+  const { data, error } = await createAdminClient()
     .from('evaluations')
     .insert({
       user_id: user.id,

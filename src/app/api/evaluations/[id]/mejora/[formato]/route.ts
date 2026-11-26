@@ -12,6 +12,7 @@
  */
 import { NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { rutasAjenas } from '@/lib/archivos/borrar-subidas';
 import { nombreDeArchivo, cabeceraDescarga } from '@/lib/descargas/nombre-archivo';
 import { aplicarControlDeCambios } from '@/lib/evaluacion/mejora/control-de-cambios';
 import { cuadroADocx } from '@/lib/evaluacion/mejora/cuadro';
@@ -54,6 +55,10 @@ export async function GET(_req: Request, ctx: { params: { id: string; formato: s
     result: { objeto_inferido?: string; hallazgos?: HallazgoAuditado[]; mejora?: MejoraDelRequerimiento } | null;
   };
   if (ev.user_id !== user.id) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  // El requerimiento se lee con service role: debe estar en la carpeta del dueño.
+  if (rutasAjenas(ev.user_id, [ev.bases_file_path]).length > 0) {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  }
 
   const mejora = ev.result?.mejora;
   const hallazgos = ev.result?.hallazgos ?? [];

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
-import { usarHerramienta } from '@/lib/billing/creditos';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
+import { cerrarLlamada } from '@/lib/voice/llamadas';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -15,24 +15,6 @@ const UpdateSchema = z.object({
   tokens_in: z.number().int().min(0).optional(),
   tokens_out: z.number().int().min(0).optional(),
 });
-
-/**
- * Calcula el costo USD de una llamada según el pricing oficial de
- * Gemini Live API (junio 2026):
- *   - Audio input: $0.005 / minuto
- *   - Audio output: $0.018 / minuto
- *
- * Heurística: 40% del tiempo total el usuario habla, 60% el agente.
- * Esta proporción es ajustable; tokens_in/tokens_out NO se usan
- * porque la facturación de Live API es por minuto de audio, no por
- * token (los tokens reflejan el contenido pero el cobro es por tiempo).
- */
-function estimateCostUSD(durationSeconds: number): number {
-  const minutes = durationSeconds / 60;
-  const audioInputCost = minutes * 0.4 * 0.005;
-  const audioOutputCost = minutes * 0.6 * 0.018;
-  return parseFloat((audioInputCost + audioOutputCost).toFixed(6));
-}
 
 /**
  * GET /api/voice/calls/[id]
@@ -70,7 +52,10 @@ export async function GET(_req: Request, ctx: { params: { id: string } }) {
 
 /**
  * PATCH /api/voice/calls/[id]
- * Cierra la llamada o actualiza calificación.
+ * Cierra la llamada (`status`) o guarda la calificación y el resumen.
+ *
+ * La duración y el cobro los decide el servidor (`cerrarLlamada`): el
+ * `duration_seconds` que manda el navegador ya no cuenta.
  */
 export async function PATCH(req: Request, ctx: { params: { id: string } }) {
   const supabase = createClient();
@@ -88,55 +73,33 @@ export async function PATCH(req: Request, ctx: { params: { id: string } }) {
     );
   }
 
-  // Verificar ownership
   const { data: call } = await supabase
     .from('voice_calls')
-    .select('id, user_id, status')
+    .select('id, user_id, status, started_at')
     .eq('id', ctx.params.id)
     .maybeSingle();
   if (!call) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  if ((call as { user_id: string }).user_id !== user.id) {
+  const llamada = call as { id: string; user_id: string; status: string; started_at: string };
+  if (llamada.user_id !== user.id) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 
-  const update: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(parsed.data)) {
-    if (v !== undefined) update[k] = v;
-  }
-  // Al marcar 'completed' o 'failed', registrar ended_at y costo USD
-  if (parsed.data.status && parsed.data.status !== (call as { status: string }).status) {
-    update.ended_at = new Date().toISOString();
-    if (typeof parsed.data.duration_seconds === 'number' && parsed.data.duration_seconds > 0) {
-      update.cost_usd = estimateCostUSD(parsed.data.duration_seconds);
-    }
+  const admin = createAdminClient();
+
+  // Lo que el usuario sí decide: su calificación y el resumen de su llamada.
+  const propio: Record<string, unknown> = {};
+  if (parsed.data.summary !== undefined) propio.summary = parsed.data.summary;
+  if (parsed.data.user_rating !== undefined) propio.user_rating = parsed.data.user_rating;
+  if (parsed.data.user_rating_comment !== undefined) propio.user_rating_comment = parsed.data.user_rating_comment;
+  if (parsed.data.tokens_in !== undefined) propio.tokens_in = parsed.data.tokens_in;
+  if (parsed.data.tokens_out !== undefined) propio.tokens_out = parsed.data.tokens_out;
+  if (Object.keys(propio).length > 0) {
+    const { error } = await admin.from('voice_calls').update(propio as never).eq('id', llamada.id);
+    if (error) return NextResponse.json({ error: 'update_failed' }, { status: 500 });
   }
 
-  const { error } = await supabase
-    .from('voice_calls')
-    .update(update as never)
-    .eq('id', ctx.params.id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  // Si la llamada se cerró con duración, descontar de la cuota mensual.
-  // Redondeamos hacia arriba: una llamada de 0:01 a 0:59 consume 1 minuto.
-  // Llamada de 1:00 a 1:59 consume 2 min, etc.
-  if (
-    parsed.data.status === 'completed' &&
-    typeof parsed.data.duration_seconds === 'number' &&
-    parsed.data.duration_seconds > 0 &&
-    (call as { status: string }).status === 'active'
-  ) {
-    const minutes = Math.ceil(parsed.data.duration_seconds / 60);
-    // Con await: en Vercel lo que queda pendiente tras responder se corta.
-    const uso = await usarHerramienta(user.id, 'consulta_voz', { unidades: minutes, detalle: `${minutes} min` });
-    // Si la llamada fue más larga que el saldo, se cobra lo que quedaba:
-    // la conversación ya ocurrió y no puede quedar gratis.
-    if (!uso.ok && uso.body.error === 'sin_creditos' && (uso.body.disponibles ?? 0) > 0) {
-      await usarHerramienta(user.id, 'consulta_voz', {
-        creditos: uso.body.disponibles,
-        detalle: `${minutes} min (saldo insuficiente)`,
-      });
-    }
+  if (parsed.data.status && llamada.status === 'active') {
+    await cerrarLlamada(admin, llamada, { estado: parsed.data.status, fin: new Date() });
   }
 
   return NextResponse.json({ ok: true });
@@ -156,12 +119,18 @@ export async function DELETE(_req: Request, ctx: { params: { id: string } }) {
 
   const { data: call } = await supabase
     .from('voice_calls')
-    .select('id, user_id, audio_storage_path')
+    .select('id, user_id, audio_storage_path, status, started_at')
     .eq('id', ctx.params.id)
     .maybeSingle();
   if (!call) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-  if ((call as { user_id: string }).user_id !== user.id) {
+  const llamada = call as { id: string; user_id: string; status: string; started_at: string };
+  if (llamada.user_id !== user.id) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  }
+  // Una llamada en curso se cierra (y se cobra) antes de borrarla: la RLS
+  // no deja borrar una `active` (migración 0089).
+  if (llamada.status === 'active') {
+    await cerrarLlamada(createAdminClient(), llamada, { estado: 'failed', fin: new Date() });
   }
 
   // Borrar audio del Storage si existe

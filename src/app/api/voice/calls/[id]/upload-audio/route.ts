@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -73,7 +73,7 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
   }
 
   // Actualizar path en BD
-  await supabase
+  await createAdminClient()
     .from('voice_calls')
     .update({ audio_storage_path: path } as never)
     .eq('id', ctx.params.id);
