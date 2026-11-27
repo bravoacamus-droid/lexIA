@@ -218,7 +218,7 @@ function parecido(a: string, b: string): number {
 }
 
 /** ¿Hablan dos hallazgos de lo mismo? Del mismo texto de las bases, o del mismo asunto si son omisiones. */
-function mismoHallazgo(a: HallazgoBases, b: HallazgoBases): boolean {
+export function mismoHallazgo(a: HallazgoBases, b: HallazgoBases): boolean {
   if (a.enLasBases && b.enLasBases) return parecido(a.enLasBases, b.enLasBases) >= 0.6;
   return parecido(`${a.titulo} ${a.enElEstandar ?? ''}`, `${b.titulo} ${b.enElEstandar ?? ''}`) >= 0.5;
 }

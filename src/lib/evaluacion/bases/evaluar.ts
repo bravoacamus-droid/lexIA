@@ -53,6 +53,7 @@ import {
 import type { BuscarSustento } from '@/lib/evaluacion/mejora/sustento';
 import type { BuscarEnBiblioteca } from '@/lib/normativa/citas';
 import type { HallazgoBases, ResultadoBases } from './tipos';
+import { capituloDelRequerimiento, contrastarLasBases, objetoDelEstandar, sumarAlaRevision } from './contraste-de-las-bases';
 
 const ESTANDARES = estandaresJson as unknown as BasesEstandar[];
 
@@ -60,7 +61,7 @@ export function listaDeEstandares(): Array<{ id: string; titulo: string }> {
   return ESTANDARES.map((e) => ({ id: e.id, titulo: e.titulo }));
 }
 
-async function capitulosDe(id: string): Promise<CapituloEstandar[]> {
+export async function capitulosDe(id: string): Promise<CapituloEstandar[]> {
   const m = (await import(`./capitulos/${id}.json`)) as { default: CapituloEstandar[] };
   return m.default;
 }
@@ -355,6 +356,22 @@ export async function evaluarBases(p: PeticionDeEvaluacion): Promise<ResultadoBa
   // El Capítulo I son los datos del procedimiento: se revisa, pero no
   // hace falta un modelo para cada uno si viene vacío.
   const aRevisar = capitulos.filter((c) => c.bases.length > 400);
+  // En paralelo con la revisión: el Capítulo III (el requerimiento) contra
+  // la biblioteca, tema por tema (Fase 1, reunión con César del 27/11/2026).
+  const capReq = capituloDelRequerimiento(capitulos);
+  const contraste =
+    p.cliente && capReq && capReq.bases.length > 400
+      ? contrastarLasBases({
+          cliente: p.cliente,
+          capitulo: capReq,
+          objeto: objetoDelEstandar(estandar.id, contrataUnBien(estandar.id, b.texto)),
+          paginas,
+          alUsar: p.alUsar,
+        }).catch((e) => {
+          console.error('[bases] contraste por tema falló:', (e as Error).message);
+          return { hallazgos: [] as HallazgoBases[], temas: 0 };
+        })
+      : Promise.resolve({ hallazgos: [] as HallazgoBases[], temas: 0 });
   const revisiones = await Promise.allSettled(
     aRevisar.map((c) =>
       revisarCapitulo({
@@ -396,7 +413,8 @@ export async function evaluarBases(p: PeticionDeEvaluacion): Promise<ResultadoBa
       .filter((c) => c.tramo[0] >= 0),
     ...deDisponibilidad.map((h) => ({ tramo: h.tramo, tema: TEMA_DISPONIBILIDAD })),
   ];
-  const deLaRevision = sinLoQueCubrenLosControles(porCapitulo.flat(), controles, b.texto);
+  const delContraste = await contraste;
+  const deLaRevision = sinLoQueCubrenLosControles(sumarAlaRevision(porCapitulo.flat(), delContraste.hallazgos), controles, b.texto);
   const deControl: HallazgoBases[] = [...deObras, ...deDisponibilidad.map(({ tramo: _tramo, ...h }) => h)];
 
   const hallazgos = [...deLaGeneral, ...deControl, ...deLaRevision].sort(
@@ -515,7 +533,8 @@ async function conLaBiblioteca(
   const observaciones = hallazgos.filter((h) => h.paraElProveedor.tipo === 'observacion');
   const generales = observaciones.filter((h) => h.origen === 'cotejo');
   const problemas = observaciones
-    .filter((h) => h.origen !== 'cotejo')
+    // Lo que trajo el contraste por tema ya viene con sus precedentes.
+    .filter((h) => h.origen !== 'cotejo' && !(h.id.startsWith('tema-') && h.fuentes?.length))
     .map((h) => ({
       id: h.id,
       titulo: h.titulo,

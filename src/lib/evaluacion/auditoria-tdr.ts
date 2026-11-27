@@ -69,6 +69,8 @@ export interface HallazgoDeAuditoria {
    * disponibilidad del bien).
    */
   origen?: 'auditor' | 'tema' | 'control';
+  /** Los precedentes del contraste por tema, con el documento para abrirlo (las bases los usan así). */
+  fuentes?: FuenteCitada[];
 }
 
 /** Lo que el contraste por tema revisó: cuántas cláusulas y cuántos documentos de la biblioteca. */

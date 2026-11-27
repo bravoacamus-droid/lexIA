@@ -36,7 +36,7 @@ import {
   type DocumentoDelTema,
 } from '@/lib/ai/fuentes-del-tema';
 import { embedOne } from '@/lib/ai/embeddings';
-import { NOMBRE_DE_FUENTE, type TipoDeFuente } from '@/lib/evaluacion/bases/fuentes';
+import { NOMBRE_DE_FUENTE, type FuenteCitada, type TipoDeFuente } from '@/lib/evaluacion/bases/fuentes';
 import type { HallazgoDeAuditoria, Solicitud } from '@/lib/evaluacion/auditoria-tdr';
 import { segmentarRequerimiento, dondeEsta, type Clausula } from './segmentar';
 import {
@@ -157,9 +157,17 @@ async function precedentesDelTema(db: SupabaseClient, tema: TemaDeComprobacion, 
   }
   const documentos = new Map<string, DocumentoDelTema>();
   let total = 0;
-  for (const grupo of tema.expresiones.slice(0, 2)) {
+  // Sin cláusulas (una omisión) no hay objeto con que afinar, y la
+  // expresión sola («forma de pago») está en miles de documentos: la
+  // búsqueda por parecido, abajo, basta.
+  for (const grupo of muestra ? tema.expresiones.slice(0, 2) : []) {
     try {
-      const f = await buscarFuentesDelTema(db, { terminos: grupo, objeto });
+      // Con el objeto de la cláusula ya entre las palabras, la consulta es
+      // angosta desde el principio. Buscar primero la expresión sola
+      // («forma de pago», miles de documentos) y afinar después se pasaba
+      // del tiempo de la base con varios temas a la vez.
+      const terminos = objeto.length ? [...grupo, objeto[0]] : grupo;
+      const f = await buscarFuentesDelTema(db, { terminos, objeto: objeto.slice(1) });
       if (!f) continue;
       total += f.total;
       for (const d of f.documentos) if (!documentos.has(d.document_id)) documentos.set(d.document_id, d);
@@ -176,25 +184,35 @@ async function precedentesDelTema(db: SupabaseClient, tema: TemaDeComprobacion, 
   const semanticos: Precedente[] = [];
   try {
     const emb = (await embedOne(consulta.replace(/\s+/g, ' ').slice(0, 1_500), 'RETRIEVAL_QUERY')) as unknown as number[];
-    const porTipo = await Promise.all(
-      CASUISTICOS.map(async (tipo) => {
+    // De a tres tipos y con un reintento: con todos los temas a la vez, la
+    // búsqueda en las resoluciones (diecisiete mil documentos) se pasaba
+    // del tiempo de la base (lo vio la prueba con el CPA 008-2026).
+    const buscar = async (tipo: (typeof CASUISTICOS)[number]) => {
+      for (let intento = 1; intento <= 2; intento++) {
         const r = await db.rpc('hybrid_search', {
           query_text: tema.expresiones[0].join(' '),
           query_embedding: emb,
           match_count: POR_TIPO_SEMANTICO[tipo] * 3,
           filter_type: tipo,
         });
-        if (r.error) {
-          console.warn('[contraste] parecido', tema.id, tipo, r.error.message);
-          return [] as Precedente[];
-        }
-        const vistos = new Set<string>();
-        return ((r.data ?? []) as Array<{ chunk_id: string; document_id: string; content: string; doc_type: string; doc_number: string | null; doc_title: string }>)
-          .filter((f) => !vistos.has(f.document_id) && (vistos.add(f.document_id), true))
-          .slice(0, POR_TIPO_SEMANTICO[tipo])
-          .map((f) => ({ id: f.chunk_id, document_id: f.document_id, tipo: f.doc_type, numero: f.doc_number ?? f.doc_title, content: f.content }));
-      }),
-    );
+        if (!r.error) return r;
+        if (intento === 2) return r;
+        await new Promise((ok) => setTimeout(ok, 1_000));
+      }
+      throw new Error('inalcanzable');
+    };
+    const porTipo = await deAPocos([...CASUISTICOS], 3, async (tipo): Promise<Precedente[]> => {
+      const r = await buscar(tipo);
+      if (r.error) {
+        console.warn('[contraste] parecido', tema.id, tipo, r.error.message);
+        return [];
+      }
+      const vistos = new Set<string>();
+      return ((r.data ?? []) as Array<{ chunk_id: string; document_id: string; content: string; doc_type: string; doc_number: string | null; doc_title: string }>)
+        .filter((f) => !vistos.has(f.document_id) && (vistos.add(f.document_id), true))
+        .slice(0, POR_TIPO_SEMANTICO[tipo])
+        .map((f) => ({ id: f.chunk_id, document_id: f.document_id, tipo: f.doc_type, numero: f.doc_number ?? f.doc_title, content: f.content }));
+    });
     semanticos.push(...porTipo.flat());
   } catch (e) {
     console.warn('[contraste] parecido', tema.id, (e as Error).message);
@@ -271,6 +289,7 @@ async function juzgarTema(
       .filter((f) => f.k >= 0 && f.k < prec.fragmentos.length && f.criterio);
     const vistos = new Set<string>();
     const fundamento: Array<{ norma: string; articulo?: string }> = [];
+    const citadas: FuenteCitada[] = [];
     const norma = String(h.norma ?? '').trim();
     if (norma) fundamento.push({ norma });
     for (const f of fuentes) {
@@ -280,6 +299,7 @@ async function juzgarTema(
       vistos.add(numero);
       const nombre = NOMBRE_DE_FUENTE[doc.tipo as TipoDeFuente] ?? doc.tipo;
       fundamento.push({ norma: numero, articulo: `${nombre}: ${f.criterio}` });
+      citadas.push({ tipo: doc.tipo as TipoDeFuente, numero, documentId: doc.document_id, criterio: f.criterio });
     }
     const severidad = (SEVERIDADES as readonly string[]).includes(String(h.severidad))
       ? (h.severidad as HallazgoDeAuditoria['severidad'])
@@ -301,6 +321,7 @@ async function juzgarTema(
       ...(solicitud ? { solicitud } : {}),
       terminos_clave: tema.expresiones[0],
       fundamento_normativo: fundamento,
+      fuentes: citadas,
       origen: 'tema',
     });
   }
