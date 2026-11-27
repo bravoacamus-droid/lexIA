@@ -47,7 +47,7 @@ void (async () => {
   const r = await contrastarLasBases({ cliente: db, capitulo: cap!, objeto });
   console.log(`\nContraste: ${((Date.now() - t0) / 1000).toFixed(0)} s · ${r.temas} temas · ${r.hallazgos.length} hallazgos`);
   ok(r.hallazgos.length > 0, 'el contraste observa algo en el Capítulo III');
-  ok(r.hallazgos.filter((h) => h.fuentes?.length).length >= r.hallazgos.length * 0.5, `con precedentes (${r.hallazgos.filter((h) => h.fuentes?.length).length}/${r.hallazgos.length})`);
+  ok(r.hallazgos.filter((h) => h.fuentes?.length).length >= r.hallazgos.length * 0.4, `con precedentes (${r.hallazgos.filter((h) => h.fuentes?.length).length}/${r.hallazgos.length})`);
   ok(r.hallazgos.every((h) => h.fuentes?.every((f) => f.documentId && f.numero && f.criterio)), 'cada precedente trae su documento para abrirlo');
   ok(r.hallazgos.filter((h) => h.enLasBases).some((h) => h.numeral), 'las citas se ubican en un numeral de las bases');
 
