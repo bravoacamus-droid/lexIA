@@ -16,6 +16,7 @@ import {
   PhoneCall,
   Inbox,
   Coins,
+  Library,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ROLE_LABELS } from '@/lib/navigation/menu-by-role';
@@ -439,6 +440,18 @@ export default async function AdminPage() {
             <h3 className="font-semibold text-base mb-1">Usuarios y roles</h3>
             <p className="text-xs text-muted-foreground">
               Crea cuentas con correo y contraseña, asigna roles y herramientas, suspende o restablece.
+            </p>
+          </Link>
+          <Link
+            href="/admin/biblioteca"
+            className="group rounded-xl border border-border bg-card p-5 hover:border-brand-400 hover:shadow-md hover:-translate-y-0.5 transition-all"
+          >
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 mb-3">
+              <Library className="h-4 w-4" />
+            </span>
+            <h3 className="font-semibold text-base mb-1">Subir a la biblioteca</h3>
+            <p className="text-xs text-muted-foreground">
+              Agrega leyes, decretos, acuerdos, pronunciamientos, IVN o dictámenes que el actualizador no trae.
             </p>
           </Link>
           <Link

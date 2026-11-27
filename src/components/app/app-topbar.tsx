@@ -16,6 +16,7 @@ import {
   LifeBuoy,
   Inbox,
   Users,
+  Library,
 } from 'lucide-react';
 import { abrirAyuda } from '@/components/soporte/ayuda/widget-de-ayuda';
 import { BandejaDelEquipo } from '@/components/soporte/bandeja-del-equipo';
@@ -224,6 +225,14 @@ export function AppTopbar({ user, onOpenPalette, onOpenMobileSidebar }: Props) {
                     <Link href="/admin/usuarios">
                       <Users className="h-4 w-4" />
                       Usuarios y roles
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                {user.permisos.includes('biblioteca') && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/biblioteca">
+                      <Library className="h-4 w-4" />
+                      Subir a la biblioteca
                     </Link>
                   </DropdownMenuItem>
                 )}
