@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { ORDEN_ACTUACIONES, type Actuacion } from '@/lib/ejecucion/catalogo';
-import { estadoDelExpediente, fallo, sesion } from '@/lib/ejecucion/api';
+import { estadoDelExpediente, fallo, sesion, sinPlanDeEjecucion } from '@/lib/ejecucion/api';
 import { analizar } from '@/lib/ejecucion/servicio';
 import { tituloDelExpediente } from '@/lib/ejecucion/titulo';
 
@@ -17,6 +17,8 @@ export const maxDuration = 300;
 export async function POST(req: Request, { params }: { params: { id: string; aid: string } }) {
   const s = await sesion();
   if ('error' in s) return s.error;
+  const sinPlan = await sinPlanDeEjecucion(s.user.id);
+  if (sinPlan) return sinPlan;
   const p = z
     .object({ actuacion: z.enum(ORDEN_ACTUACIONES as [string, ...string[]]).optional() })
     .safeParse(await req.json().catch(() => ({})));

@@ -135,9 +135,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'forbidden', detail: 'Documento fuera de tu carpeta.' }, { status: 403 });
   }
 
+  // Se cobra antes de crear la evaluación y se devuelve si no se pudo
+  // crear. Comprobar aquí y cobrar al final sin mirar el resultado dejaba
+  // crear varias a la vez con el saldo de una.
   const guard = await usarHerramienta(user.id, herramienta, {
     unidades,
-    soloComprobar: true,
+    detalle: parsed.data.title.slice(0, 120),
     // El tope de tamaño por oferta del plan (Profesional 60 MB,
     // Especialista 120 MB: César, 18/10/2026).
     ...(herramienta === 'evaluacion_ofertas' ? { bytesPorOferta: await pesoDeLasOfertas(parsed.data.offer_files ?? []) } : {}),
@@ -160,7 +163,9 @@ export async function POST(req: Request) {
     .select('id, title, status, created_at, mode')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  await usarHerramienta(user.id, herramienta, { unidades, detalle: parsed.data.title.slice(0, 120) });
+  if (error) {
+    await guard.reembolsar('no se pudo crear la evaluación');
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
   return NextResponse.json({ evaluation: data });
 }

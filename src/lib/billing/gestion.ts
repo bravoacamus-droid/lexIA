@@ -342,26 +342,25 @@ export async function verInvitacion(token: string) {
   };
 }
 
+/**
+ * Unirse a un equipo con el enlace de invitación. Todo pasa en la base,
+ * bajo un mismo bloqueo (`aceptar_invitacion_de_equipo`, migración 0090):
+ * en pasos sueltos, dos cuentas con el mismo enlace entraban las dos.
+ */
 export async function aceptarInvitacion(userId: string, token: string) {
   const db = servicio();
-  const { data: inv } = await db.from('invitaciones_de_equipo').select('*').eq('token', token).maybeSingle();
-  if (!inv) throw new Error('La invitación no existe.');
-  if (inv.usada_at) throw new Error('Esta invitación ya se usó. Pide una nueva al propietario del equipo.');
-  if (new Date(inv.expira_at).getTime() < Date.now()) throw new Error('La invitación venció. Pide una nueva.');
-  const { data: ya } = await db.from('miembros_de_equipo').select('equipo_id').eq('user_id', userId).maybeSingle();
-  if (ya) {
-    if (ya.equipo_id === inv.equipo_id) return { yaEra: true };
-    throw new Error('Ya perteneces a otro equipo. Sal de él antes de unirte a este.');
-  }
-  const { data: eq } = await db.from('equipos').select('max_usuarios').eq('id', inv.equipo_id).single();
-  const { count } = await db.from('miembros_de_equipo').select('user_id', { count: 'exact', head: true }).eq('equipo_id', inv.equipo_id);
-  if ((count ?? 0) >= ((eq as { max_usuarios: number }).max_usuarios ?? 5)) {
-    throw new Error('El equipo ya tiene todos sus usuarios. El propietario puede ampliar su plan.');
-  }
-  const { error } = await db.from('miembros_de_equipo').insert({ equipo_id: inv.equipo_id, user_id: userId, rol: 'miembro' });
+  const { data, error } = await db.rpc('aceptar_invitacion_de_equipo', { p_token: token, p_user: userId });
   if (error) throw error;
-  await db.from('invitaciones_de_equipo').update({ usada_por: userId, usada_at: new Date().toISOString() }).eq('id', inv.id);
-  return { yaEra: false };
+  const r = (data ?? {}) as { ok?: boolean; ya_era?: boolean; motivo?: string };
+  if (r.ok) return { yaEra: r.ya_era === true };
+  const MENSAJES: Record<string, string> = {
+    no_existe: 'La invitación no existe.',
+    usada: 'Esta invitación ya se usó. Pide una nueva al propietario del equipo.',
+    vencida: 'La invitación venció. Pide una nueva.',
+    otro_equipo: 'Ya perteneces a otro equipo. Sal de él antes de unirte a este.',
+    lleno: 'El equipo ya tiene todos sus usuarios. El propietario puede ampliar su plan.',
+  };
+  throw new Error(MENSAJES[r.motivo ?? ''] ?? 'No se pudo aceptar la invitación.');
 }
 
 /** El propietario quita a un miembro, o un miembro sale (userId = él mismo). */

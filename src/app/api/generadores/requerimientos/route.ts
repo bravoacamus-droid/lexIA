@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { catalogoPlantillas, obtenerPlantilla } from '@/lib/generadores/plantillas';
 import { respuestaDeRechazo, usarHerramienta } from '@/lib/billing/creditos';
 import { MontoSchema } from '@/lib/generadores/ensamblador';
@@ -77,10 +77,13 @@ export async function POST(req: Request) {
   // Las plantillas de contratos menores (≤ 8 UIT) son del plan Consulta;
   // las de procedimientos de selección, desde Profesional.
   const herramienta = plantilla.familia === 'menor_8_uit' ? 'requerimiento_menor' : 'requerimiento_seleccion';
-  const guard = await usarHerramienta(user.id, herramienta, { soloComprobar: true });
+  // Se cobra antes de crearlo y se devuelve si no se pudo crear. Lo crea
+  // el servidor: el navegador ya no puede insertar en esta tabla
+  // (migración 0091), así no hay requerimientos sin pagar.
+  const guard = await usarHerramienta(user.id, herramienta, { detalle: parsed.data.denominacion.slice(0, 120) });
   if (!guard.ok) return respuestaDeRechazo(guard);
 
-  const { data, error } = await supabase
+  const { data, error } = await createAdminClient()
     .from('requerimientos_plantilla')
     .insert({
       user_id: user.id,
@@ -101,8 +104,9 @@ export async function POST(req: Request) {
     .select('id')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  // Se comprobaba la cuota pero nunca se descontaba (César, 27/09/2026).
-  await usarHerramienta(user.id, herramienta, { detalle: parsed.data.denominacion.slice(0, 120) });
+  if (error) {
+    await guard.reembolsar('no se pudo crear el requerimiento');
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
   return NextResponse.json({ id: data.id }, { status: 201 });
 }

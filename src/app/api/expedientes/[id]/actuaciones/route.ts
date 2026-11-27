@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { ORDEN_ACTUACIONES } from '@/lib/ejecucion/catalogo';
-import { perfilPermitido, sesion } from '@/lib/ejecucion/api';
+import { perfilPermitido, sesion, sinPlanDeEjecucion } from '@/lib/ejecucion/api';
 import type { Respuesta } from '@/lib/ejecucion/tipos';
 
 export const runtime = 'nodejs';
@@ -27,6 +27,8 @@ const PROPIAS_DEL_PERFIL = new Set(['delegacion']);
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const s = await sesion();
   if ('error' in s) return s.error;
+  const sinPlan = await sinPlanDeEjecucion(s.user.id);
+  if (sinPlan) return sinPlan;
   const p = Cuerpo.safeParse(await req.json().catch(() => null));
   if (!p.success) return NextResponse.json({ error: 'invalid_payload' }, { status: 400 });
   if (!perfilPermitido(s.permitidos, p.data.perfil)) return NextResponse.json({ error: 'perfil_no_permitido' }, { status: 403 });

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { estadoDelExpediente, fallo, sesion } from '@/lib/ejecucion/api';
+import { estadoDelExpediente, fallo, sesion, sinPlanDeEjecucion } from '@/lib/ejecucion/api';
 import { analizar } from '@/lib/ejecucion/servicio';
 import { fechaISO } from '@/lib/ejecucion/regimen';
 import { LISTA_CAMPOS, type Ficha, type Respuesta } from '@/lib/ejecucion/tipos';
@@ -29,6 +29,8 @@ const Cuerpo = z.object({
 export async function POST(req: Request, { params }: { params: { id: string; aid: string } }) {
   const s = await sesion();
   if ('error' in s) return s.error;
+  const sinPlan = await sinPlanDeEjecucion(s.user.id);
+  if (sinPlan) return sinPlan;
   const p = Cuerpo.safeParse(await req.json().catch(() => null));
   if (!p.success) return NextResponse.json({ error: 'invalid_payload' }, { status: 400 });
 

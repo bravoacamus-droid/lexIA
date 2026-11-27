@@ -4,6 +4,7 @@
  */
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { respuestaDeRechazo, usarHerramienta } from '@/lib/billing/creditos';
 import { PERFILES_POR_ROL, type Perfil, type RolDeUsuario } from './catalogo';
 import { reconstruirFicha } from './ficha';
 import { cargarExpediente, sinTexto } from './servicio';
@@ -25,6 +26,19 @@ export async function sesion() {
     nombre: p?.full_name?.trim() || user.email || 'Usuario',
     permitidos: PERFILES_POR_ROL[rol] ?? PERFILES_POR_ROL.consultant,
   } as const;
+}
+
+/**
+ * La ejecución contractual es del plan Especialista en adelante. Abrir un
+ * expediente y analizar sus documentos no cuesta créditos (se cobra cada
+ * documento redactado), pero sí gasta IA: sin el plan, no se analiza ni se
+ * audita. Antes solo se comprobaba al abrir el expediente, y quien bajaba
+ * de plan, o creaba el expediente por su cuenta, analizaba gratis.
+ * Devuelve la respuesta de rechazo, o null si el plan lo incluye.
+ */
+export async function sinPlanDeEjecucion(userId: string): Promise<Response | null> {
+  const r = await usarHerramienta(userId, 'documentos_ejecucion', { soloComprobar: true, creditos: 0 });
+  return r.ok ? null : respuestaDeRechazo(r);
 }
 
 export function perfilPermitido(permitidos: Perfil[], perfil: string): perfil is Perfil {

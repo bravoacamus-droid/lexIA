@@ -12,7 +12,7 @@ import { chatModel, fastModel, CHAT_MODEL_ID, FAST_MODEL_ID } from '@/lib/ai/gem
 import { buildChatSystemPrompt, TITLE_SYSTEM_PROMPT } from '@/lib/ai/prompts';
 import type { ChatSource, NormativeDocType } from '@/lib/supabase/types';
 import type { ProfileRole } from '@/lib/auth/session';
-import { respuestaDeRechazo, usarHerramienta } from '@/lib/billing/creditos';
+import { respuestaDeRechazo, usarHerramienta, type UsoAutorizado } from '@/lib/billing/creditos';
 import { recordAiUsage } from '@/lib/ai/usage-log';
 import { expandLegalQuery, tipoDeFoco } from '@/lib/ai/query-expansion';
 import {
@@ -252,7 +252,9 @@ export async function POST(req: Request) {
     convo.law_filter && convo.law_filter.length > 0 ? convo.law_filter : null;
 
   // Créditos: se comprueba aquí y se descuenta al guardar la pregunta
-  // nueva (abajo), para no cobrar las repeticiones del mismo mensaje.
+  // nueva (abajo), para no cobrar las repeticiones del mismo mensaje. Si
+  // el cobro de abajo no pasa (otra pregunta gastó el último crédito
+  // mientras tanto), no se responde.
   const guard = await usarHerramienta(user.id, 'consulta_texto', { soloComprobar: true });
   if (!guard.ok) return respuestaDeRechazo(guard);
 
@@ -1454,14 +1456,17 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
     .maybeSingle();
 
   const last = existingUserMsg as { role: string; content: string } | null;
+  let cobro: UsoAutorizado | null = null;
   if (!last || last.role !== 'user' || last.content !== lastUser.content) {
+    // Solo se cobra una pregunta genuinamente nueva (no un reintento).
+    const uso = await usarHerramienta(user.id, 'consulta_texto', { detalle: lastUser.content.slice(0, 120) });
+    if (!uso.ok) return respuestaDeRechazo(uso);
+    cobro = uso;
     await supabase.from('chat_messages').insert({
       conversation_id: conversationId,
       role: 'user',
       content: lastUser.content,
     } as never);
-    // Solo se cobra una pregunta genuinamente nueva (no un reintento).
-    await usarHerramienta(user.id, 'consulta_texto', { detalle: lastUser.content.slice(0, 120) });
   }
 
   // Ley o Reglamento: en el texto íntegro de El Peruano son un solo
@@ -1497,6 +1502,8 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
     temperature: 0.3,
     onError({ error }) {
       console.error('[chat] streamText runtime error:', error);
+      // Sin respuesta no hay consulta: se devuelve el crédito.
+      void cobro?.reembolsar('la respuesta del chat falló');
     },
     onFinish: async ({ text, usage }) => {
       // Bitácora de tokens del chat

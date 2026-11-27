@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { respuestaDeRechazo, usarHerramienta } from '@/lib/billing/creditos';
+import { respuestaDeRechazo, usarHerramienta, type UsoAutorizado } from '@/lib/billing/creditos';
 import { redactarAbsolucion, redactarFormulacion } from '@/lib/consultas/redactor';
 import type { Formulacion, Tramo } from '@/lib/consultas/tipos';
 
@@ -59,7 +59,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const p = leido.data;
 
   // Formular es del plan Profesional; absolver, de Especialista. Se
-  // comprueba aquí y se cobra solo si la redacción sale.
+  // comprueba aquí; se cobra justo antes de redactar y se devuelve si la
+  // redacción falla (cobrar al final sin mirar el resultado dejaba hacer
+  // varias redacciones a la vez con un solo crédito).
   const herramienta = p.que === 'formulacion' ? 'formulacion_consultas' : 'absolucion_consultas';
   const puerta = await usarHerramienta(user.id, herramienta, { soloComprobar: true });
   if (!puerta.ok) return respuestaDeRechazo(puerta);
@@ -92,8 +94,16 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     pagina: fila.pagina,
   };
 
+  const cobrar = async () => {
+    const uso = await usarHerramienta(user.id, herramienta, { detalle: `entrada ${fila.numero ?? fila.id}` });
+    if (uso.ok) cobro = uso;
+    return uso;
+  };
+  let cobro: UsoAutorizado | null = null;
   try {
     if (p.que === 'formulacion') {
+      const uso = await cobrar();
+      if (!uso.ok) return respuestaDeRechazo(uso);
       const salida = await redactarFormulacion({
         tipo: fila.tipo,
         ubicacion,
@@ -109,7 +119,6 @@ export async function POST(req: Request, { params }: { params: { id: string } })
           avisos_formulacion: salida.avisos,
         } as never)
         .eq('id', fila.id);
-      await usarHerramienta(user.id, herramienta, { detalle: `entrada ${fila.numero ?? fila.id}` });
       return NextResponse.json(salida);
     }
 
@@ -133,6 +142,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       );
     }
 
+    const uso = await cobrar();
+    if (!uso.ok) return respuestaDeRechazo(uso);
     const salida = await redactarAbsolucion({
       formulacion,
       decision: p.decision,
@@ -150,9 +161,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         avisos_absolucion: salida.avisos,
       } as never)
       .eq('id', fila.id);
-    await usarHerramienta(user.id, herramienta, { detalle: `entrada ${fila.numero ?? fila.id}` });
     return NextResponse.json(salida);
   } catch (e) {
+    await (cobro as UsoAutorizado | null)?.reembolsar('la redacción falló');
     return NextResponse.json(
       { error: 'fallo_redaccion', detail: (e as Error).message.slice(0, 300) },
       { status: 500 },

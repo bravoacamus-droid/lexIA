@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 import {
   getInitialClauses,
   type ObjectoContractual,
@@ -71,7 +71,8 @@ export async function POST(req: Request) {
 
   // Contrato menor: plan Consulta; procedimiento de selección: Profesional.
   const herramienta = regimen === 'menor_8uit' ? 'requerimiento_menor' : 'requerimiento_seleccion';
-  const guard = await usarHerramienta(user.id, herramienta, { soloComprobar: true });
+  // Se cobra antes de crearlo y se devuelve si no se pudo crear (migración 0091).
+  const guard = await usarHerramienta(user.id, herramienta, { detalle: denominacion.slice(0, 120) });
   if (!guard.ok) return respuestaDeRechazo(guard);
 
   // Si se eligió una plantilla y aplica al objeto seleccionado, la aplicamos.
@@ -89,7 +90,7 @@ export async function POST(req: Request) {
     }
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await createAdminClient()
     .from('entity_requirements')
     .insert({
       user_id: user.id,
@@ -106,13 +107,13 @@ export async function POST(req: Request) {
     .single();
 
   if (error || !data) {
+    await guard.reembolsar('no se pudo crear el requerimiento');
     return NextResponse.json(
       { error: 'insert_failed', detail: error?.message },
       { status: 500 },
     );
   }
 
-  await usarHerramienta(user.id, herramienta, { detalle: denominacion.slice(0, 120) });
   return NextResponse.json({ id: (data as { id: string }).id });
 }
 

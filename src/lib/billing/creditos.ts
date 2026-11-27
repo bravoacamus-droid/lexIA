@@ -380,7 +380,20 @@ export async function usarHerramienta(
     }
   }
   const limite = plan === 'consulta' || plan === 'profesional' ? LIMITES[plan] : null;
-  if (limite && limite.herramientas.includes(herramienta)) {
+  const conLimite = !!limite && limite.herramientas.includes(herramienta);
+  const rechazoPorLimite = () =>
+    rechazo(
+      estado,
+      herramienta,
+      'limite_del_plan',
+      plan === 'consulta'
+        ? `Tu plan Consulta incluye hasta ${limite!.porMes} operaciones al mes de requerimientos de contratos menores (generar o evaluar) y ya las usaste. Se renuevan con tu próximo periodo.`
+        : `Tu plan Profesional incluye hasta ${limite!.porMes} análisis de ofertas al mes y ya los usaste. Se renuevan con tu próximo periodo.`,
+      { plan_sugerido: plan === 'consulta' ? 'profesional' : 'especialista' },
+    );
+  // Este conteo es para avisar antes; el que manda lo repite la base bajo
+  // el candado de la bolsa al consumir (`consumir_creditos_con_limite`).
+  if (limite && conLimite) {
     const { count } = await cliente
       .from('movimientos_de_creditos')
       .select('id', { count: 'exact', head: true })
@@ -395,17 +408,7 @@ export async function usarHerramienta(
       .eq('origen', 'reembolso')
       .in('herramienta', limite.herramientas)
       .gte('created_at', estado.periodoInicio);
-    if ((count ?? 0) - (devueltos ?? 0) >= limite.porMes) {
-      return rechazo(
-        estado,
-        herramienta,
-        'limite_del_plan',
-        plan === 'consulta'
-          ? `Tu plan Consulta incluye hasta ${limite.porMes} operaciones al mes de requerimientos de contratos menores (generar o evaluar) y ya las usaste. Se renuevan con tu próximo periodo.`
-          : `Tu plan Profesional incluye hasta ${limite.porMes} análisis de ofertas al mes y ya los usaste. Se renuevan con tu próximo periodo.`,
-        { plan_sugerido: plan === 'consulta' ? 'profesional' : 'especialista' },
-      );
-    }
+    if ((count ?? 0) - (devueltos ?? 0) >= limite.porMes) return rechazoPorLimite();
   }
   if (estado.disponibles < creditos) {
     return rechazo(
@@ -420,15 +423,24 @@ export async function usarHerramienta(
     return { ok: true, bolsaId: estado.bolsa.id, creditos, disponibles: estado.disponibles, reembolsar: async () => {} };
   }
 
-  const { data, error } = await cliente.rpc('consumir_creditos', {
+  const base = {
     p_bolsa: estado.bolsa.id,
     p_user: userId,
     p_herramienta: herramienta,
     p_creditos: creditos,
     p_detalle: opciones.detalle ?? null,
-  });
+  };
+  const { data, error } = conLimite
+    ? await cliente.rpc('consumir_creditos_con_limite', {
+        ...base,
+        p_herramientas: limite!.herramientas,
+        p_desde: estado.periodoInicio,
+        p_tope: limite!.porMes,
+      })
+    : await cliente.rpc('consumir_creditos', base);
   const r = (data ?? {}) as { ok?: boolean; motivo?: string; disponibles?: number; movimiento?: number };
   if (error || !r.ok) {
+    if (r.motivo === 'limite') return rechazoPorLimite();
     if (r.motivo === 'vencido' || r.motivo === 'suspendido') {
       return rechazo(estado, herramienta, 'plan_vencido', `Tu plan ${nombrePlan} no está vigente.`);
     }

@@ -24,13 +24,14 @@ export async function POST(req: Request, { params }: { params: { id: string; aid
     })
     .safeParse(await req.json().catch(() => null));
   if (!p.success) return NextResponse.json({ error: 'invalid_payload' }, { status: 400 });
-  const guard = await usarHerramienta(s.user.id, 'documentos_ejecucion', { soloComprobar: true });
-  if (!guard.ok) return respuestaDeRechazo(guard);
+  // Se cobra antes de redactar y se devuelve si la redacción falla.
+  const cobro = await usarHerramienta(s.user.id, 'documentos_ejecucion', { detalle: `actuación ${params.aid}` });
+  if (!cobro.ok) return respuestaDeRechazo(cobro);
   try {
     await redactar(s.supabase, params.id, params.aid, p.data.nivel, { id: s.user.id, nombre: s.nombre }, p.data.enfoque);
-    await usarHerramienta(s.user.id, 'documentos_ejecucion', { detalle: `actuación ${params.aid}` });
     return NextResponse.json(await estadoDelExpediente(s.supabase, params.id));
   } catch (e) {
+    await cobro.reembolsar('la redacción falló');
     return fallo(e);
   }
 }

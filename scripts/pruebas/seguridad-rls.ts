@@ -102,6 +102,39 @@ void (async () => {
     [b] = await bloqueada(yo.from('voice_calls').delete().eq('id', vcId).select('id'));
     ok(!b, 'sí borra una llamada terminada');
 
+    // ── requerimientos y generador (migración 0091) ──
+    [b, d] = await bloqueada(
+      yo.from('requerimientos_plantilla').insert({ user_id: uid, plantilla_id: 'bienes-general', denominacion: 'x', respuestas: {} } as never).select('id'),
+    );
+    ok(b, `no puede crear requerimientos sin pagar (${d})`);
+    [b, d] = await bloqueada(
+      yo.from('entity_requirements').insert({ user_id: uid, denominacion: 'x', regimen: 'seleccion', objeto: 'bienes', status: 'draft' } as never).select('id'),
+    );
+    ok(b, `no puede crear requerimientos (modelo anterior) sin pagar (${d})`);
+    const { data: rp } = await admin
+      .from('requerimientos_plantilla')
+      .insert({ user_id: uid, plantilla_id: 'bienes-general', denominacion: 'prueba rls', respuestas: {} } as never)
+      .select('id')
+      .single();
+    const rpId = (rp as { id: string }).id;
+    [b, d] = await bloqueada(yo.from('requerimientos_plantilla').update({ plantilla_id: 'otra' } as never).eq('id', rpId).select('id'));
+    ok(b, `no puede cambiar la plantilla de un requerimiento pagado (${d})`);
+    const { error: eResp } = await yo.from('requerimientos_plantilla').update({ denominacion: 'editada' } as never).eq('id', rpId);
+    ok(!eResp, `sí edita su requerimiento (${eResp?.message ?? 'ok'})`);
+    const { data: conv } = await admin
+      .from('generator_conversations')
+      .insert({ user_id: uid } as never)
+      .select('id')
+      .single();
+    if (conv) {
+      [b, d] = await bloqueada(
+        yo.from('generator_messages').insert({ conversation_id: (conv as { id: string }).id, role: 'assistant', content: 'falsa' } as never).select('id'),
+      );
+      ok(b, `no puede inventar respuestas del generador para abaratar el documento (${d})`);
+    } else {
+      ok(false, 'no se pudo preparar la conversación del generador para la prueba');
+    }
+
     // ── user_surveys ──
     [b, d] = await bloqueada(
       yo.from('user_surveys').insert({ user_id: uid, survey_slug: 'x', answers: {}, reward_granted: false } as never).select('id'),

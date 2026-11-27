@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { streamText } from 'ai';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { embedOne } from '@/lib/ai/embeddings';
 import {
   generatorModel,
@@ -96,23 +96,27 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 
-  // El primer mensaje de la conversación es el documento (20 créditos);
-  // las repreguntas para ajustarlo, como una consulta (1).
-  const turnos = messages.filter((m) => m.role === 'user').length;
-  const creditosDelTurno = turnos <= 1 ? undefined : 1;
-  const guard = await usarHerramienta(user.id, 'documentos_ejecucion', { soloComprobar: true, creditos: creditosDelTurno });
-  if (!guard.ok) return respuestaDeRechazo(guard);
-
   const lastUser = [...messages].reverse().find((m) => m.role === 'user');
   if (!lastUser) {
     return NextResponse.json({ error: 'no_user_message' }, { status: 400 });
   }
-  // Se comprobaba la cuota pero nunca se descontaba: el consumo de
-  // «Generar» no avanzaba (César, 27/09/2026).
-  await usarHerramienta(user.id, 'documentos_ejecucion', {
-    creditos: creditosDelTurno,
-    detalle: turnos <= 1 ? 'documento nuevo' : 'repregunta',
+
+  // El primer documento de la conversación cuesta 20 créditos; las
+  // repreguntas para ajustarlo, como una consulta (1). Se cuenta en la
+  // base lo que A-LexIA ya entregó, no en el historial que manda el
+  // navegador: con un turno viejo inventado, un documento nuevo costaba 1.
+  const { count: entregados } = await supabase
+    .from('generator_messages')
+    .select('id', { count: 'exact', head: true })
+    .eq('conversation_id', conversationId)
+    .eq('role', 'assistant');
+  const documentoNuevo = (entregados ?? 0) === 0;
+  // Se cobra antes de generar y se devuelve si la generación falla.
+  const cobro = await usarHerramienta(user.id, 'documentos_ejecucion', {
+    creditos: documentoNuevo ? undefined : 1,
+    detalle: documentoNuevo ? 'documento nuevo' : 'repregunta',
   });
+  if (!cobro.ok) return respuestaDeRechazo(cobro);
 
   // Cargar files adjuntos vigentes de esta conversación (los ya subidos
   // a Gemini Files API por el endpoint POST /api/generator-chat/[id]/files).
@@ -298,6 +302,7 @@ ${ragContext}
     temperature: 0.3,
     onError({ error }) {
       console.error('[generator-chat] streamText error:', error);
+      void cobro.reembolsar('la generación falló');
     },
     onFinish: async ({ text, usage }) => {
       void recordAiUsage({
@@ -337,7 +342,7 @@ ${ragContext}
         (existingLastUser as { content: string }).content === userText;
 
       if (!alreadyPersisted) {
-        await supabase.from('generator_messages').insert({
+        await createAdminClient().from('generator_messages').insert({
           conversation_id: conversationId,
           role: 'user',
           content: userText,
@@ -354,7 +359,7 @@ ${ragContext}
         snippet: c.content,
       }));
 
-      await supabase.from('generator_messages').insert({
+      await createAdminClient().from('generator_messages').insert({
         conversation_id: conversationId,
         role: 'assistant',
         content: text,
