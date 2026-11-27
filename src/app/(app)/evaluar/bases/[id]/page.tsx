@@ -52,7 +52,7 @@ export default async function EvaluacionDeBasesDetallePage({ params }: { params:
   const rol = (profile?.profile_role as ProfileRole | null) || null;
 
   return (
-    <Pagina className="max-w-5xl">
+    <Pagina className="max-w-[1400px]">
       <MigaDePan
         trozos={[
           { label: 'Inicio', href: '/app' },
