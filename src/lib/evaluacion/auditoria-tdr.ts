@@ -68,7 +68,7 @@ export interface HallazgoDeAuditoria {
    * precedentes) o un control propio (obras como similares,
    * disponibilidad del bien).
    */
-  origen?: 'auditor' | 'tema' | 'control';
+  origen?: 'auditor' | 'tema' | 'control' | 'manual';
   /** Los precedentes del contraste por tema, con el documento para abrirlo (las bases los usan así). */
   fuentes?: FuenteCitada[];
 }
