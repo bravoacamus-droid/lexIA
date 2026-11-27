@@ -55,12 +55,8 @@ export function OAuthButtons() {
         disabled={loading !== null}
         onClick={() => signIn('google')}
       />
-      <OAuthButton
-        provider="facebook"
-        loading={loading === 'facebook'}
-        disabled={loading !== null}
-        onClick={() => signIn('facebook')}
-      />
+      {/* Facebook está desactivado en Supabase Auth (noviembre de 2026): su
+          botón solo daba error. Para volver a ofrecerlo, actívalo allá primero. */}
     </div>
   );
 }

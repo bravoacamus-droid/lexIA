@@ -16,6 +16,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { tienePermiso } from '@/lib/auth/permisos-servidor';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Auditoría · Llamadas con Abogado Virtual' };
@@ -55,12 +56,7 @@ export default async function AdminVozPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const { data: meProfile } = await supabase
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', user.id)
-    .maybeSingle();
-  const isAdmin = (meProfile as { is_admin?: boolean } | null)?.is_admin === true;
+  const isAdmin = await tienePermiso(supabase, user.id, 'tecnico');
   if (!isAdmin) {
     return (
       <div className="container max-w-2xl py-16">

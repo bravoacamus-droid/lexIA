@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI, type Type } from '@google/genai';
 import { createClient } from '@/lib/supabase/server';
-import { esAdmin } from '@/lib/soporte/servidor';
+import { tienePermiso } from '@/lib/auth/permisos-servidor';
 import { searchNormativa, formatResultsForLLM } from '@/lib/ai/voice-search';
 import { VOICE_SYSTEM_PROMPT } from '@/lib/ai/voice-config';
 
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   // Diagnóstico con llamadas pagas al modelo: solo el equipo (auditoría
   // del 26/11/2026, S6).
-  if (!(await esAdmin(supabase, user.id))) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  if (!(await tienePermiso(supabase, user.id, 'tecnico'))) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
   const body = (await req.json().catch(() => ({}))) as { question?: string };
   const question = String(body.question || '').trim();

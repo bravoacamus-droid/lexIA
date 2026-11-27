@@ -7,7 +7,7 @@ import { ArrowLeft } from 'lucide-react';
 
 export const metadata = {
   title: 'Iniciar sesión',
-  description: 'Ingresa a A-LexIA con tu cuenta de Google o Facebook',
+  description: 'Ingresa a A-LexIA con tu correo o tu cuenta de Google',
 };
 
 export default function LoginPage() {

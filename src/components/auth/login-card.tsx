@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Logo } from '@/components/brand';
 import { OAuthButtons } from './oauth-buttons';
+import { FormularioDeIngreso } from './formulario-de-ingreso';
 
 export function LoginCard() {
   return (
@@ -23,6 +24,14 @@ export function LoginCard() {
             La IA especializada en Contrataciones del Estado.
             Ingresa con tu cuenta para acceder.
           </p>
+        </div>
+
+        <FormularioDeIngreso />
+
+        <div className="my-5 flex items-center gap-3" aria-hidden>
+          <span className="h-px flex-1 bg-slate-200" />
+          <span className="text-[11px] uppercase tracking-wider text-slate-400">o</span>
+          <span className="h-px flex-1 bg-slate-200" />
         </div>
 
         <OAuthButtons />

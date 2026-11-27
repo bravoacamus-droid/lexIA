@@ -67,6 +67,15 @@ Seguridad (migraciones 0088 y 0089): el navegador ya no escribe en `evaluations`
 Esas escrituras van con `createAdminClient()` después de comprobar el dueño.
 Prueba: `npx tsx scripts/pruebas/seguridad-rls.ts`.
 
+Roles y permisos (migración 0092): el acceso al panel lo decide el rol de
+`permisos_de_usuario` (`src/lib/auth/permisos.ts`: usuario, soporte,
+bibliotecario, administrador, superadmin), no `profiles.is_admin` (que solo
+refleja superadmin). En rutas: `usuarioConPermiso('usuarios')` o
+`tienePermiso(db, userId, permiso)`. Las herramientas de cada cuenta son las de
+su plan más/menos sus ajustes (`herramientasEfectivas`). Las cuentas las crea el
+equipo en `/admin/usuarios` (correo + contraseña temporal). Prueba:
+`npx tsx scripts/pruebas/usuarios-y-roles.ts`.
+
 ## Convenciones
 
 - Todo en español: nombres de funciones y archivos nuevos (`usarHerramienta`,

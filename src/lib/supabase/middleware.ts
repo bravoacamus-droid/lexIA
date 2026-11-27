@@ -78,6 +78,20 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Cuenta creada por el equipo con contraseña temporal (o restablecida):
+  // primero la cambia. `app_metadata` solo lo escribe el servidor.
+  if (
+    user &&
+    isProtected &&
+    user.app_metadata?.debe_cambiar_clave === true &&
+    !path.startsWith('/cuenta/clave')
+  ) {
+    url.pathname = '/cuenta/clave';
+    url.search = '';
+    url.searchParams.set('next', destino);
+    return NextResponse.redirect(url);
+  }
+
   // Autenticado entrando a ruta protegida → verificar onboarding
   // (excepto la propia /onboarding, que es el destino del gate).
   if (user && isProtected && !path.startsWith('/onboarding')) {

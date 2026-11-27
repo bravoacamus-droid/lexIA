@@ -15,6 +15,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { MODEL_PRICING } from '@/lib/ai/usage-log';
+import { tienePermiso } from '@/lib/auth/permisos-servidor';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Admin · Uso de IA' };
@@ -49,12 +50,7 @@ export default async function AdminAiUsagePage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const { data: meProfile } = await supabase
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', user.id)
-    .maybeSingle();
-  if ((meProfile as { is_admin?: boolean } | null)?.is_admin !== true) {
+  if (!(await tienePermiso(supabase, user.id, 'tecnico'))) {
     return (
       <div className="container max-w-2xl py-16">
         <Card className="p-10 text-center">

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { createClient } from '@/lib/supabase/server';
-import { COLUMNAS_DE_TICKET, comoResumen, esAdmin, leerMensaje, type FilaDeTicket } from '@/lib/soporte/servidor';
+import { COLUMNAS_DE_TICKET, comoResumen, atiendeSoporte, leerMensaje, type FilaDeTicket } from '@/lib/soporte/servidor';
 import { asuntoDesde, CATEGORIAS, type CategoriaDeTicket } from '@/lib/soporte/tipos';
 
 export const runtime = 'nodejs';
@@ -30,7 +30,7 @@ export async function GET(req: Request) {
 
   if (new URL(req.url).searchParams.get('resumen') === '1') {
     let porAtender: number | null = null;
-    if (await esAdmin(supabase, user.id)) {
+    if (await atiendeSoporte(supabase, user.id)) {
       const { count } = await supabase
         .from('soporte_tickets')
         .select('id', { count: 'exact', head: true })

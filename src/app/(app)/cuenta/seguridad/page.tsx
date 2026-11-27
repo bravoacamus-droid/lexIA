@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShieldCheck, Lock } from 'lucide-react';
+import Link from 'next/link';
+import { ShieldCheck, Lock, KeyRound } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { DeleteAccountButton } from '@/components/app/account/delete-account-button';
 
 export const dynamic = 'force-dynamic';
@@ -38,12 +40,28 @@ export default async function SeguridadPage() {
             <p className="font-semibold text-sm">Método de inicio de sesión</p>
             <p className="text-xs text-muted-foreground mt-0.5">
               Usas <strong className="capitalize">{primaryProvider}</strong> para
-              autenticarte. La gestión de contraseña se realiza en el proveedor.
+              autenticarte.
             </p>
           </div>
           <div className="ml-auto">
             <Badge variant="success">Activo</Badge>
           </div>
+        </div>
+        <div className="flex items-center gap-3 border-t border-border pt-4">
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-400">
+            <KeyRound className="h-4 w-4" />
+          </span>
+          <div>
+            <p className="font-semibold text-sm">Contraseña</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {providers.includes('email')
+                ? 'Entras con tu correo y contraseña.'
+                : 'Crea una contraseña para entrar también con tu correo.'}
+            </p>
+          </div>
+          <Button asChild variant="outline" size="sm" className="ml-auto">
+            <Link href="/cuenta/clave">{providers.includes('email') ? 'Cambiar' : 'Crear'}</Link>
+          </Button>
         </div>
       </Card>
 

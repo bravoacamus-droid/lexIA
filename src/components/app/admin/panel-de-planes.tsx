@@ -4,7 +4,7 @@
  * Panel de planes (/admin/planes): aquí se activa lo que el cliente pide
  * por WhatsApp —un plan, una recarga— y se suspende una cuenta.
  *
- * Cada acción va a POST /api/admin/planes, que comprueba is_admin. Los
+ * Cada acción va a POST /api/admin/planes, que comprueba el permiso «planes». Los
  * planes de Equipos y Organizaciones crean el equipo con el usuario como
  * propietario; los miembros entran luego con el enlace de invitación.
  */
@@ -41,7 +41,12 @@ async function accion(cuerpo: Record<string, unknown>) {
 
 export function PanelDePlanes() {
   const [cuentas, setCuentas] = useState<Cuenta[] | null>(null);
+  // Desde /admin/usuarios («Cambiar plan o recargar») llega con ?buscar=correo.
   const [filtro, setFiltro] = useState('');
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('buscar');
+    if (q) setFiltro(q);
+  }, []);
   const [asignando, setAsignando] = useState<Cuenta | null>(null);
   const [recargando, setRecargando] = useState<Cuenta | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);

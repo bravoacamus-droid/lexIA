@@ -1,5 +1,6 @@
 import { createClient as createAdmin, type SupabaseClient } from '@supabase/supabase-js';
 import { randomUUID } from 'node:crypto';
+import { tienePermiso } from '@/lib/auth/permisos-servidor';
 import {
   LIMITE_DE_ADJUNTO,
   TIPOS_DE_ADJUNTO,
@@ -25,9 +26,9 @@ export function clienteDeServicio(): SupabaseClient {
   });
 }
 
-export async function esAdmin(supabase: SupabaseClient, userId: string): Promise<boolean> {
-  const { data } = await supabase.from('profiles').select('is_admin').eq('id', userId).maybeSingle();
-  return (data as { is_admin?: boolean } | null)?.is_admin === true;
+/** Si atiende la bandeja de ayuda: roles soporte, administrador y superadmin (0092). */
+export async function atiendeSoporte(supabase: SupabaseClient, userId: string): Promise<boolean> {
+  return tienePermiso(supabase, userId, 'soporte');
 }
 
 /**

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@/lib/supabase/server';
-import { esAdmin } from '@/lib/soporte/servidor';
+import { tienePermiso } from '@/lib/auth/permisos-servidor';
 import { VOICE_MODEL_ID } from '@/lib/ai/voice-config';
 
 export const runtime = 'nodejs';
@@ -27,7 +27,7 @@ export async function GET() {
   }
   // Diagnóstico con llamadas pagas al modelo: solo el equipo (auditoría
   // del 26/11/2026, S6).
-  if (!(await esAdmin(supabase, user.id))) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  if (!(await tienePermiso(supabase, user.id, 'tecnico'))) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) {

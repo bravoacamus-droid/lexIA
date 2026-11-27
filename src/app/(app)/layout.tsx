@@ -5,6 +5,8 @@ import { SurveyPromptModal } from '@/components/app/surveys/survey-prompt-modal'
 import { WidgetDeAyuda } from '@/components/soporte/ayuda/widget-de-ayuda';
 import { bolsaDelUsuario } from '@/lib/billing/creditos';
 import { resumenDeTarjeta } from '@/lib/billing/resumen-de-tarjeta';
+import { rolDe } from '@/lib/auth/permisos-servidor';
+import { permisosDelRol } from '@/lib/auth/permisos';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,9 +51,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect('/login');
   }
 
-  const [{ data: profile }, plan] = await Promise.all([
+  const [{ data: profile }, plan, rol] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
     resumirElPlan(user.id),
+    rolDe(supabase, user.id),
   ]);
 
   return (
@@ -64,7 +67,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         profile_role:
           (profile?.profile_role as 'entity' | 'provider' | 'consultant' | null) || null,
         organization_name: profile?.organization_name || null,
-        is_admin: Boolean(profile?.is_admin),
+        is_admin: permisosDelRol(rol).length > 0,
+        permisos: permisosDelRol(rol),
       }}
       plan={plan}
     >
@@ -76,7 +80,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           nombre: profile?.full_name || null,
           email: user.email || '',
           perfil: (profile?.profile_role as 'entity' | 'provider' | 'consultant' | null) || null,
-          esAdmin: Boolean(profile?.is_admin),
+          esAdmin: permisosDelRol(rol).includes('soporte'),
         }}
       />
     </AppShell>

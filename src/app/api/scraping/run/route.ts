@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { esCronAutorizado } from '@/lib/auth/secreto';
 import { discoverLinks, resolverPdfDeFicha, variantesDeFicha } from '@/lib/scraping/discover';
 import { ingestPdfFromUrl } from '@/lib/scraping/ingest';
+import { tienePermiso } from '@/lib/auth/permisos-servidor';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -62,7 +63,7 @@ interface Source {
 /**
  * Autorización:
  *   1. Bearer token con CRON_SECRET (para Vercel Cron / scripts).
- *   2. Sesión de usuario con profiles.is_admin = true (para el panel).
+ *   2. Sesión de usuario con permiso «tecnico» (superadmin), desde el panel.
  */
 async function authorize(req: Request): Promise<
   | { ok: true; via: 'cron' | 'admin' }
@@ -76,12 +77,7 @@ async function authorize(req: Request): Promise<
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, status: 401, message: 'unauthorized' };
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', user.id)
-    .maybeSingle();
-  const isAdmin = (profile as { is_admin?: boolean } | null)?.is_admin === true;
+  const isAdmin = await tienePermiso(supabase, user.id, 'tecnico');
   if (!isAdmin) return { ok: false, status: 403, message: 'forbidden' };
   return { ok: true, via: 'admin' };
 }

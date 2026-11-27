@@ -8,6 +8,7 @@ import { CommandPalette } from '@/components/app/command-palette';
 import { NavProgress } from '@/components/app/nav-progress';
 import { useUiStore } from '@/lib/stores/ui';
 import type { ResumenDePlan } from '@/lib/billing/resumen-de-tarjeta';
+import type { Permiso } from '@/lib/auth/permisos';
 
 export interface AppUser {
   id: string;
@@ -16,7 +17,10 @@ export interface AppUser {
   avatar_url: string | null;
   profile_role: 'entity' | 'provider' | 'consultant' | null;
   organization_name: string | null;
+  /** Tiene algún permiso del panel: se le muestra la entrada a /admin. */
   is_admin: boolean;
+  /** Sus permisos administrativos (`src/lib/auth/permisos.ts`). */
+  permisos: Permiso[];
 }
 
 /**

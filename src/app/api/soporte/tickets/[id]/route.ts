@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { esAdmin, leerTicket } from '@/lib/soporte/servidor';
+import { atiendeSoporte, leerTicket } from '@/lib/soporte/servidor';
 import { CATEGORIAS, type CategoriaDeTicket, type EstadoDeTicket } from '@/lib/soporte/tipos';
 
 export const runtime = 'nodejs';
@@ -14,7 +14,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  const ticket = await leerTicket(supabase, params.id, { id: user.id, admin: await esAdmin(supabase, user.id) });
+  const ticket = await leerTicket(supabase, params.id, { id: user.id, admin: await atiendeSoporte(supabase, user.id) });
   if (!ticket) return NextResponse.json({ error: 'No encontramos esa conversación.' }, { status: 404 });
   return NextResponse.json({ ticket });
 }
@@ -32,7 +32,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  const admin = await esAdmin(supabase, user.id);
+  const admin = await atiendeSoporte(supabase, user.id);
   const cuerpo = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const cambios: Record<string, unknown> = {};
 
@@ -65,7 +65,7 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  if (!(await esAdmin(supabase, user.id))) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  if (!(await atiendeSoporte(supabase, user.id))) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
   const { error } = await supabase.from('soporte_tickets').delete().eq('id', params.id);
   if (error) return NextResponse.json({ error: 'No se pudo eliminar.' }, { status: 400 });

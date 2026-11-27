@@ -6,6 +6,7 @@ import { Lock, AlertCircle } from 'lucide-react';
 import { AdminScrapingPanel } from '@/components/app/admin/admin-scraping-panel';
 import { EstadoCorrida, SaludActualizador } from '@/components/app/admin/salud-actualizador';
 import { saludDelActualizador } from '@/lib/scraping/salud';
+import { tienePermiso } from '@/lib/auth/permisos-servidor';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Bot de scraping' };
@@ -48,12 +49,7 @@ export default async function AdminScrapingPage() {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', user.id)
-    .maybeSingle();
-  const isAdmin = (profile as { is_admin?: boolean } | null)?.is_admin === true;
+  const isAdmin = await tienePermiso(supabase, user.id, 'tecnico');
 
   if (!isAdmin) {
     return (
@@ -67,7 +63,7 @@ export default async function AdminScrapingPage() {
           </h1>
           <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
             Esta sección es de mantenimiento de la base normativa. Pide al
-            administrador que active <code>is_admin = true</code> en tu perfil
+            administrador que te dé el rol que corresponde
             si necesitas acceso.
           </p>
         </Card>

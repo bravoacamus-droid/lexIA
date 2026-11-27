@@ -5,7 +5,7 @@ import {
   COLUMNAS_DE_TICKET,
   comoResumen,
   datosDeUsuarios,
-  esAdmin,
+  atiendeSoporte,
   type FilaDeTicket,
 } from '@/lib/soporte/servidor';
 import { CATEGORIAS, type CategoriaDeTicket, type EstadoDeTicket } from '@/lib/soporte/tipos';
@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  if (!(await esAdmin(supabase, user.id))) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  if (!(await atiendeSoporte(supabase, user.id))) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
   const url = new URL(req.url);
   const estado = url.searchParams.get('estado') || 'todos';
@@ -82,7 +82,7 @@ export async function POST(req: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  if (!(await esAdmin(supabase, user.id))) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  if (!(await atiendeSoporte(supabase, user.id))) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
   const b = (await req.json().catch(() => ({}))) as { user_id?: string; asunto?: string; cuerpo?: string };
   const cuerpo = (b.cuerpo || '').trim();

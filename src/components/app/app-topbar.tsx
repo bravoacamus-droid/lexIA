@@ -15,6 +15,7 @@ import {
   ChevronDown,
   LifeBuoy,
   Inbox,
+  Users,
 } from 'lucide-react';
 import { abrirAyuda } from '@/components/soporte/ayuda/widget-de-ayuda';
 import { BandejaDelEquipo } from '@/components/soporte/bandeja-del-equipo';
@@ -120,7 +121,7 @@ export function AppTopbar({ user, onOpenPalette, onOpenMobileSidebar }: Props) {
           )}
         </Button>
 
-        {user.is_admin && <BandejaDelEquipo />}
+        {user.permisos.includes('soporte') && <BandejaDelEquipo />}
 
         <Button variant="ghost" size="icon-sm" asChild aria-label="Avisos">
           <Link href="/cuenta/notificaciones">
@@ -210,18 +211,30 @@ export function AppTopbar({ user, onOpenPalette, onOpenMobileSidebar }: Props) {
             {user.is_admin && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/admin">
-                    <Wrench className="h-4 w-4" />
-                    Panel administrador
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/admin/soporte">
-                    <Inbox className="h-4 w-4" />
-                    Bandeja de soporte
-                  </Link>
-                </DropdownMenuItem>
+                {user.permisos.includes('metricas') && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin">
+                      <Wrench className="h-4 w-4" />
+                      Panel administrador
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                {user.permisos.includes('usuarios') && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/usuarios">
+                      <Users className="h-4 w-4" />
+                      Usuarios y roles
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                {user.permisos.includes('soporte') && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/soporte">
+                      <Inbox className="h-4 w-4" />
+                      Bandeja de soporte
+                    </Link>
+                  </DropdownMenuItem>
+                )}
               </>
             )}
             <DropdownMenuSeparator />

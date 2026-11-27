@@ -23,6 +23,7 @@ import type { ProfileRole } from '@/lib/auth/session';
 import { saludDelActualizador } from '@/lib/scraping/salud';
 import { listarCuentas } from '@/lib/billing/gestion';
 import { PLANES, planDelCatalogo } from '@/lib/billing/catalogo';
+import { tienePermiso } from '@/lib/auth/permisos-servidor';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Panel administrador' };
@@ -34,12 +35,7 @@ export default async function AdminPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const { data: meProfile } = await supabase
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', user.id)
-    .maybeSingle();
-  const isAdmin = (meProfile as { is_admin?: boolean } | null)?.is_admin === true;
+  const isAdmin = await tienePermiso(supabase, user.id, 'metricas');
   if (!isAdmin) {
     return (
       <div className="container max-w-2xl py-16">
@@ -52,14 +48,16 @@ export default async function AdminPage() {
           </h1>
           <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
             El panel administrador es para mantenimiento técnico de la
-            plataforma. Pide al administrador que active{' '}
-            <code className="text-foreground">is_admin = true</code> en tu
-            perfil si necesitas acceso.
+            plataforma. Pide al administrador que te dé el rol que corresponde si necesitas acceso.
           </p>
         </Card>
       </div>
     );
   }
+
+  // El mantenimiento técnico (actualizador, voz, uso de IA) es solo del
+  // superadmin; un administrador ve métricas, usuarios, planes y soporte.
+  const tecnico = await tienePermiso(supabase, user.id, 'tecnico');
 
   // Cliente admin que bypasa RLS para leer todo
   const admin = createAdmin(
@@ -162,12 +160,22 @@ export default async function AdminPage() {
           </p>
           <h1 className="font-semibold text-3xl tracking-tight">Métricas globales</h1>
         </div>
-        <Button asChild variant="outline" size="sm">
-          <Link href="/admin/scraping">
-            <Wrench className="h-4 w-4" />
-            Bot de scraping
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild size="sm">
+            <Link href="/admin/usuarios">
+              <Users className="h-4 w-4" />
+              Usuarios y roles
+            </Link>
+          </Button>
+          {tecnico && (
+            <Button asChild variant="outline" size="sm">
+              <Link href="/admin/scraping">
+                <Wrench className="h-4 w-4" />
+                Bot de scraping
+              </Link>
+            </Button>
+          )}
+        </div>
       </header>
 
       {/* Stats principales */}
@@ -422,6 +430,18 @@ export default async function AdminPage() {
             </p>
           </Link>
           <Link
+            href="/admin/usuarios"
+            className="group rounded-xl border border-border bg-card p-5 hover:border-brand-400 hover:shadow-md hover:-translate-y-0.5 transition-all"
+          >
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 dark:bg-brand-950 text-brand-700 dark:text-brand-400 mb-3">
+              <ShieldCheck className="h-4 w-4" />
+            </span>
+            <h3 className="font-semibold text-base mb-1">Usuarios y roles</h3>
+            <p className="text-xs text-muted-foreground">
+              Crea cuentas con correo y contraseña, asigna roles y herramientas, suspende o restablece.
+            </p>
+          </Link>
+          <Link
             href="/admin/planes"
             className="group rounded-xl border border-border bg-card p-5 hover:border-brand-400 hover:shadow-md hover:-translate-y-0.5 transition-all"
           >
@@ -445,6 +465,7 @@ export default async function AdminPage() {
               Estadísticas por perfil y respuestas agregadas.
             </p>
           </Link>
+          {tecnico && (<>
           <Link
             href="/admin/uso-ia"
             className="group rounded-xl border border-border bg-card p-5 hover:border-brand-400 hover:shadow-md hover:-translate-y-0.5 transition-all"
@@ -492,6 +513,7 @@ export default async function AdminPage() {
               Costo real, top usuarios, calificaciones y consentimientos de voz.
             </p>
           </Link>
+          </>)}
           <Card className="p-5 bg-secondary/40">
             <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-secondary text-muted-foreground mb-3">
               <TrendingUp className="h-4 w-4" />

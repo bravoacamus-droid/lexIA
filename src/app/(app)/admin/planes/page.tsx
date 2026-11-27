@@ -3,6 +3,7 @@ import { Lock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
 import { PanelDePlanes } from '@/components/app/admin/panel-de-planes';
+import { tienePermiso } from '@/lib/auth/permisos-servidor';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Admin · Planes y créditos' };
@@ -19,8 +20,7 @@ export default async function AdminPlanesPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const { data: yo } = await supabase.from('profiles').select('is_admin').eq('id', user.id).maybeSingle();
-  if ((yo as { is_admin?: boolean } | null)?.is_admin !== true) {
+  if (!(await tienePermiso(supabase, user.id, 'planes'))) {
     return (
       <div className="container max-w-2xl py-16">
         <Card className="p-10 text-center">

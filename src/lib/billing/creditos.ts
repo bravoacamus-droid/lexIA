@@ -89,6 +89,24 @@ export const HERRAMIENTAS_DEL_PLAN: Record<IdDePlan, Herramienta[]> = {
   organizaciones: TODAS,
 };
 
+/**
+ * Las herramientas que puede usar alguien: las de su plan, más las que el
+ * equipo le habilitó, menos las que le quitó (`permisos_de_usuario`,
+ * migración 0092). César pidió el 26/11/2026 poder darle consulta por
+ * texto y búsqueda avanzada a un usuario sin cambiarle el plan entero.
+ * Las extra se cobran igual en créditos.
+ */
+export function herramientasEfectivas(
+  plan: IdDePlan,
+  ajustes: { extra?: readonly string[] | null; quitadas?: readonly string[] | null } = {},
+): Herramienta[] {
+  const validas = new Set<string>(TODAS);
+  const quitadas = new Set(ajustes.quitadas ?? []);
+  const set = new Set<Herramienta>(HERRAMIENTAS_DEL_PLAN[plan]);
+  for (const h of ajustes.extra ?? []) if (validas.has(h)) set.add(h as Herramienta);
+  return TODAS.filter((h) => set.has(h) && !quitadas.has(h));
+}
+
 /** Desde qué plan está cada herramienta (para decirle al usuario a cuál subir). */
 export function planMinimo(h: Herramienta): IdDePlan {
   for (const p of ['prueba', 'consulta', 'profesional', 'especialista'] as IdDePlan[]) {
@@ -178,6 +196,8 @@ export interface EstadoDeCreditos {
   bolsa: Bolsa;
   plan: IdDePlan;
   equipo: { id: string; nombre: string; rol: 'propietario' | 'miembro' } | null;
+  /** Lo que puede usar: su plan con los ajustes de su cuenta (`herramientasEfectivas`). */
+  herramientas: Herramienta[];
   /** Créditos del mes que quedan (si el periodo ya venció, el mes completo). */
   delMes: number;
   /** Saldo de las recargas vigentes (las vencidas ya no cuentan). */
@@ -197,11 +217,15 @@ export interface EstadoDeCreditos {
  * migración 0086 sin suscripción).
  */
 export async function bolsaDelUsuario(userId: string, cliente: SupabaseClient = admin()): Promise<EstadoDeCreditos> {
-  const { data: miembro } = await cliente
-    .from('miembros_de_equipo')
-    .select('equipo_id, rol, equipos(nombre)')
-    .eq('user_id', userId)
-    .maybeSingle();
+  // En paralelo: los dos se piden en cada uso de una herramienta.
+  const [{ data: miembro }, { data: ajustes }] = await Promise.all([
+    cliente.from('miembros_de_equipo').select('equipo_id, rol, equipos(nombre)').eq('user_id', userId).maybeSingle(),
+    cliente
+      .from('permisos_de_usuario')
+      .select('herramientas_extra, herramientas_quitadas')
+      .eq('user_id', userId)
+      .maybeSingle(),
+  ]);
   let bolsa: Bolsa | null = null;
   if (miembro) {
     const { data } = await cliente.from('bolsas_de_creditos').select('*').eq('equipo_id', miembro.equipo_id).maybeSingle();
@@ -250,6 +274,10 @@ export async function bolsaDelUsuario(userId: string, cliente: SupabaseClient = 
     bolsa,
     plan: bolsa.plan,
     equipo: equipoInfo,
+    herramientas: herramientasEfectivas(bolsa.plan, {
+      extra: (ajustes as { herramientas_extra?: string[] } | null)?.herramientas_extra,
+      quitadas: (ajustes as { herramientas_quitadas?: string[] } | null)?.herramientas_quitadas,
+    }),
     delMes,
     recargas,
     lotes,
@@ -347,8 +375,17 @@ export async function usarHerramienta(
       { plan_sugerido: plan === 'prueba' ? 'consulta' : plan },
     );
   }
-  if (!HERRAMIENTAS_DEL_PLAN[plan].includes(herramienta)) {
+  if (!estado.herramientas.includes(herramienta)) {
     const sugerido = planMinimo(herramienta);
+    if (HERRAMIENTAS_DEL_PLAN[plan].includes(herramienta)) {
+      // Su plan la incluye pero el equipo se la quitó a esta cuenta.
+      return rechazo(
+        estado,
+        herramienta,
+        'herramienta_no_incluida',
+        `${NOMBRE_HERRAMIENTA[herramienta]} no está habilitada para tu cuenta. Consulta con el administrador.`,
+      );
+    }
     return rechazo(
       estado,
       herramienta,

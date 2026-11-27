@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { esAdmin } from '@/lib/soporte/servidor';
+import { tienePermiso } from '@/lib/auth/permisos-servidor';
 import { asignarPlan, listarCuentas, recargar, servicio, suspender } from '@/lib/billing/gestion';
 
 /**
- * Panel de planes (solo administradores). Mientras no haya cobro en
+ * Panel de planes (permiso «planes»: administrador o superadmin). Mientras no haya cobro en
  * línea, aquí se activan los planes y las recargas que el cliente pide
  * por WhatsApp.
  */
@@ -15,7 +15,7 @@ async function administrador() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
-  return (await esAdmin(servicio(), user.id)) ? user : null;
+  return (await tienePermiso(servicio(), user.id, 'planes')) ? user : null;
 }
 
 export async function GET() {

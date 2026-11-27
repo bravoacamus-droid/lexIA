@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { clienteDeServicio, esAdmin } from '@/lib/soporte/servidor';
+import { clienteDeServicio, atiendeSoporte } from '@/lib/soporte/servidor';
 import type { UsuarioDeSoporte } from '@/lib/soporte/tipos';
 
 export const runtime = 'nodejs';
@@ -17,7 +17,7 @@ export async function GET(req: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  if (!(await esAdmin(supabase, user.id))) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  if (!(await atiendeSoporte(supabase, user.id))) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
   const q = (new URL(req.url).searchParams.get('q') || '').trim().toLowerCase();
   const servicio = clienteDeServicio();
