@@ -44,7 +44,7 @@ export const HERRAMIENTAS_DE_VOZ = [
             filter_type: {
               type: 'string',
               description:
-                'Opcional: ley, reglamento, directiva, opinion, pronunciamiento, resolucion, resolucion_tce, acuerdo_sala_plena, lineamiento',
+                'Opcional: ley, reglamento, directiva, opinion, pronunciamiento, resolucion, resolucion_tce, acuerdo_sala_plena, informe_vicio_nulidad, dictamen, lineamiento',
               nullable: true,
             },
           },

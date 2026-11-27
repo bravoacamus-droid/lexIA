@@ -199,7 +199,14 @@ export function conAfines(figura: string[]): string[] {
 }
 
 /** Los tipos que resuelven casos: los que pueden aplicar una consecuencia. */
-const CASUISTICA = new Set(['resolucion_tce', 'pronunciamiento', 'opinion', 'acuerdo_sala_plena']);
+const CASUISTICA = new Set([
+  'resolucion_tce',
+  'pronunciamiento',
+  'opinion',
+  'acuerdo_sala_plena',
+  'informe_vicio_nulidad',
+  'dictamen',
+]);
 /** Por encima de esto un par no distingue el defecto: está en cualquier resolución. */
 const MAX_POR_PAR = 100;
 const POR_PAGINA = 50;

@@ -54,6 +54,11 @@ const CAPAS: Array<{ tipo: string; cupo: number }> = [
   { tipo: 'acuerdo_sala_plena', cupo: 1 },
   { tipo: 'opinion', cupo: 2 },
   { tipo: 'pronunciamiento', cupo: 3 },
+  // Reunión con César del 27/11/2026: el informe IVN es el caso en que el
+  // vicio ya llevó a declarar la nulidad; el dictamen, a un contrato
+  // firmado con la falla. Los dos sostienen una observación (0093).
+  { tipo: 'informe_vicio_nulidad', cupo: 2 },
+  { tipo: 'dictamen', cupo: 1 },
   { tipo: 'directiva', cupo: 1 },
 ];
 
@@ -278,6 +283,8 @@ function rangoDe(trozo: string): number {
   if (/sala plena/i.test(trozo)) return JERARQUIA.indexOf('acuerdo_sala_plena');
   if (/opini[óo]n/i.test(trozo)) return JERARQUIA.indexOf('opinion');
   if (/pronunciamiento/i.test(trozo)) return JERARQUIA.indexOf('pronunciamiento');
+  if (/\bIVN\b|vicio de nulidad/i.test(trozo)) return JERARQUIA.indexOf('informe_vicio_nulidad');
+  if (/dictamen/i.test(trozo)) return JERARQUIA.indexOf('dictamen');
   if (/directiva/i.test(trozo)) return JERARQUIA.indexOf('directiva');
   return JERARQUIA.indexOf('bases_estandar');
 }

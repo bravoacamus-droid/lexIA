@@ -515,6 +515,8 @@ const GRUPO_DEL_TEMA: Record<string, string> = {
   acuerdo_sala_plena: 'Acuerdos de Sala Plena',
   opinion: 'Opiniones y pronunciamientos del OECE',
   pronunciamiento: 'Opiniones y pronunciamientos del OECE',
+  informe_vicio_nulidad: 'Informes de vicio de nulidad',
+  dictamen: 'Dictámenes del OECE',
 };
 /** Cuántas se ven antes de «Mostrar las restantes»: decenas de golpe tapan la respuesta. */
 const VISIBLES_DEL_TEMA = 12;

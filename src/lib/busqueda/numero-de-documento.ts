@@ -52,6 +52,10 @@ export interface NumeroDeDocumento {
 // Tribunal» no es una resolución.
 const TIPOS: Array<[RegExp, NormativeDocType[]]> = [
   [/acuerdo|sala\s+plena/i, ['acuerdo_sala_plena']],
+  // «Informe IVN N.° 045-2026/DSAT», «vicio de nulidad»: antes que
+  // «informe» suelto, que no dice el tipo (migración 0093).
+  [/\bIVN\b|vicios?\s+de\s+nulidad/i, ['informe_vicio_nulidad']],
+  [/dictamen|\bDIC\b/i, ['dictamen']],
   [/resoluci[óo]n|\bres\b|tribunal/i, ['resolucion_tce', 'resolucion']],
   [/opini[óo]n/i, ['opinion']],
   [/pronunciamiento/i, ['pronunciamiento']],

@@ -152,6 +152,8 @@ const NOMBRE_TIPO: Record<string, string> = {
   opinion: 'Opinión',
   resolucion_tce: 'Resolución del Tribunal',
   acuerdo_sala_plena: 'Acuerdo de Sala Plena',
+  informe_vicio_nulidad: 'Informe de vicio de nulidad',
+  dictamen: 'Dictamen',
 };
 
 /**

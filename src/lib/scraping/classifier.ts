@@ -22,6 +22,8 @@ export type NormativeDocType =
   | 'pronunciamiento'
   | 'resolucion_tce'
   | 'acuerdo_sala_plena'
+  | 'informe_vicio_nulidad'
+  | 'dictamen'
   | 'manual_seace'
   | 'tupa'
   | 'comunicado'

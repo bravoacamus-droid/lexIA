@@ -121,6 +121,55 @@ export const SUMMARY_QUESTIONS_BY_TYPE: Record<
       hint: 'Cambios concretos que la Entidad debe implementar en las Bases integradas.',
     },
   ],
+  // Migración 0093 (César, 27/11/2026). El informe IVN nace de una
+  // solicitud de pronunciamiento y termina declarando (o no) la nulidad:
+  // importa qué vicio, qué norma vulnera y hasta dónde se retrotrae.
+  informe_vicio_nulidad: [
+    {
+      key: 'procedimiento',
+      label: '¿Qué procedimiento y qué entidad se revisan?',
+      hint: 'Entidad, nomenclatura del procedimiento, objeto y quién pidió el pronunciamiento.',
+    },
+    {
+      key: 'vicios',
+      label: '¿Qué vicios de nulidad se identificaron?',
+      hint: 'Cada vicio en una oración: qué se exigió o hizo mal en el requerimiento, las bases o la evaluación.',
+    },
+    {
+      key: 'normativa_aplicada',
+      label: '¿Qué normas se vulneraron?',
+      hint: 'Ley, Reglamento, bases estándar y artículos que sustentan la nulidad.',
+    },
+    {
+      key: 'decision',
+      label: '¿Qué se decidió y hasta qué etapa se retrotrae?',
+      hint: 'Si se declara la nulidad, la etapa a la que se retrotrae y qué debe corregir la entidad.',
+    },
+  ],
+  // El dictamen supervisa un procedimiento cuyo contrato ya se firmó: no
+  // hay vuelta atrás, se recomienda corregir y se remite al control.
+  dictamen: [
+    {
+      key: 'procedimiento',
+      label: '¿Qué procedimiento y qué entidad se supervisan?',
+      hint: 'Entidad, nomenclatura del procedimiento, objeto y origen de la supervisión.',
+    },
+    {
+      key: 'deficiencias',
+      label: '¿Qué deficiencias se advirtieron?',
+      hint: 'Cada falla en una oración: en el requerimiento, las bases, la evaluación o el contrato.',
+    },
+    {
+      key: 'normativa_aplicada',
+      label: '¿Qué normas se incumplieron?',
+      hint: 'Ley, Reglamento y artículos citados en el análisis.',
+    },
+    {
+      key: 'recomendaciones',
+      label: '¿Qué se recomienda y a quién se remite?',
+      hint: 'Medidas correctivas para la entidad y si se comunica al órgano de control institucional.',
+    },
+  ],
   // Un acuerdo de Sala Plena no resuelve un caso: fija el criterio con
   // que todas las salas resolverán los que vengan. Por eso no se le
   // pregunta por hechos ni por partes, sino por la duda que zanja y

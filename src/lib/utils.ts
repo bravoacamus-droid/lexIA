@@ -107,6 +107,19 @@ export const DOC_TYPE_META: Record<
     bg: 'bg-fuchsia-100 dark:bg-fuchsia-950',
     tagColor: '#C026D3',
   },
+  // Agregados en migración 0093 (reunión con César, 27/11/2026)
+  informe_vicio_nulidad: {
+    label: 'Informe de vicio de nulidad',
+    color: 'text-red-700 dark:text-red-300',
+    bg: 'bg-red-100 dark:bg-red-950',
+    tagColor: '#DC2626',
+  },
+  dictamen: {
+    label: 'Dictamen',
+    color: 'text-lime-700 dark:text-lime-300',
+    bg: 'bg-lime-100 dark:bg-lime-950',
+    tagColor: '#65A30D',
+  },
   // Agregado en migración 0065
   acuerdo_sala_plena: {
     label: 'Acuerdo de Sala Plena',

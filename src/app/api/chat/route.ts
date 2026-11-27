@@ -516,7 +516,14 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
   let avisoCriterio = '';
   const criterio = enumeracion ? null : await criterioPromesa;
   if (criterio) {
-    const CASUISTICA = ['pronunciamiento', 'opinion', 'resolucion_tce', 'acuerdo_sala_plena'];
+    const CASUISTICA = [
+      'pronunciamiento',
+      'opinion',
+      'resolucion_tce',
+      'acuerdo_sala_plena',
+      'informe_vicio_nulidad',
+      'dictamen',
+    ];
     const TOPE_DOCUMENTOS = 14;
     type Tratado = {
       document_id: string;
@@ -1145,6 +1152,8 @@ SOBRE "${frase}": se han recuperado ${documentos} documentos que contienen esa e
         acuerdo_sala_plena: 3,
         opinion: 3,
         pronunciamiento: 4,
+        informe_vicio_nulidad: 4,
+        dictamen: 4,
         resolucion: 5,
         resolucion_tce: 5,
         guia: 6,

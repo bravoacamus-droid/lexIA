@@ -18,6 +18,8 @@ const ORDER: NormativeDocType[] = [
   'codigo_etica',
   'opinion',
   'pronunciamiento',
+  'informe_vicio_nulidad',
+  'dictamen',
   'resolucion',
   'bases_estandar',
   'nota_tecnica',
