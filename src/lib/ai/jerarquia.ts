@@ -62,6 +62,10 @@ const RANGOS: Record<string, Rango> = {
   resolucion_tce: { capa: 2, orden: 3, etiqueta: 'Resolución del Tribunal' },
   resolucion: { capa: 2, orden: 3, etiqueta: 'Resolución' },
   pronunciamiento: { capa: 2, orden: 4, etiqueta: 'Pronunciamiento' },
+  // Los informes IVN son de la misma DSAT que los pronunciamientos; el
+  // dictamen supervisa un contrato ya firmado (migración 0093).
+  informe_vicio_nulidad: { capa: 2, orden: 4, etiqueta: 'Informe de vicio de nulidad' },
+  dictamen: { capa: 2, orden: 5, etiqueta: 'Dictamen' },
   opinion: { capa: 2, orden: 5, etiqueta: 'Opinión' },
   /**
    * Los casos que ya resolvimos y comprobamos contra la norma.

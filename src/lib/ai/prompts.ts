@@ -358,6 +358,8 @@ function formatDocLabel(c: ChatSource): string {
     pronunciamiento: 'Pronunciamiento',
     resolucion_tce: 'Resolución TCE',
     acuerdo_sala_plena: 'Acuerdo de Sala Plena',
+    informe_vicio_nulidad: 'Informe de vicio de nulidad',
+    dictamen: 'Dictamen',
   };
   // Del texto íntegro de la Ley y el Reglamento: qué norma es este fragmento.
   if (c.parte) return `${c.parte} — fragmento del texto íntegro publicado en El Peruano`;

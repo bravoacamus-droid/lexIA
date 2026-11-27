@@ -31,6 +31,11 @@ export type NormativeDocType =
   // Agregado en migración 0065 — acuerdos de Sala Plena del Tribunal,
   // que fijan el criterio que aplican todas sus salas.
   | 'acuerdo_sala_plena'
+  // Agregados en migración 0093 (reunión con César, 27/11/2026): informes
+  // de la DSAT que declaran la nulidad de un procedimiento, y dictámenes de
+  // supervisión del OECE sobre contratos ya firmados.
+  | 'informe_vicio_nulidad'
+  | 'dictamen'
   // Agregados en migraciones 0020/0056 y 0078 (documento 11 de César,
   // 30/09/2026): las bases estándar como categoría propia, las preguntas
   // frecuentes separadas de las guías y la nota técnica de la DGPMI.

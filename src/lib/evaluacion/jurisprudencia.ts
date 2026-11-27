@@ -116,6 +116,9 @@ const CAPAS: Array<{ tipo: string; nombre: string; cupo: number }> = [
   { tipo: 'resolucion_tce', nombre: 'RESOLUCIONES DEL TRIBUNAL', cupo: 7 },
   { tipo: 'acuerdo_sala_plena', nombre: 'ACUERDOS DE SALA PLENA', cupo: 1 },
   { tipo: 'opinion', nombre: 'OPINIONES DEL OECE', cupo: 3 },
+  // Nulidades declaradas por la DSAT (migración 0093): a veces por cómo
+  // se admitió, calificó o evaluó.
+  { tipo: 'informe_vicio_nulidad', nombre: 'INFORMES DE VICIO DE NULIDAD', cupo: 1 },
 ];
 
 export async function fuentesDeLaBiblioteca(

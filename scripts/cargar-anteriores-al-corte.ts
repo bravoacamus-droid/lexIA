@@ -17,7 +17,13 @@
  * Uso:
  *   npx tsx scripts/cargar-anteriores-al-corte.ts --tipos=opinion,pronunciamiento,directiva
  *   npx tsx scripts/cargar-anteriores-al-corte.ts --url=https://www.gob.pe/institucion/oece/normas-legales/…
+ *   npx tsx scripts/cargar-anteriores-al-corte.ts --tipos=resolucion_tce --hojas=40 --seguir
  *   (--simular para no escribir)
+ *
+ * --seguir: no se detiene en una hoja que ya estaba entera. Los huecos de
+ * resoluciones de octubre y noviembre de 2026 (unas 300, auditoría del
+ * 27/11/2026) están salteados entre hojas completas: sin esto la
+ * recorrida paraba en la segunda hoja.
  */
 import { config as loadEnv } from 'dotenv';
 import { join } from 'node:path';
@@ -32,6 +38,7 @@ const URL_SOLA = arg('url');
 const TIPO_URL = arg('tipo') ?? 'resolucion_tce';
 const SIMULAR = process.argv.includes('--simular');
 const MAX_HOJAS = Number(arg('hojas') ?? 12);
+const SEGUIR = process.argv.includes('--seguir');
 
 const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
 const SERVICE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
@@ -110,7 +117,7 @@ async function main() {
         await sleep(600);
       }
       // Una hoja entera que ya estaba: se alcanzó lo que se tenía.
-      if (faltan.length === 0) break;
+      if (faltan.length === 0 && !SEGUIR) break;
     }
     console.log(`  → cargados ${ok} · con problemas ${fallos}`);
   }

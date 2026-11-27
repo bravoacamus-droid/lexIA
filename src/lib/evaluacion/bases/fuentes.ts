@@ -13,6 +13,8 @@ export type TipoDeFuente =
   | 'acuerdo_sala_plena'
   | 'opinion'
   | 'pronunciamiento'
+  | 'informe_vicio_nulidad'
+  | 'dictamen'
   | 'directiva';
 
 /** El orden de César. Una fuente inferior no deja sin efecto a una superior. */
@@ -24,6 +26,8 @@ export const JERARQUIA: TipoDeFuente[] = [
   'acuerdo_sala_plena',
   'opinion',
   'pronunciamiento',
+  'informe_vicio_nulidad',
+  'dictamen',
   'directiva',
 ];
 
@@ -35,6 +39,8 @@ export const NOMBRE_DE_FUENTE: Record<TipoDeFuente, string> = {
   acuerdo_sala_plena: 'Acuerdo de Sala Plena',
   opinion: 'Opinión del OECE',
   pronunciamiento: 'Pronunciamiento del OECE',
+  informe_vicio_nulidad: 'Informe de vicio de nulidad del OECE',
+  dictamen: 'Dictamen del OECE',
   directiva: 'Directiva',
 };
 

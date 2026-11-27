@@ -118,6 +118,8 @@ const JERARQUIA: Record<string, number> = {
   acuerdo_sala_plena: 4,
   opinion: 5,
   pronunciamiento: 5,
+  informe_vicio_nulidad: 5,
+  dictamen: 5,
 };
 export const rangoDelTema = (tipo: string): number => JERARQUIA[tipo] ?? 6;
 
