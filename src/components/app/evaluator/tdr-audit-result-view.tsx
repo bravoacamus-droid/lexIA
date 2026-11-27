@@ -41,6 +41,7 @@ interface Finding {
   descripcion: string;
   recomendacion: string;
   solicitud?: 'modificar' | 'suprimir' | 'ampliar' | 'precisar' | 'incorporar';
+  origen?: 'auditor' | 'tema' | 'control';
   fundamento_normativo?: Array<{ norma: string; articulo?: string }>;
 }
 
@@ -58,6 +59,8 @@ interface TdrAuditResult {
   stats: { criticos: number; altos: number; medios: number; bajos: number };
   hallazgos: Finding[];
   resumen_ejecutivo: string;
+  /** Fase 1: lo que el contraste por tema revisó contra la biblioteca. */
+  cobertura?: Array<{ tema: string; nombre: string; clausulas: number; documentosEnLaBiblioteca: number; leidos: number; hallazgos: number; error?: string }>;
   /** La versión mejorada, cuando ya se generó. */
   mejora?: MejoraDelRequerimiento;
 }
@@ -278,6 +281,32 @@ export function TdrAuditResultView({ id, title, result, completedAt, origen }: P
           )}
         </Card>
 
+        {/* Fase 1 (27/11/2026): qué se contrastó con la biblioteca, tema por tema. */}
+        {result.cobertura && result.cobertura.length > 0 && (
+          <Card className="p-5">
+            <h2 className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <BookOpen className="h-3.5 w-3.5" />
+              Contraste con la Biblioteca Normativa
+            </h2>
+            <p className="mb-3 text-[12.5px] text-muted-foreground">
+              Cada tema se revisó cláusula por cláusula contra resoluciones del Tribunal, acuerdos de Sala Plena,
+              pronunciamientos, opiniones, informes de vicio de nulidad y dictámenes.
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {result.cobertura.map((c) => (
+                <div key={c.tema} className="rounded-lg border border-border bg-secondary/30 px-3 py-2">
+                  <p className="text-[13px] font-medium leading-snug">{c.nombre}</p>
+                  <p className="mt-0.5 text-[11.5px] text-muted-foreground">
+                    {c.clausulas === 0 ? 'No tiene cláusulas sobre el tema' : `${c.clausulas} cláusula${c.clausulas === 1 ? '' : 's'}`} ·{' '}
+                    {c.leidos} precedente{c.leidos === 1 ? '' : 's'} leído{c.leidos === 1 ? '' : 's'} ·{' '}
+                    {c.error ? 'no se pudo contrastar' : c.hallazgos === 0 ? 'conforme' : `${c.hallazgos} observación${c.hallazgos === 1 ? '' : 'es'}`}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
         <PanelVersionMejorada
           id={id}
           origen={origen}
@@ -318,6 +347,9 @@ export function TdrAuditResultView({ id, title, result, completedAt, origen }: P
                           <span className="text-[11px] text-muted-foreground">
                             Observación N.° {numeroDe.get(h.id)}
                           </span>
+                          {h.origen === 'tema' && (
+                            <Badge variant="default" className="text-[10px]">Contrastado con la biblioteca</Badge>
+                          )}
                           {h.solicitud && (
                             <Badge variant="secondary" className="text-[10px]">Solicitud: {SOLICITUD_LABEL[h.solicitud]}</Badge>
                           )}

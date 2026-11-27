@@ -29,6 +29,7 @@ aunque parezcan raras: son criterio jurídico, no gusto.
 | `src/lib/normativa/` | Formateo de normas, auditor de citas (`citas.ts`) |
 | `src/lib/generadores/` | Generador de requerimientos: `plantillas/*` (una por tipo de procedimiento), `ensamblador.ts` → Word |
 | `src/lib/evaluacion/` | Evaluador de ofertas y de bases: `motor.ts`, etapas, `acta.ts`, `verificacion.ts`, factores |
+| `src/lib/evaluacion/requerimiento/` | Evaluación del requerimiento por tema: `segmentar.ts` (cláusulas con página), `comprobaciones.ts` (lista por tema, a validar con César), `contrastar.ts` (precedentes de la biblioteca + juez por tema) |
 | `src/lib/ejecucion/` | Expedientes de ejecución contractual (ampliaciones, penalidades, liquidación…) |
 | `src/lib/documentos/word.ts` | Salida .docx con la forma de los modelos de César |
 | `src/lib/billing/` | Créditos, catálogo de planes, límites |

@@ -19,7 +19,9 @@ import { generatorModel } from '@/lib/ai/gemini';
 import { textoPorPagina } from '@/lib/ai/pdf';
 import { parseJsonLoose } from '@/lib/ai/json-suelto';
 import { promptDeAuditoriaTdr } from '@/lib/ai/evaluator-prompts';
-import { normalizarAuditoria, reforzarAuditoria } from '@/lib/evaluacion/auditoria-tdr';
+import { fusionarConElContraste, normalizarAuditoria, reforzarAuditoria } from '@/lib/evaluacion/auditoria-tdr';
+import { contrastarPorTema } from '@/lib/evaluacion/requerimiento/contrastar';
+import { segmentarRequerimiento } from '@/lib/evaluacion/requerimiento/segmentar';
 import { denominacionPorRotulo, leerDenominacion } from '@/lib/evaluacion/denominacion';
 
 const RUTA = process.argv[2] ?? '2. DOCUMENTOS PARA PROCEDIMIENTOS DE SELECCIÓN/2. BASES LLENADAS/MODELO DE SERVICIOS/2.- BASES INTEGRADAS CPA 008-2026[R][R][R].pdf';
@@ -52,6 +54,13 @@ void (async () => {
   ok(denominacionPorRotulo('1. DENOMINACIÓN DE LA CONTRATACIÓN: Servicio de mantenimiento preventivo y correctivo de grupo electrógeno.\n\n2. FINALIDAD') ===
     'Servicio de mantenimiento preventivo y correctivo de grupo electrógeno', 'rótulo «Denominación de la contratación»');
 
+  // ── Segmentación ──
+  const clausulas = segmentarRequerimiento(texto, { conPaginas: true });
+  ok(clausulas.length > 5, `${clausulas.length} cláusulas segmentadas`);
+  ok(clausulas.some((c) => c.numeral !== 'No corresponde' && /^\d+$/.test(c.pagina)), 'las cláusulas traen numeral y página');
+  const prueba = segmentarRequerimiento('[[PÁGINA 3]]\n10. PENALIDADES\na) Por cada día de retraso en el informe, S/ 500.\nb) Por no portar uniforme, S/ 200 por ocurrencia.', { conPaginas: true });
+  ok(prueba.length === 3 && prueba[2].literal === 'b)' && prueba[2].numeral === '10' && prueba[2].pagina === '3' && prueba[2].rotulo === 'PENALIDADES', 'numeral 10, literal b), página 3, rótulo PENALIDADES');
+
   // ── Auditoría ──
   const t0 = Date.now();
   const r = await generateText({
@@ -78,10 +87,25 @@ void (async () => {
   const noOmisiones = a.hallazgos.filter((h) => !h.extracto_literal.startsWith('(omisión)')).length;
   ok(citasReales >= noOmisiones * 0.7, `las citas literales existen en el texto (${citasReales}/${noOmisiones})`);
 
-  // ── Biblioteca ──
+  // ── Contraste por tema (Fase 1) ──
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
+  const tC = Date.now();
+  const contraste = await contrastarPorTema(db, texto, { regimen: REGIMEN, objeto: 'servicios', conPaginas: true });
+  console.log(`\nContraste por tema: ${((Date.now() - tC) / 1000).toFixed(0)} s`);
+  for (const c of contraste.cobertura) {
+    console.log(`  · ${c.nombre}: ${c.clausulas} cláusula(s) · ${c.documentosEnLaBiblioteca} doc(s) en la biblioteca · ${c.leidos} leídos · ${c.hallazgos} hallazgo(s)${c.error ? ` · ERROR ${c.error}` : ''}`);
+  }
+  ok(contraste.cobertura.some((c) => c.tema === 'penalidades' && c.documentosEnLaBiblioteca > 0), 'penalidades se contrasta con documentos de la biblioteca');
+  ok(contraste.cobertura.every((c) => !c.error), 'ningún tema falló');
+  const conCita = contraste.hallazgos.filter((h) => (h.fundamento_normativo ?? []).some((f) => f.articulo)).length;
+  ok(contraste.hallazgos.length === 0 || conCita >= contraste.hallazgos.length * 0.6, `los hallazgos del contraste traen precedentes (${conCita}/${contraste.hallazgos.length})`);
+  ok(contraste.hallazgos.every((h) => h.ubicacion_detalle && Object.values(h.ubicacion_detalle).every((v) => v.trim())), 'ubicación del contraste completa');
+  const fusionada = fusionarConElContraste(a, contraste);
+  console.log(`Fusión: ${a.hallazgos.length} del auditor + ${contraste.hallazgos.length} del contraste → ${fusionada.hallazgos.length}`);
+
+  // ── Biblioteca ──
   const t1 = Date.now();
-  const reforzada = await reforzarAuditoria(db, texto, a);
+  const reforzada = await reforzarAuditoria(db, texto, fusionada);
   const conFuentes = reforzada.hallazgos.filter((h) =>
     (h.fundamento_normativo ?? []).some((f) => /resoluci|pronunciamiento|opini|acuerdo|tribunal/i.test(`${f.norma} ${f.articulo ?? ''}`)),
   ).length;

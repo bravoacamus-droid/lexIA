@@ -23,7 +23,8 @@ import { textoDelWord } from '@/lib/evaluacion/mejora/control-de-cambios';
 import { origenDe } from '@/lib/evaluacion/mejora/fuente';
 import { evaluarBases } from '@/lib/evaluacion/bases/evaluar';
 import { cacheEnEvaluacion, camposDeLaLectura, leerBases } from '@/lib/evaluacion/bases/leer';
-import { normalizarAuditoria, reforzarAuditoria } from '@/lib/evaluacion/auditoria-tdr';
+import { fusionarConElContraste, normalizarAuditoria, reforzarAuditoria } from '@/lib/evaluacion/auditoria-tdr';
+import { contrastarPorTema } from '@/lib/evaluacion/requerimiento/contrastar';
 import { buscadorDeSustento } from '@/lib/evaluacion/mejora/sustento';
 import { GENERATOR_MODEL_ID, generatorModel } from '@/lib/ai/gemini';
 import { borrarSubidas, rutasAjenas, rutasDeEvaluacion } from '@/lib/archivos/borrar-subidas';
@@ -238,18 +239,44 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
 
       // El modelo con razonamiento (antes, el más barato y sin razonar):
       // revisar un requerimiento como un especialista necesita pensar.
+      // Dos lecturas a la vez (Fase 1, reunión con César del 27/11/2026):
+      //   · el auditor general, que lee el documento entero;
+      //   · el contraste por tema, que toma las cláusulas de cada tema
+      //     (penalidades, conformidad, pago, experiencia…) y las contrasta
+      //     con TODOS los documentos de la biblioteca que tratan ese tema.
+      // Si el contraste falla, queda el auditor; si falla el auditor, la
+      // evaluación falla como antes.
+      const conPaginas = !esWord && tdrText.includes('[[PÁGINA ');
       const auditStarted = Date.now();
-      const auditRes = await generateText({
-        model: generatorModel,
-        system: promptDeAuditoriaTdr({
-          regimen: ev.regimen,
-          objeto: ev.objeto_contratacion,
-          conPaginas: !esWord && tdrText.includes('[[PÁGINA '),
+      const usoDe = (step: string) => (u: { entrada: number; salida: number }) => {
+        void recordAiUsage({
+          userId: ev.user_id,
+          feature: 'evaluation_tdr_audit',
+          model: GENERATOR_MODEL_ID,
+          inputTokens: u.entrada,
+          outputTokens: u.salida,
+          latencyMs: 0,
+          metadata: { evaluation_id: ev.id, step },
+        });
+      };
+      const [auditRes, contraste] = await Promise.all([
+        generateText({
+          model: generatorModel,
+          system: promptDeAuditoriaTdr({ regimen: ev.regimen, objeto: ev.objeto_contratacion, conPaginas }),
+          prompt: `Audita el siguiente requerimiento. Devuelve EXCLUSIVAMENTE el JSON con la auditoría completa.\n\n${tdrText}`,
+          temperature: 0.2,
+          maxTokens: 32000,
         }),
-        prompt: `Audita el siguiente requerimiento. Devuelve EXCLUSIVAMENTE el JSON con la auditoría completa.\n\n${tdrText}`,
-        temperature: 0.2,
-        maxTokens: 32000,
-      });
+        contrastarPorTema(
+          supabase,
+          paraElModelo,
+          { regimen: ev.regimen, objeto: ev.objeto_contratacion, conPaginas },
+          { alUsar: usoDe('contraste_por_tema') },
+        ).catch((e) => {
+          console.error('[tdr-audit] contraste por tema falló:', (e as Error).message);
+          return { hallazgos: [], cobertura: [] };
+        }),
+      ]);
       void recordAiUsage({
         userId: ev.user_id,
         feature: 'evaluation_tdr_audit',
@@ -260,11 +287,14 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
         metadata: { evaluation_id: ev.id, step: 'audit', regimen: ev.regimen, objeto: ev.objeto_contratacion },
       });
 
-      const auditado = {
-        ...normalizarAuditoria(parseJsonLoose<Record<string, unknown>>(auditRes.text)),
-        regimen: ev.regimen,
-        objeto_contratacion: ev.objeto_contratacion,
-      };
+      const auditado = fusionarConElContraste(
+        {
+          ...normalizarAuditoria(parseJsonLoose<Record<string, unknown>>(auditRes.text)),
+          regimen: ev.regimen,
+          objeto_contratacion: ev.objeto_contratacion,
+        },
+        contraste,
+      );
       // La biblioteca (Tribunal, Sala Plena, OECE) para cada hallazgo y el
       // control de obras como servicios similares (documento 14 de César).
       // Si algo falla, queda la auditoría tal como vino.

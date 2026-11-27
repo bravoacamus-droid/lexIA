@@ -62,6 +62,24 @@ export interface HallazgoDeAuditoria {
   /** Expresiones literales del tema, para buscar en la biblioteca. */
   terminos_clave?: string[];
   fundamento_normativo?: Array<{ norma: string; articulo?: string }>;
+  /**
+   * De dónde sale: el auditor general, el contraste por tema con la
+   * biblioteca (Fase 1, `requerimiento/contrastar.ts`, ya trae sus
+   * precedentes) o un control propio (obras como similares,
+   * disponibilidad del bien).
+   */
+  origen?: 'auditor' | 'tema' | 'control';
+}
+
+/** Lo que el contraste por tema revisó: cuántas cláusulas y cuántos documentos de la biblioteca. */
+export interface CoberturaDeLaRevision {
+  tema: string;
+  nombre: string;
+  clausulas: number;
+  documentosEnLaBiblioteca: number;
+  leidos: number;
+  hallazgos: number;
+  error?: string;
 }
 
 export interface AuditoriaDeRequerimiento {
@@ -73,9 +91,60 @@ export interface AuditoriaDeRequerimiento {
   objeto_contratacion?: 'bienes' | 'servicios' | 'consultoria_obras' | 'obras' | null;
   stats: { criticos: number; altos: number; medios: number; bajos: number };
   hallazgos: HallazgoDeAuditoria[];
+  cobertura?: CoberturaDeLaRevision[];
 }
 
 const NO_CORRESPONDE = 'No corresponde';
+
+const plano = (t: string) =>
+  t
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/^\(omision\)\s*/, '')
+    .trim();
+
+/** ¿Hablan de lo mismo? Misma categoría y misma cita, o mismo numeral y literal. */
+function mismoPunto(a: HallazgoDeAuditoria, b: HallazgoDeAuditoria): boolean {
+  if (a.categoria !== b.categoria) return false;
+  const omisionA = a.extracto_literal.startsWith('(omisión)');
+  const omisionB = b.extracto_literal.startsWith('(omisión)');
+  if (omisionA && omisionB) return true;
+  const ca = plano(a.extracto_literal).slice(0, 60);
+  const cb = plano(b.extracto_literal).slice(0, 60);
+  if (ca.length >= 25 && cb.length >= 25 && (plano(b.extracto_literal).includes(ca) || plano(a.extracto_literal).includes(cb))) return true;
+  const ua = a.ubicacion_detalle;
+  const ub = b.ubicacion_detalle;
+  if (!ua || !ub || ua.numeral === NO_CORRESPONDE) return false;
+  // «f.» y «f)», «3.3» y «3.3.»: el mismo literal escrito distinto (lo
+  // vio la prueba con el CPA 008-2026: «otras penalidades» salía dos veces).
+  const marca = (t: string) => t.toLowerCase().replace(/[^a-z0-9ñ]/g, '');
+  return marca(ua.numeral) === marca(ub.numeral) && marca(ua.literal) === marca(ub.literal);
+}
+
+/**
+ * Junta lo del auditor general con lo del contraste por tema. Si los dos
+ * observan el mismo punto, se queda el del contraste (trae precedentes de
+ * la biblioteca) con la severidad más alta de los dos.
+ */
+export function fusionarConElContraste(
+  auditoria: AuditoriaDeRequerimiento,
+  contraste: { hallazgos: HallazgoDeAuditoria[]; cobertura: CoberturaDeLaRevision[] },
+): AuditoriaDeRequerimiento {
+  const delTema = contraste.hallazgos.map((h) => ({ ...h }));
+  const delAuditor: HallazgoDeAuditoria[] = [];
+  for (const h of auditoria.hallazgos) {
+    const igual = delTema.find((t) => mismoPunto(t, h));
+    if (igual) {
+      if (ORDEN[h.severidad] < ORDEN[igual.severidad]) igual.severidad = h.severidad;
+      continue;
+    }
+    delAuditor.push({ ...h, origen: h.origen ?? 'auditor' });
+  }
+  const hallazgos = [...delTema, ...delAuditor].sort((a, b) => ORDEN[a.severidad] - ORDEN[b.severidad]);
+  return { ...auditoria, hallazgos, stats: contar(hallazgos), cobertura: contraste.cobertura };
+}
 const SOLICITUDES: Solicitud[] = ['modificar', 'suprimir', 'ampliar', 'precisar', 'incorporar'];
 const SEVERIDADES = ['critico', 'alto', 'medio', 'bajo'] as const;
 
@@ -205,6 +274,7 @@ export async function reforzarAuditoria(
         : NORMA_OBRAS_COMO_SIMILARES.replace(/; numeral 6 de la Directiva[^;]*$/, '');
       const nuevos: HallazgoDeAuditoria[] = encontradas.map((o, i) => ({
         id: `obras_como_servicios_similares_${i + 1}`,
+        origen: 'control',
         categoria: 'experiencia_restrictiva',
         severidad: 'critico',
         titulo: 'Se admiten obras como servicios similares en una contratación de servicios',
@@ -240,6 +310,7 @@ export async function reforzarAuditoria(
       const precedentes = await precedentesDeDisponibilidad(cliente).catch(() => []);
       const nuevos: HallazgoDeAuditoria[] = encontradas.map((d, i) => ({
         id: `disponibilidad_del_bien_${i + 1}`,
+        origen: 'control',
         categoria: 'requisito_no_previsto',
         severidad: 'critico',
         titulo:
@@ -279,7 +350,8 @@ export async function reforzarAuditoria(
   const fuentes = await fundamentarConLaBiblioteca(
     cliente,
     hallazgos
-      .filter((h) => !h.id.startsWith('obras_como_servicios_similares'))
+      // Lo del contraste por tema ya viene con sus precedentes.
+      .filter((h) => !h.id.startsWith('obras_como_servicios_similares') && h.origen !== 'tema')
       .map((h) => ({
         id: h.id,
         titulo: h.titulo,
