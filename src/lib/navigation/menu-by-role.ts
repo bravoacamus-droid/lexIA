@@ -20,6 +20,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { ProfileRole } from '@/lib/auth/session';
+import type { Permiso } from '@/lib/auth/permisos';
 
 /**
  * Matriz única de navegación — el único sitio donde se decide qué ve cada
@@ -64,6 +65,13 @@ export interface MenuItem {
   description?: string;
   /** Si está vacío, visible para todos los perfiles. */
   roles?: ProfileRole[];
+  /**
+   * Solo para quien tenga este permiso del equipo. La biblioteca completa
+   * es del equipo: «la biblioteca, ¿mostrarles lo que contiene? Eso es
+   * para mí» (César, reunión del 27/11/2026). Los clientes siguen abriendo
+   * los documentos que el chat les cita y sus Guardados.
+   */
+  soloEquipo?: Permiso;
   /** Próximamente — se muestra grisáceo y no navegable. */
   comingSoon?: boolean;
   /** Color visual del ícono. */
@@ -293,6 +301,7 @@ export const MENU_SECTIONS: MenuSection[] = [
           'Ley N.° 32069 y su Reglamento, TUO de la Ley N.° 27444, opiniones, pronunciamientos, resoluciones del Tribunal, directivas, bases estándar y guías.',
         color: 'emerald',
         corto: 'Biblioteca',
+        soloEquipo: 'biblioteca',
       },
     ],
   },
@@ -342,7 +351,8 @@ export const MENU_SECTIONS: MenuSection[] = [
 ];
 
 /** ¿Este item le corresponde a este perfil? */
-function visiblePara(item: MenuItem, role: ProfileRole | null): boolean {
+function visiblePara(item: MenuItem, role: ProfileRole | null, permisos: readonly Permiso[] = []): boolean {
+  if (item.soloEquipo && !permisos.includes(item.soloEquipo)) return false;
   if (!item.roles || item.roles.length === 0) return true;
   if (!role) return false;
   return item.roles.includes(role);
@@ -354,14 +364,14 @@ function visiblePara(item: MenuItem, role: ProfileRole | null): boolean {
  * todos desaparece con ellos, porque llevaría a un centro de sección
  * vacío.
  */
-export function getMenuFor(role: ProfileRole | null): MenuSection[] {
+export function getMenuFor(role: ProfileRole | null, permisos: readonly Permiso[] = []): MenuSection[] {
   return MENU_SECTIONS.map((section) => ({
     label: section.label,
     items: section.items
-      .filter((item) => visiblePara(item, role))
+      .filter((item) => visiblePara(item, role, permisos))
       .map((item) => {
         if (!item.hijos) return item;
-        const hijos = item.hijos.filter((h) => visiblePara(h, role));
+        const hijos = item.hijos.filter((h) => visiblePara(h, role, permisos));
         return { ...item, hijos };
       })
       .filter((item) => !item.hijos || item.hijos.length > 0),

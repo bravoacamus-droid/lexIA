@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { getMenuFor } from '@/lib/navigation/menu-by-role';
+import type { Permiso } from '@/lib/auth/permisos';
 import type { ProfileRole } from '@/lib/auth/session';
 
 /**
@@ -19,13 +20,13 @@ import type { ProfileRole } from '@/lib/auth/session';
  * Se alimenta del mismo menú, así que a un proveedor que no tenga
  * ninguna herramienta bajo un verbo tampoco le sale el botón.
  */
-export function BarraInferiorMovil({ role }: { role: ProfileRole | null }) {
+export function BarraInferiorMovil({ role, permisos = [] }: { role: ProfileRole | null; permisos?: Permiso[] }) {
   const pathname = usePathname();
 
   const destinos = useMemo(() => {
-    const principal = getMenuFor(role).find((s) => s.label === '');
+    const principal = getMenuFor(role, permisos).find((s) => s.label === '');
     return (principal?.items || []).filter((i) => i.corto).slice(0, 5);
-  }, [role]);
+  }, [role, permisos]);
 
   if (destinos.length === 0) return null;
 

@@ -301,6 +301,11 @@ interface Props {
   /** Años presentes en el corpus, descendente — para el filtro de rango. */
   aniosDisponibles?: number[];
   stats: LibraryStats;
+  /**
+   * Un cliente ve solo sus guardados: la biblioteca completa es del equipo
+   * (César, reunión del 27/11/2026). El filtro queda fijo en «guardados».
+   */
+  soloGuardados?: boolean;
 }
 
 /**
@@ -342,6 +347,7 @@ export function LibraryView({
   typeCounts,
   aniosDisponibles = [],
   stats,
+  soloGuardados = false,
 }: Props) {
   const [folders, setFolders] = useState<FolderItem[]>(initialFolders);
   const [unfiledCount, setUnfiledCount] = useState(initialUnfiled);
@@ -390,8 +396,11 @@ export function LibraryView({
   // hacía falta que el filtro se pudiera pedir desde la URL y no solo
   // con un clic dentro de la página.
   const [quickFilter, setQuickFilter] = useState<'favorites' | 'recent' | null>(
-    urlParams.get('guardados') ? 'favorites' : urlParams.get('recientes') ? 'recent' : null,
+    soloGuardados || urlParams.get('guardados') ? 'favorites' : urlParams.get('recientes') ? 'recent' : null,
   );
+  useEffect(() => {
+    if (soloGuardados && quickFilter !== 'favorites') setQuickFilter('favorites');
+  }, [soloGuardados, quickFilter]);
   /** Corte del filtro "Recientes": hoy menos 30 días, en YYYY-MM-DD. */
   const fechaCorteRecientes = () =>
     new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10);

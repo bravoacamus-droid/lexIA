@@ -46,7 +46,7 @@ export function AppSidebar({ user, plan, mobileOpen, onMobileClose }: Props) {
   // Antes de hidratar asumimos no-colapsado para coincidir con el render del servidor.
   const collapsed = mounted ? storedCollapsed : false;
 
-  const sections = useMemo(() => getMenuFor(user.profile_role), [user.profile_role]);
+  const sections = useMemo(() => getMenuFor(user.profile_role, user.permisos), [user.profile_role, user.permisos]);
 
   // Cerrar el cajón al navegar
   useEffect(() => {

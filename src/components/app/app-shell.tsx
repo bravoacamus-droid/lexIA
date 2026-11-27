@@ -93,7 +93,7 @@ export function AppShell({ user, plan, children }: Props) {
             El `pb-16 md:pb-0` deja sitio a la barra inferior del móvil. */}
         <main className="min-w-0 flex-1 overflow-x-clip pb-16 md:pb-0">{children}</main>
       </div>
-      <BarraInferiorMovil role={user.profile_role} />
+      <BarraInferiorMovil role={user.profile_role} permisos={user.permisos} />
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
     </div>
   );

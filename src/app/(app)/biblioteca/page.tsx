@@ -1,15 +1,26 @@
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { tienePermiso } from '@/lib/auth/permisos-servidor';
 import { LibraryView } from '@/components/app/library/library-view';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Biblioteca normativa' };
 
-export default async function LibraryPage() {
+export default async function LibraryPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
+
+  // La biblioteca completa es del equipo (César, reunión del 27/11/2026:
+  // «¿mostrarles lo que contiene? Eso es para mí»). Un cliente llega a sus
+  // Guardados; los documentos que el chat le cita se siguen abriendo en
+  // /biblioteca/documento/[id].
+  const delEquipo = await tienePermiso(supabase, user.id, 'biblioteca');
+  if (searchParams.guardados !== '1' && !delEquipo) {
+    redirect('/biblioteca?guardados=1');
+  }
 
   // Cargamos en paralelo todo lo que necesita la vista inicial
   const INITIAL_PAGE_SIZE = 30;
@@ -104,6 +115,7 @@ export default async function LibraryPage() {
 
   return (
     <LibraryView
+      soloGuardados={!delEquipo}
       initialFolders={folders}
       unfiledCount={unfiledCount}
       initialDocuments={initialDocuments}
