@@ -112,7 +112,7 @@ Responde SOLO JSON:
 }]}`;
 }
 
-interface Precedente {
+export interface Precedente {
   id: string;
   document_id: string;
   tipo: string;
@@ -145,9 +145,20 @@ const TOPE_PRECEDENTES = 18;
  *     resoluciones, IVN, opiniones…), con la expresión del tema como texto:
  *     trae el caso más parecido aunque la literal no alcance.
  */
-async function precedentesDelTema(db: SupabaseClient, tema: TemaDeComprobacion, clausulas: Clausula[]) {
-  const muestra = clausulas.map((c) => c.texto).join('\n').slice(0, 1_800);
-  const consulta = muestra || `${tema.nombre}. ${tema.revisar.join(' ')}`;
+export async function precedentesParaTexto(
+  db: SupabaseClient,
+  args: {
+    /** El texto del documento observado (cláusulas); vacío si es una omisión. */
+    muestra: string;
+    /** Con qué se busca por parecido. */
+    consulta: string;
+    /** Grupos de expresiones literales (cada grupo, todas a la vez). */
+    expresiones: string[][];
+    /** Para el registro. */
+    etiqueta: string;
+  },
+) {
+  const { muestra, consulta } = args;
 
   // ── Literal ──
   let objeto: string[] = [];
@@ -160,7 +171,7 @@ async function precedentesDelTema(db: SupabaseClient, tema: TemaDeComprobacion, 
   // Sin cláusulas (una omisión) no hay objeto con que afinar, y la
   // expresión sola («forma de pago») está en miles de documentos: la
   // búsqueda por parecido, abajo, basta.
-  for (const grupo of muestra ? tema.expresiones.slice(0, 2) : []) {
+  for (const grupo of muestra ? args.expresiones.slice(0, 2) : []) {
     try {
       // Con el objeto de la cláusula ya entre las palabras, la consulta es
       // angosta desde el principio. Buscar primero la expresión sola
@@ -172,11 +183,11 @@ async function precedentesDelTema(db: SupabaseClient, tema: TemaDeComprobacion, 
       total += f.total;
       for (const d of f.documentos) if (!documentos.has(d.document_id)) documentos.set(d.document_id, d);
     } catch (e) {
-      console.warn('[contraste] literal', tema.id, grupo, (e as Error).message);
+      console.warn('[contraste] literal', args.etiqueta, grupo, (e as Error).message);
     }
   }
   const elegidos = elegirParaElModelo([...documentos.values()], DOCUMENTOS_POR_TEMA, new Set());
-  const literales: Precedente[] = (await fragmentosParaElModelo(db, elegidos, [...tema.expresiones.flat(), ...objeto], 2).catch(() => [])).map(
+  const literales: Precedente[] = (await fragmentosParaElModelo(db, elegidos, [...args.expresiones.flat(), ...objeto], 2).catch(() => [])).map(
     (f) => ({ id: f.id, document_id: f.document_id, tipo: f.doc.tipo, numero: f.doc.numero ?? f.doc.titulo, content: f.content }),
   );
 
@@ -190,7 +201,7 @@ async function precedentesDelTema(db: SupabaseClient, tema: TemaDeComprobacion, 
     const buscar = async (tipo: (typeof CASUISTICOS)[number]) => {
       for (let intento = 1; intento <= 2; intento++) {
         const r = await db.rpc('hybrid_search', {
-          query_text: tema.expresiones[0].join(' '),
+          query_text: (args.expresiones[0]?.join(' ') || consulta.replace(/\s+/g, ' ').slice(0, 120)),
           query_embedding: emb,
           match_count: POR_TIPO_SEMANTICO[tipo] * 3,
           filter_type: tipo,
@@ -204,7 +215,7 @@ async function precedentesDelTema(db: SupabaseClient, tema: TemaDeComprobacion, 
     const porTipo = await deAPocos([...CASUISTICOS], 3, async (tipo): Promise<Precedente[]> => {
       const r = await buscar(tipo);
       if (r.error) {
-        console.warn('[contraste] parecido', tema.id, tipo, r.error.message);
+        console.warn('[contraste] parecido', args.etiqueta, tipo, r.error.message);
         return [];
       }
       const vistos = new Set<string>();
@@ -215,7 +226,7 @@ async function precedentesDelTema(db: SupabaseClient, tema: TemaDeComprobacion, 
     });
     semanticos.push(...porTipo.flat());
   } catch (e) {
-    console.warn('[contraste] parecido', tema.id, (e as Error).message);
+    console.warn('[contraste] parecido', args.etiqueta, (e as Error).message);
   }
 
   // Ocultos fuera (duplicados, derogados).
@@ -230,6 +241,14 @@ async function precedentesDelTema(db: SupabaseClient, tema: TemaDeComprobacion, 
     .filter((f) => !ocultos.has(f.document_id) && !vistos.has(f.id) && (vistos.add(f.id), true))
     .slice(0, TOPE_PRECEDENTES);
   return { total: Math.max(total, new Set(fragmentos.map((f) => f.document_id)).size), fragmentos };
+}
+
+
+/** Los precedentes de un tema del requerimiento, para el juez de ese tema. */
+async function precedentesDelTema(db: SupabaseClient, tema: TemaDeComprobacion, clausulas: Clausula[]) {
+  const muestra = clausulas.map((c) => c.texto).join('\n').slice(0, 1_800);
+  const consulta = muestra || `${tema.nombre}. ${tema.revisar.join(' ')}`;
+  return precedentesParaTexto(db, { muestra, consulta, expresiones: tema.expresiones, etiqueta: tema.id });
 }
 
 function textoDeLasClausulas(clausulas: Clausula[]): string {
