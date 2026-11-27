@@ -30,6 +30,8 @@ export type Severidad = 'critico' | 'alto' | 'medio' | 'bajo';
 
 export interface HallazgoBases {
   id: string;
+  /** Expresiones literales del tema, para buscar en la biblioteca (27/11/2026). */
+  terminosClave?: string[];
   tipo: TipoHallazgoBases;
   severidad: Severidad;
   titulo: string;

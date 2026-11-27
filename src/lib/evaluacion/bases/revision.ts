@@ -53,7 +53,8 @@ const FORMA = `
       "analisis": "<dos a cuatro oraciones: por qué es un problema>",
       "norma": "<la norma que se vulnera o sustenta, o el estándar>",
       "paraElProveedor": { "tipo": "observacion" | "consulta", "solicitud": "<qué se pide al comité>" },
-      "paraLaEntidad": "<qué corregir antes de publicar>"
+      "paraLaEntidad": "<qué corregir antes de publicar>",
+      "terminosClave": ["<2 a 4 expresiones literales y cortas del tema, como aparecerían en un pronunciamiento: p. ej. otras penalidades, experiencia del postor>"]
     }
   ]
 }`.trim();
@@ -296,6 +297,12 @@ export async function revisarCapitulo(p: PeticionDeRevision): Promise<HallazgoBa
         solicitud: texto(prov, 'solicitud'),
       },
       paraLaEntidad: texto(h, 'paraLaEntidad'),
+      // Para buscar en la biblioteca por palabra clave (27/11/2026).
+      terminosClave: (Array.isArray(h.terminosClave) ? (h.terminosClave as unknown[]) : [])
+        .filter((t): t is string => typeof t === 'string')
+        .map((t) => t.replace(/["«»']/g, '').trim())
+        .filter((t) => t.length >= 3 && t.split(/\s+/).length <= 5)
+        .slice(0, 4),
       origen: 'revision',
       avisos: [],
     };

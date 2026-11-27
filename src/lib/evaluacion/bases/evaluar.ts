@@ -522,6 +522,7 @@ async function conLaBiblioteca(
       texto: h.enLasBases,
       analisis: h.analisis,
       norma: [h.norma, ...(h.fuentes ?? []).map((f) => f.numero)].join('; '),
+      claves: h.terminosClave,
     }));
   if (generales.length > 0) {
     problemas.push({
@@ -532,6 +533,7 @@ async function conLaBiblioteca(
         .filter(Boolean)
         .join(' … ')
         .slice(0, 600),
+      claves: ['sección general', 'bases estándar'],
       analisis:
         'Las bases estándar disponen que la Sección General no debe ser modificada en ningún extremo, bajo sanción de nulidad. Las bases del procedimiento cambian u omiten textos de esa sección. Uso obligatorio de las bases estándar.',
       norma: generales[0].norma,
