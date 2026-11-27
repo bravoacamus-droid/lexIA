@@ -66,6 +66,14 @@ export interface ProblemaAFundamentar {
   analisis: string;
   /** Lo que ya se cita, para no repetirlo. */
   norma: string;
+  /**
+   * Expresiones literales del tema («otras penalidades»). La búsqueda de
+   * texto de `hybrid_search` (`plainto_tsquery`) exige TODAS las palabras
+   * de la consulta: con los 700 caracteres de título + texto + análisis
+   * casi nunca encontraba nada y quedaba solo la vectorial. El texto largo
+   * sigue sirviendo para el vector; la palabra clave, para el texto.
+   */
+  claves?: string[];
 }
 
 /**
@@ -91,8 +99,14 @@ const DEPENDENCIAS: Dependencias = {
   },
 };
 
-async function fragmentosDe(cliente: SupabaseClient, consulta: string, dep: Dependencias): Promise<Fragmento[]> {
+async function fragmentosDe(
+  cliente: SupabaseClient,
+  consulta: string,
+  dep: Dependencias,
+  palabras?: string,
+): Promise<Fragmento[]> {
   const texto = consulta.replace(/\s+/g, ' ').slice(0, 700);
+  const lexico = palabras?.replace(/\s+/g, ' ').trim() || texto;
   let emb: number[];
   try {
     emb = await dep.embeber(texto);
@@ -108,7 +122,7 @@ async function fragmentosDe(cliente: SupabaseClient, consulta: string, dep: Depe
       let data: unknown[] | null = null;
       for (let intento = 1; intento <= 2 && data === null; intento++) {
         const r = await cliente.rpc('hybrid_search', {
-          query_text: texto,
+          query_text: lexico,
           query_embedding: emb,
           match_count: capa.cupo * 3,
           filter_type: capa.tipo,
@@ -184,7 +198,7 @@ export async function fundamentarConLaBiblioteca(
     await Promise.all(
       problemas.slice(i, i + 2).map(async (p) => {
         const consulta = `${p.titulo}. ${p.texto.slice(0, 300)} ${p.analisis.slice(0, 300)}`;
-        fragmentos.set(p.id, await fragmentosDe(cliente, consulta, dep));
+        fragmentos.set(p.id, await fragmentosDe(cliente, consulta, dep, p.claves?.[0]));
       }),
     );
   }

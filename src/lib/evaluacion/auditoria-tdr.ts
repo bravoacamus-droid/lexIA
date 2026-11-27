@@ -35,24 +35,112 @@ import {
   TEMA_DISPONIBILIDAD,
 } from './bases/disponibilidad-del-bien';
 
+/** Página, capítulo, numeral y literal; «No corresponde» cuando el documento no tiene ese nivel. */
+export interface UbicacionDetallada {
+  pagina: string;
+  capitulo: string;
+  numeral: string;
+  literal: string;
+}
+
+export type Solicitud = 'modificar' | 'suprimir' | 'ampliar' | 'precisar' | 'incorporar';
+
 /** La forma de un hallazgo de la auditoría (`process/route.ts`). */
 export interface HallazgoDeAuditoria {
   id: string;
   categoria: string;
   severidad: 'critico' | 'alto' | 'medio' | 'bajo';
   titulo: string;
+  /** La ubicación en una línea (la usan la vista, la mejora y el Word). */
   ubicacion: string;
+  /** Desde el 27/11/2026: la ubicación por partes (reunión con César). */
+  ubicacion_detalle?: UbicacionDetallada;
   extracto_literal: string;
   descripcion: string;
   recomendacion: string;
+  solicitud?: Solicitud;
+  /** Expresiones literales del tema, para buscar en la biblioteca. */
+  terminos_clave?: string[];
   fundamento_normativo?: Array<{ norma: string; articulo?: string }>;
 }
 
 export interface AuditoriaDeRequerimiento {
   tipo_documento: 'TDR' | 'EETT' | 'MIXTO';
   objeto_inferido: string;
+  /** La denominación de la contratación, copiada del documento. */
+  denominacion?: string;
+  regimen?: 'menor_8uit' | 'seleccion' | null;
+  objeto_contratacion?: 'bienes' | 'servicios' | 'consultoria_obras' | 'obras' | null;
   stats: { criticos: number; altos: number; medios: number; bajos: number };
   hallazgos: HallazgoDeAuditoria[];
+}
+
+const NO_CORRESPONDE = 'No corresponde';
+const SOLICITUDES: Solicitud[] = ['modificar', 'suprimir', 'ampliar', 'precisar', 'incorporar'];
+const SEVERIDADES = ['critico', 'alto', 'medio', 'bajo'] as const;
+
+function parteDeUbicacion(v: unknown): string {
+  const t = typeof v === 'string' ? v.replace(/\s+/g, ' ').trim() : typeof v === 'number' ? String(v) : '';
+  return t && !/^(n\/?a|ninguno|-+|—)$/i.test(t) ? t.slice(0, 120) : NO_CORRESPONDE;
+}
+
+/** «Pág. 7 · Cap. III. Alcance · Numeral 3.2.1 · Literal b)». */
+export function ubicacionEnUnaLinea(u: UbicacionDetallada): string {
+  return [`Pág. ${u.pagina}`, `Cap. ${u.capitulo}`, `Numeral ${u.numeral}`, `Literal ${u.literal}`].join(' · ');
+}
+
+/**
+ * Deja la salida del modelo en la forma que esperan la vista, la mejora y
+ * el Word: ubicación completa (nunca en blanco), solicitud y severidad
+ * válidas, términos clave cortos y conteos recalculados (el modelo ya no
+ * los da: se equivocaba al sumar).
+ */
+export function normalizarAuditoria(crudo: Record<string, unknown>): AuditoriaDeRequerimiento {
+  const lista = Array.isArray(crudo.hallazgos) ? (crudo.hallazgos as Array<Record<string, unknown>>) : [];
+  const hallazgos: HallazgoDeAuditoria[] = lista
+    .filter((h) => h && typeof h.titulo === 'string' && h.titulo.trim())
+    .map((h, i) => {
+      const d = (h.ubicacion_detalle ?? {}) as Record<string, unknown>;
+      const detalle: UbicacionDetallada = {
+        pagina: parteDeUbicacion(d.pagina),
+        capitulo: parteDeUbicacion(d.capitulo),
+        numeral: parteDeUbicacion(d.numeral),
+        literal: parteDeUbicacion(d.literal),
+      };
+      const conDetalle = Object.values(detalle).some((v) => v !== NO_CORRESPONDE);
+      const severidad = (SEVERIDADES as readonly string[]).includes(String(h.severidad))
+        ? (h.severidad as HallazgoDeAuditoria['severidad'])
+        : 'medio';
+      const solicitud = SOLICITUDES.includes(h.solicitud as Solicitud) ? (h.solicitud as Solicitud) : undefined;
+      return {
+        id: String(h.id || `hallazgo_${i + 1}`).slice(0, 80),
+        categoria: String(h.categoria || 'otro'),
+        severidad,
+        titulo: String(h.titulo).trim(),
+        ubicacion: conDetalle ? ubicacionEnUnaLinea(detalle) : String(h.ubicacion ?? '').trim() || ubicacionEnUnaLinea(detalle),
+        ubicacion_detalle: detalle,
+        extracto_literal: String(h.extracto_literal ?? ''),
+        descripcion: String(h.descripcion ?? ''),
+        recomendacion: String(h.recomendacion ?? ''),
+        ...(solicitud ? { solicitud } : {}),
+        terminos_clave: (Array.isArray(h.terminos_clave) ? h.terminos_clave : [])
+          .filter((t): t is string => typeof t === 'string')
+          .map((t) => t.replace(/["«»']/g, '').trim())
+          .filter((t) => t.length >= 3 && t.split(/\s+/).length <= 5)
+          .slice(0, 4),
+        fundamento_normativo: Array.isArray(h.fundamento_normativo)
+          ? (h.fundamento_normativo as Array<{ norma: string; articulo?: string }>).filter((f) => f && typeof f.norma === 'string')
+          : [],
+      };
+    });
+  const tipo = crudo.tipo_documento;
+  return {
+    tipo_documento: tipo === 'EETT' || tipo === 'MIXTO' ? tipo : 'TDR',
+    objeto_inferido: String(crudo.objeto_inferido ?? ''),
+    denominacion: typeof crudo.denominacion === 'string' ? crudo.denominacion.replace(/\s+/g, ' ').trim().slice(0, 400) : '',
+    stats: contar(hallazgos),
+    hallazgos,
+  };
 }
 
 /**
@@ -198,6 +286,7 @@ export async function reforzarAuditoria(
         texto: h.extracto_literal,
         analisis: h.descripcion,
         norma: (h.fundamento_normativo ?? []).map((f) => f.norma).join('; '),
+        claves: h.terminos_clave,
       })),
     { contexto: auditoria.objeto_inferido, alUsar },
   ).catch(() => new Map<string, FuenteCitada[]>());

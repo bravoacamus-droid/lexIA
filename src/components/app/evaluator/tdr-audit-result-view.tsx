@@ -35,11 +35,22 @@ interface Finding {
   severidad: Severity;
   titulo: string;
   ubicacion: string;
+  /** Desde el 27/11/2026 (reunión con César): página, capítulo, numeral y literal. */
+  ubicacion_detalle?: { pagina: string; capitulo: string; numeral: string; literal: string };
   extracto_literal: string;
   descripcion: string;
   recomendacion: string;
+  solicitud?: 'modificar' | 'suprimir' | 'ampliar' | 'precisar' | 'incorporar';
   fundamento_normativo?: Array<{ norma: string; articulo?: string }>;
 }
+
+const SOLICITUD_LABEL: Record<NonNullable<Finding['solicitud']>, string> = {
+  modificar: 'Modificar',
+  suprimir: 'Suprimir',
+  ampliar: 'Ampliar',
+  precisar: 'Precisar',
+  incorporar: 'Incorporar',
+};
 
 interface TdrAuditResult {
   tipo_documento: 'TDR' | 'EETT' | 'MIXTO';
@@ -104,6 +115,11 @@ const CATEGORY_LABEL: Record<string, string> = {
   experiencia_restrictiva: 'Experiencia restrictiva',
   finalidad_publica_debil: 'Finalidad pública débil',
   requisito_no_previsto: 'Requisito no previsto',
+  conformidad: 'Conformidad',
+  forma_de_pago: 'Forma de pago',
+  penalidades: 'Penalidades',
+  garantias: 'Garantías',
+  incoherencia: 'Incoherencia interna',
   otro: 'Otro',
 };
 
@@ -302,6 +318,9 @@ export function TdrAuditResultView({ id, title, result, completedAt, origen }: P
                           <span className="text-[11px] text-muted-foreground">
                             Observación N.° {numeroDe.get(h.id)}
                           </span>
+                          {h.solicitud && (
+                            <Badge variant="secondary" className="text-[10px]">Solicitud: {SOLICITUD_LABEL[h.solicitud]}</Badge>
+                          )}
                           {m && <InsigniaVeredicto veredicto={m.veredicto} />}
                         </div>
                         <h3 className="font-semibold text-base leading-snug">{h.titulo}</h3>
@@ -321,6 +340,18 @@ export function TdrAuditResultView({ id, title, result, completedAt, origen }: P
 
                     {isOpen && (
                       <div className="border-t border-border px-5 py-4 space-y-4 bg-secondary/20">
+                        {h.ubicacion_detalle && (
+                          <dl className="grid grid-cols-2 gap-2 rounded-lg border-l-2 border-brand-400 bg-background/60 px-3 py-2 sm:grid-cols-4">
+                            {(['pagina', 'capitulo', 'numeral', 'literal'] as const).map((k) => (
+                              <div key={k}>
+                                <dt className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
+                                  {k === 'pagina' ? 'Página' : k === 'capitulo' ? 'Capítulo' : k === 'numeral' ? 'Numeral' : 'Literal'}
+                                </dt>
+                                <dd className="text-[12.5px] text-foreground/90">{h.ubicacion_detalle![k]}</dd>
+                              </div>
+                            ))}
+                          </dl>
+                        )}
                         {h.extracto_literal && (
                           <div>
                             <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-1 flex items-center gap-1">

@@ -63,6 +63,9 @@ const createSchema = z
     // entra en el plan Consulta; si es de un procedimiento de selección,
     // desde Profesional. Sin el dato, se trata como de selección.
     regimen: z.enum(['menor_8uit', 'seleccion']).optional(),
+    // Qué se contrata: el auditor del requerimiento revisa según el objeto
+    // (reunión con César, 27/11/2026; columna de la migración 0094).
+    objeto_contratacion: z.enum(['bienes', 'servicios', 'consultoria_obras', 'obras']).optional(),
   })
   .refine(
     (v) =>
@@ -159,6 +162,9 @@ export async function POST(req: Request) {
       offer_files: parsed.data.offer_files as never,
       bases_partes: parsed.data.bases_partes?.length ? parsed.data.bases_partes : null,
       mode: parsed.data.mode,
+      ...(parsed.data.mode === 'tdr_audit'
+        ? { regimen: parsed.data.regimen ?? 'seleccion', objeto_contratacion: parsed.data.objeto_contratacion ?? null }
+        : {}),
     } as never)
     .select('id, title, status, created_at, mode')
     .single();

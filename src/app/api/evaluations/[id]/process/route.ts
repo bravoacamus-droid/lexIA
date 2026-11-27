@@ -7,6 +7,7 @@ import {
   extractPdfText,
   PdfHasNoTextError,
   PDF_OCR_INSTRUCTIONS,
+  textoPorPagina,
 } from '@/lib/ai/pdf';
 import {
   REQUIREMENTS_EXTRACTION_PROMPT,
@@ -14,7 +15,7 @@ import {
   EVALUATION_SUMMARY_PROMPT,
   SELF_REVIEW_EVALUATION_PROMPT,
   SELF_REVIEW_SUMMARY_PROMPT,
-  TDR_AUDIT_PROMPT,
+  promptDeAuditoriaTdr,
   TDR_AUDIT_SUMMARY_PROMPT,
 } from '@/lib/ai/evaluator-prompts';
 import { parseJsonLoose } from '@/lib/ai/json-suelto';
@@ -22,9 +23,9 @@ import { textoDelWord } from '@/lib/evaluacion/mejora/control-de-cambios';
 import { origenDe } from '@/lib/evaluacion/mejora/fuente';
 import { evaluarBases } from '@/lib/evaluacion/bases/evaluar';
 import { cacheEnEvaluacion, camposDeLaLectura, leerBases } from '@/lib/evaluacion/bases/leer';
-import { reforzarAuditoria } from '@/lib/evaluacion/auditoria-tdr';
+import { normalizarAuditoria, reforzarAuditoria } from '@/lib/evaluacion/auditoria-tdr';
 import { buscadorDeSustento } from '@/lib/evaluacion/mejora/sustento';
-import { GENERATOR_MODEL_ID } from '@/lib/ai/gemini';
+import { GENERATOR_MODEL_ID, generatorModel } from '@/lib/ai/gemini';
 import { borrarSubidas, rutasAjenas, rutasDeEvaluacion } from '@/lib/archivos/borrar-subidas';
 import { guardarLectura } from '@/lib/archivos/bases-leidas';
 
@@ -91,7 +92,7 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
 
   const { data: evalData, error: evalErr } = await supabase
     .from('evaluations')
-    .select('id, bases_file_path, bases_partes, offer_files, user_id, status, mode')
+    .select('id, bases_file_path, bases_partes, offer_files, user_id, status, mode, regimen, objeto_contratacion')
     .eq('id', ctx.params.id)
     .maybeSingle();
 
@@ -106,6 +107,8 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
     user_id: string;
     status: string;
     mode: EvalMode | null;
+    regimen: 'menor_8uit' | 'seleccion' | null;
+    objeto_contratacion: 'bienes' | 'servicios' | 'consultoria_obras' | 'obras' | null;
   };
   const mode: EvalMode = ev.mode || 'committee';
   if (ev.user_id !== user.id) {
@@ -205,40 +208,63 @@ export async function POST(_req: Request, ctx: { params: { id: string } }) {
       // la versión mejorada con control de cambios sobre su documento. Se
       // lee con el mismo lector de párrafos que después marca los cambios.
       // Del PDF, extractPdfText lanza PdfHasNoTextError si es un escaneo.
-      const fullTdrText =
-        origenDe(ev.bases_file_path) === 'docx'
-          ? await textoDelWord(Buffer.from(tdrBlob))
-          : (await extractPdfText(tdrBlob)).text;
+      const esWord = origenDe(ev.bases_file_path) === 'docx';
+      const fullTdrText = esWord
+        ? await textoDelWord(Buffer.from(tdrBlob))
+        : (await extractPdfText(tdrBlob)).text;
 
-      // Cap a 60k chars para no saturar al LLM
-      const tdrText = fullTdrText.length > 60_000
-        ? fullTdrText.slice(0, 30_000)
-            + '\n\n[... contenido intermedio omitido por longitud ...]\n\n'
-            + fullTdrText.slice(-30_000)
-        : fullTdrText;
+      // Reunión con César, 27/11/2026: «¿qué página, qué numeral, qué
+      // literal?». Del PDF se le pasan al modelo las páginas marcadas; el
+      // texto sin marcas sigue sirviendo a los controles con expresiones.
+      let paraElModelo = fullTdrText;
+      if (!esWord) {
+        try {
+          const paginas = await textoPorPagina(tdrBlob);
+          if (paginas.length > 0) paraElModelo = paginas.map((t, i) => `[[PÁGINA ${i + 1}]]\n${t}`).join('\n\n');
+        } catch {
+          /* sin páginas, el texto corrido */
+        }
+      }
+      // Antes se cortaba a 60 mil caracteres quitando el medio: en un
+      // requerimiento largo se perdían justo el alcance y las penalidades.
+      // El modelo con razonamiento lee 1 M de tokens; el tope solo frena
+      // documentos anómalos (~100 mil tokens).
+      const TOPE = 400_000;
+      const tdrText =
+        paraElModelo.length > TOPE
+          ? `${paraElModelo.slice(0, TOPE / 2)}\n\n[... contenido intermedio omitido por longitud ...]\n\n${paraElModelo.slice(-TOPE / 2)}`
+          : paraElModelo;
       console.log(`[tdr-audit] TDR: ${fullTdrText.length} → ${tdrText.length} chars`);
 
+      // El modelo con razonamiento (antes, el más barato y sin razonar):
+      // revisar un requerimiento como un especialista necesita pensar.
       const auditStarted = Date.now();
       const auditRes = await generateText({
-        model: chatModel,
-        system: TDR_AUDIT_PROMPT,
-        prompt: `Audita el siguiente documento de Términos de Referencia / Especificaciones Técnicas. Devuelve EXCLUSIVAMENTE el JSON con la auditoría completa.\n\n${tdrText}`,
+        model: generatorModel,
+        system: promptDeAuditoriaTdr({
+          regimen: ev.regimen,
+          objeto: ev.objeto_contratacion,
+          conPaginas: !esWord && tdrText.includes('[[PÁGINA '),
+        }),
+        prompt: `Audita el siguiente requerimiento. Devuelve EXCLUSIVAMENTE el JSON con la auditoría completa.\n\n${tdrText}`,
         temperature: 0.2,
-        maxTokens: 8000,
+        maxTokens: 32000,
       });
       void recordAiUsage({
         userId: ev.user_id,
         feature: 'evaluation_tdr_audit',
-        model: CHAT_MODEL_ID,
+        model: GENERATOR_MODEL_ID,
         inputTokens: auditRes.usage?.promptTokens ?? 0,
         outputTokens: auditRes.usage?.completionTokens ?? 0,
         latencyMs: Date.now() - auditStarted,
-        metadata: { evaluation_id: ev.id, step: 'audit' },
+        metadata: { evaluation_id: ev.id, step: 'audit', regimen: ev.regimen, objeto: ev.objeto_contratacion },
       });
 
-      const auditado = parseJsonLoose<Omit<TdrAuditResult, 'resumen_ejecutivo'>>(
-        auditRes.text,
-      );
+      const auditado = {
+        ...normalizarAuditoria(parseJsonLoose<Record<string, unknown>>(auditRes.text)),
+        regimen: ev.regimen,
+        objeto_contratacion: ev.objeto_contratacion,
+      };
       // La biblioteca (Tribunal, Sala Plena, OECE) para cada hallazgo y el
       // control de obras como servicios similares (documento 14 de César).
       // Si algo falla, queda la auditoría tal como vino.

@@ -1,12 +1,14 @@
 'use client';
 
 /**
- * Subir unas bases para evaluarlas. Un solo paso: el nombre y el archivo.
+ * Subir unas bases para evaluarlas. Un solo paso: el archivo y su
+ * denominación, que se lee del documento (reunión con César, 27/11/2026:
+ * «la denominación ya se completa sola»). El usuario la puede corregir.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, FileText } from 'lucide-react';
+import { Sparkles, FileText, Loader2, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,6 +40,35 @@ export function BasesWizard() {
   const [enviando, setEnviando] = useState(false);
   const [procesando, setProcesando] = useState(false);
   const { confirmar, dialogo } = useConfirmarConsumo();
+  const [leyendo, setLeyendo] = useState(false);
+  const [detectada, setDetectada] = useState(false);
+  const [editado, setEditado] = useState(false);
+  const lectura = useRef(0);
+
+  async function alSubir(f: Subido | null) {
+    setArchivo(f);
+    setDetectada(false);
+    if (!f) return;
+    const turno = ++lectura.current;
+    setLeyendo(true);
+    try {
+      const r = await fetch('/api/evaluations/denominacion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: f.path }),
+      });
+      const j = (await r.json().catch(() => ({}))) as { denominacion?: string | null };
+      if (turno !== lectura.current) return;
+      if (j.denominacion && !editado) {
+        setTitulo(j.denominacion.slice(0, 160));
+        setDetectada(true);
+      } else if (!titulo.trim()) {
+        setTitulo(f.name.replace(/\.(pdf|docx)$/i, '').slice(0, 160));
+      }
+    } finally {
+      if (turno === lectura.current) setLeyendo(false);
+    }
+  }
 
   async function empezar() {
     if (!archivo || titulo.trim().length < 3) return;
@@ -98,30 +129,41 @@ export function BasesWizard() {
               </p>
             </div>
 
-            <div>
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Nombre del procedimiento
-              </Label>
-              <Input
-                value={titulo}
-                onChange={(e) => setTitulo(e.target.value)}
-                placeholder="CP-SM-3-2026 — Servicio de mantenimiento de vehículos"
-                maxLength={160}
-                className="mt-1.5 h-11"
-                autoFocus
-              />
-            </div>
-
             <PdfDropzone
               folder="bases-audit"
               value={archivo}
-              onChange={setArchivo}
+              onChange={alSubir}
               tipos={{
                 'application/pdf': ['.pdf'],
                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
               }}
               label="Arrastra las bases o haz clic para subirlas"
             />
+
+            <div>
+              <Label htmlFor="denominacion-bases" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Denominación de la contratación
+              </Label>
+              <div className="relative mt-1.5">
+                <Input
+                  id="denominacion-bases"
+                  value={titulo}
+                  onChange={(e) => {
+                    setTitulo(e.target.value);
+                    setEditado(true);
+                    setDetectada(false);
+                  }}
+                  placeholder={archivo ? '' : 'Se completa sola al subir las bases'}
+                  maxLength={160}
+                  className="h-11 pr-10"
+                />
+                {leyendo && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />}
+              </div>
+              <p className="mt-1.5 flex items-center gap-1 text-[11px] text-muted-foreground" aria-live="polite">
+                {leyendo ? 'Leyendo la denominación de las bases…' : detectada ? (<><Wand2 className="h-3 w-3" /> Detectada de las bases. Puedes corregirla.</>) : 'Puedes editarla.'}
+              </p>
+            </div>
+
 
             {archivo && (
               <div className="rounded-lg border border-border bg-secondary/30 p-4 flex items-start gap-3">
@@ -139,7 +181,7 @@ export function BasesWizard() {
             <div className="flex justify-end">
               <Button
                 onClick={empezar}
-                disabled={!archivo || titulo.trim().length < 3 || enviando}
+                disabled={!archivo || leyendo || titulo.trim().length < 3 || enviando}
                 loading={enviando}
                 size="lg"
                 variant="glow"
